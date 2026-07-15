@@ -1,0 +1,357 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- 필터 패널 -->
+<div class="card mb-3 shadow-sm">
+  <div class="card-body py-2">
+    <div class="row g-2 align-items-end">
+      <div class="col-auto">
+        <label class="form-label mb-1 small fw-semibold">연도</label>
+        <select id="filterYear" class="form-select form-select-sm" style="min-width:90px">
+          <option value="">전체</option>
+          {% for y in years %}
+          <option value="{{ y }}">{{ y }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-auto">
+        <label class="form-label mb-1 small fw-semibold">파트</label>
+        <select id="filterPart" class="form-select form-select-sm" style="min-width:110px">
+          <option value="">전체</option>
+          {% for p in parts %}
+          <option value="{{ p }}">{{ p }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-auto">
+        <label class="form-label mb-1 small fw-semibold">보고단계</label>
+        <select id="filterStage" class="form-select form-select-sm" style="min-width:110px">
+          <option value="">전체</option>
+          {% for s in stages %}
+          <option value="{{ s }}">{{ s }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-auto ms-auto">
+        <button class="btn btn-sm btn-outline-secondary" id="btnReload" title="Excel 재로드">
+          ↺ 데이터 갱신
+        </button>
+        <span class="text-muted small ms-2">마지막 로드: {{ last_loaded }}</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- KPI 카드 -->
+<div class="row g-3 mb-3" id="kpiCards">
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body text-center">
+        <div class="kpi-label text-muted small">총매출</div>
+        <div class="kpi-value text-primary fw-bold fs-5" id="kpiRevenue">-</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body text-center">
+        <div class="kpi-label text-muted small">지출합계</div>
+        <div class="kpi-value text-danger fw-bold fs-5" id="kpiExpenditure">-</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body text-center">
+        <div class="kpi-label text-muted small">경상이익</div>
+        <div class="kpi-value text-success fw-bold fs-5" id="kpiProfit">-</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body text-center">
+        <div class="kpi-label text-muted small">평균 이익율</div>
+        <div class="kpi-value fw-bold fs-5" id="kpiRate">-</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 차트 -->
+<div class="row g-3 mb-3">
+  <div class="col-12 col-md-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-header bg-white border-bottom py-2 small fw-semibold">파트별 매출 / 지출</div>
+      <div class="card-body" style="height:280px">
+        <canvas id="chartRevExp"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-md-3">
+    <div class="card shadow-sm h-100">
+      <div class="card-header bg-white border-bottom py-2 small fw-semibold">원가 구성</div>
+      <div class="card-body d-flex align-items-center justify-content-center" style="height:280px">
+        <canvas id="chartCost"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-md-3">
+    <div class="card shadow-sm h-100">
+      <div class="card-header bg-white border-bottom py-2 small fw-semibold">파트별 이익율(%)</div>
+      <div class="card-body" style="height:280px">
+        <canvas id="chartRate"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 데이터 테이블 -->
+<div class="card shadow-sm mb-4">
+  <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between" style="padding: 10px 16px;">
+    <span class="fw-semibold" style="font-size:0.88rem">
+      프로젝트 재무 상세
+      <span class="badge rounded-pill ms-1" id="rowCount"
+            style="background:#e8edf5;color:#5a6a85;font-size:0.75rem;font-weight:600">-</span>
+    </span>
+    <button id="btnCsvExport"
+            style="display:inline-flex;align-items:center;gap:6px;padding:5px 14px;font-size:0.8rem;font-weight:600;
+                   color:#2563eb;background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:8px;
+                   cursor:pointer;transition:all .15s;line-height:1.4"
+            onmouseover="this.style.background='#dbeafe';this.style.borderColor='#93c5fd'"
+            onmouseout="this.style.background='#eff6ff';this.style.borderColor='#bfdbfe'">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+        <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+        <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+      </svg>
+      CSV 내보내기
+    </button>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table id="mainTable" class="table table-sm table-hover mb-0" style="font-size:0.82rem">
+        <thead class="table-dark">
+          <tr>
+            <th>프로젝트코드</th>
+            <th>연도</th>
+            <th>파트</th>
+            <th>보고단계</th>
+            <th class="text-end">총매출</th>
+            <th class="text-end">지출합계</th>
+            <th class="text-end">직접원가</th>
+            <th class="text-end">직접인건비</th>
+            <th class="text-end">공통원가/관리비</th>
+            <th class="text-end">경상이익</th>
+            <th class="text-end">이익율(%)</th>
+            <th>비고</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const FMT = new Intl.NumberFormat('ko-KR');
+const FMT_WON = (v) => FMT.format(Math.round(v)) + '원';
+const FMT_BILL = (v) => {
+  const b = v / 100000000;
+  if (Math.abs(b) >= 1) return b.toFixed(1) + '억';
+  return FMT.format(Math.round(v / 10000)) + '만';
+};
+
+let chartRevExp = null, chartCost = null, chartRate = null;
+let dt = null;
+
+function getFilters() {
+  const year = $('#filterYear').val();
+  const part = $('#filterPart').val();
+  const stage = $('#filterStage').val();
+  const params = new URLSearchParams();
+  if (year) params.append('year', year);
+  if (part) params.append('part', part);
+  if (stage) params.append('stage', stage);
+  return params;
+}
+
+function updateKPI(summary) {
+  $('#kpiRevenue').text(FMT_BILL(summary.total_revenue));
+  $('#kpiExpenditure').text(FMT_BILL(summary.total_expenditure));
+  const profitEl = $('#kpiProfit');
+  profitEl.text(FMT_BILL(summary.total_profit));
+  profitEl.removeClass('text-success text-danger');
+  profitEl.addClass(summary.total_profit >= 0 ? 'text-success' : 'text-danger');
+  $('#kpiRate').text(summary.avg_profit_rate + '%');
+}
+
+function updateCharts(summary) {
+  const partLabels = Object.keys(summary.by_part);
+  const revData = partLabels.map(p => Math.round(summary.by_part[p].revenue / 100000000));
+  const expData = partLabels.map(p => Math.round(summary.by_part[p].expenditure / 100000000));
+  const profitRates = partLabels.map(p => {
+    const d = summary.by_part[p];
+    return d.revenue > 0 ? Math.round((d.profit / d.revenue) * 1000) / 10 : 0;
+  });
+
+  // 파트별 매출/지출 가로 막대
+  if (chartRevExp) chartRevExp.destroy();
+  chartRevExp = new Chart(document.getElementById('chartRevExp'), {
+    type: 'bar',
+    data: {
+      labels: partLabels,
+      datasets: [
+        { label: '총매출(억)', data: revData, backgroundColor: 'rgba(54,132,235,0.7)' },
+        { label: '지출(억)', data: expData, backgroundColor: 'rgba(220,80,80,0.7)' }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      indexAxis: 'y',
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } },
+      scales: { x: { ticks: { font: { size: 10 } } }, y: { ticks: { font: { size: 10 } } } }
+    }
+  });
+
+  // 원가 구성 도넛
+  const cb = summary.cost_breakdown;
+  if (chartCost) chartCost.destroy();
+  chartCost = new Chart(document.getElementById('chartCost'), {
+    type: 'doughnut',
+    data: {
+      labels: ['직접원가', '직접인건비', '공통원가/관리비'],
+      datasets: [{
+        data: [
+          Math.round(cb.direct_cost / 100000),
+          Math.round(cb.labor_cost / 100000),
+          Math.round(cb.overhead / 100000)
+        ],
+        backgroundColor: ['rgba(255,159,64,0.8)', 'rgba(75,192,192,0.8)', 'rgba(153,102,255,0.8)']
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 10 } } } }
+    }
+  });
+
+  // 파트별 이익율
+  if (chartRate) chartRate.destroy();
+  chartRate = new Chart(document.getElementById('chartRate'), {
+    type: 'bar',
+    data: {
+      labels: partLabels,
+      datasets: [{
+        label: '이익율(%)',
+        data: profitRates,
+        backgroundColor: profitRates.map(v => v >= 0 ? 'rgba(40,167,69,0.75)' : 'rgba(220,53,69,0.75)')
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { ticks: { font: { size: 10 } } }, y: { ticks: { font: { size: 10 }, callback: v => v + '%' } } }
+    }
+  });
+}
+
+function updateTable(rows) {
+  if (dt) { dt.destroy(); $('#mainTable tbody').empty(); }
+  $('#rowCount').text(rows.length);
+
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = '';
+  rows.forEach(r => {
+    const tr = document.createElement('tr');
+    const profitCls = r.operating_profit >= 0 ? 'text-success' : 'text-danger';
+    const noteHtml = r.note && r.note.length > 30
+      ? `<span title="${r.note.replace(/"/g, '&quot;')}" style="cursor:help">${r.note.substring(0,30)}…</span>`
+      : r.note;
+    tr.innerHTML = `
+      <td class="text-nowrap"><small>${r.project_code}</small></td>
+      <td>${r.year}</td>
+      <td><span class="badge bg-secondary">${r.part}</span></td>
+      <td><span class="badge ${stageBadge(r.stage)}">${r.stage}</span></td>
+      <td class="text-end text-nowrap">${FMT.format(r.revenue)}</td>
+      <td class="text-end text-nowrap">${FMT.format(r.expenditure)}</td>
+      <td class="text-end text-nowrap">${FMT.format(r.direct_cost)}</td>
+      <td class="text-end text-nowrap">${FMT.format(r.labor_cost)}</td>
+      <td class="text-end text-nowrap">${FMT.format(r.overhead)}</td>
+      <td class="text-end text-nowrap ${profitCls} fw-semibold">${FMT.format(r.operating_profit)}</td>
+      <td class="text-end">${r.profit_rate > 0 ? r.profit_rate + '%' : '-'}</td>
+      <td class="text-muted" style="max-width:200px;overflow:hidden;white-space:nowrap">${noteHtml}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  dt = $('#mainTable').DataTable({
+    language: { url: 'https://cdn.datatables.net/plug-ins/1.13.8/i18n/ko.json' },
+    pageLength: 25,
+    order: [],
+    dom: 'frtip',
+    columnDefs: [{ orderable: false, targets: 11 }]
+  });
+}
+
+function stageBadge(s) {
+  const map = { '확정': 'bg-primary', '완료': 'bg-success', '중간': 'bg-warning text-dark',
+                '계획': 'bg-info text-dark', '정산보고': 'bg-dark', '사업계획': 'bg-secondary', '추가': 'bg-light text-dark' };
+  return map[s] || 'bg-secondary';
+}
+
+function refresh() {
+  const params = getFilters();
+  $.getJSON('/api/summary?' + params.toString(), summary => {
+    updateKPI(summary);
+    updateCharts(summary);
+  });
+  $.getJSON('/api/data?' + params.toString(), rows => {
+    updateTable(rows);
+  });
+}
+
+$(document).ready(function () {
+  refresh();
+
+  $('#filterYear, #filterPart, #filterStage').on('change', refresh);
+
+  $('#btnCsvExport').on('click', function () {
+    const headers = ['프로젝트코드','연도','파트','보고단계','총매출','지출합계','직접원가','직접인건비','공통원가/관리비','경상이익','이익율(%)','비고'];
+    const params = getFilters();
+    $.getJSON('/api/data?' + params.toString(), rows => {
+      const lines = [headers.join(',')];
+      rows.forEach(r => {
+        const cols = [
+          r.project_code, r.year, r.part, r.stage,
+          r.revenue, r.expenditure, r.direct_cost, r.labor_cost,
+          r.overhead, r.operating_profit, r.profit_rate,
+          '"' + (r.note || '').replace(/"/g, '""') + '"'
+        ];
+        lines.push(cols.join(','));
+      });
+      const bom = '﻿';
+      const blob = new Blob([bom + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = '재무데이터.csv'; a.click();
+      URL.revokeObjectURL(url);
+    });
+  });
+
+  $('#btnReload').on('click', function () {
+    $(this).prop('disabled', true).text('로딩 중…');
+    $.post('/api/reload', data => {
+      $(this).prop('disabled', false).text('↺ 데이터 갱신');
+      if (data.ok) {
+        refresh();
+        alert('데이터를 갱신했습니다. (' + data.loaded_at + ')');
+      } else {
+        alert('오류: ' + data.error);
+      }
+    });
+  });
+});
+</script>
+{% endblock %}

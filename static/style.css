@@ -1,0 +1,9 @@
+body { background: #f5f6fa; font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif; }
+.navbar { box-shadow: 0 2px 4px rgba(0,0,0,0.15); }
+.card { border-radius: 10px; }
+.kpi-label { font-size: 0.78rem; letter-spacing: 0.03em; }
+.kpi-value { font-size: 1.35rem; }
+th { font-size: 0.78rem; white-space: nowrap; }
+td { vertical-align: middle; }
+.dt-buttons .btn { font-size: 0.78rem; }
+#mainTable_filter input { font-size: 0.85rem; }
