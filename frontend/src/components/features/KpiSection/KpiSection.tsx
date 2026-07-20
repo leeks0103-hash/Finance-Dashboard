@@ -1,12 +1,16 @@
-import { useSummary } from '@/hooks/useSummary';
+import { useKpiViewModel } from '@/hooks/viewmodels';
 import { KpiCard } from '@/components/ui';
-import { formatBillion, formatRate } from '@/utils';
 import styles from './KpiSection.module.css';
 
+/**
+ * KpiSection
+ * - 훅: useKpiViewModel() — 데이터 fetch, 포맷, null 처리 담당
+ * - 컴포넌트: 렌더링만. 비즈니스 로직 없음.
+ */
 const KpiSection = () => {
-  const { data, isLoading } = useSummary();
+  const vm = useKpiViewModel();
 
-  if (isLoading || !data) return (
+  if (vm.isLoading) return (
     <div className={styles.grid}>
       {[0,1,2,3].map(i => <div key={i} className={styles.skeleton} />)}
     </div>
@@ -14,10 +18,10 @@ const KpiSection = () => {
 
   return (
     <div className={styles.grid}>
-      <KpiCard accent="brand"  icon="↑" label="총매출"     value={formatBillion(data.total_revenue)} />
-      <KpiCard accent="loss"   icon="↓" label="지출합계"   value={formatBillion(data.total_expenditure)} />
-      <KpiCard accent="profit" icon="₩" label="경상이익"   value={formatBillion(data.total_profit)} />
-      <KpiCard accent="warn"   icon="%" label="평균 이익율" value={formatRate(data.avg_profit_rate)} />
+      <KpiCard accent="brand"  icon="↑" label="총매출"     value={vm.revenue} />
+      <KpiCard accent="loss"   icon="↓" label="지출합계"   value={vm.expenditure} />
+      <KpiCard accent="profit" icon="₩" label="경상이익"   value={vm.profit} />
+      <KpiCard accent="warn"   icon="%" label="평균 이익율" value={vm.rate} />
     </div>
   );
 };

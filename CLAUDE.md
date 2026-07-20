@@ -20,9 +20,54 @@ graph LR
 ```
 
 ## 기술 스택
-- **Backend**: Python · Flask · openpyxl · waitress
-- **Frontend**: Bootstrap 5 · Bootstrap Icons · Chart.js · Jinja2
+- **Backend**: Python · Flask · pandas · reportlab · waitress
+- **Frontend (legacy)**: Bootstrap 5 · Bootstrap Icons · Chart.js · Jinja2 (`templates/`)
+- **Frontend (new)**: Vite · React · TypeScript (`frontend/`) — 아래 아키텍처 규칙 참고
 - **데이터**: 로컬 엑셀 파일 (시트명: `취합`)
+
+## Frontend 아키텍처 규칙 (`frontend/src/`)
+
+### 레이어 의존성 (단방향, 절대 역방향 금지)
+```
+types/ → utils/ → api/ → store/ → hooks/ → viewmodels/ → ui/ → features/ → pages/ → App
+```
+
+### 각 레이어 책임 (이 원칙을 깨면 리뷰에서 반드시 지적)
+
+| 레이어 | 책임 | 금지 사항 |
+|--------|------|-----------|
+| `types/` | TypeScript 인터페이스만 | 로직 없음 |
+| `utils/` | 순수 함수 (formatBillion 등) | 사이드이펙트 없음 |
+| `api/` | HTTP 통신만 | 변환 로직 없음 |
+| `store/` | Zustand 필터 상태 | API 호출 없음 |
+| `hooks/` | React Query data fetching | 렌더링 없음 |
+| `hooks/viewmodels/` | **데이터 fetch + 변환 + null 처리 전부** | 컴포넌트 import 없음 |
+| `components/ui/` | 순수 presentational (props만) | hooks/api import 없음 |
+| `components/features/` | ViewModel 호출 + ui 조합 | 비즈니스 로직 없음 |
+| `pages/` | 섹션 조합 + ErrorBoundary | 직접 API 호출 없음 |
+| `App.tsx` | lazy + Suspense 관리만 | |
+
+### 핵심 원칙: 훅이 모든 걸 책임진다
+- **컴포넌트는 ViewModel 훅을 호출하고 렌더링만** 한다
+- `if (isLoading || !data)`, `formatBillion(data.x)` 같은 로직이 **컴포넌트에 있으면 잘못된 것**
+- 포맷팅·null 처리·조건 분기는 전부 `hooks/viewmodels/`에서 처리
+
+```tsx
+// ❌ 틀린 패턴 — 컴포넌트에 로직
+const { data, isLoading } = useSummary();
+if (isLoading || !data) return <Skeleton />;
+return <KpiCard value={formatBillion(data.total_revenue)} />;
+
+// ✅ 맞는 패턴 — 훅이 책임, 컴포넌트는 렌더링만
+const vm = useKpiViewModel();
+if (vm.isLoading) return <Skeleton />;
+return <KpiCard value={vm.revenue} />;
+```
+
+### 버튼은 반드시 `<Button variant="...">` 사용
+- `variant`: primary / danger / success / ghost
+- `loading` prop으로 로딩 상태 처리
+- `<button>` 직접 사용 금지
 
 ## 파일 구조
 ```

@@ -1,18 +1,20 @@
 import { useExport } from '@/hooks/useExport';
+import { Button } from '@/components/ui';
 import styles from './ActionBar.module.css';
 
-interface Props { lastLoaded?: string; }
-
-const ActionBar = ({ lastLoaded }: Props) => {
+/**
+ * ActionBar
+ * - 훅: useExport() — CSV/PDF/Reload 동작 전부 담당
+ * - 컴포넌트: 렌더링만.
+ */
+const ActionBar = () => {
   const { exportCsv, exportPdf, reload, isReloading } = useExport();
+
   return (
     <div className={styles.bar}>
-      {lastLoaded && <span className={styles.time}>{lastLoaded}</span>}
-      <button className={`${styles.btn} ${styles.csv}`} onClick={exportCsv}>↓ CSV</button>
-      <button className={`${styles.btn} ${styles.pdf}`} onClick={exportPdf}>↓ PDF</button>
-      <button className={`${styles.btn} ${styles.reload}`} onClick={() => reload()} disabled={isReloading}>
-        {isReloading ? '⟳ 갱신 중…' : '↺ 갱신'}
-      </button>
+      <Button variant="success" onClick={exportCsv}>↓ CSV</Button>
+      <Button variant="danger"  onClick={exportPdf}>↓ PDF</Button>
+      <Button variant="ghost"   onClick={() => reload()} loading={isReloading}>↺ 갱신</Button>
     </div>
   );
 };
