@@ -1,7 +1,8 @@
 import os
 import json
 from datetime import datetime
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, make_response
+import pandas as pd
 
 app = Flask(__name__)
 
@@ -12,299 +13,354 @@ EXCEL_PATH = (
     "\\재무관점 필수 데이터 추출.xlsx"
 )
 
-_cached_data = []
+COLUMNS = [
+    "project_code", "year", "part", "stage",
+    "revenue", "expenditure", "direct_cost", "labor_cost",
+    "overhead", "operating_profit", "profit_rate",
+    "note", "filename", "processed_at", "reflected_at",
+]
+
+_cached_df: pd.DataFrame = pd.DataFrame()
 _last_loaded = None
 
 
 def load_excel():
-    global _cached_data, _last_loaded
-    import openpyxl
-    wb = openpyxl.load_workbook(EXCEL_PATH, data_only=True)
-    ws = wb["취합"]
-    rows = []
-    for r in ws.iter_rows(min_row=2, values_only=True):
-        if not r[0]:
-            continue
-        def safe_num(v):
-            if v is None:
-                return 0
-            try:
-                s = str(v).replace('%', '').replace(',', '').strip()
-                return float(s)
-            except Exception:
-                return 0
+    global _cached_df, _last_loaded
+    df = pd.read_excel(EXCEL_PATH, sheet_name="취합", header=0, usecols=range(15))
+    df.columns = COLUMNS
+    df = df[df["project_code"].notna() & (df["project_code"] != "")]
 
-        profit_rate = r[10]
-        if profit_rate is None:
-            profit_rate_val = 0
-        else:
-            try:
-                s = str(profit_rate).replace('%', '').strip()
-                profit_rate_val = float(s)
-            except Exception:
-                profit_rate_val = 0
+    num_cols = ["revenue", "expenditure", "direct_cost", "labor_cost",
+                "overhead", "operating_profit", "profit_rate"]
+    for col in num_cols:
+        df[col] = (
+            df[col].astype(str)
+            .str.replace("%", "", regex=False)
+            .str.replace(",", "", regex=False)
+            .str.strip()
+        )
+        df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
 
-        rows.append({
-            "project_code": str(r[0]) if r[0] else "",
-            "year": str(r[1]) if r[1] else "",
-            "part": str(r[2]) if r[2] else "",
-            "stage": str(r[3]) if r[3] else "",
-            "revenue": safe_num(r[4]),
-            "expenditure": safe_num(r[5]),
-            "direct_cost": safe_num(r[6]),
-            "labor_cost": safe_num(r[7]),
-            "overhead": safe_num(r[8]),
-            "operating_profit": safe_num(r[9]),
-            "profit_rate": profit_rate_val,
-            "note": str(r[11]) if r[11] and str(r[11]) != "0" else "",
-            "filename": str(r[12]) if r[12] else "",
-            "processed_at": str(r[13]) if r[13] else "",
-            "reflected_at": str(r[14]) if r[14] else "",
-        })
-    _cached_data = rows
+    str_cols = ["project_code", "year", "part", "stage",
+                "note", "filename", "processed_at", "reflected_at"]
+    for col in str_cols:
+        df[col] = df[col].astype(str).replace("nan", "").replace("0", "")
+
+    _cached_df = df
     _last_loaded = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    return rows
+    return df
 
 
-def get_data():
-    if not _cached_data:
+def get_df() -> pd.DataFrame:
+    if _cached_df.empty:
         load_excel()
-    return _cached_data
+    return _cached_df
+
+
+def apply_filters(df: pd.DataFrame) -> pd.DataFrame:
+    year = request.args.get("year", "")
+    parts = request.args.getlist("part")
+    stages = request.args.getlist("stage")
+    if year:
+        df = df[df["year"] == year]
+    if parts:
+        df = df[df["part"].isin(parts)]
+    if stages:
+        df = df[df["stage"].isin(stages)]
+    return df
+
+
+def bil(v):
+    b = v / 100_000_000
+    return f"{b:.1f}억원" if abs(b) >= 1 else f"{v / 10_000:.0f}만원"
 
 
 @app.route("/")
 def index():
-    data = get_data()
-    years = sorted({r["year"] for r in data if r["year"] and r["year"] != "-"})
-    parts = sorted({r["part"] for r in data if r["part"] and r["part"] != "-"})
-    stages = sorted({r["stage"] for r in data if r["stage"]})
+    df = get_df()
+    years = sorted(df[df["year"].str.strip() != ""]["year"].unique())
+    parts = sorted(df[df["part"].str.strip() != ""]["part"].unique())
+    stages = sorted(df[df["stage"].str.strip() != ""]["stage"].unique())
     return render_template(
         "index.html",
-        years=years,
-        parts=parts,
-        stages=stages,
+        years=years, parts=parts, stages=stages,
         last_loaded=_last_loaded,
     )
 
 
 @app.route("/api/data")
 def api_data():
-    data = get_data()
-    year = request.args.get("year", "")
-    parts = request.args.getlist("part")
-    stages = request.args.getlist("stage")
-
-    filtered = data
-    if year:
-        filtered = [r for r in filtered if r["year"] == year]
-    if parts:
-        filtered = [r for r in filtered if r["part"] in parts]
-    if stages:
-        filtered = [r for r in filtered if r["stage"] in stages]
-
-    return jsonify(filtered)
+    df = apply_filters(get_df())
+    return jsonify(df.to_dict(orient="records"))
 
 
 @app.route("/api/summary")
 def api_summary():
-    data = get_data()
-    year = request.args.get("year", "")
-    parts = request.args.getlist("part")
-    stages = request.args.getlist("stage")
+    df = apply_filters(get_df())
+    if df.empty:
+        return jsonify({
+            "total_revenue": 0, "total_expenditure": 0, "total_profit": 0,
+            "avg_profit_rate": 0, "count": 0, "by_part": {}, "cost_breakdown": {}
+        })
 
-    filtered = data
-    if year:
-        filtered = [r for r in filtered if r["year"] == year]
-    if parts:
-        filtered = [r for r in filtered if r["part"] in parts]
-    if stages:
-        filtered = [r for r in filtered if r["stage"] in stages]
-
-    total_revenue = sum(r["revenue"] for r in filtered)
-    total_expenditure = sum(r["expenditure"] for r in filtered)
-    total_profit = sum(r["operating_profit"] for r in filtered)
-    rates = [r["profit_rate"] for r in filtered if r["profit_rate"] > 0]
-    avg_rate = round(sum(rates) / len(rates), 1) if rates else 0
-
-    # 파트별 집계
-    part_map = {}
-    for r in filtered:
-        p = r["part"]
-        if p not in part_map:
-            part_map[p] = {"revenue": 0, "expenditure": 0, "profit": 0, "count": 0}
-        part_map[p]["revenue"] += r["revenue"]
-        part_map[p]["expenditure"] += r["expenditure"]
-        part_map[p]["profit"] += r["operating_profit"]
-        part_map[p]["count"] += 1
-
-    # 원가 구성
-    cost_breakdown = {
-        "direct_cost": sum(r["direct_cost"] for r in filtered),
-        "labor_cost": sum(r["labor_cost"] for r in filtered),
-        "overhead": sum(r["overhead"] for r in filtered),
-    }
+    rates = df[df["profit_rate"] > 0]["profit_rate"]
+    by_part = (
+        df.groupby("part")
+        .agg(
+            revenue=("revenue", "sum"),
+            expenditure=("expenditure", "sum"),
+            profit=("operating_profit", "sum"),
+            count=("project_code", "count"),
+        )
+        .to_dict(orient="index")
+    )
 
     return jsonify({
-        "total_revenue": total_revenue,
-        "total_expenditure": total_expenditure,
-        "total_profit": total_profit,
-        "avg_profit_rate": avg_rate,
-        "count": len(filtered),
-        "by_part": part_map,
-        "cost_breakdown": cost_breakdown,
+        "total_revenue": df["revenue"].sum(),
+        "total_expenditure": df["expenditure"].sum(),
+        "total_profit": df["operating_profit"].sum(),
+        "avg_profit_rate": round(rates.mean(), 1) if not rates.empty else 0,
+        "count": len(df),
+        "by_part": by_part,
+        "cost_breakdown": {
+            "direct_cost": df["direct_cost"].sum(),
+            "labor_cost": df["labor_cost"].sum(),
+            "overhead": df["overhead"].sum(),
+        },
     })
 
 
 @app.route("/api/insights")
 def api_insights():
-    data = get_data()
-    year = request.args.get("year", "")
-    parts = request.args.getlist("part")
-    stages = request.args.getlist("stage")
+    df = apply_filters(get_df())
+    valid = df[df["revenue"] > 0].copy()
 
-    filtered = data
-    if year:
-        filtered = [r for r in filtered if r["year"] == year]
-    if parts:
-        filtered = [r for r in filtered if r["part"] in parts]
-    if stages:
-        filtered = [r for r in filtered if r["stage"] in stages]
-
-    if not filtered:
+    if valid.empty:
         return jsonify({"top": [], "risk": [], "comments": []})
 
-    valid = [r for r in filtered if r["revenue"] > 0]
+    top5 = (
+        valid[valid["profit_rate"] > 0]
+        .nlargest(5, "profit_rate")
+        [["project_code", "part", "stage", "revenue", "operating_profit", "profit_rate"]]
+        .to_dict(orient="records")
+    )
+    risk = (
+        valid[(valid["operating_profit"] < 0) | (valid["profit_rate"] < 5)]
+        .nsmallest(5, "operating_profit")
+        [["project_code", "part", "stage", "revenue", "operating_profit", "profit_rate"]]
+        .to_dict(orient="records")
+    )
 
-    # 이익율 기준 TOP 5
-    top5 = sorted(
-        [r for r in valid if r["profit_rate"] > 0],
-        key=lambda r: r["profit_rate"], reverse=True
-    )[:5]
+    part_stats = valid.groupby("part").agg(
+        revenue=("revenue", "sum"),
+        profit=("operating_profit", "sum"),
+        count=("project_code", "count"),
+        avg_rate=("profit_rate", lambda x: round(x[x > 0].mean(), 1) if (x > 0).any() else 0),
+    )
 
-    # 손실 or 저수익(5% 미만) 프로젝트
-    risk = sorted(
-        [r for r in valid if r["operating_profit"] < 0 or r["profit_rate"] < 5],
-        key=lambda r: r["operating_profit"]
-    )[:5]
+    total_revenue = valid["revenue"].sum()
+    total_profit = valid["operating_profit"].sum()
+    rates_all = valid[valid["profit_rate"] > 0]["profit_rate"]
+    avg_rate = round(rates_all.mean(), 1) if not rates_all.empty else 0
+    loss_count = int((valid["operating_profit"] < 0).sum())
+    total_dc = valid["direct_cost"].sum()
+    total_lc = valid["labor_cost"].sum()
+    total_oh = valid["overhead"].sum()
+    total_cost = total_dc + total_lc + total_oh
 
-    # 파트별 집계
-    part_map = {}
-    for r in valid:
-        p = r["part"]
-        if p not in part_map:
-            part_map[p] = {"revenue": 0, "profit": 0, "count": 0, "rates": []}
-        part_map[p]["revenue"] += r["revenue"]
-        part_map[p]["profit"] += r["operating_profit"]
-        part_map[p]["count"] += 1
-        if r["profit_rate"] > 0:
-            part_map[p]["rates"].append(r["profit_rate"])
-
-    total_revenue = sum(r["revenue"] for r in valid)
-    total_profit  = sum(r["operating_profit"] for r in valid)
-    rates_all     = [r["profit_rate"] for r in valid if r["profit_rate"] > 0]
-    avg_rate      = round(sum(rates_all) / len(rates_all), 1) if rates_all else 0
-    loss_count    = sum(1 for r in valid if r["operating_profit"] < 0)
-    total_dc      = sum(r["direct_cost"] for r in valid)
-    total_lc      = sum(r["labor_cost"]  for r in valid)
-    total_oh      = sum(r["overhead"]    for r in valid)
-    total_cost    = total_dc + total_lc + total_oh
-
-    # 파트별 평균 이익율
-    for p in part_map:
-        rs = part_map[p]["rates"]
-        part_map[p]["avg_rate"] = round(sum(rs) / len(rs), 1) if rs else 0
-
-    best_part  = max(part_map, key=lambda p: part_map[p]["avg_rate"]) if part_map else None
-    worst_part = min(part_map, key=lambda p: part_map[p]["avg_rate"]) if part_map else None
-    top_rev_part = max(part_map, key=lambda p: part_map[p]["revenue"]) if part_map else None
-    biggest = max(valid, key=lambda r: r["revenue"]) if valid else None
-
-    def bil(v):
-        b = v / 100000000
-        return f"{b:.1f}억원" if abs(b) >= 1 else f"{v/10000:.0f}만원"
+    best_part = part_stats["avg_rate"].idxmax() if not part_stats.empty else None
+    worst_part = part_stats["avg_rate"].idxmin() if not part_stats.empty else None
+    top_rev_part = part_stats["revenue"].idxmax() if not part_stats.empty else None
+    biggest = valid.nlargest(1, "revenue").iloc[0] if not valid.empty else None
 
     comments = []
 
-    if best_part and part_map[best_part]["avg_rate"] > avg_rate:
-        gap = round(part_map[best_part]["avg_rate"] - avg_rate, 1)
+    if best_part and part_stats.loc[best_part, "avg_rate"] > avg_rate:
+        gap = round(part_stats.loc[best_part, "avg_rate"] - avg_rate, 1)
         comments.append({
-            "type": "positive",
-            "icon": "📈",
-            "text": f"<b>{best_part}</b> 파트의 평균 이익율은 <b>{part_map[best_part]['avg_rate']}%</b>로, 전체 평균({avg_rate}%)보다 <b>{gap}%p</b> 높습니다."
+            "type": "positive", "icon": "📈",
+            "text": f"<b>{best_part}</b> 파트의 평균 이익율은 <b>{part_stats.loc[best_part, 'avg_rate']}%</b>로, 전체 평균({avg_rate}%)보다 <b>{gap}%p</b> 높습니다."
         })
 
-    if top_rev_part:
-        rev_share = round(part_map[top_rev_part]["revenue"] / total_revenue * 100, 1) if total_revenue else 0
+    if top_rev_part is not None:
+        rev_share = round(part_stats.loc[top_rev_part, "revenue"] / total_revenue * 100, 1) if total_revenue else 0
         comments.append({
-            "type": "info",
-            "icon": "💼",
-            "text": f"매출 비중이 가장 큰 파트는 <b>{top_rev_part}</b>으로, 전체 매출의 <b>{rev_share}%</b>({bil(part_map[top_rev_part]['revenue'])})를 차지합니다."
+            "type": "info", "icon": "💼",
+            "text": f"매출 비중이 가장 큰 파트는 <b>{top_rev_part}</b>으로, 전체 매출의 <b>{rev_share}%</b>({bil(part_stats.loc[top_rev_part, 'revenue'])})를 차지합니다."
         })
 
-    if biggest:
+    if biggest is not None:
         comments.append({
-            "type": "info",
-            "icon": "🏆",
+            "type": "info", "icon": "🏆",
             "text": f"단일 최대 매출 프로젝트는 <b>{biggest['project_code']}</b>({biggest['part']} · {biggest['stage']})으로 <b>{bil(biggest['revenue'])}</b>입니다."
         })
 
     if total_cost > 0:
-        lc_ratio = round(total_lc / total_cost * 100, 1)
-        dc_ratio = round(total_dc / total_cost * 100, 1)
-        oh_ratio = round(total_oh / total_cost * 100, 1)
         comments.append({
-            "type": "neutral",
-            "icon": "📊",
-            "text": f"전체 원가 구성: 직접원가 <b>{dc_ratio}%</b> · 직접인건비 <b>{lc_ratio}%</b> · 공통원가/관리비 <b>{oh_ratio}%</b>"
+            "type": "neutral", "icon": "📊",
+            "text": f"전체 원가 구성: 직접원가 <b>{round(total_dc/total_cost*100,1)}%</b> · 직접인건비 <b>{round(total_lc/total_cost*100,1)}%</b> · 공통원가/관리비 <b>{round(total_oh/total_cost*100,1)}%</b>"
         })
 
     if loss_count > 0:
         comments.append({
-            "type": "warning",
-            "icon": "⚠️",
+            "type": "warning", "icon": "⚠️",
             "text": f"경상이익이 <b>음수(손실)</b>인 프로젝트가 <b>{loss_count}건</b> 있습니다. 원가 구조 점검이 필요합니다."
         })
 
     if worst_part and best_part and worst_part != best_part:
-        gap2 = round(part_map[best_part]["avg_rate"] - part_map[worst_part]["avg_rate"], 1)
+        gap2 = round(part_stats.loc[best_part, "avg_rate"] - part_stats.loc[worst_part, "avg_rate"], 1)
         comments.append({
-            "type": "warning",
-            "icon": "🔍",
-            "text": f"파트 간 이익율 격차가 <b>{gap2}%p</b>입니다. <b>{worst_part}</b> 파트(평균 {part_map[worst_part]['avg_rate']}%)의 수익성 개선이 필요합니다."
+            "type": "warning", "icon": "🔍",
+            "text": f"파트 간 이익율 격차가 <b>{gap2}%p</b>입니다. <b>{worst_part}</b> 파트(평균 {part_stats.loc[worst_part, 'avg_rate']}%)의 수익성 개선이 필요합니다."
         })
 
-    overall_rate = round(total_profit / total_revenue * 100, 1) if total_revenue else 0
-    if overall_rate > 0:
-        comments.append({
-            "type": "positive",
-            "icon": "✅",
-            "text": f"현재 필터 기준 전체 실질 이익율은 <b>{overall_rate}%</b>입니다. (경상이익 합계 ÷ 총매출)"
-        })
+    if total_revenue:
+        overall_rate = round(total_profit / total_revenue * 100, 1)
+        if overall_rate > 0:
+            comments.append({
+                "type": "positive", "icon": "✅",
+                "text": f"현재 필터 기준 전체 실질 이익율은 <b>{overall_rate}%</b>입니다. (경상이익 합계 ÷ 총매출)"
+            })
 
-    def fmt_row(r):
-        return {
-            "project_code": r["project_code"],
-            "part": r["part"],
-            "stage": r["stage"],
-            "revenue": r["revenue"],
-            "operating_profit": r["operating_profit"],
-            "profit_rate": r["profit_rate"],
-        }
-
-    return jsonify({
-        "top": [fmt_row(r) for r in top5],
-        "risk": [fmt_row(r) for r in risk],
-        "comments": comments,
-    })
+    return jsonify({"top": top5, "risk": risk, "comments": comments})
 
 
 @app.route("/api/reload", methods=["POST"])
 def api_reload():
     try:
         load_excel()
-        return jsonify({"ok": True, "loaded_at": _last_loaded, "count": len(_cached_data)})
+        return jsonify({"ok": True, "loaded_at": _last_loaded, "count": len(_cached_df)})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/export/pdf")
+def api_export_pdf():
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib import colors
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import mm
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    import io
+
+    df = apply_filters(get_df())
+    valid = df[df["revenue"] > 0]
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4,
+                            rightMargin=15*mm, leftMargin=15*mm,
+                            topMargin=15*mm, bottomMargin=15*mm)
+
+    # 폰트 등록 (윈도우 기본 폰트)
+    font_path = "C:/Windows/Fonts/malgun.ttf"
+    if os.path.exists(font_path):
+        pdfmetrics.registerFont(TTFont("Malgun", font_path))
+        font_name = "Malgun"
+    else:
+        font_name = "Helvetica"
+
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle("title", fontName=font_name, fontSize=16, spaceAfter=6)
+    sub_style = ParagraphStyle("sub", fontName=font_name, fontSize=11, spaceAfter=4, textColor=colors.HexColor("#374151"))
+    normal_style = ParagraphStyle("normal", fontName=font_name, fontSize=9)
+
+    def tbl_style(header_color="#4F46E5"):
+        return TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor(header_color)),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("FONTNAME", (0, 0), (-1, -1), font_name),
+            ("FONTSIZE", (0, 0), (-1, 0), 9),
+            ("FONTSIZE", (0, 1), (-1, -1), 8),
+            ("ALIGN", (1, 0), (-1, -1), "RIGHT"),
+            ("ALIGN", (0, 0), (0, -1), "CENTER"),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F9FAFB")]),
+            ("GRID", (0, 0), (-1, -1), 0.3, colors.HexColor("#E5E7EB")),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ("TOPPADDING", (0, 0), (-1, -1), 4),
+        ])
+
+    elements = []
+
+    # 제목
+    year_str = request.args.get("year", "전체")
+    elements.append(Paragraph(f"재무 현황 보고서 ({year_str})", title_style))
+    elements.append(Paragraph(f"출력일: {datetime.now().strftime('%Y-%m-%d %H:%M')}", normal_style))
+    elements.append(Spacer(1, 6*mm))
+
+    # 요약 KPI
+    elements.append(Paragraph("■ 전체 요약", sub_style))
+    rates = valid[valid["profit_rate"] > 0]["profit_rate"]
+    avg_rate = round(rates.mean(), 1) if not rates.empty else 0
+    kpi_data = [
+        ["항목", "금액"],
+        ["총 매출", f"{valid['revenue'].sum()/1e8:.1f}억원"],
+        ["총 지출", f"{valid['expenditure'].sum()/1e8:.1f}억원"],
+        ["경상이익 합계", f"{valid['operating_profit'].sum()/1e8:.1f}억원"],
+        ["평균 이익율", f"{avg_rate}%"],
+        ["프로젝트 수", f"{len(valid)}건"],
+    ]
+    t = Table(kpi_data, colWidths=[80*mm, 60*mm])
+    t.setStyle(tbl_style())
+    elements += [t, Spacer(1, 6*mm)]
+
+    # 파트별 실적
+    if not valid.empty:
+        elements.append(Paragraph("■ 파트별 실적", sub_style))
+        part_stats = valid.groupby("part").agg(
+            revenue=("revenue", "sum"),
+            profit=("operating_profit", "sum"),
+            count=("project_code", "count"),
+            avg_rate=("profit_rate", lambda x: round(x[x > 0].mean(), 1) if (x > 0).any() else 0),
+        ).reset_index()
+        part_data = [["파트", "매출", "경상이익", "평균이익율", "건수"]]
+        for _, row in part_stats.iterrows():
+            part_data.append([
+                row["part"],
+                f"{row['revenue']/1e8:.1f}억",
+                f"{row['profit']/1e8:.1f}억",
+                f"{row['avg_rate']}%",
+                f"{int(row['count'])}건",
+            ])
+        t2 = Table(part_data, colWidths=[50*mm, 35*mm, 35*mm, 30*mm, 25*mm])
+        t2.setStyle(tbl_style())
+        elements += [t2, Spacer(1, 6*mm)]
+
+    # TOP 5
+    top5 = valid[valid["profit_rate"] > 0].nlargest(5, "profit_rate")
+    if not top5.empty:
+        elements.append(Paragraph("■ 이익율 TOP 5", sub_style))
+        top_data = [["프로젝트코드", "파트", "단계", "이익율"]]
+        for _, row in top5.iterrows():
+            top_data.append([row["project_code"], row["part"], row["stage"], f"{row['profit_rate']}%"])
+        t3 = Table(top_data, colWidths=[50*mm, 40*mm, 40*mm, 30*mm])
+        t3.setStyle(tbl_style("#059669"))
+        elements += [t3, Spacer(1, 6*mm)]
+
+    # 리스크
+    risk = valid[(valid["operating_profit"] < 0) | (valid["profit_rate"] < 5)].nsmallest(5, "operating_profit")
+    if not risk.empty:
+        elements.append(Paragraph("■ 리스크 프로젝트 (손실·이익율 5% 미만)", sub_style))
+        risk_data = [["프로젝트코드", "파트", "단계", "경상이익", "이익율"]]
+        for _, row in risk.iterrows():
+            risk_data.append([
+                row["project_code"], row["part"], row["stage"],
+                f"{row['operating_profit']/1e4:.0f}만원",
+                f"{row['profit_rate']}%",
+            ])
+        t4 = Table(risk_data, colWidths=[45*mm, 35*mm, 35*mm, 35*mm, 25*mm])
+        t4.setStyle(tbl_style("#DC2626"))
+        elements += [t4, Spacer(1, 6*mm)]
+
+    doc.build(elements)
+    buffer.seek(0)
+
+    filename = f"재무현황_{datetime.now().strftime('%Y%m%d')}.pdf"
+    response = make_response(buffer.read())
+    response.headers["Content-Type"] = "application/pdf"
+    response.headers["Content-Disposition"] = f"attachment; filename*=UTF-8''{filename}"
+    return response
 
 
 if __name__ == "__main__":

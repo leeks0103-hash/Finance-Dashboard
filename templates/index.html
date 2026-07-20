@@ -50,6 +50,10 @@
       <!-- 갱신 버튼 -->
       <div class="ms-auto d-flex align-items-center gap-2">
         <span class="text-muted" style="font-size:0.75rem">{{ last_loaded }}</span>
+        <button class="btn btn-sm btn-outline-danger" id="btnExportPdf" title="PDF 내보내기"
+                style="display:inline-flex;align-items:center;gap:4px">
+          <i class="bi bi-file-earmark-pdf"></i> PDF
+        </button>
         <button class="btn btn-sm btn-outline-secondary" id="btnReload" title="Excel 재로드"
                 style="display:inline-flex;align-items:center;gap:4px">
           <i class="bi bi-arrow-clockwise"></i> 갱신
@@ -445,6 +449,15 @@ $(document).ready(function () {
       a.href = url; a.download = '재무데이터.csv'; a.click();
       URL.revokeObjectURL(url);
     });
+  });
+
+  $('#btnExportPdf').on('click', function () {
+    const params = new URLSearchParams();
+    const year = $('#filterYear').val();
+    if (year) params.set('year', year);
+    $('.part-check:checked').each((_, el) => params.append('part', el.value));
+    $('.stage-check:checked').each((_, el) => params.append('stage', el.value));
+    window.location.href = '/api/export/pdf?' + params.toString();
   });
 
   $('#btnReload').on('click', function () {
