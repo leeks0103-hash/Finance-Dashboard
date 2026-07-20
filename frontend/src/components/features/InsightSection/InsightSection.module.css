@@ -1,0 +1,29 @@
+.section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 16px 20px;
+}
+.title {
+  font-weight: 700;
+  font-size: 0.92rem;
+  margin-bottom: 12px;
+}
+.sub { font-weight: 400; font-size: 0.78rem; color: var(--text-muted); margin-left: 6px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+.groupTitle { font-size: 0.78rem; font-weight: 700; color: var(--text-sub); margin-bottom: 8px; }
+.commentList { display: flex; flex-direction: column; gap: 5px; }
+.lists { display: flex; flex-direction: column; gap: 12px; }
+.listCard {
+  background: var(--bg-subtle);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+}
+.table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.table tr { border-bottom: 1px solid var(--border); }
+.table tr:last-child { border-bottom: none; }
+.table td { padding: 5px 6px; vertical-align: middle; }
+.rank { font-weight: 700; color: var(--text-muted); width: 20px; }
+.rate { font-weight: 700; text-align: right; }

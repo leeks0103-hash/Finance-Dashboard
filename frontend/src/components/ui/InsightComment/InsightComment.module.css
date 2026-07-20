@@ -1,0 +1,15 @@
+.comment {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.84rem;
+  line-height: 1.5;
+  border-left: 3px solid transparent;
+}
+.positive { background: var(--profit-bg); border-left-color: var(--profit); }
+.info     { background: var(--info-bg);   border-left-color: var(--info); }
+.neutral  { background: var(--bg-subtle); border-left-color: var(--border); }
+.warning  { background: var(--warn-bg);   border-left-color: var(--warn); }
+.icon { flex-shrink: 0; }

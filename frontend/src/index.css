@@ -1,0 +1,49 @@
+/* ─── Design Tokens ─────────────────────────── */
+:root {
+  --brand:        #3730a3;
+  --brand-mid:    #4f46e5;
+  --brand-light:  #818cf8;
+  --brand-bg:     #eef2ff;
+
+  --profit:       #059669;
+  --profit-bg:    #ecfdf5;
+  --loss:         #dc2626;
+  --loss-bg:      #fef2f2;
+  --warn:         #d97706;
+  --warn-bg:      #fffbeb;
+  --info:         #0284c7;
+  --info-bg:      #f0f9ff;
+
+  --surface:      #ffffff;
+  --bg:           #f1f3f9;
+  --bg-subtle:    #f8f9fc;
+  --border:       #e2e8f0;
+  --border-focus: #818cf8;
+
+  --text-primary: #1e293b;
+  --text-sub:     #475569;
+  --text-muted:   #94a3b8;
+
+  --radius:       10px;
+  --radius-sm:    6px;
+  --radius-btn:   8px;
+  --radius-pill:  100px;
+
+  --shadow-sm:  0 1px 4px rgba(0,0,0,0.08);
+  --shadow-md:  0 4px 12px rgba(0,0,0,0.10);
+
+  --transition: 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ─── Reset ──────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  font-family: 'Pretendard', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  font-size: 14px;
+}
+
+#root { min-height: 100vh; }

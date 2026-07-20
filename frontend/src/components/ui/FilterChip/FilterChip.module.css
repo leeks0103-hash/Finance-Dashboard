@@ -1,0 +1,29 @@
+.chip {
+  font-size: 0.74rem;
+  font-weight: 500;
+  padding: 4px 11px;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--border);
+  color: var(--text-sub);
+  background: var(--surface);
+  cursor: pointer;
+  transition: all var(--transition);
+  line-height: 1.4;
+  user-select: none;
+}
+.chip:hover {
+  border-color: var(--brand-mid);
+  color: var(--brand-mid);
+  background: var(--brand-bg);
+}
+.checked {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(55,48,163,0.28);
+}
+.checked:hover {
+  background: var(--brand-mid);
+  border-color: var(--brand-mid);
+}

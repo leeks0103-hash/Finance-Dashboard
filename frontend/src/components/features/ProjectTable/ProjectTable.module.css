@@ -1,0 +1,79 @@
+.wrapper {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 16px 20px;
+}
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.count { font-weight: 700; font-size: 0.9rem; }
+.badge {
+  display: inline-block;
+  background: var(--brand-bg);
+  color: var(--brand);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
+  margin-left: 6px;
+}
+.search {
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 5px 10px;
+  font-size: 0.82rem;
+  width: 200px;
+  transition: border-color var(--transition);
+}
+.search:focus { border-color: var(--border-focus); outline: none; }
+.tableWrap { overflow-x: auto; }
+.table { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
+.table th {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-sub);
+  background: var(--bg-subtle);
+  padding: 8px 10px;
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 2px solid var(--border);
+}
+.sortable { cursor: pointer; user-select: none; }
+.sortable:hover { color: var(--brand-mid); }
+.table td {
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.table tbody tr:hover { background: var(--brand-bg); }
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  font-size: 0.82rem;
+}
+.pagination button {
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  padding: 4px 12px;
+  cursor: pointer;
+  color: var(--text-sub);
+  transition: all var(--transition);
+}
+.pagination button:hover:not(:disabled) {
+  border-color: var(--brand-mid);
+  color: var(--brand-mid);
+  background: var(--brand-bg);
+}
+.pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
+.loading { padding: 40px; text-align: center; color: var(--text-muted); }

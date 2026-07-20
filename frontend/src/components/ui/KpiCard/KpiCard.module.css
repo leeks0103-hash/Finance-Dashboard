@@ -1,0 +1,34 @@
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  border-left: 4px solid var(--brand-mid);
+  padding: 16px 20px;
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+.card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+
+.brand { border-left-color: var(--brand-mid); }
+.profit { border-left-color: var(--profit); }
+.loss   { border-left-color: var(--loss); }
+.warn   { border-left-color: var(--warn); }
+
+.label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+.value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-top: 6px;
+  color: var(--text-primary);
+}
+.brand .value { color: var(--brand-mid); }
+.profit .value { color: var(--profit); }
+.loss .value   { color: var(--loss); }
+.warn .value   { color: var(--warn); }
