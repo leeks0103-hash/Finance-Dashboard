@@ -1,32 +1,189 @@
-body { background: #f5f6fa; font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif; }
-.navbar { box-shadow: 0 2px 4px rgba(0,0,0,0.15); }
-.card { border-radius: 10px; }
-.kpi-label { font-size: 0.78rem; letter-spacing: 0.03em; }
-.kpi-value { font-size: 1.35rem; }
-th { font-size: 0.78rem; white-space: nowrap; }
-td { vertical-align: middle; }
-.dt-buttons .btn { font-size: 0.78rem; }
-#mainTable_filter input { font-size: 0.85rem; }
+/* ─── Design Tokens ──────────────────────────────────────────── */
+:root {
+  --brand:        #3730a3;   /* deep indigo */
+  --brand-mid:    #4f46e5;   /* primary accent */
+  --brand-light:  #818cf8;   /* soft accent */
+  --brand-bg:     #eef2ff;   /* tint for hover */
 
-/* 필터 패널 */
+  --profit:       #059669;
+  --profit-bg:    #ecfdf5;
+  --loss:         #dc2626;
+  --loss-bg:      #fef2f2;
+  --warn:         #d97706;
+  --warn-bg:      #fffbeb;
+  --info:         #0284c7;
+  --info-bg:      #f0f9ff;
+
+  --surface:      #ffffff;
+  --bg:           #f1f3f9;
+  --bg-subtle:    #f8f9fc;
+  --border:       #e2e8f0;
+  --border-focus: #818cf8;
+
+  --text-primary: #1e293b;
+  --text-sub:     #475569;
+  --text-muted:   #94a3b8;
+
+  --radius:       10px;
+  --radius-sm:    6px;
+  --radius-btn:   8px;
+  --radius-pill:  100px;
+
+  --shadow-xs:  0 1px 2px rgba(0,0,0,0.06);
+  --shadow-sm:  0 1px 4px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md:  0 4px 12px rgba(0,0,0,0.10), 0 2px 4px rgba(0,0,0,0.04);
+  --shadow-lg:  0 8px 24px rgba(0,0,0,0.10), 0 4px 8px rgba(0,0,0,0.04);
+
+  --transition: 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ─── Base ───────────────────────────────────────────────────── */
+body {
+  background: var(--bg);
+  font-family: 'Pretendard', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Navbar ─────────────────────────────────────────────────── */
+.navbar {
+  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%) !important;
+  box-shadow: 0 2px 8px rgba(30, 27, 75, 0.35);
+  padding: 0.6rem 1.5rem;
+}
+.navbar-brand {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  font-size: 1rem !important;
+}
+.navbar .text-secondary { color: var(--brand-light) !important; opacity: 0.8; }
+
+/* ─── Cards ──────────────────────────────────────────────────── */
+.card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  background: var(--surface);
+}
+
+/* KPI 카드 — 왼쪽 accent border로 의미 전달 */
+.kpi-card {
+  border-left: 4px solid var(--brand-mid) !important;
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+.kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+.kpi-card.kpi-profit { border-left-color: var(--profit) !important; }
+.kpi-card.kpi-warn   { border-left-color: var(--warn)   !important; }
+.kpi-card.kpi-loss   { border-left-color: var(--loss)   !important; }
+
+.kpi-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+.kpi-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin-top: 4px;
+}
+
+/* ─── Buttons ────────────────────────────────────────────────── */
+/* 공통 */
+.btn {
+  font-weight: 500;
+  border-radius: var(--radius-btn);
+  transition: all var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+.btn:active { transform: scale(0.97); }
+
+/* PDF — 솔리드 레드, hover 리프트 */
+.btn-pdf {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  color: #fff;
+  border: none;
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.30);
+  font-size: 0.8rem;
+  padding: 5px 12px;
+}
+.btn-pdf:hover {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.40);
+}
+
+/* CSV — 솔리드 초록 */
+.btn-csv {
+  background: linear-gradient(135deg, #059669, #047857);
+  color: #fff;
+  border: none;
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.28);
+  font-size: 0.8rem;
+  padding: 5px 12px;
+}
+.btn-csv:hover {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.38);
+}
+
+/* Reload — ghost, hover fill */
+.btn-reload {
+  background: var(--surface);
+  color: var(--text-sub);
+  border: 1.5px solid var(--border);
+  font-size: 0.8rem;
+  padding: 5px 12px;
+}
+.btn-reload:hover {
+  border-color: var(--brand-mid);
+  color: var(--brand-mid);
+  background: var(--brand-bg);
+}
+.btn-reload.loading {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+/* Spin animation for reload icon */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin 0.8s linear infinite; display: inline-block; }
+
+/* ─── Filter Panel ───────────────────────────────────────────── */
 .filter-group {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 .filter-label {
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 700;
-  color: #64748b;
+  color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 .filter-divider {
   width: 1px;
-  height: 48px;
-  background: #e2e8f0;
+  height: 44px;
+  background: var(--border);
   flex-shrink: 0;
   align-self: center;
+  opacity: 0.7;
 }
 .filter-chip-group {
   display: flex;
@@ -34,49 +191,124 @@ td { vertical-align: middle; }
   gap: 5px;
 }
 .filter-chip {
-  font-size: 0.75rem;
+  font-size: 0.74rem;
   font-weight: 500;
-  padding: 3px 10px;
-  border-radius: 20px;
-  border: 1.5px solid #cbd5e1;
-  color: #475569;
-  background: #fff;
-  line-height: 1.5;
-  transition: all 0.15s;
+  padding: 4px 11px;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--border);
+  color: var(--text-sub);
+  background: var(--surface);
+  cursor: pointer;
+  transition: all var(--transition);
+  line-height: 1.4;
+  user-select: none;
 }
 .btn-check:checked + .filter-chip {
-  background: #1e40af;
-  border-color: #1e40af;
+  background: var(--brand);
+  border-color: var(--brand);
   color: #fff;
-  box-shadow: 0 1px 4px rgba(30,64,175,0.25);
+  box-shadow: 0 2px 8px rgba(55, 48, 163, 0.30);
+  font-weight: 600;
 }
 .filter-chip:hover {
-  border-color: #94a3b8;
-  background: #f8fafc;
+  border-color: var(--brand-mid);
+  color: var(--brand-mid);
+  background: var(--brand-bg);
+}
+.btn-check:checked + .filter-chip:hover {
+  background: var(--brand-mid);
+  border-color: var(--brand-mid);
+  color: #fff;
 }
 
-/* 페이지네이션 가운데 정렬 */
+/* Select (연도 필터) */
+#filterYear {
+  border-radius: var(--radius-sm);
+  border-color: var(--border);
+  font-size: 0.82rem;
+  color: var(--text-primary);
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+#filterYear:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.2);
+  outline: none;
+}
+
+/* ─── Insight Comments ───────────────────────────────────────── */
+.comment-positive { background: var(--profit-bg); border-left: 3px solid var(--profit); }
+.comment-info     { background: var(--info-bg);   border-left: 3px solid var(--info);   }
+.comment-neutral  { background: var(--bg-subtle); border-left: 3px solid var(--border); }
+.comment-warning  { background: var(--warn-bg);   border-left: 3px solid var(--warn);   }
+
+/* ─── Table ──────────────────────────────────────────────────── */
+th {
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-sub);
+  white-space: nowrap;
+  background: var(--bg-subtle);
+}
+td { vertical-align: middle; font-size: 0.84rem; }
+#mainTable tbody tr {
+  transition: background var(--transition);
+}
+#mainTable tbody tr:hover { background: var(--brand-bg); }
+
+/* DataTable controls */
+.dataTables_wrapper .dataTables_filter input {
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border);
+  font-size: 0.82rem;
+  padding: 4px 8px;
+  transition: border-color var(--transition);
+}
+.dataTables_wrapper .dataTables_filter input:focus {
+  border-color: var(--border-focus);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.15);
+}
+.dataTables_wrapper .dataTables_info {
+  text-align: center;
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  padding: 6px 0 0;
+}
+
+/* Pagination */
 #mainTable_paginate {
   display: flex;
   justify-content: center;
   padding: 12px 0 6px;
 }
-.dataTables_wrapper .dataTables_info {
-  text-align: center;
-  font-size: 0.78rem;
-  color: #94a3b8;
-  padding: 6px 0 0;
-}
 .dataTables_wrapper .dataTables_paginate .paginate_button {
-  border-radius: 6px !important;
-  font-size: 0.82rem;
+  border-radius: var(--radius-sm) !important;
+  font-size: 0.8rem !important;
+  margin: 0 2px !important;
+  transition: all var(--transition) !important;
 }
 .dataTables_wrapper .dataTables_paginate .paginate_button.current,
 .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
-  background: #1e40af !important;
-  border-color: #1e40af !important;
+  background: var(--brand) !important;
+  border-color: var(--brand) !important;
   color: #fff !important;
+  box-shadow: 0 2px 6px rgba(55, 48, 163, 0.3) !important;
 }
-.dataTables_wrapper .dataTables_filter {
-  font-size: 0.82rem;
+.dataTables_wrapper .dataTables_paginate .paginate_button:not(.current):hover {
+  background: var(--brand-bg) !important;
+  border-color: var(--brand-mid) !important;
+  color: var(--brand-mid) !important;
+}
+
+/* ─── Badge / Tag ────────────────────────────────────────────── */
+.badge-part {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  background: var(--brand-bg);
+  color: var(--brand);
 }

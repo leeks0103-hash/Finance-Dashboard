@@ -47,16 +47,17 @@
         </div>
       </div>
 
-      <!-- 갱신 버튼 -->
+      <!-- 액션 버튼 -->
       <div class="ms-auto d-flex align-items-center gap-2">
-        <span class="text-muted" style="font-size:0.75rem">{{ last_loaded }}</span>
-        <button class="btn btn-sm btn-outline-danger" id="btnExportPdf" title="PDF 내보내기"
-                style="display:inline-flex;align-items:center;gap:4px">
+        <span style="font-size:0.72rem;color:var(--text-muted)">{{ last_loaded }}</span>
+        <button class="btn btn-sm btn-csv" id="btnCsvExport" title="CSV 내보내기">
+          <i class="bi bi-filetype-csv"></i> CSV
+        </button>
+        <button class="btn btn-sm btn-pdf" id="btnExportPdf" title="PDF 내보내기">
           <i class="bi bi-file-earmark-pdf"></i> PDF
         </button>
-        <button class="btn btn-sm btn-outline-secondary" id="btnReload" title="Excel 재로드"
-                style="display:inline-flex;align-items:center;gap:4px">
-          <i class="bi bi-arrow-clockwise"></i> 갱신
+        <button class="btn btn-sm btn-reload" id="btnReload" title="Excel 재로드">
+          <i class="bi bi-arrow-clockwise" id="reloadIcon"></i> 갱신
         </button>
       </div>
 
@@ -67,34 +68,34 @@
 <!-- KPI 카드 -->
 <div class="row g-3 mb-3" id="kpiCards">
   <div class="col-6 col-md-3">
-    <div class="card border-0 shadow-sm h-100">
-      <div class="card-body text-center">
-        <div class="kpi-label text-muted small">총매출</div>
-        <div class="kpi-value text-primary fw-bold fs-5" id="kpiRevenue">-</div>
+    <div class="card kpi-card h-100">
+      <div class="card-body text-center py-3">
+        <div class="kpi-label"><i class="bi bi-graph-up me-1"></i>총매출</div>
+        <div class="kpi-value" id="kpiRevenue" style="color:var(--brand-mid)">-</div>
       </div>
     </div>
   </div>
   <div class="col-6 col-md-3">
-    <div class="card border-0 shadow-sm h-100">
-      <div class="card-body text-center">
-        <div class="kpi-label text-muted small">지출합계</div>
-        <div class="kpi-value text-danger fw-bold fs-5" id="kpiExpenditure">-</div>
+    <div class="card kpi-card kpi-loss h-100">
+      <div class="card-body text-center py-3">
+        <div class="kpi-label"><i class="bi bi-arrow-down-circle me-1"></i>지출합계</div>
+        <div class="kpi-value" id="kpiExpenditure" style="color:var(--loss)">-</div>
       </div>
     </div>
   </div>
   <div class="col-6 col-md-3">
-    <div class="card border-0 shadow-sm h-100">
-      <div class="card-body text-center">
-        <div class="kpi-label text-muted small">경상이익</div>
-        <div class="kpi-value text-success fw-bold fs-5" id="kpiProfit">-</div>
+    <div class="card kpi-card kpi-profit h-100">
+      <div class="card-body text-center py-3">
+        <div class="kpi-label"><i class="bi bi-cash-stack me-1"></i>경상이익</div>
+        <div class="kpi-value" id="kpiProfit" style="color:var(--profit)">-</div>
       </div>
     </div>
   </div>
   <div class="col-6 col-md-3">
-    <div class="card border-0 shadow-sm h-100">
-      <div class="card-body text-center">
-        <div class="kpi-label text-muted small">평균 이익율</div>
-        <div class="kpi-value fw-bold fs-5" id="kpiRate">-</div>
+    <div class="card kpi-card kpi-warn h-100">
+      <div class="card-body text-center py-3">
+        <div class="kpi-label"><i class="bi bi-percent me-1"></i>평균 이익율</div>
+        <div class="kpi-value" id="kpiRate" style="color:var(--warn)">-</div>
       </div>
     </div>
   </div>
@@ -461,12 +462,15 @@ $(document).ready(function () {
   });
 
   $('#btnReload').on('click', function () {
-    $(this).prop('disabled', true).text('로딩 중…');
+    const $btn = $(this);
+    const $icon = $('#reloadIcon');
+    $btn.prop('disabled', true).addClass('loading');
+    $icon.addClass('spin');
     $.post('/api/reload', data => {
-      $(this).prop('disabled', false).text('↺ 데이터 갱신');
+      $btn.prop('disabled', false).removeClass('loading');
+      $icon.removeClass('spin');
       if (data.ok) {
         refresh();
-        alert('데이터를 갱신했습니다. (' + data.loaded_at + ')');
       } else {
         alert('오류: ' + data.error);
       }

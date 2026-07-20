@@ -1,10 +1,26 @@
 import os
 import json
 from datetime import datetime
+import numpy as np
 from flask import Flask, render_template, jsonify, request, make_response
+from flask.json.provider import DefaultJSONProvider
 import pandas as pd
 
+
+class NumpyJSONProvider(DefaultJSONProvider):
+    def default(self, o):
+        if isinstance(o, (np.integer,)):
+            return int(o)
+        if isinstance(o, (np.floating,)):
+            return float(o)
+        if isinstance(o, np.ndarray):
+            return o.tolist()
+        return super().default(o)
+
+
 app = Flask(__name__)
+app.json_provider_class = NumpyJSONProvider
+app.json = NumpyJSONProvider(app)
 
 EXCEL_PATH = (
     "D:/24.기술교육사업기획팀"
@@ -24,8 +40,29 @@ _cached_df: pd.DataFrame = pd.DataFrame()
 _last_loaded = None
 
 
+def _sample_df() -> pd.DataFrame:
+    """엑셀 파일 없을 때 UI 확인용 샘플 데이터"""
+    rows = [
+        ["P001","2024","A파트","최종",    500_000_000, 380_000_000, 200_000_000, 100_000_000, 80_000_000,  120_000_000, 24.0, "", "sample.xlsx", "2024-01-10", "2024-01-15"],
+        ["P002","2024","A파트","확정",    320_000_000, 260_000_000, 140_000_000,  70_000_000, 50_000_000,   60_000_000, 18.8, "", "sample.xlsx", "2024-02-01", "2024-02-05"],
+        ["P003","2024","B파트","최종",    450_000_000, 400_000_000, 210_000_000, 110_000_000, 80_000_000,   50_000_000, 11.1, "", "sample.xlsx", "2024-01-20", "2024-01-25"],
+        ["P004","2024","B파트","중간",    280_000_000, 310_000_000, 160_000_000,  90_000_000, 60_000_000,  -30_000_000, -10.7,"손실주의", "sample.xlsx", "2024-03-01", "2024-03-05"],
+        ["P005","2024","C파트","최종",    600_000_000, 420_000_000, 230_000_000, 110_000_000, 80_000_000,  180_000_000, 30.0, "", "sample.xlsx", "2024-01-05", "2024-01-10"],
+        ["P006","2024","C파트","확정",    180_000_000, 175_000_000,  90_000_000,  50_000_000, 35_000_000,    5_000_000,  2.8, "저수익", "sample.xlsx", "2024-04-01", "2024-04-03"],
+        ["P007","2023","A파트","최종",    400_000_000, 300_000_000, 160_000_000,  80_000_000, 60_000_000,  100_000_000, 25.0, "", "sample.xlsx", "2023-06-01", "2023-06-05"],
+        ["P008","2023","B파트","최종",    350_000_000, 290_000_000, 150_000_000,  80_000_000, 60_000_000,   60_000_000, 17.1, "", "sample.xlsx", "2023-07-01", "2023-07-05"],
+        ["P009","2023","C파트","확정",    220_000_000, 195_000_000, 100_000_000,  55_000_000, 40_000_000,   25_000_000, 11.4, "", "sample.xlsx", "2023-08-01", "2023-08-03"],
+        ["P010","2023","A파트","최종",    550_000_000, 370_000_000, 200_000_000,  90_000_000, 80_000_000,  180_000_000, 32.7, "", "sample.xlsx", "2023-09-01", "2023-09-05"],
+    ]
+    return pd.DataFrame(rows, columns=COLUMNS)
+
+
 def load_excel():
     global _cached_df, _last_loaded
+    if not os.path.exists(EXCEL_PATH):
+        _cached_df = _sample_df()
+        _last_loaded = datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " (샘플)"
+        return _cached_df
     df = pd.read_excel(EXCEL_PATH, sheet_name="취합", header=0, usecols=range(15))
     df.columns = COLUMNS
     df = df[df["project_code"].notna() & (df["project_code"] != "")]
