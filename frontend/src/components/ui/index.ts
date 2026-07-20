@@ -6,3 +6,5 @@ export * from './Spinner';
 export * from './ErrorFallback';
 export * from './EmptyState';
 export * from './Chart';
+export * from './InsightListCard';
+export * from './ProjectRankRow';

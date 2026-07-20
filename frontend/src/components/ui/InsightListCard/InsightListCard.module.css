@@ -1,0 +1,22 @@
+.card {
+  background: var(--bg-subtle);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-height: 0; /* flex child가 overflow-y: auto 동작하려면 필요 */
+}
+
+.title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-sub);
+  flex-shrink: 0;
+}
+
+.body {
+  overflow-y: auto;
+  flex: 1;
+}

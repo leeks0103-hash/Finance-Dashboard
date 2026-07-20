@@ -1,0 +1,31 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.82rem;
+}
+.row:last-child { border-bottom: none; }
+
+.rank {
+  width: 18px;
+  font-weight: 700;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.code {
+  flex: 1;
+  font-weight: 500;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.value {
+  font-weight: 700;
+  flex-shrink: 0;
+}

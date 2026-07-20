@@ -1,41 +1,98 @@
-.skeleton {
-  background: var(--bg-subtle);
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  min-height: 240px;
-  animation: pulse 1.4s ease infinite;
-}
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.45; }
-}
-
+/* 섹션 전체 높이 고정 — 데이터 양에 무관 */
 .section {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
-  padding: 16px 20px;
+  height: 300px; /* 고정 높이 */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
-.title {
+
+.header {
   font-weight: 700;
   font-size: 0.92rem;
-  margin-bottom: 12px;
+  padding: 14px 20px 10px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
-.sub { font-weight: 400; font-size: 0.78rem; color: var(--text-muted); margin-left: 6px; }
-.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-@media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
-.groupTitle { font-size: 0.78rem; font-weight: 700; color: var(--text-sub); margin-bottom: 8px; }
-.commentList { display: flex; flex-direction: column; gap: 5px; }
-.lists { display: flex; flex-direction: column; gap: 12px; }
-.listCard {
+
+.sub {
+  font-weight: 400;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* 콘텐츠 영역 — 남은 높이 모두 사용, overflow 처리 */
+.body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  flex: 1;
+  min-height: 0; /* flex child overflow 동작에 필수 */
+}
+
+@media (max-width: 768px) {
+  .body { grid-template-columns: 1fr; }
+  .section { height: auto; min-height: 300px; }
+}
+
+/* 코멘트 패널 — 스크롤 */
+.commentsPane {
+  border-right: 1px solid var(--border);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+}
+
+.paneTitle {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-sub);
+  flex-shrink: 0;
+}
+
+.commentScroll {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+
+  /* 스크롤바 스타일 */
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.commentScroll::-webkit-scrollbar { width: 4px; }
+.commentScroll::-webkit-scrollbar-track { background: transparent; }
+.commentScroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* 리스트 패널 — 두 카드 상하 분할 */
+.listsPane {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+}
+
+/* 스켈레톤 */
+.skeleton {
   background: var(--bg-subtle);
-  border-radius: var(--radius-sm);
-  padding: 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  height: 300px; /* section과 동일한 고정 높이 */
+  animation: pulse 1.4s ease infinite;
 }
-.table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
-.table tr { border-bottom: 1px solid var(--border); }
-.table tr:last-child { border-bottom: none; }
-.table td { padding: 5px 6px; vertical-align: middle; }
-.rank { font-weight: 700; color: var(--text-muted); width: 20px; }
-.rate { font-weight: 700; text-align: right; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.45; }
+}

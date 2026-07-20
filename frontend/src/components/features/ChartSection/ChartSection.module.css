@@ -2,10 +2,10 @@
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 12px;
-  min-height: 308px; /* 레이아웃 고정 */
+  height: 308px; /* 고정 높이 — 데이터 변해도 움직이지 않음 */
 }
 @media (max-width: 900px) {
-  .grid { grid-template-columns: 1fr; min-height: unset; }
+  .grid { grid-template-columns: 1fr; height: auto; }
 }
 .card {
   background: var(--surface);
@@ -13,7 +13,8 @@
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
   padding: 16px;
-  min-height: 308px;
+  height: 308px;   /* 고정 */
+  overflow: hidden;
 }
 .title {
   font-size: 0.82rem;
