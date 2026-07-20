@@ -7,3 +7,76 @@ th { font-size: 0.78rem; white-space: nowrap; }
 td { vertical-align: middle; }
 .dt-buttons .btn { font-size: 0.78rem; }
 #mainTable_filter input { font-size: 0.85rem; }
+
+/* 필터 패널 */
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.filter-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.filter-divider {
+  width: 1px;
+  height: 48px;
+  background: #e2e8f0;
+  flex-shrink: 0;
+  align-self: center;
+}
+.filter-chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.filter-chip {
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: 20px;
+  border: 1.5px solid #cbd5e1;
+  color: #475569;
+  background: #fff;
+  line-height: 1.5;
+  transition: all 0.15s;
+}
+.btn-check:checked + .filter-chip {
+  background: #1e40af;
+  border-color: #1e40af;
+  color: #fff;
+  box-shadow: 0 1px 4px rgba(30,64,175,0.25);
+}
+.filter-chip:hover {
+  border-color: #94a3b8;
+  background: #f8fafc;
+}
+
+/* 페이지네이션 가운데 정렬 */
+#mainTable_paginate {
+  display: flex;
+  justify-content: center;
+  padding: 12px 0 6px;
+}
+.dataTables_wrapper .dataTables_info {
+  text-align: center;
+  font-size: 0.78rem;
+  color: #94a3b8;
+  padding: 6px 0 0;
+}
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+  border-radius: 6px !important;
+  font-size: 0.82rem;
+}
+.dataTables_wrapper .dataTables_paginate .paginate_button.current,
+.dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+  background: #1e40af !important;
+  border-color: #1e40af !important;
+  color: #fff !important;
+}
+.dataTables_wrapper .dataTables_filter {
+  font-size: 0.82rem;
+}

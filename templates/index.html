@@ -3,10 +3,12 @@
 {% block content %}
 <!-- 필터 패널 -->
 <div class="card mb-3 shadow-sm">
-  <div class="card-body py-2">
-    <div class="row g-2 align-items-end">
-      <div class="col-auto">
-        <label class="form-label mb-1 small fw-semibold">연도</label>
+  <div class="card-body py-3 px-4">
+    <div class="d-flex align-items-center gap-3 flex-wrap">
+
+      <!-- 연도 -->
+      <div class="filter-group">
+        <span class="filter-label">연도</span>
         <select id="filterYear" class="form-select form-select-sm" style="min-width:90px">
           <option value="">전체</option>
           {% for y in years %}
@@ -14,30 +16,46 @@
           {% endfor %}
         </select>
       </div>
-      <div class="col-auto">
-        <label class="form-label mb-1 small fw-semibold">파트</label>
-        <select id="filterPart" class="form-select form-select-sm" style="min-width:110px">
-          <option value="">전체</option>
+
+      <div class="filter-divider"></div>
+
+      <!-- 파트 -->
+      <div class="filter-group">
+        <span class="filter-label">
+          <i class="bi bi-grid-3x3-gap-fill me-1" style="color:#6366f1"></i>파트
+        </span>
+        <div class="filter-chip-group" id="filterParts">
           {% for p in parts %}
-          <option value="{{ p }}">{{ p }}</option>
+          <input type="checkbox" class="btn-check part-check" id="part_{{ loop.index }}" value="{{ p }}" autocomplete="off" checked>
+          <label class="btn btn-sm filter-chip" for="part_{{ loop.index }}">{{ p }}</label>
           {% endfor %}
-        </select>
+        </div>
       </div>
-      <div class="col-auto">
-        <label class="form-label mb-1 small fw-semibold">보고단계</label>
-        <select id="filterStage" class="form-select form-select-sm" style="min-width:110px">
-          <option value="">전체</option>
+
+      <div class="filter-divider"></div>
+
+      <!-- 보고단계 -->
+      <div class="filter-group">
+        <span class="filter-label">
+          <i class="bi bi-flag-fill me-1" style="color:#f59e0b"></i>보고단계
+        </span>
+        <div class="filter-chip-group" id="filterStages">
           {% for s in stages %}
-          <option value="{{ s }}">{{ s }}</option>
+          <input type="checkbox" class="btn-check stage-check" id="stage_{{ loop.index }}" value="{{ s }}" autocomplete="off" checked>
+          <label class="btn btn-sm filter-chip" for="stage_{{ loop.index }}">{{ s }}</label>
           {% endfor %}
-        </select>
+        </div>
       </div>
-      <div class="col-auto ms-auto">
-        <button class="btn btn-sm btn-outline-secondary" id="btnReload" title="Excel 재로드">
-          ↺ 데이터 갱신
+
+      <!-- 갱신 버튼 -->
+      <div class="ms-auto d-flex align-items-center gap-2">
+        <span class="text-muted" style="font-size:0.75rem">{{ last_loaded }}</span>
+        <button class="btn btn-sm btn-outline-secondary" id="btnReload" title="Excel 재로드"
+                style="display:inline-flex;align-items:center;gap:4px">
+          <i class="bi bi-arrow-clockwise"></i> 갱신
         </button>
-        <span class="text-muted small ms-2">마지막 로드: {{ last_loaded }}</span>
       </div>
+
     </div>
   </div>
 </div>
@@ -106,6 +124,36 @@
   </div>
 </div>
 
+<!-- 인사이트 -->
+<div class="card shadow-sm mb-3" id="insightCard">
+  <div class="card-header bg-white border-bottom d-flex align-items-center gap-2" style="padding:10px 16px">
+    <span style="font-size:1rem">💡</span>
+    <span class="fw-semibold" style="font-size:0.88rem">재무 인사이트</span>
+    <span class="text-muted" style="font-size:0.75rem">· 필터 기준 자동 분석</span>
+  </div>
+  <div class="card-body" style="padding:16px">
+    <div class="row g-3">
+
+      <!-- 코멘트 -->
+      <div class="col-12 col-md-6">
+        <div class="small fw-semibold text-secondary mb-2" style="letter-spacing:.04em;font-size:0.72rem">📋 주요 코멘트</div>
+        <div id="insightComments" class="d-flex flex-column gap-2"></div>
+      </div>
+
+      <!-- TOP 5 / 주의 -->
+      <div class="col-12 col-md-3">
+        <div class="small fw-semibold text-secondary mb-2" style="letter-spacing:.04em;font-size:0.72rem">🏅 이익율 상위 프로젝트</div>
+        <div id="insightTop" class="d-flex flex-column gap-1"></div>
+      </div>
+      <div class="col-12 col-md-3">
+        <div class="small fw-semibold text-secondary mb-2" style="letter-spacing:.04em;font-size:0.72rem">⚠️ 저수익 / 손실 주의</div>
+        <div id="insightRisk" class="d-flex flex-column gap-1"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 <!-- 데이터 테이블 -->
 <div class="card shadow-sm mb-4">
   <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between" style="padding: 10px 16px;">
@@ -114,7 +162,20 @@
       <span class="badge rounded-pill ms-1" id="rowCount"
             style="background:#e8edf5;color:#5a6a85;font-size:0.75rem;font-weight:600">-</span>
     </span>
-    <button id="btnCsvExport"
+    <div class="d-flex align-items-center gap-2">
+      <!-- 페이지 크기 선택 -->
+      <div class="d-flex align-items-center gap-1">
+        <span style="font-size:0.78rem;color:#64748b;font-weight:500">표시</span>
+        <select id="pageLength"
+                style="font-size:0.78rem;padding:4px 24px 4px 10px;border:1.5px solid #e2e8f0;
+                       border-radius:8px;color:#374151;background:#fff;cursor:pointer;appearance:auto">
+          <option value="30">30개</option>
+          <option value="50">50개</option>
+          <option value="100">100개</option>
+        </select>
+      </div>
+      <div style="width:1px;height:22px;background:#e2e8f0"></div>
+      <button id="btnCsvExport"
             style="display:inline-flex;align-items:center;gap:6px;padding:5px 14px;font-size:0.8rem;font-weight:600;
                    color:#2563eb;background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:8px;
                    cursor:pointer;transition:all .15s;line-height:1.4"
@@ -126,6 +187,7 @@
       </svg>
       CSV 내보내기
     </button>
+    </div>
   </div>
   <div class="card-body p-0">
     <div class="table-responsive">
@@ -168,12 +230,12 @@ let dt = null;
 
 function getFilters() {
   const year = $('#filterYear').val();
-  const part = $('#filterPart').val();
-  const stage = $('#filterStage').val();
+  const parts = $('.part-check:checked').map((_, el) => el.value).get();
+  const stages = $('.stage-check:checked').map((_, el) => el.value).get();
   const params = new URLSearchParams();
   if (year) params.append('year', year);
-  if (part) params.append('part', part);
-  if (stage) params.append('stage', stage);
+  parts.forEach(p => params.append('part', p));
+  stages.forEach(s => params.append('stage', s));
   return params;
 }
 
@@ -257,6 +319,43 @@ function updateCharts(summary) {
   });
 }
 
+function updateInsights(ins) {
+  const FMT_B = v => { const b = v/100000000; return Math.abs(b)>=1 ? b.toFixed(1)+'억' : (v/10000).toFixed(0)+'만'; };
+
+  // 코멘트
+  const cc = {'positive':'#dcfce7','info':'#eff6ff','neutral':'#f8fafc','warning':'#fff7ed'};
+  const bc = {'positive':'#86efac','info':'#bfdbfe','neutral':'#e2e8f0','warning':'#fed7aa'};
+  const tc = {'positive':'#166534','info':'#1e40af','neutral':'#374151','warning':'#92400e'};
+  $('#insightComments').html(ins.comments.map(c => `
+    <div style="background:${cc[c.type]};border-left:3px solid ${bc[c.type]};border-radius:6px;
+                padding:8px 12px;font-size:0.8rem;color:${tc[c.type]};line-height:1.55">
+      ${c.icon} ${c.text}
+    </div>`).join(''));
+
+  // TOP 5
+  $('#insightTop').html(ins.top.length ? ins.top.map((r, i) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:#f8fafc;
+                border-radius:8px;font-size:0.78rem">
+      <span style="font-weight:700;color:#6366f1;min-width:18px">${i+1}</span>
+      <span style="flex:1;color:#1e293b;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+            title="${r.project_code}">${r.project_code}</span>
+      <span class="badge" style="background:#ede9fe;color:#5b21b6;font-size:0.72rem">${r.part}</span>
+      <span style="font-weight:700;color:#059669;min-width:36px;text-align:right">${r.profit_rate}%</span>
+    </div>`).join('') : '<div class="text-muted small">데이터 없음</div>');
+
+  // 주의 프로젝트
+  $('#insightRisk').html(ins.risk.length ? ins.risk.map(r => `
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:#fff7ed;
+                border-radius:8px;font-size:0.78rem">
+      <span style="flex:1;color:#1e293b;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+            title="${r.project_code}">${r.project_code}</span>
+      <span class="badge" style="background:#fee2e2;color:#991b1b;font-size:0.72rem">${r.part}</span>
+      <span style="font-weight:700;color:${r.operating_profit<0?'#dc2626':'#d97706'};min-width:36px;text-align:right">
+        ${r.profit_rate > 0 ? r.profit_rate+'%' : '손실'}
+      </span>
+    </div>`).join('') : '<div class="text-muted small" style="font-size:0.78rem">손실·저수익 프로젝트 없음 ✅</div>');
+}
+
 function updateTable(rows) {
   if (dt) { dt.destroy(); $('#mainTable tbody').empty(); }
   $('#rowCount').text(rows.length);
@@ -286,9 +385,10 @@ function updateTable(rows) {
     tbody.appendChild(tr);
   });
 
+  const pageLen = parseInt($('#pageLength').val()) || 30;
   dt = $('#mainTable').DataTable({
     language: { url: 'https://cdn.datatables.net/plug-ins/1.13.8/i18n/ko.json' },
-    pageLength: 25,
+    pageLength: pageLen,
     order: [],
     dom: 'frtip',
     columnDefs: [{ orderable: false, targets: 11 }]
@@ -310,12 +410,19 @@ function refresh() {
   $.getJSON('/api/data?' + params.toString(), rows => {
     updateTable(rows);
   });
+  $.getJSON('/api/insights?' + params.toString(), ins => {
+    updateInsights(ins);
+  });
 }
 
 $(document).ready(function () {
   refresh();
 
-  $('#filterYear, #filterPart, #filterStage').on('change', refresh);
+  $('#filterYear, .part-check, .stage-check').on('change', refresh);
+
+  $('#pageLength').on('change', function () {
+    if (dt) { dt.page.len(parseInt($(this).val())).draw(); }
+  });
 
   $('#btnCsvExport').on('click', function () {
     const headers = ['프로젝트코드','연도','파트','보고단계','총매출','지출합계','직접원가','직접인건비','공통원가/관리비','경상이익','이익율(%)','비고'];
