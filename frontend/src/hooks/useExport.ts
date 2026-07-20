@@ -37,7 +37,9 @@ export const useExport = () => {
       const a = document.createElement('a');
       a.href = url;
       a.download = `재무현황_${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (err) {
       console.error('[CSV Export]', err);
@@ -59,16 +61,28 @@ export const useExport = () => {
       const res = await fetch(getPdfUrl(filters));
       if (!res.ok) throw new Error(`서버 오류: ${res.status}`);
 
-      const blob = await res.blob();
+      // content-type 검증 — PDF가 아니면 에러
+      const ct = res.headers.get('content-type') ?? '';
+      if (!ct.includes('application/pdf')) {
+        throw new Error(`PDF가 아닌 응답: ${ct}`);
+      }
+
+      // arrayBuffer → 명시적 application/pdf Blob 생성 (MIME 타입 보장)
+      const buf = await res.arrayBuffer();
+      const blob = new Blob([buf], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
+
+      // DOM에 anchor 추가해야 일부 브라우저에서 download 속성 동작
       const a = document.createElement('a');
       a.href = url;
       a.download = `재무현황_${new Date().toISOString().slice(0, 10)}.pdf`;
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (err) {
       console.error('[PDF Export]', err);
-      alert('PDF 생성 중 오류가 발생했습니다.');
+      alert(`PDF 생성 중 오류가 발생했습니다.\n${err instanceof Error ? err.message : ''}`);
     } finally {
       clearTimeout(timer);
       setIsExportingPdf(false);
