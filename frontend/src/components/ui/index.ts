@@ -9,3 +9,4 @@ export * from './Chart';
 export * from './Button';
 export * from './InsightListCard';
 export * from './ProjectRankRow';
+export * from './DownloadModal';

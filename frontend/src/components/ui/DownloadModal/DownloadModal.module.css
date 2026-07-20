@@ -1,0 +1,90 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.18s ease;
+}
+.overlay.fading {
+  animation: fadeOut 0.35s ease forwards;
+}
+
+.modal {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  padding: 32px 40px;
+  min-width: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  animation: slideUp 0.2s ease;
+}
+
+.icon { font-size: 2rem; }
+
+.title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.subtitle {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+/* 프로그레스 트랙 */
+.track {
+  width: 100%;
+  height: 6px;
+  background: var(--border);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  margin-top: 6px;
+}
+
+/* 대기 중: 좌우로 흐르는 indeterminate 바 */
+.bar {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, var(--brand-mid), var(--brand-light), var(--brand-mid));
+  background-size: 200% 100%;
+}
+
+.bar.running {
+  width: 60%;
+  animation: slide 1.4s ease-in-out infinite;
+}
+
+/* 완료: 100%로 채워지고 초록색 */
+.bar.done {
+  width: 100%;
+  background: var(--profit);
+  animation: fillDone 0.3s ease forwards;
+}
+
+.hint {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+}
+
+@keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+@keyframes slideUp {
+  from { transform: translateY(16px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+@keyframes slide {
+  0%   { transform: translateX(-100%); }
+  50%  { transform: translateX(120%); }
+  100% { transform: translateX(-100%); }
+}
+@keyframes fillDone {
+  from { width: 60%; }
+  to   { width: 100%; }
+}
