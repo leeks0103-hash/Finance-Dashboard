@@ -5,7 +5,14 @@ import './index.css';
 import App from './App';
 
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
+  defaultOptions: {
+    queries: {
+      staleTime:  3 * 60 * 1000,  // 3분 — 같은 필터 재요청 방지
+      gcTime:    10 * 60 * 1000,  // 10분 캐시 보존
+      retry: 1,
+      refetchOnWindowFocus: false, // 탭 전환마다 재요청 방지
+    },
+  },
 });
 
 createRoot(document.getElementById('root')!).render(

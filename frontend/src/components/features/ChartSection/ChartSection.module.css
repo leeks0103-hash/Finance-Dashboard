@@ -2,9 +2,10 @@
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 12px;
+  min-height: 308px; /* 레이아웃 고정 */
 }
 @media (max-width: 900px) {
-  .grid { grid-template-columns: 1fr; }
+  .grid { grid-template-columns: 1fr; min-height: unset; }
 }
 .card {
   background: var(--surface);
@@ -12,6 +13,7 @@
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
   padding: 16px;
+  min-height: 308px;
 }
 .title {
   font-size: 0.82rem;
@@ -20,3 +22,16 @@
   margin-bottom: 12px;
 }
 .chartWrap { height: 260px; }
+
+/* 로딩 중 skeleton 카드 */
+.skeleton {
+  background: var(--bg-subtle);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  min-height: 308px;
+  animation: pulse 1.4s ease infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.45; }
+}

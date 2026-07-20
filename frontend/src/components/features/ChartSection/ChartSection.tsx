@@ -3,12 +3,18 @@ import { BarChart, DoughnutChart, EmptyState } from '@/components/ui';
 import styles from './ChartSection.module.css';
 
 const ChartSection = () => {
-  const { data } = useSummary();
-  const parts = Object.keys(data.by_part);
+  const { data, isLoading } = useSummary();
 
-  if (parts.length === 0) {
-    return <EmptyState icon="📊" title="차트 데이터 없음" description="필터 조건에 해당하는 데이터가 없습니다." />;
-  }
+  if (isLoading || !data) return (
+    <div className={styles.grid}>
+      {[0,1,2].map(i => <div key={i} className={styles.skeleton} />)}
+    </div>
+  );
+
+  const parts = Object.keys(data.by_part);
+  if (parts.length === 0) return (
+    <EmptyState icon="📊" title="차트 데이터 없음" description="필터 조건에 해당하는 데이터가 없습니다." />
+  );
 
   const revenues = parts.map(p => +(data.by_part[p].revenue / 1e8).toFixed(2));
   const profits  = parts.map(p => +(data.by_part[p].profit  / 1e8).toFixed(2));
@@ -26,7 +32,6 @@ const ChartSection = () => {
           ]} />
         </div>
       </div>
-
       <div className={styles.card}>
         <div className={styles.title}>원가 구성</div>
         <div className={styles.chartWrap}>
@@ -36,7 +41,6 @@ const ChartSection = () => {
           />
         </div>
       </div>
-
       <div className={styles.card}>
         <div className={styles.title}>파트별 이익율(%)</div>
         <div className={styles.chartWrap}>

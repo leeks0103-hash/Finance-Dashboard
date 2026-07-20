@@ -4,3 +4,5 @@ export { useInsights } from './useInsights';
 export { useProjects } from './useProjects';
 export { useExport } from './useExport';
 export { useFilterOptions } from './useFilterOptions';
+export { usePrefetch } from './usePrefetch';
+export { createDataHook } from './createDataHook';

@@ -1,27 +1,18 @@
-import { SuspenseSection } from '@/components/SuspenseSection';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import KpiSection from '@/components/features/KpiSection';
 import ChartSection from '@/components/features/ChartSection';
 import InsightSection from '@/components/features/InsightSection';
 import ProjectTable from '@/components/features/ProjectTable';
 import styles from './Dashboard.module.css';
 
+// 각 섹션은 자체 isLoading + skeleton으로 레이아웃을 고정합니다.
+// ErrorBoundary는 예외 발생 시 섹션별로 격리합니다.
 const Dashboard = () => (
   <main className={styles.main}>
-    <SuspenseSection label="KPI 로딩 중…">
-      <KpiSection />
-    </SuspenseSection>
-
-    <SuspenseSection label="차트 로딩 중…">
-      <ChartSection />
-    </SuspenseSection>
-
-    <SuspenseSection label="인사이트 분석 중…">
-      <InsightSection />
-    </SuspenseSection>
-
-    <SuspenseSection label="데이터 로딩 중…">
-      <ProjectTable />
-    </SuspenseSection>
+    <ErrorBoundary><KpiSection /></ErrorBoundary>
+    <ErrorBoundary><ChartSection /></ErrorBoundary>
+    <ErrorBoundary><InsightSection /></ErrorBoundary>
+    <ErrorBoundary><ProjectTable /></ErrorBoundary>
   </main>
 );
 

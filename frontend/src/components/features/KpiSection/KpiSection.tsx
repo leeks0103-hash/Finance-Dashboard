@@ -4,7 +4,14 @@ import { formatBillion, formatRate } from '@/utils';
 import styles from './KpiSection.module.css';
 
 const KpiSection = () => {
-  const { data } = useSummary();
+  const { data, isLoading } = useSummary();
+
+  if (isLoading || !data) return (
+    <div className={styles.grid}>
+      {[0,1,2,3].map(i => <div key={i} className={styles.skeleton} />)}
+    </div>
+  );
+
   return (
     <div className={styles.grid}>
       <KpiCard accent="brand"  icon="↑" label="총매출"     value={formatBillion(data.total_revenue)} />

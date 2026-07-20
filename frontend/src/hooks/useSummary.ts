@@ -1,11 +1,4 @@
-import { useSuspenseQuery } from '@tanstack/react-query';
 import { getSummary } from '@/api';
-import { useFilters } from './useFilters';
+import { createDataHook } from './createDataHook';
 
-export const useSummary = () => {
-  const { filters } = useFilters();
-  return useSuspenseQuery({
-    queryKey: ['summary', filters],
-    queryFn: () => getSummary(filters),
-  });
-};
+export const useSummary = createDataHook('summary', getSummary);

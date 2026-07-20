@@ -81,7 +81,7 @@ def load_excel():
     str_cols = ["project_code", "year", "part", "stage",
                 "note", "filename", "processed_at", "reflected_at"]
     for col in str_cols:
-        df[col] = df[col].astype(str).replace("nan", "").replace("0", "")
+        df[col] = df[col].astype(str).replace("nan", "")  # "0"은 유효한 값일 수 있으므로 제거 안 함
 
     _cached_df = df
     _last_loaded = datetime.now().strftime("%Y-%m-%d %H:%M:%S")

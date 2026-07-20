@@ -11,7 +11,7 @@ import { columns } from './columns';
 import styles from './ProjectTable.module.css';
 
 const ProjectTable = () => {
-  const { data = [] } = useProjects();
+  const { data = [], isLoading } = useProjects();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
   const [inputValue, setInputValue] = useState('');
@@ -46,17 +46,22 @@ const ProjectTable = () => {
       <div className={styles.header}>
         <div className={styles.count}>
           프로젝트 재무 상세
-          <span className={styles.badge}>{data.length}</span>
+          <span className={styles.badge}>{isLoading ? '…' : data.length}</span>
         </div>
         <input
           className={styles.search}
           placeholder="검색…"
           value={inputValue}
           onChange={handleSearch}
+          disabled={isLoading}
         />
       </div>
 
-      {rows.length === 0 ? (
+      {isLoading ? (
+        <div className={styles.loadingRows}>
+          {[...Array(5)].map((_, i) => <div key={i} className={styles.skeletonRow} />)}
+        </div>
+      ) : rows.length === 0 ? (
         <EmptyState icon="🔍" title="검색 결과 없음" description="다른 검색어나 필터 조건을 시도해 보세요." />
       ) : (
         <>
@@ -72,7 +77,7 @@ const ProjectTable = () => {
                         className={header.column.getCanSort() ? styles.sortable : ''}
                       >
                         {flexRender(header.column.columnDef.header, header.getContext())}
-                        {header.column.getIsSorted() === 'asc'  ? ' ↑' :
+                        {header.column.getIsSorted() === 'asc' ? ' ↑' :
                          header.column.getIsSorted() === 'desc' ? ' ↓' : ''}
                       </th>
                     ))}
@@ -92,7 +97,6 @@ const ProjectTable = () => {
               </tbody>
             </table>
           </div>
-
           <div className={styles.pagination}>
             <button onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>이전</button>
             <span>{table.getState().pagination.pageIndex + 1} / {table.getPageCount()}</span>

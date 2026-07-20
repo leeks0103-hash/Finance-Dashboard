@@ -1,3 +1,15 @@
+.skeleton {
+  background: var(--bg-subtle);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  min-height: 240px;
+  animation: pulse 1.4s ease infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.45; }
+}
+
 .section {
   background: var(--surface);
   border: 1px solid var(--border);

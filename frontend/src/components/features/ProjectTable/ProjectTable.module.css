@@ -1,4 +1,5 @@
 .wrapper {
+  min-height: 300px; /* 레이아웃 고정 */
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -76,4 +77,15 @@
   background: var(--brand-bg);
 }
 .pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
-.loading { padding: 40px; text-align: center; color: var(--text-muted); }
+.loadingRows { display: flex; flex-direction: column; gap: 8px; padding: 8px 0; }
+.skeletonRow {
+  height: 36px;
+  background: var(--bg-subtle);
+  border-radius: var(--radius-sm);
+  animation: pulse 1.4s ease infinite;
+}
+.skeletonRow:nth-child(odd) { animation-delay: 0.1s; }
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.45; }
+}

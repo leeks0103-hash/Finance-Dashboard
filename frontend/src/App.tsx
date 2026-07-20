@@ -4,6 +4,7 @@ import { Spinner } from '@/components/ui';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import styles from './App.module.css';
 
+// 페이지 단위 lazy load
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
 
 const App = () => (
