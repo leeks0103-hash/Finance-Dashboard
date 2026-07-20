@@ -8,7 +8,7 @@ import styles from './ActionBar.module.css';
  * - 컴포넌트: 렌더링만.
  */
 const ActionBar = () => {
-  const { exportCsv, exportPdf, isExportingPdf, reload, isReloading } = useExport();
+  const { exportCsv, exportPdf, isExportingPdf, showPdfModal, reload, isReloading } = useExport();
 
   return (
     <>
@@ -20,8 +20,8 @@ const ActionBar = () => {
         <Button variant="ghost" onClick={() => reload()} loading={isReloading}>↺ 갱신</Button>
       </div>
 
-      {/* PDF 다운로드 진행 모달 */}
-      <DownloadModal open={isExportingPdf} filename="재무현황 PDF" />
+      {/* PDF 모달 — 300ms 이상 걸릴 때만 표시 */}
+      <DownloadModal open={showPdfModal} filename="재무현황 PDF" />
     </>
   );
 };

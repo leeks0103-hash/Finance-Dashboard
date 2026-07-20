@@ -16,6 +16,8 @@ export const useExport = () => {
   const { filters } = useFilters();
   const qc = useQueryClient();
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  // 300ms 이상 걸릴 때만 모달 표시 — 짧은 다운로드에서 번쩍임 방지
+  const [showModal, setShowModal] = useState(false);
 
   const exportCsv = async () => {
     try {
@@ -49,6 +51,10 @@ export const useExport = () => {
    */
   const exportPdf = async () => {
     setIsExportingPdf(true);
+
+    // 300ms 이상 걸리면 그때 모달 표시
+    const timer = setTimeout(() => setShowModal(true), 300);
+
     try {
       const res = await fetch(getPdfUrl(filters));
       if (!res.ok) throw new Error(`서버 오류: ${res.status}`);
@@ -64,7 +70,9 @@ export const useExport = () => {
       console.error('[PDF Export]', err);
       alert('PDF 생성 중 오류가 발생했습니다.');
     } finally {
+      clearTimeout(timer);
       setIsExportingPdf(false);
+      setShowModal(false);
     }
   };
 
@@ -85,6 +93,7 @@ export const useExport = () => {
     exportCsv,
     exportPdf,
     isExportingPdf,
+    showPdfModal: showModal,  // 300ms 지연 후 true — 모달 표시 여부
     reload: reloadMutation.mutate,
     isReloading: reloadMutation.isPending,
   };
