@@ -1,0 +1,12 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 48px 24px;
+  color: var(--text-muted);
+}
+.icon { font-size: 2.2rem; }
+.title { font-size: 0.92rem; font-weight: 600; color: var(--text-sub); }
+.desc  { font-size: 0.8rem; text-align: center; line-height: 1.5; }

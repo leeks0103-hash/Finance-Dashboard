@@ -1,0 +1,25 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 32px;
+  background: var(--loss-bg);
+  border: 1px solid rgba(220,38,38,0.2);
+  border-radius: var(--radius);
+}
+.icon { font-size: 1.8rem; }
+.message { font-size: 0.86rem; color: var(--loss); text-align: center; }
+.btn {
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 5px 14px;
+  border: 1.5px solid var(--loss);
+  border-radius: var(--radius-btn);
+  color: var(--loss);
+  background: var(--surface);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.btn:hover { background: var(--loss); color: #fff; }

@@ -1,6 +1,5 @@
 import { useMutation } from '@tanstack/react-query';
-import { reloadData, getPdfUrl } from '../api/finance.api';
-import { getProjects } from '../api/finance.api';
+import { reloadData, getPdfUrl, getProjects } from '@/api';
 import { useFilters } from './useFilters';
 
 export const useExport = () => {
@@ -26,9 +25,7 @@ export const useExport = () => {
     URL.revokeObjectURL(url);
   };
 
-  const exportPdf = () => {
-    window.location.href = getPdfUrl(filters);
-  };
+  const exportPdf = () => { window.location.href = getPdfUrl(filters); };
 
   const reloadMutation = useMutation({ mutationFn: reloadData });
 

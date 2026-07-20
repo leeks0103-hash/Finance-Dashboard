@@ -6,13 +6,3 @@
 @media (max-width: 768px) {
   .grid { grid-template-columns: repeat(2, 1fr); }
 }
-.skeleton {
-  height: 80px;
-  background: var(--bg-subtle);
-  border-radius: var(--radius);
-  animation: pulse 1.4s ease infinite;
-}
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}

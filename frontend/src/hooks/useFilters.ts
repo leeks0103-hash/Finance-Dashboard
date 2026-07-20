@@ -1,5 +1,5 @@
-import { useFilterStore } from '../store/filter.store';
-import type { Filters } from '../types/finance.types';
+import { useFilterStore } from '@/store';
+import type { Filters } from '@/types';
 
 export const useFilters = () => {
   const { year, parts, stages, setYear, togglePart, toggleStage, reset } = useFilterStore();

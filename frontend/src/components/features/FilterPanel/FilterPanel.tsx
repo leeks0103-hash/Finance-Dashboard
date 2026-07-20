@@ -1,15 +1,11 @@
-import { useFilters } from '../../../hooks/useFilters';
-import FilterChip from '../../ui/FilterChip';
+import { useFilters } from '@/hooks/useFilters';
+import { useFilterOptions } from '@/hooks/useFilterOptions';
+import { FilterChip } from '@/components/ui';
 import styles from './FilterPanel.module.css';
 
-interface Props {
-  years: string[];
-  parts: string[];
-  stages: string[];
-}
-
-const FilterPanel = ({ years, parts, stages }: Props) => {
+const FilterPanel = () => {
   const { filters, setYear, togglePart, toggleStage } = useFilters();
+  const { years, parts, stages } = useFilterOptions();
 
   return (
     <div className={styles.panel}>

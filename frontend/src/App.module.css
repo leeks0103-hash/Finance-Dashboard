@@ -1,31 +1,5 @@
-.root { min-height: 100vh; display: flex; flex-direction: column; }
-
-.nav {
-  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
-  box-shadow: 0 2px 8px rgba(30,27,75,0.35);
-  padding: 10px 24px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.brand { font-weight: 700; font-size: 1rem; color: #fff; letter-spacing: -0.01em; }
-.team  { font-size: 0.78rem; color: var(--brand-light); opacity: 0.85; }
-
-.filterBar {
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  padding: 12px 24px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  box-shadow: var(--shadow-sm);
-}
-
-.main {
-  padding: 16px 24px;
+.root {
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  flex: 1;
 }

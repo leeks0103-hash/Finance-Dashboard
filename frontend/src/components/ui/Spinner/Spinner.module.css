@@ -1,0 +1,27 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 32px;
+}
+.fullPage {
+  min-height: 60vh;
+}
+.ring {
+  border-radius: 50%;
+  border: 3px solid var(--border);
+  border-top-color: var(--brand-mid);
+  animation: spin 0.75s linear infinite;
+}
+.sm { width: 20px; height: 20px; border-width: 2px; }
+.md { width: 36px; height: 36px; }
+.lg { width: 52px; height: 52px; border-width: 4px; }
+
+.label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }

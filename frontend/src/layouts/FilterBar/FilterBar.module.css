@@ -1,0 +1,13 @@
+.bar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  box-shadow: var(--shadow-sm);
+  position: sticky;
+  top: 42px;
+  z-index: 90;
+}
