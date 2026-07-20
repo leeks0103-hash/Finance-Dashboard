@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add *)",
+      "Bash(git commit -m *)",
+      "Bash(git remote *)",
+      "Bash(git push *)"
+    ]
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '[목표 달성 확인] 사용자가 요청한 모든 항목이 완료되었는지 점검하세요. 미완료 항목이 하나라도 있으면 작업을 계속 진행해야 합니다. 완료 기준: (1) 요청된 기능/수정이 코드에 반영됨 (2) 브라우저 또는 테스트로 동작 확인됨 (3) 필요시 GitHub push 완료됨. 모두 완료된 경우에만 종료하세요.'"
+          }
+        ]
+      }
+    ]
+  }
+}
