@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import type { Filters } from '../types/finance.types';
+import type { Filters } from '@/types';
+import { toggle } from '@/utils/array'; // M-13: 공유 유틸 사용
 
 interface FilterStore extends Filters {
   setYear: (year: string) => void;
@@ -7,9 +8,6 @@ interface FilterStore extends Filters {
   toggleStage: (stage: string) => void;
   reset: () => void;
 }
-
-const toggle = (arr: string[], val: string): string[] =>
-  arr.includes(val) ? arr.filter(v => v !== val) : [...arr, val];
 
 export const useFilterStore = create<FilterStore>(set => ({
   year: '',

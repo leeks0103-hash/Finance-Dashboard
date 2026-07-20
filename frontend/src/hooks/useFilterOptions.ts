@@ -1,15 +1,20 @@
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getProjects } from '@/api';
+
+const getUnique = (all: { year: string; part: string; stage: string }[], key: keyof typeof all[0]) =>
+  [...new Set(all.map(r => r[key]).filter((v): v is string => v !== null && v !== ''))].sort();
 
 export const useFilterOptions = () => {
   const { data: all = [] } = useQuery({
     queryKey: ['projects-all'],
     queryFn: () => getProjects({ year: '', parts: [], stages: [] }),
-    // staleTime 기본값(3분) 사용 — /api/reload 후 invalidation으로 갱신 가능
   });
-  return {
-    years:  [...new Set(all.map(r => r.year).filter(Boolean))].sort(),
-    parts:  [...new Set(all.map(r => r.part).filter(Boolean))].sort(),
-    stages: [...new Set(all.map(r => r.stage).filter(Boolean))].sort(),
-  };
+
+  // M-8: useMemo로 렌더마다 반복 계산 방지
+  return useMemo(() => ({
+    years:  getUnique(all, 'year'),
+    parts:  getUnique(all, 'part'),
+    stages: getUnique(all, 'stage'),
+  }), [all]);
 };

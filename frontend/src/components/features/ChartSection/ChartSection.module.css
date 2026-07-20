@@ -22,7 +22,7 @@
   color: var(--text-sub);
   margin-bottom: 12px;
 }
-.chartWrap { height: 260px; }
+.chartWrap { height: 244px; } /* M-12: 패딩+제목 높이 고려해 260→244 */
 
 /* 로딩 중 skeleton 카드 */
 .skeleton {

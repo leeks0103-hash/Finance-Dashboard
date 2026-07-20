@@ -2,7 +2,8 @@ import { useInsights } from '@/hooks/useInsights';
 import { formatRate } from '@/utils';
 
 export interface InsightRowViewModel {
-  projectCode: string;
+  projectCode: string; // 고유 key (복합)
+  displayCode: string; // 화면 표시용 원본 코드
   part:        string;
   value:       string;
   valueColor:  string;
@@ -29,14 +30,17 @@ export const useInsightViewModel = (): InsightViewModel => {
     isLoading,
     isEmpty,
     comments: data.comments,
-    top: data.top.map(r => ({
-      projectCode: r.project_code,
+    top: data.top.map((r, i) => ({
+      // M-28: 동일 project_code가 복수 stage에 있을 수 있으므로 복합 키
+      projectCode: `${r.project_code}-${r.stage ?? i}`,
+      displayCode: r.project_code,
       part:        r.part,
       value:       formatRate(r.profit_rate),
       valueColor:  'var(--profit)',
     })),
-    risk: data.risk.map(r => ({
-      projectCode: r.project_code,
+    risk: data.risk.map((r, i) => ({
+      projectCode: `${r.project_code}-${r.stage ?? i}`,
+      displayCode: r.project_code,
       part:        r.part,
       value:       r.operating_profit < 0 ? '손실' : formatRate(r.profit_rate),
       valueColor:  r.operating_profit < 0 ? 'var(--loss)' : 'var(--warn)',

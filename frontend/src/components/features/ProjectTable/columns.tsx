@@ -4,6 +4,12 @@ import { formatBillion, formatRate } from '@/utils';
 
 const h = createColumnHelper<Project>();
 
+/** M-17: 음수 값은 var(--loss) 빨강 + 볼드로 표시 */
+const NegCell = ({ v, text }: { v: number; text: string }) =>
+  v < 0
+    ? <span style={{ color: 'var(--loss)', fontWeight: 600 }}>{text}</span>
+    : <>{text}</>;
+
 export const columns = [
   h.accessor('project_code', { header: '프로젝트코드' }),
   h.accessor('year',         { header: '연도' }),
@@ -14,7 +20,13 @@ export const columns = [
   h.accessor('direct_cost',  { header: '직접원가', cell: i => formatBillion(i.getValue()) }),
   h.accessor('labor_cost',   { header: '인건비',   cell: i => formatBillion(i.getValue()) }),
   h.accessor('overhead',     { header: '공통원가', cell: i => formatBillion(i.getValue()) }),
-  h.accessor('operating_profit', { header: '경상이익', cell: i => formatBillion(i.getValue()) }),
-  h.accessor('profit_rate',  { header: '이익율(%)', cell: i => formatRate(i.getValue()) }),
-  h.accessor('note',         { header: '비고' }),
+  h.accessor('operating_profit', {
+    header: '경상이익',
+    cell: i => <NegCell v={i.getValue()} text={formatBillion(i.getValue())} />,
+  }),
+  h.accessor('profit_rate', {
+    header: '이익율(%)',
+    cell: i => <NegCell v={i.getValue()} text={formatRate(i.getValue())} />,
+  }),
+  h.accessor('note', { header: '비고', size: 160 }),
 ];

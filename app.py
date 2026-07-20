@@ -1,17 +1,25 @@
+import io
+import logging
 import os
-import json
+import threading
 from datetime import datetime
+from urllib.parse import quote
+
 import numpy as np
+import pandas as pd
 from flask import Flask, render_template, jsonify, request, make_response
 from flask.json.provider import DefaultJSONProvider
-import pandas as pd
+from markupsafe import escape as html_escape
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
 
 class NumpyJSONProvider(DefaultJSONProvider):
     def default(self, o):
-        if isinstance(o, (np.integer,)):
+        if isinstance(o, np.integer):
             return int(o)
-        if isinstance(o, (np.floating,)):
+        if isinstance(o, np.floating):
             return float(o)
         if isinstance(o, np.ndarray):
             return o.tolist()
@@ -19,8 +27,7 @@ class NumpyJSONProvider(DefaultJSONProvider):
 
 
 app = Flask(__name__)
-app.json_provider_class = NumpyJSONProvider
-app.json = NumpyJSONProvider(app)
+app.json = NumpyJSONProvider(app)  # M-1: 이중 등록 제거 (json_provider_class 라인 삭제)
 
 EXCEL_PATH = (
     "D:/24.기술교육사업기획팀"
@@ -38,6 +45,7 @@ COLUMNS = [
 
 _cached_df: pd.DataFrame = pd.DataFrame()
 _last_loaded = None
+_cache_lock = threading.Lock()  # C-1: 스레드 안전성
 
 
 def _sample_df() -> pd.DataFrame:
@@ -58,12 +66,21 @@ def _sample_df() -> pd.DataFrame:
 
 
 def load_excel():
+    """_cache_lock 을 보유한 상태에서만 호출할 것 (C-1)."""
     global _cached_df, _last_loaded
     if not os.path.exists(EXCEL_PATH):
+        # H-7: 운영자가 인지할 수 있도록 로그 출력
+        logger.warning("EXCEL_PATH 없음 — 샘플 데이터 사용: %s", EXCEL_PATH)
         _cached_df = _sample_df()
-        _last_loaded = datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " (샘플)"
+        _last_loaded = datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " [샘플]"
         return _cached_df
+
     df = pd.read_excel(EXCEL_PATH, sheet_name="취합", header=0, usecols=range(15))
+
+    # M-3: 컬럼 수 검증
+    if df.shape[1] != len(COLUMNS):
+        raise ValueError(f"엑셀 컬럼 수 불일치: 기대 {len(COLUMNS)}, 실제 {df.shape[1]}")
+
     df.columns = COLUMNS
     df = df[df["project_code"].notna() & (df["project_code"] != "")]
 
@@ -78,10 +95,24 @@ def load_excel():
         )
         df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
 
-    str_cols = ["project_code", "year", "part", "stage",
-                "note", "filename", "processed_at", "reflected_at"]
-    for col in str_cols:
-        df[col] = df[col].astype(str).replace("nan", "")  # "0"은 유효한 값일 수 있으므로 제거 안 함
+    # M-4: year가 숫자로 저장된 경우 "2024.0" → "2024" 변환
+    df["year"] = (
+        df["year"].astype(str)
+        .str.replace(r"\.0$", "", regex=True)
+        .replace("nan", "")
+    )
+
+    plain_str_cols = ["project_code", "part", "stage", "note", "filename"]
+    for col in plain_str_cols:
+        df[col] = df[col].astype(str).replace("nan", "")
+
+    # M-2: 날짜 컬럼 — "2024-01-10 00:00:00" → "2024-01-10"
+    for col in ["processed_at", "reflected_at"]:
+        df[col] = (
+            pd.to_datetime(df[col], errors="coerce")
+            .dt.strftime("%Y-%m-%d")
+            .fillna("")
+        )
 
     _cached_df = df
     _last_loaded = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -89,9 +120,19 @@ def load_excel():
 
 
 def get_df() -> pd.DataFrame:
-    if _cached_df.empty:
-        load_excel()
-    return _cached_df
+    """C-1: 이중 체크 잠금 패턴으로 스레드 안전하게 캐시 반환."""
+    global _cached_df, _last_loaded
+    if not _cached_df.empty:  # 빠른 경로 — 대부분의 요청은 여기서 반환
+        return _cached_df
+    with _cache_lock:
+        if _cached_df.empty:  # 잠금 후 재확인 (TOCTOU 방지)
+            try:
+                load_excel()
+            except Exception as e:
+                logger.error("load_excel() 실패, 샘플 데이터로 강등: %s", e)
+                _cached_df = _sample_df()
+                _last_loaded = datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " [샘플-오류]"
+        return _cached_df
 
 
 def apply_filters(df: pd.DataFrame) -> pd.DataFrame:
@@ -137,10 +178,13 @@ def api_summary():
     if df.empty:
         return jsonify({
             "total_revenue": 0, "total_expenditure": 0, "total_profit": 0,
-            "avg_profit_rate": 0, "count": 0, "by_part": {}, "cost_breakdown": {}
+            "avg_profit_rate": 0, "count": 0, "by_part": {},
+            # H-5: 빈 필터에도 항상 모든 키 포함
+            "cost_breakdown": {"direct_cost": 0, "labor_cost": 0, "overhead": 0},
         })
 
-    rates = df[df["profit_rate"] > 0]["profit_rate"]
+    # H-1: 전체 행 평균 (손실 프로젝트 제외하지 않음)
+    rates = df["profit_rate"]
     by_part = (
         df.groupby("part")
         .agg(
@@ -212,24 +256,25 @@ def api_insights():
 
     comments = []
 
+    # C-2: 동적 값 HTML escape (XSS 방지) — 파트명·프로젝트코드가 사용자 입력 포함 가능
     if best_part and part_stats.loc[best_part, "avg_rate"] > avg_rate:
         gap = round(part_stats.loc[best_part, "avg_rate"] - avg_rate, 1)
         comments.append({
             "type": "positive", "icon": "📈",
-            "text": f"<b>{best_part}</b> 파트의 평균 이익율은 <b>{part_stats.loc[best_part, 'avg_rate']}%</b>로, 전체 평균({avg_rate}%)보다 <b>{gap}%p</b> 높습니다."
+            "text": f"<b>{html_escape(best_part)}</b> 파트의 평균 이익율은 <b>{part_stats.loc[best_part, 'avg_rate']}%</b>로, 전체 평균({avg_rate}%)보다 <b>{gap}%p</b> 높습니다."
         })
 
     if top_rev_part is not None:
         rev_share = round(part_stats.loc[top_rev_part, "revenue"] / total_revenue * 100, 1) if total_revenue else 0
         comments.append({
             "type": "info", "icon": "💼",
-            "text": f"매출 비중이 가장 큰 파트는 <b>{top_rev_part}</b>으로, 전체 매출의 <b>{rev_share}%</b>({bil(part_stats.loc[top_rev_part, 'revenue'])})를 차지합니다."
+            "text": f"매출 비중이 가장 큰 파트는 <b>{html_escape(top_rev_part)}</b>으로, 전체 매출의 <b>{rev_share}%</b>({bil(part_stats.loc[top_rev_part, 'revenue'])})를 차지합니다."
         })
 
     if biggest is not None:
         comments.append({
             "type": "info", "icon": "🏆",
-            "text": f"단일 최대 매출 프로젝트는 <b>{biggest['project_code']}</b>({biggest['part']} · {biggest['stage']})으로 <b>{bil(biggest['revenue'])}</b>입니다."
+            "text": f"단일 최대 매출 프로젝트는 <b>{html_escape(str(biggest['project_code']))}</b>({html_escape(str(biggest['part']))} · {html_escape(str(biggest['stage']))})으로 <b>{bil(biggest['revenue'])}</b>입니다."
         })
 
     if total_cost > 0:
@@ -248,7 +293,7 @@ def api_insights():
         gap2 = round(part_stats.loc[best_part, "avg_rate"] - part_stats.loc[worst_part, "avg_rate"], 1)
         comments.append({
             "type": "warning", "icon": "🔍",
-            "text": f"파트 간 이익율 격차가 <b>{gap2}%p</b>입니다. <b>{worst_part}</b> 파트(평균 {part_stats.loc[worst_part, 'avg_rate']}%)의 수익성 개선이 필요합니다."
+            "text": f"파트 간 이익율 격차가 <b>{gap2}%p</b>입니다. <b>{html_escape(worst_part)}</b> 파트(평균 {part_stats.loc[worst_part, 'avg_rate']}%)의 수익성 개선이 필요합니다."
         })
 
     if total_revenue:
@@ -265,9 +310,11 @@ def api_insights():
 @app.route("/api/reload", methods=["POST"])
 def api_reload():
     try:
-        load_excel()
+        with _cache_lock:  # C-1: reload도 잠금 보유
+            load_excel()
         return jsonify({"ok": True, "loaded_at": _last_loaded, "count": len(_cached_df)})
     except Exception as e:
+        logger.error("api_reload 실패: %s", e)
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
@@ -280,7 +327,6 @@ def api_export_pdf():
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
     from reportlab.pdfbase import pdfmetrics
     from reportlab.pdfbase.ttfonts import TTFont
-    import io
 
     df = apply_filters(get_df())
     valid = df[df["revenue"] > 0]
@@ -290,13 +336,11 @@ def api_export_pdf():
                             rightMargin=15*mm, leftMargin=15*mm,
                             topMargin=15*mm, bottomMargin=15*mm)
 
-    # 폰트 등록 (윈도우 기본 폰트)
+    # M-11: 이미 등록된 경우 재등록 생략
     font_path = "C:/Windows/Fonts/malgun.ttf"
-    if os.path.exists(font_path):
+    if os.path.exists(font_path) and "Malgun" not in pdfmetrics.getRegisteredFontNames():
         pdfmetrics.registerFont(TTFont("Malgun", font_path))
-        font_name = "Malgun"
-    else:
-        font_name = "Helvetica"
+    font_name = "Malgun" if "Malgun" in pdfmetrics.getRegisteredFontNames() else "Helvetica"
 
     styles = getSampleStyleSheet()
     title_style = ParagraphStyle("title", fontName=font_name, fontSize=16, spaceAfter=6)
@@ -393,10 +437,14 @@ def api_export_pdf():
     doc.build(elements)
     buffer.seek(0)
 
-    filename = f"재무현황_{datetime.now().strftime('%Y%m%d')}.pdf"
+    raw_name = f"재무현황_{datetime.now().strftime('%Y%m%d')}.pdf"
+    # H-6: RFC 5987 — 한국어 파일명 퍼센트 인코딩 + ASCII 폴백
+    encoded_name = quote(raw_name.encode("utf-8"), safe="._-")
     response = make_response(buffer.read())
     response.headers["Content-Type"] = "application/pdf"
-    response.headers["Content-Disposition"] = f"attachment; filename*=UTF-8''{filename}"
+    response.headers["Content-Disposition"] = (
+        f'attachment; filename="report.pdf"; filename*=UTF-8\'\'{encoded_name}'
+    )
     return response
 
 

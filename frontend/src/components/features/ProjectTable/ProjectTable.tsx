@@ -3,23 +3,23 @@ import {
   getPaginationRowModel, getFilteredRowModel,
   flexRender, type SortingState,
 } from '@tanstack/react-table';
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { debounce } from 'lodash-es';
 import { useProjects } from '@/hooks/useProjects';
 import { EmptyState } from '@/components/ui';
-import { columns } from './columns';
+import { columns } from './columns.tsx';
 import styles from './ProjectTable.module.css';
 
 const ProjectTable = () => {
-  const { data = [], isLoading } = useProjects();
+  const { data = [], isLoading, isFetching } = useProjects();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
   const [inputValue, setInputValue] = useState('');
 
-  const debouncedSetFilter = useMemo(
-    () => debounce((val: string) => setGlobalFilter(val), 350),
-    []
-  );
+  // M-15: useRef — StrictMode에서 debounce 인스턴스 누수 방지
+  const debouncedSetFilter = useRef(
+    debounce((val: string) => setGlobalFilter(val), 350)
+  ).current;
 
   const handleSearch = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setInputValue(e.target.value);
@@ -40,20 +40,22 @@ const ProjectTable = () => {
   });
 
   const rows = table.getRowModel().rows;
+  // M-16: isLoading OR isFetching 모두 비활성화
+  const busy = isLoading || isFetching;
 
   return (
     <div className={styles.wrapper}>
       <div className={styles.header}>
         <div className={styles.count}>
           프로젝트 재무 상세
-          <span className={styles.badge}>{isLoading ? '…' : data.length}</span>
+          <span className={styles.badge}>{busy ? '…' : data.length}</span>
         </div>
         <input
           className={styles.search}
           placeholder="검색…"
           value={inputValue}
           onChange={handleSearch}
-          disabled={isLoading}
+          disabled={busy}
         />
       </div>
 
@@ -65,7 +67,7 @@ const ProjectTable = () => {
         <EmptyState icon="🔍" title="검색 결과 없음" description="다른 검색어나 필터 조건을 시도해 보세요." />
       ) : (
         <>
-          <div className={styles.tableWrap}>
+          <div className={`${styles.tableWrap} ${isFetching ? styles.fetching : ''}`}>
             <table className={styles.table}>
               <thead>
                 {table.getHeaderGroups().map(hg => (
@@ -77,7 +79,7 @@ const ProjectTable = () => {
                         className={header.column.getCanSort() ? styles.sortable : ''}
                       >
                         {flexRender(header.column.columnDef.header, header.getContext())}
-                        {header.column.getIsSorted() === 'asc' ? ' ↑' :
+                        {header.column.getIsSorted() === 'asc'  ? ' ↑' :
                          header.column.getIsSorted() === 'desc' ? ' ↓' : ''}
                       </th>
                     ))}
@@ -97,9 +99,14 @@ const ProjectTable = () => {
               </tbody>
             </table>
           </div>
+
           <div className={styles.pagination}>
             <button onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>이전</button>
-            <span>{table.getState().pagination.pageIndex + 1} / {table.getPageCount()}</span>
+            <span>
+              {table.getPageCount() > 0
+                ? `${table.getState().pagination.pageIndex + 1} / ${table.getPageCount()}`
+                : '0 / 0'}
+            </span>
             <button onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>다음</button>
           </div>
         </>

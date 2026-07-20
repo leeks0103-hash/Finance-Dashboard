@@ -1,7 +1,11 @@
+/* M-25: FilterBar의 top 계산에서 참조 */
+:global(:root) { --navbar-height: 44px; }
+
 .nav {
   background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
   box-shadow: 0 2px 8px rgba(30,27,75,0.35);
-  padding: 10px 24px;
+  height: var(--navbar-height);
+  padding: 0 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;

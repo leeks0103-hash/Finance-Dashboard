@@ -8,6 +8,6 @@
   flex-wrap: wrap;
   box-shadow: var(--shadow-sm);
   position: sticky;
-  top: 42px;
+  top: var(--navbar-height, 44px); /* M-25: Navbar 높이 변수 참조 */
   z-index: 90;
 }

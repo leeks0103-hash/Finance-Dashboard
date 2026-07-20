@@ -77,6 +77,9 @@
   background: var(--brand-bg);
 }
 .pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
+/* 백그라운드 리페치 중 살짝 희미하게 */
+.fetching { opacity: 0.7; transition: opacity 0.2s; }
+
 .loadingRows { display: flex; flex-direction: column; gap: 8px; padding: 8px 0; }
 .skeletonRow {
   height: 36px;

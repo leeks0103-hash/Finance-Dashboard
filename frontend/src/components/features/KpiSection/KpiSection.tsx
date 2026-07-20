@@ -20,7 +20,7 @@ const KpiSection = () => {
     <div className={styles.grid}>
       <KpiCard accent="brand"  icon="↑" label="총매출"     value={vm.revenue} />
       <KpiCard accent="loss"   icon="↓" label="지출합계"   value={vm.expenditure} />
-      <KpiCard accent="profit" icon="₩" label="경상이익"   value={vm.profit} />
+      <KpiCard accent={vm.profitAccent} icon="₩" label="경상이익" value={vm.profit} />
       <KpiCard accent="warn"   icon="%" label="평균 이익율" value={vm.rate} />
     </div>
   );

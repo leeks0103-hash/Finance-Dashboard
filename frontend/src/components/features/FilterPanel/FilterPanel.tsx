@@ -2,10 +2,8 @@ import { useFilters } from '@/hooks/useFilters';
 import { useFilterOptions } from '@/hooks/useFilterOptions';
 import { usePrefetch } from '@/hooks/usePrefetch';
 import { FilterChip } from '@/components/ui';
+import { toggle } from '@/utils/array'; // M-13: 공유 유틸
 import styles from './FilterPanel.module.css';
-
-const toggle = (arr: string[], val: string) =>
-  arr.includes(val) ? arr.filter(v => v !== val) : [...arr, val];
 
 const FilterPanel = () => {
   const { filters, setYear, togglePart, toggleStage } = useFilters();

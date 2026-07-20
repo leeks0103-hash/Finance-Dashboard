@@ -39,7 +39,7 @@ const InsightSection = () => {
               <ProjectRankRow
                 key={r.projectCode}
                 rank={i + 1}
-                projectCode={r.projectCode}
+                projectCode={r.displayCode}
                 part={r.part}
                 value={r.value}
                 valueColor={r.valueColor}
@@ -51,7 +51,7 @@ const InsightSection = () => {
             {vm.risk.map(r => (
               <ProjectRankRow
                 key={r.projectCode}
-                projectCode={r.projectCode}
+                projectCode={r.displayCode}
                 part={r.part}
                 value={r.value}
                 valueColor={r.valueColor}
