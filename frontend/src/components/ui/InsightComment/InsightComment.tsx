@@ -3,13 +3,12 @@ import type { CommentType } from '../../../types/finance.types';
 
 interface Props {
   type: CommentType;
-  icon: string;
+  icon?: string;  // 데이터에는 존재하나 UI에서 미사용
   text: string;
 }
 
-const InsightComment = ({ type, icon, text }: Props) => (
+const InsightComment = ({ type, text }: Props) => (
   <div className={`${styles.comment} ${styles[type]}`}>
-    <span className={styles.icon}>{icon}</span>
     <span dangerouslySetInnerHTML={{ __html: text }} />
   </div>
 );

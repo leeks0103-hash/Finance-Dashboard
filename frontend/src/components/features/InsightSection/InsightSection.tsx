@@ -19,7 +19,7 @@ const InsightSection = () => {
   return (
     <div className={styles.section}>
       <div className={styles.header}>
-        💡 재무 인사이트
+        재무 인사이트
         <span className={styles.sub}>필터 기준 자동 분석</span>
       </div>
 
@@ -34,7 +34,7 @@ const InsightSection = () => {
         </div>
 
         <div className={styles.listsPane}>
-          <InsightListCard title="🏆 이익율 상위 프로젝트">
+          <InsightListCard title="이익율 상위 프로젝트">
             {vm.top.map((r, i) => (
               <ProjectRankRow
                 key={r.projectCode}
@@ -47,7 +47,7 @@ const InsightSection = () => {
             ))}
           </InsightListCard>
 
-          <InsightListCard title="⚠️ 저수익 / 손실 주의">
+          <InsightListCard title="저수익 / 손실 주의">
             {vm.risk.map((r, i) => (
               <ProjectRankRow
                 key={r.projectCode}
