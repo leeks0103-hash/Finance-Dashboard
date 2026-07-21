@@ -4,14 +4,14 @@ import styles from './ChartSection.module.css';
 
 // 모듈 레벨 상수 — 매 렌더마다 새 객체 생성 방지
 const REV_EXP_OPTIONS = {
-  layout: { padding: { right: 48 } },  // 막대 끝 레이블 공간 확보
+  layout: { padding: { right: 52 } },  // 막대 끝 레이블 공간 확보
   plugins: {
     datalabels: {
       display: true,
       anchor: 'end' as const,
       align:  'end'  as const,
-      color:  '#374151',
-      font:   { size: 10, weight: 'bold' as const },
+      color:  '#111827',              // 진한 검정에 가깝게
+      font:   { size: 12, weight: 'bold' as const },
       formatter: (v: number) =>
         Math.abs(v) >= 1 ? `${v.toFixed(1)}억` : `${(v * 10).toFixed(0)}천만`,
     },
@@ -19,14 +19,14 @@ const REV_EXP_OPTIONS = {
 } as const;
 
 const PROFIT_RATE_OPTIONS = {
-  layout: { padding: { top: 20 } },    // 막대 위 레이블 공간 확보
+  layout: { padding: { top: 24 } },    // 막대 위 레이블 공간 확보
   plugins: {
     datalabels: {
       display: true,
       anchor: 'end'  as const,
       align:  'top'  as const,
-      color:  '#374151',
-      font:   { size: 11, weight: 'bold' as const },
+      color:  '#111827',
+      font:   { size: 12, weight: 'bold' as const },
       formatter: (v: number) => `${v}%`,
     },
   },
