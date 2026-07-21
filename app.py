@@ -374,13 +374,15 @@ def api_export_pdf():
     font_name = _PDF_FONT
 
     styles = getSampleStyleSheet()
-    title_style  = ParagraphStyle("title",  fontName=font_name, fontSize=16, spaceAfter=6)
-    sub_style    = ParagraphStyle("sub",    fontName=font_name, fontSize=11, spaceAfter=4, textColor=colors.HexColor("#374151"))
-    normal_style = ParagraphStyle("normal", fontName=font_name, fontSize=9)
+    title_style  = ParagraphStyle("title",  fontName=font_name, fontSize=16, spaceAfter=6, textColor=colors.black)
+    sub_style    = ParagraphStyle("sub",    fontName=font_name, fontSize=11, spaceAfter=4, textColor=colors.black)
+    normal_style = ParagraphStyle("normal", fontName=font_name, fontSize=9,  textColor=colors.black)
 
-    # 단일 스타일 — 진회색 헤더, 전체 중앙정렬, 색상 통일
+    # 단일 색상 — 헤더·테두리만 회색, 나머지 전부 검정
     HEADER_COLOR = colors.HexColor("#374151")
     BORDER_COLOR = colors.HexColor("#D1D5DB")
+    # 모든 테이블 동일 폭: A4(210mm) - 좌우마진(15mm×2) = 180mm, 5컬럼 균일 구조
+    COL_W = [50*mm, 40*mm, 40*mm, 30*mm, 20*mm]
 
     def tbl_style():
         return TableStyle([
@@ -405,19 +407,21 @@ def api_export_pdf():
     elements.append(Paragraph(f"출력일: {datetime.now().strftime('%Y-%m-%d %H:%M')}", normal_style))
     elements.append(Spacer(1, 6*mm))
 
-    # 요약 KPI — 2컬럼 180mm
+    # 요약 KPI — 5컬럼 (파트별 실적과 동일 구조)
     elements.append(Paragraph("전체 요약", sub_style))
     rates = valid[valid["profit_rate"] > 0]["profit_rate"]
     avg_rate = round(rates.mean(), 1) if not rates.empty else 0
     kpi_data = [
-        ["항목", "금액"],
-        ["총 매출", f"{valid['revenue'].sum()/1e8:.1f}억원"],
-        ["총 지출", f"{valid['expenditure'].sum()/1e8:.1f}억원"],
-        ["경상이익 합계", f"{valid['operating_profit'].sum()/1e8:.1f}억원"],
-        ["평균 이익율", f"{avg_rate}%"],
-        ["프로젝트 수", f"{len(valid)}건"],
+        ["총 매출", "총 지출", "경상이익", "평균 이익율", "프로젝트 수"],
+        [
+            f"{valid['revenue'].sum()/1e8:.1f}억원",
+            f"{valid['expenditure'].sum()/1e8:.1f}억원",
+            f"{valid['operating_profit'].sum()/1e8:.1f}억원",
+            f"{avg_rate}%",
+            f"{len(valid)}건",
+        ],
     ]
-    t = Table(kpi_data, colWidths=[110*mm, 70*mm])  # 합계 180mm
+    t = Table(kpi_data, colWidths=COL_W)
     t.setStyle(tbl_style())
     elements += [t, Spacer(1, 6*mm)]
 
@@ -434,18 +438,22 @@ def api_export_pdf():
                 f"{row['avg_rate']}%",
                 f"{int(row['count'])}건",
             ])
-        t2 = Table(part_data, colWidths=[50*mm, 40*mm, 40*mm, 30*mm, 20*mm])  # 합계 180mm
+        t2 = Table(part_data, colWidths=COL_W)
         t2.setStyle(tbl_style())
         elements += [t2, Spacer(1, 6*mm)]
 
-    # 이익율 TOP 5 — 4컬럼 180mm
+    # 이익율 TOP 5 — 5컬럼 (파트별 실적과 동일 구조)
     top5 = valid[valid["profit_rate"] > 0].nlargest(5, "profit_rate")
     if not top5.empty:
         elements.append(Paragraph("이익율 TOP 5", sub_style))
-        top_data = [["프로젝트코드", "파트", "단계", "이익율"]]
+        top_data = [["프로젝트코드", "파트", "단계", "매출", "이익율"]]
         for _, row in top5.iterrows():
-            top_data.append([row["project_code"], row["part"], row["stage"], f"{round(row['profit_rate'], 1)}%"])
-        t3 = Table(top_data, colWidths=[60*mm, 50*mm, 40*mm, 30*mm])  # 합계 180mm
+            top_data.append([
+                row["project_code"], row["part"], row["stage"],
+                f"{row['revenue']/1e8:.1f}억",
+                f"{round(row['profit_rate'], 1)}%",
+            ])
+        t3 = Table(top_data, colWidths=COL_W)
         t3.setStyle(tbl_style())
         elements += [t3, Spacer(1, 6*mm)]
 
@@ -460,7 +468,7 @@ def api_export_pdf():
                 f"{row['operating_profit']/1e4:.0f}만원",
                 f"{round(row['profit_rate'], 1)}%",
             ])
-        t4 = Table(risk_data, colWidths=[50*mm, 40*mm, 35*mm, 30*mm, 25*mm])  # 합계 180mm
+        t4 = Table(risk_data, colWidths=COL_W)
         t4.setStyle(tbl_style())
         elements += [t4, Spacer(1, 6*mm)]
 
