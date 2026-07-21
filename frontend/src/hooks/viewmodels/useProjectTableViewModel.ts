@@ -15,6 +15,7 @@ export interface ProjectTableViewModel {
   onFilterChange:  React.Dispatch<React.SetStateAction<string>>;
   inputValue:      string;
   handleSearch:    (e: React.ChangeEvent<HTMLInputElement>) => void;
+  getRowVariant:   (row: Project) => 'loss' | 'warn' | '';
 }
 
 export const useProjectTableViewModel = (): ProjectTableViewModel => {
@@ -47,5 +48,10 @@ export const useProjectTableViewModel = (): ProjectTableViewModel => {
     onFilterChange:  setGlobalFilter,
     inputValue,
     handleSearch,
+    getRowVariant: (row: Project) => {
+      if (row.operating_profit < 0) return 'loss';
+      if (row.profit_rate > 0 && row.profit_rate < 5) return 'warn';
+      return '';
+    },
   };
 };

@@ -74,6 +74,14 @@
 }
 .table tbody tr:hover { background: var(--brand-bg); }
 
+/* 손실 행 — 연한 빨강 */
+.loss { background: rgba(254, 242, 242, 0.7) !important; }
+.loss:hover { background: rgba(254, 226, 226, 0.85) !important; }
+
+/* 저수익 행 — 연한 노랑 */
+.warn { background: rgba(255, 251, 235, 0.7) !important; }
+.warn:hover { background: rgba(254, 243, 199, 0.85) !important; }
+
 /* pagination — 항상 하단에 고정 */
 .pagination {
   display: flex;

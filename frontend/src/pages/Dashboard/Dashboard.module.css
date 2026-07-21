@@ -1,11 +1,11 @@
 .main {
-  padding: 16px 24px;
+  padding: 20px 28px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 22px;
   flex: 1;
 }
 
 @media (max-width: 768px) {
-  .main { padding: 10px 12px; gap: 10px; }
+  .main { padding: 10px 12px; gap: 12px; }
 }

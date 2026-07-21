@@ -24,7 +24,7 @@ const ProjectTable = () => {
     initialState: { pagination: { pageSize: 30 } },
   });
 
-  const rows = table.getRowModel().rows;
+  const rows     = table.getRowModel().rows;
   const pageCount = table.getPageCount();
   const pageLabel = pageCount > 0
     ? `${table.getState().pagination.pageIndex + 1} / ${pageCount}`
@@ -74,15 +74,18 @@ const ProjectTable = () => {
                 ))}
               </thead>
               <tbody>
-                {rows.map(row => (
-                  <tr key={row.id}>
-                    {row.getVisibleCells().map(cell => (
-                      <td key={cell.id}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
+                {rows.map(row => {
+                  const variant = vm.getRowVariant(row.original);
+                  return (
+                    <tr key={row.id} className={variant ? styles[variant] : ''}>
+                      {row.getVisibleCells().map(cell => (
+                        <td key={cell.id}>
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </td>
+                      ))}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
