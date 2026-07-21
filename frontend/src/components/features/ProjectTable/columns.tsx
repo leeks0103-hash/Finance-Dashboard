@@ -1,6 +1,6 @@
 import { createColumnHelper } from '@tanstack/react-table';
 import type { Project } from '@/types';
-import { formatBillion, formatRate } from '@/utils';
+import { formatBillion, formatRate, getNoteVariant } from '@/utils';
 import { Badge } from '@/components/ui';
 
 const h = createColumnHelper<Project>();
@@ -33,10 +33,9 @@ export const columns = [
     header: '비고',
     cell: i => {
       const note = i.getValue() as string;
-      if (!note) return null;
-      if (note.includes('손실')) return <Badge label={note} variant="loss" />;
-      if (note.includes('저수익')) return <Badge label={note} variant="warn" />;
-      return <>{note}</>;
+      const variant = getNoteVariant(note);
+      if (!variant) return <>{note}</>;
+      return <Badge label={note} variant={variant} />;
     },
   }),
 ];

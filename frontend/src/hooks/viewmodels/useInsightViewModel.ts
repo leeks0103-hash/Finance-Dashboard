@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useInsights } from '@/hooks/useInsights';
 import { formatRate } from '@/utils';
 
 export interface InsightRowViewModel {
-  projectCode: string; // 고유 key (복합)
-  displayCode: string; // 화면 표시용 원본 코드
+  projectCode: string;
+  displayCode: string;
   part:        string;
   value:       string;
   valueColor:  string;
@@ -15,8 +15,7 @@ export interface InsightViewModel {
   isEmpty:         boolean;
   comments:        Array<{ type: 'positive' | 'info' | 'neutral' | 'warning'; icon: string; text: string }>;
   hasMoreComments: boolean;
-  moreCount:       number;
-  showAll:         boolean;
+  toggleLabel:     string;   // '접기' | '더보기 +N' — JSX 삼항 제거
   toggleShowAll:   () => void;
   top:  InsightRowViewModel[];
   risk: InsightRowViewModel[];
@@ -28,30 +27,32 @@ export const useInsightViewModel = (): InsightViewModel => {
   const { data, isLoading } = useInsights();
   const [showAll, setShowAll] = useState(false);
 
-  const toggleShowAll = () => setShowAll(s => !s);
+  const toggleShowAll = useCallback(() => setShowAll(s => !s), []);
 
   if (!data || isLoading) {
-    return { isLoading, isEmpty: false, comments: [], hasMoreComments: false, moreCount: 0, showAll, toggleShowAll, top: [], risk: [] };
+    return {
+      isLoading, isEmpty: false, comments: [],
+      hasMoreComments: false, toggleLabel: '', toggleShowAll,
+      top: [], risk: [],
+    };
   }
 
-  // risk 배열도 포함해야 리스크만 있는 필터에서 EmptyState 오표시 방지
   const isEmpty = !data.comments.length && !data.top.length && !data.risk.length;
 
-  const allComments    = data.comments;
+  const allComments     = data.comments;
   const hasMoreComments = allComments.length > COMMENT_PREVIEW;
   const moreCount       = Math.max(0, allComments.length - COMMENT_PREVIEW);
   const visibleComments = showAll ? allComments : allComments.slice(0, COMMENT_PREVIEW);
+  const toggleLabel     = showAll ? '접기' : `더보기 +${moreCount}`;
 
   return {
     isLoading,
     isEmpty,
     comments: visibleComments,
     hasMoreComments,
-    moreCount,
-    showAll,
+    toggleLabel,
     toggleShowAll,
     top: data.top.map((r, i) => ({
-      // M-28: 동일 project_code가 복수 stage에 있을 수 있으므로 복합 키
       projectCode: `${r.project_code}-${r.stage ?? i}`,
       displayCode: r.project_code,
       part:        r.part,

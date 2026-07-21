@@ -149,7 +149,8 @@ def apply_filters(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def bil(v):
-    return f"{v / 1e8:.1f}억원"
+    # -0.0 방지: f-string :.1f는 -0.0499...를 "-0.0"으로 포맷함
+    return f"{v / 1e8:.1f}".replace("-0.0", "0.0") + "억원"
 
 
 def _safe_avg_rate(x) -> float:
@@ -268,6 +269,7 @@ def api_insights():
         _risk_pool
         .sort_values(["_is_loss", "profit_rate"], ascending=[False, True])
         .head(5)
+        .drop(columns=["_is_loss"])  # 임시 정렬 컬럼 제거
         [["project_code", "part", "stage", "revenue", "operating_profit", "profit_rate"]]
         .to_dict(orient="records")
     )
@@ -477,6 +479,7 @@ def api_export_pdf():
         _risk_pool
         .sort_values(["_is_loss", "profit_rate"], ascending=[False, True])
         .head(5)
+        .drop(columns=["_is_loss"])  # 임시 정렬 컬럼 제거
     )
     if not risk.empty:
         elements.append(Paragraph("리스크 프로젝트 (손실·이익율 5% 미만)", sub_style))

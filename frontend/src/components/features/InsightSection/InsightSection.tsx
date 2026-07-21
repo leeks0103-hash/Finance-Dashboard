@@ -33,7 +33,7 @@ const InsightSection = () => {
               onClick={vm.toggleShowAll}
               className={styles.moreBtn}
             >
-              {vm.showAll ? '접기' : `더보기 +${vm.moreCount}`}
+              {vm.toggleLabel}
             </Button>
           )}
         </div>

@@ -11,7 +11,7 @@ interface Props {
 
 const KpiCard = ({ label, value, icon, accent }: Props) => (
   <div className={`${styles.card} ${styles[accent]}`}>
-    <div className={styles.iconWrap}>{icon}</div>
+    <div className={styles.iconWrap} aria-hidden="true">{icon}</div>
     <div className={styles.label}>{label}</div>
     <div className={styles.value}>{value}</div>
   </div>

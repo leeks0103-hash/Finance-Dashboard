@@ -48,10 +48,11 @@ export const useProjectTableViewModel = (): ProjectTableViewModel => {
     onFilterChange:  setGlobalFilter,
     inputValue,
     handleSearch,
-    getRowVariant: (row: Project) => {
+    // useCallback으로 안정적 참조 — handleSearch와 동일 패턴
+    getRowVariant: useCallback((row: Project): 'loss' | 'warn' | '' => {
       if (row.operating_profit < 0) return 'loss';
-      if (row.profit_rate > 0 && row.profit_rate < 5) return 'warn';
+      if (row.profit_rate >= 0 && row.profit_rate < 5) return 'warn';  // 0 포함 (PDF 기준과 통일)
       return '';
-    },
+    }, []),
   };
 };

@@ -1,7 +1,7 @@
 import { useSummary } from '@/hooks/useSummary';
 import { formatBillion, formatRate } from '@/utils';
 
-export type KpiAccent = 'brand' | 'profit' | 'loss' | 'warn';
+export type KpiAccent = 'brand' | 'profit' | 'loss' | 'warn' | 'purple';
 
 export interface KpiViewModel {
   isLoading:      boolean;
