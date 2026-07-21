@@ -25,6 +25,7 @@ const PROFIT_RATE_OPTIONS = {
       display: true,
       anchor: 'end'  as const,
       align:  'top'  as const,
+      offset: 2,
       color:  '#111827',
       font:   { size: 12, weight: 'bold' as const },
       formatter: (v: number) => `${v}%`,
