@@ -9,6 +9,7 @@ export const useFilterOptions = () => {
   const { data: all = [] } = useQuery({
     queryKey: ['projects-all'],
     queryFn: () => getProjects({ year: '', parts: [], stages: [] }),
+    staleTime: Infinity,  // reload 시에만 invalidate — 자동 refetch 없음
   });
 
   // M-8: useMemo로 렌더마다 반복 계산 방지

@@ -48,9 +48,10 @@ const InsightSection = () => {
           </InsightListCard>
 
           <InsightListCard title="⚠️ 저수익 / 손실 주의">
-            {vm.risk.map(r => (
+            {vm.risk.map((r, i) => (
               <ProjectRankRow
                 key={r.projectCode}
+                rank={i + 1}
                 projectCode={r.displayCode}
                 part={r.part}
                 value={r.value}

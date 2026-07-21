@@ -347,19 +347,23 @@ def api_export_pdf():
     sub_style = ParagraphStyle("sub", fontName=font_name, fontSize=11, spaceAfter=4, textColor=colors.HexColor("#374151"))
     normal_style = ParagraphStyle("normal", fontName=font_name, fontSize=9)
 
-    def tbl_style(header_color="#4F46E5"):
+    # 단일 스타일 — 진회색 헤더, 전체 중앙정렬, 색상 통일
+    HEADER_COLOR = colors.HexColor("#374151")
+    BORDER_COLOR = colors.HexColor("#D1D5DB")
+
+    def tbl_style():
         return TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor(header_color)),
-            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-            ("FONTNAME", (0, 0), (-1, -1), font_name),
-            ("FONTSIZE", (0, 0), (-1, 0), 9),
-            ("FONTSIZE", (0, 1), (-1, -1), 8),
-            ("ALIGN", (1, 0), (-1, -1), "RIGHT"),
-            ("ALIGN", (0, 0), (0, -1), "CENTER"),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F9FAFB")]),
-            ("GRID", (0, 0), (-1, -1), 0.3, colors.HexColor("#E5E7EB")),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-            ("TOPPADDING", (0, 0), (-1, -1), 4),
+            ("BACKGROUND",    (0, 0), (-1, 0),  HEADER_COLOR),
+            ("TEXTCOLOR",     (0, 0), (-1, 0),  colors.white),
+            ("FONTNAME",      (0, 0), (-1, -1), font_name),
+            ("FONTSIZE",      (0, 0), (-1, 0),  9),
+            ("FONTSIZE",      (0, 1), (-1, -1), 8),
+            ("ALIGN",         (0, 0), (-1, -1), "CENTER"),
+            ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
+            ("GRID",          (0, 0), (-1, -1), 0.4, BORDER_COLOR),
+            ("LINEBELOW",     (0, 0), (-1, 0),  1,   colors.white),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+            ("TOPPADDING",    (0, 0), (-1, -1), 5),
         ])
 
     elements = []
@@ -370,8 +374,8 @@ def api_export_pdf():
     elements.append(Paragraph(f"출력일: {datetime.now().strftime('%Y-%m-%d %H:%M')}", normal_style))
     elements.append(Spacer(1, 6*mm))
 
-    # 요약 KPI
-    elements.append(Paragraph("■ 전체 요약", sub_style))
+    # 요약 KPI — 2컬럼 180mm
+    elements.append(Paragraph("전체 요약", sub_style))
     rates = valid[valid["profit_rate"] > 0]["profit_rate"]
     avg_rate = round(rates.mean(), 1) if not rates.empty else 0
     kpi_data = [
@@ -382,13 +386,13 @@ def api_export_pdf():
         ["평균 이익율", f"{avg_rate}%"],
         ["프로젝트 수", f"{len(valid)}건"],
     ]
-    t = Table(kpi_data, colWidths=[80*mm, 60*mm])
+    t = Table(kpi_data, colWidths=[110*mm, 70*mm])  # 합계 180mm
     t.setStyle(tbl_style())
     elements += [t, Spacer(1, 6*mm)]
 
-    # 파트별 실적
+    # 파트별 실적 — 5컬럼 180mm
     if not valid.empty:
-        elements.append(Paragraph("■ 파트별 실적", sub_style))
+        elements.append(Paragraph("파트별 실적", sub_style))
         part_stats = valid.groupby("part").agg(
             revenue=("revenue", "sum"),
             profit=("operating_profit", "sum"),
@@ -404,34 +408,34 @@ def api_export_pdf():
                 f"{row['avg_rate']}%",
                 f"{int(row['count'])}건",
             ])
-        t2 = Table(part_data, colWidths=[50*mm, 35*mm, 35*mm, 30*mm, 25*mm])
+        t2 = Table(part_data, colWidths=[50*mm, 40*mm, 40*mm, 30*mm, 20*mm])  # 합계 180mm
         t2.setStyle(tbl_style())
         elements += [t2, Spacer(1, 6*mm)]
 
-    # TOP 5
+    # 이익율 TOP 5 — 4컬럼 180mm
     top5 = valid[valid["profit_rate"] > 0].nlargest(5, "profit_rate")
     if not top5.empty:
-        elements.append(Paragraph("■ 이익율 TOP 5", sub_style))
+        elements.append(Paragraph("이익율 TOP 5", sub_style))
         top_data = [["프로젝트코드", "파트", "단계", "이익율"]]
         for _, row in top5.iterrows():
-            top_data.append([row["project_code"], row["part"], row["stage"], f"{row['profit_rate']}%"])
-        t3 = Table(top_data, colWidths=[50*mm, 40*mm, 40*mm, 30*mm])
-        t3.setStyle(tbl_style("#059669"))
+            top_data.append([row["project_code"], row["part"], row["stage"], f"{round(row['profit_rate'], 1)}%"])
+        t3 = Table(top_data, colWidths=[60*mm, 50*mm, 40*mm, 30*mm])  # 합계 180mm
+        t3.setStyle(tbl_style())
         elements += [t3, Spacer(1, 6*mm)]
 
-    # 리스크
+    # 리스크 — 5컬럼 180mm
     risk = valid[(valid["operating_profit"] < 0) | (valid["profit_rate"] < 5)].nsmallest(5, "operating_profit")
     if not risk.empty:
-        elements.append(Paragraph("■ 리스크 프로젝트 (손실·이익율 5% 미만)", sub_style))
+        elements.append(Paragraph("리스크 프로젝트 (손실·이익율 5% 미만)", sub_style))
         risk_data = [["프로젝트코드", "파트", "단계", "경상이익", "이익율"]]
         for _, row in risk.iterrows():
             risk_data.append([
                 row["project_code"], row["part"], row["stage"],
                 f"{row['operating_profit']/1e4:.0f}만원",
-                f"{row['profit_rate']}%",
+                f"{round(row['profit_rate'], 1)}%",
             ])
-        t4 = Table(risk_data, colWidths=[45*mm, 35*mm, 35*mm, 35*mm, 25*mm])
-        t4.setStyle(tbl_style("#DC2626"))
+        t4 = Table(risk_data, colWidths=[50*mm, 40*mm, 35*mm, 30*mm, 25*mm])  # 합계 180mm
+        t4.setStyle(tbl_style())
         elements += [t4, Spacer(1, 6*mm)]
 
     doc.build(elements)

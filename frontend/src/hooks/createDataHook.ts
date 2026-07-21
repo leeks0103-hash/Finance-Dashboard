@@ -11,5 +11,6 @@ export const createDataHook = <T>(key: string, queryFn: QueryFn<T>) =>
       queryKey: [key, filters],
       queryFn: () => queryFn(filters),
       placeholderData: keepPreviousData,
+      staleTime: 30_000,
     });
   };

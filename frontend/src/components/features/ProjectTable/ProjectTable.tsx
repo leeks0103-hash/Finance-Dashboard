@@ -1,65 +1,52 @@
 import {
   useReactTable, getCoreRowModel, getSortedRowModel,
   getPaginationRowModel, getFilteredRowModel,
-  flexRender, type SortingState,
+  flexRender,
 } from '@tanstack/react-table';
-import { useState, useRef, useCallback } from 'react';
-import { debounce } from 'lodash-es';
-import { useProjects } from '@/hooks/useProjects';
-import { EmptyState } from '@/components/ui';
+import { useProjectTableViewModel } from '@/hooks/viewmodels';
+import { EmptyState, Button } from '@/components/ui';
 import { columns } from './columns.tsx';
 import styles from './ProjectTable.module.css';
 
 const ProjectTable = () => {
-  const { data = [], isLoading, isFetching } = useProjects();
-  const [sorting, setSorting] = useState<SortingState>([]);
-  const [globalFilter, setGlobalFilter] = useState('');
-  const [inputValue, setInputValue] = useState('');
-
-  // M-15: useRef — StrictMode에서 debounce 인스턴스 누수 방지
-  const debouncedSetFilter = useRef(
-    debounce((val: string) => setGlobalFilter(val), 350)
-  ).current;
-
-  const handleSearch = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setInputValue(e.target.value);
-    debouncedSetFilter(e.target.value);
-  }, [debouncedSetFilter]);
+  const vm = useProjectTableViewModel();
 
   const table = useReactTable({
-    data,
+    data: vm.data,
     columns,
-    state: { sorting, globalFilter },
-    onSortingChange: setSorting,
-    onGlobalFilterChange: setGlobalFilter,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
+    state: { sorting: vm.sorting, globalFilter: vm.globalFilter },
+    onSortingChange: vm.setSorting,
+    onGlobalFilterChange: vm.setGlobalFilter,
+    getCoreRowModel:       getCoreRowModel(),
+    getSortedRowModel:     getSortedRowModel(),
+    getFilteredRowModel:   getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     initialState: { pagination: { pageSize: 30 } },
   });
 
   const rows = table.getRowModel().rows;
-  // M-16: isLoading OR isFetching 모두 비활성화
-  const busy = isLoading || isFetching;
+  const pageCount = table.getPageCount();
+  const pageLabel = pageCount > 0
+    ? `${table.getState().pagination.pageIndex + 1} / ${pageCount}`
+    : '0 / 0';
 
   return (
     <div className={styles.wrapper}>
       <div className={styles.header}>
         <div className={styles.count}>
           프로젝트 재무 상세
-          <span className={styles.badge}>{busy ? '…' : data.length}</span>
+          <span className={styles.badge}>{vm.busy ? '…' : vm.data.length}</span>
         </div>
         <input
           className={styles.search}
           placeholder="검색…"
-          value={inputValue}
-          onChange={handleSearch}
-          disabled={busy}
+          value={vm.inputValue}
+          onChange={vm.handleSearch}
+          disabled={vm.busy}
         />
       </div>
 
-      {isLoading ? (
+      {vm.isLoading ? (
         <div className={styles.loadingRows}>
           {[...Array(5)].map((_, i) => <div key={i} className={styles.skeletonRow} />)}
         </div>
@@ -67,7 +54,7 @@ const ProjectTable = () => {
         <EmptyState icon="🔍" title="검색 결과 없음" description="다른 검색어나 필터 조건을 시도해 보세요." />
       ) : (
         <>
-          <div className={`${styles.tableWrap} ${isFetching ? styles.fetching : ''}`}>
+          <div className={`${styles.tableWrap} ${vm.isFetching ? styles.fetching : ''}`}>
             <table className={styles.table}>
               <thead>
                 {table.getHeaderGroups().map(hg => (
@@ -101,13 +88,9 @@ const ProjectTable = () => {
           </div>
 
           <div className={styles.pagination}>
-            <button onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>이전</button>
-            <span>
-              {table.getPageCount() > 0
-                ? `${table.getState().pagination.pageIndex + 1} / ${table.getPageCount()}`
-                : '0 / 0'}
-            </span>
-            <button onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>다음</button>
+            <Button variant="ghost" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>이전</Button>
+            <span>{pageLabel}</span>
+            <Button variant="ghost" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>다음</Button>
           </div>
         </>
       )}

@@ -28,4 +28,6 @@
 .value {
   font-weight: 700;
   flex-shrink: 0;
+  min-width: 62px;
+  text-align: right;
 }

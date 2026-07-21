@@ -54,9 +54,7 @@ const ChartSection = () => {
             datasets={[{
               label: '이익율(%)',
               data: vm.profitRate.rates,
-              backgroundColor: vm.profitRate.rates.map(v =>
-                v >= 0 ? 'rgba(5,150,105,0.75)' : 'rgba(220,38,38,0.75)'
-              ),
+              backgroundColor: vm.profitRate.colors,
             }]}
             options={{ scales: { y: { ticks: { callback: v => v + '%' } } } }}
           />

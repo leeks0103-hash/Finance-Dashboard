@@ -6,6 +6,8 @@
 }
 @media (max-width: 900px) {
   .grid { grid-template-columns: 1fr; height: auto; }
+  .card { height: 260px; }
+  .chartWrap { height: 196px; }
 }
 .card {
   background: var(--surface);

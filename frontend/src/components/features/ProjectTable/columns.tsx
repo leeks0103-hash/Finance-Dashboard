@@ -1,6 +1,7 @@
 import { createColumnHelper } from '@tanstack/react-table';
 import type { Project } from '@/types';
 import { formatBillion, formatRate } from '@/utils';
+import { Badge } from '@/components/ui';
 
 const h = createColumnHelper<Project>();
 
@@ -13,8 +14,8 @@ const NegCell = ({ v, text }: { v: number; text: string }) =>
 export const columns = [
   h.accessor('project_code', { header: '프로젝트코드' }),
   h.accessor('year',         { header: '연도' }),
-  h.accessor('part',         { header: '파트' }),
-  h.accessor('stage',        { header: '단계' }),
+  h.accessor('part',  { header: '파트',  cell: i => <Badge label={i.getValue()} variant="part"  /> }),
+  h.accessor('stage', { header: '단계',  cell: i => <Badge label={i.getValue()} variant="stage" /> }),
   h.accessor('revenue',      { header: '매출',     cell: i => formatBillion(i.getValue()) }),
   h.accessor('expenditure',  { header: '지출',     cell: i => formatBillion(i.getValue()) }),
   h.accessor('direct_cost',  { header: '직접원가', cell: i => formatBillion(i.getValue()) }),

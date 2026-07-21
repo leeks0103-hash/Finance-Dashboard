@@ -15,6 +15,7 @@ export interface ChartViewModel {
   profitRate: {
     labels: string[];
     rates:  number[];
+    colors: string[];
   };
 }
 
@@ -27,7 +28,7 @@ export const useChartViewModel = (): ChartViewModel => {
       isEmpty: true,
       revExp: { labels: [], revenues: [], profits: [] },
       costBreakdown: { labels: [], values: [] },
-      profitRate: { labels: [], rates: [] },
+      profitRate: { labels: [], rates: [], colors: [] },
     };
   }
 
@@ -49,8 +50,11 @@ export const useChartViewModel = (): ChartViewModel => {
     },
     profitRate: {
       labels: parts,
-      rates:  parts.map(p =>
+      rates: parts.map(p =>
         +(data.by_part[p].profit / (data.by_part[p].revenue || 1) * 100).toFixed(1)
+      ),
+      colors: parts.map(p =>
+        data.by_part[p].profit >= 0 ? 'rgba(5,150,105,0.75)' : 'rgba(220,38,38,0.75)'
       ),
     },
   };

@@ -1,38 +1,48 @@
+import { useState, useRef, useCallback } from 'react';
+import { debounce } from 'lodash-es';
+import { type SortingState } from '@tanstack/react-table';
 import { useProjects } from '@/hooks/useProjects';
-import { formatBillion, formatRate } from '@/utils';
 import type { Project } from '@/types';
 
-export interface ProjectRowViewModel extends Project {
-  revenueFormatted:         string;
-  expenditureFormatted:     string;
-  directCostFormatted:      string;
-  laborCostFormatted:       string;
-  overheadFormatted:        string;
-  operatingProfitFormatted: string;
-  profitRateFormatted:      string;
-  isLoss:                   boolean;
-}
-
 export interface ProjectTableViewModel {
-  isLoading: boolean;
-  rows:      ProjectRowViewModel[];
+  data:         Project[];
+  isLoading:    boolean;
+  isFetching:   boolean;
+  busy:         boolean;
+  sorting:      SortingState;
+  setSorting:   React.Dispatch<React.SetStateAction<SortingState>>;
+  globalFilter: string;
+  setGlobalFilter: React.Dispatch<React.SetStateAction<string>>;
+  inputValue:   string;
+  handleSearch: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 export const useProjectTableViewModel = (): ProjectTableViewModel => {
-  const { data = [], isLoading } = useProjects();
+  const { data = [], isLoading, isFetching } = useProjects();
+
+  const [sorting, setSorting]           = useState<SortingState>([]);
+  const [globalFilter, setGlobalFilter] = useState('');
+  const [inputValue, setInputValue]     = useState('');
+
+  const debouncedSetFilter = useRef(
+    debounce((val: string) => setGlobalFilter(val), 350)
+  ).current;
+
+  const handleSearch = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputValue(e.target.value);
+    debouncedSetFilter(e.target.value);
+  }, [debouncedSetFilter]);
 
   return {
+    data,
     isLoading,
-    rows: data.map(r => ({
-      ...r,
-      revenueFormatted:         formatBillion(r.revenue),
-      expenditureFormatted:     formatBillion(r.expenditure),
-      directCostFormatted:      formatBillion(r.direct_cost),
-      laborCostFormatted:       formatBillion(r.labor_cost),
-      overheadFormatted:        formatBillion(r.overhead),
-      operatingProfitFormatted: formatBillion(r.operating_profit),
-      profitRateFormatted:      formatRate(r.profit_rate),
-      isLoss:                   r.operating_profit < 0,
-    })),
+    isFetching,
+    busy: isLoading || isFetching,
+    sorting,
+    setSorting,
+    globalFilter,
+    setGlobalFilter,
+    inputValue,
+    handleSearch,
   };
 };
