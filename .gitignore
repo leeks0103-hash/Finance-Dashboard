@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# 테스트/브라우저 자동화 산출물
+.playwright-mcp/
+
+# 환경 설정
+.env
+*.local
+
+# OS
+.DS_Store
+Thumbs.db
