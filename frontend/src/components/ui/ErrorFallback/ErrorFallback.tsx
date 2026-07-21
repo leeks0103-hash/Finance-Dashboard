@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/Button';
 import styles from './ErrorFallback.module.css';
 
 interface Props {
@@ -10,7 +11,7 @@ const ErrorFallback = ({ message = '데이터를 불러오는 중 오류가 발�
     <span className={styles.icon}>⚠️</span>
     <p className={styles.message}>{message}</p>
     {onRetry && (
-      <button className={styles.btn} onClick={onRetry}>다시 시도</button>
+      <Button variant="danger" size="sm" onClick={onRetry}>다시 시도</Button>
     )}
   </div>
 );

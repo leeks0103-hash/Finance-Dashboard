@@ -19,7 +19,7 @@ export const useKpiViewModel = (): KpiViewModel => {
     revenue:      data ? formatBillion(data.total_revenue)     : '-',
     expenditure:  data ? formatBillion(data.total_expenditure) : '-',
     profit:       data ? formatBillion(data.total_profit)      : '-',
-    profitAccent: data && data.total_profit < 0 ? 'loss' : 'profit',
+    profitAccent: data == null ? 'brand' : data.total_profit < 0 ? 'loss' : 'profit',
     rate:         data ? formatRate(data.avg_profit_rate)      : '-',
   };
 };

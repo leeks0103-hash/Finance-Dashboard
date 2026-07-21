@@ -1,20 +1,20 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { debounce } from 'lodash-es';
 import { type SortingState } from '@tanstack/react-table';
 import { useProjects } from '@/hooks/useProjects';
 import type { Project } from '@/types';
 
 export interface ProjectTableViewModel {
-  data:         Project[];
-  isLoading:    boolean;
-  isFetching:   boolean;
-  busy:         boolean;
-  sorting:      SortingState;
-  setSorting:   React.Dispatch<React.SetStateAction<SortingState>>;
-  globalFilter: string;
-  setGlobalFilter: React.Dispatch<React.SetStateAction<string>>;
-  inputValue:   string;
-  handleSearch: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  data:            Project[];
+  isLoading:       boolean;
+  isFetching:      boolean;
+  busy:            boolean;
+  sorting:         SortingState;
+  onSortingChange: React.Dispatch<React.SetStateAction<SortingState>>;
+  globalFilter:    string;
+  onFilterChange:  React.Dispatch<React.SetStateAction<string>>;
+  inputValue:      string;
+  handleSearch:    (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 export const useProjectTableViewModel = (): ProjectTableViewModel => {
@@ -28,6 +28,9 @@ export const useProjectTableViewModel = (): ProjectTableViewModel => {
     debounce((val: string) => setGlobalFilter(val), 350)
   ).current;
 
+  // 언마운트 시 pending 디바운스 취소 — stale 상태 업데이트 방지
+  useEffect(() => () => debouncedSetFilter.cancel(), [debouncedSetFilter]);
+
   const handleSearch = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setInputValue(e.target.value);
     debouncedSetFilter(e.target.value);
@@ -39,9 +42,9 @@ export const useProjectTableViewModel = (): ProjectTableViewModel => {
     isFetching,
     busy: isLoading || isFetching,
     sorting,
-    setSorting,
+    onSortingChange: setSorting,
     globalFilter,
-    setGlobalFilter,
+    onFilterChange:  setGlobalFilter,
     inputValue,
     handleSearch,
   };

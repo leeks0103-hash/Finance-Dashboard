@@ -21,10 +21,11 @@ export const useInsightViewModel = (): InsightViewModel => {
   const { data, isLoading } = useInsights();
 
   if (!data || isLoading) {
-    return { isLoading, isEmpty: true, comments: [], top: [], risk: [] };
+    return { isLoading, isEmpty: false, comments: [], top: [], risk: [] };
   }
 
-  const isEmpty = !data.comments.length && !data.top.length;
+  // risk 배열도 포함해야 리스크만 있는 필터에서 EmptyState 오표시 방지
+  const isEmpty = !data.comments.length && !data.top.length && !data.risk.length;
 
   return {
     isLoading,
