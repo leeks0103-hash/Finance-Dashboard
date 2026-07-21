@@ -153,6 +153,43 @@ def bil(v):
     return f"{b:.1f}억원" if abs(b) >= 1 else f"{v / 10_000:.0f}만원"
 
 
+def _safe_avg_rate(x) -> float:
+    """양수 이익율만 평균 — NaN 안전 처리. lambda 대신 재사용 가능한 함수."""
+    pos = pd.to_numeric(x, errors="coerce")
+    pos = pos[pos > 0].dropna()
+    return round(float(pos.mean()), 1) if not pos.empty else 0
+
+
+def _build_part_stats(df: pd.DataFrame) -> pd.DataFrame:
+    """파트별 집계 — api_insights · PDF 공유. avg_rate NaN 전파 방지 포함."""
+    return (
+        df.groupby("part")
+        .agg(
+            revenue=("revenue", "sum"),
+            profit=("operating_profit", "sum"),
+            count=("project_code", "count"),
+            avg_rate=("profit_rate", _safe_avg_rate),
+        )
+        .reset_index()
+    )
+
+
+def _register_pdf_font() -> str:
+    """PDF 한글 폰트 — 모듈 로드 시 1회 등록 (요청마다 등록 시도 방지)."""
+    try:
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.pdfbase.ttfonts import TTFont
+        font_path = "C:/Windows/Fonts/malgun.ttf"
+        if os.path.exists(font_path) and "Malgun" not in pdfmetrics.getRegisteredFontNames():
+            pdfmetrics.registerFont(TTFont("Malgun", font_path))
+        return "Malgun" if "Malgun" in pdfmetrics.getRegisteredFontNames() else "Helvetica"
+    except Exception:
+        return "Helvetica"
+
+
+_PDF_FONT = _register_pdf_font()
+
+
 @app.route("/")
 def index():
     df = get_df()
@@ -225,19 +262,18 @@ def api_insights():
         [["project_code", "part", "stage", "revenue", "operating_profit", "profit_rate"]]
         .to_dict(orient="records")
     )
+    # 손실 프로젝트 우선 → 이익율 낮은 순 (nsmallest는 흑자 대규모 프로젝트를 오분류)
+    _risk_pool = valid[(valid["operating_profit"] < 0) | (valid["profit_rate"] < 5)].copy()
+    _risk_pool["_is_loss"] = (_risk_pool["operating_profit"] < 0).astype(int)
     risk = (
-        valid[(valid["operating_profit"] < 0) | (valid["profit_rate"] < 5)]
-        .nsmallest(5, "operating_profit")
+        _risk_pool
+        .sort_values(["_is_loss", "profit_rate"], ascending=[False, True])
+        .head(5)
         [["project_code", "part", "stage", "revenue", "operating_profit", "profit_rate"]]
         .to_dict(orient="records")
     )
 
-    part_stats = valid.groupby("part").agg(
-        revenue=("revenue", "sum"),
-        profit=("operating_profit", "sum"),
-        count=("project_code", "count"),
-        avg_rate=("profit_rate", lambda x: round(x[x > 0].mean(), 1) if (x > 0).any() else 0),
-    )
+    part_stats = _build_part_stats(valid).set_index("part")
 
     total_revenue = valid["revenue"].sum()
     total_profit = valid["operating_profit"].sum()
@@ -325,8 +361,6 @@ def api_export_pdf():
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.units import mm
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-    from reportlab.pdfbase import pdfmetrics
-    from reportlab.pdfbase.ttfonts import TTFont
 
     df = apply_filters(get_df())
     valid = df[df["revenue"] > 0]
@@ -336,15 +370,12 @@ def api_export_pdf():
                             rightMargin=15*mm, leftMargin=15*mm,
                             topMargin=15*mm, bottomMargin=15*mm)
 
-    # M-11: 이미 등록된 경우 재등록 생략
-    font_path = "C:/Windows/Fonts/malgun.ttf"
-    if os.path.exists(font_path) and "Malgun" not in pdfmetrics.getRegisteredFontNames():
-        pdfmetrics.registerFont(TTFont("Malgun", font_path))
-    font_name = "Malgun" if "Malgun" in pdfmetrics.getRegisteredFontNames() else "Helvetica"
+    # 모듈 레벨에서 1회 등록된 폰트 이름 사용
+    font_name = _PDF_FONT
 
     styles = getSampleStyleSheet()
-    title_style = ParagraphStyle("title", fontName=font_name, fontSize=16, spaceAfter=6)
-    sub_style = ParagraphStyle("sub", fontName=font_name, fontSize=11, spaceAfter=4, textColor=colors.HexColor("#374151"))
+    title_style  = ParagraphStyle("title",  fontName=font_name, fontSize=16, spaceAfter=6)
+    sub_style    = ParagraphStyle("sub",    fontName=font_name, fontSize=11, spaceAfter=4, textColor=colors.HexColor("#374151"))
     normal_style = ParagraphStyle("normal", fontName=font_name, fontSize=9)
 
     # 단일 스타일 — 진회색 헤더, 전체 중앙정렬, 색상 통일
@@ -393,12 +424,7 @@ def api_export_pdf():
     # 파트별 실적 — 5컬럼 180mm
     if not valid.empty:
         elements.append(Paragraph("파트별 실적", sub_style))
-        part_stats = valid.groupby("part").agg(
-            revenue=("revenue", "sum"),
-            profit=("operating_profit", "sum"),
-            count=("project_code", "count"),
-            avg_rate=("profit_rate", lambda x: round(x[x > 0].mean(), 1) if (x > 0).any() else 0),
-        ).reset_index()
+        part_stats = _build_part_stats(valid)  # api_insights와 동일 헬퍼 공유
         part_data = [["파트", "매출", "경상이익", "평균이익율", "건수"]]
         for _, row in part_stats.iterrows():
             part_data.append([
