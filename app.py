@@ -374,9 +374,9 @@ def api_export_pdf():
     font_name = _PDF_FONT
 
     styles = getSampleStyleSheet()
-    title_style  = ParagraphStyle("title",  fontName=font_name, fontSize=16, spaceAfter=6, textColor=colors.black)
-    sub_style    = ParagraphStyle("sub",    fontName=font_name, fontSize=11, spaceAfter=4, textColor=colors.black)
-    normal_style = ParagraphStyle("normal", fontName=font_name, fontSize=9,  textColor=colors.black)
+    title_style  = ParagraphStyle("title",  fontName=font_name, fontSize=18, spaceAfter=2,  textColor=colors.black, leading=22)
+    sub_style    = ParagraphStyle("sub",    fontName=font_name, fontSize=12, spaceAfter=4,  textColor=colors.black, fontWeight="bold")
+    normal_style = ParagraphStyle("normal", fontName=font_name, fontSize=10, spaceAfter=0,  textColor=colors.black)
 
     # 단일 색상 — 헤더·테두리만 회색, 나머지 전부 검정
     HEADER_COLOR = colors.HexColor("#374151")
@@ -389,23 +389,37 @@ def api_export_pdf():
             ("BACKGROUND",    (0, 0), (-1, 0),  HEADER_COLOR),
             ("TEXTCOLOR",     (0, 0), (-1, 0),  colors.white),
             ("FONTNAME",      (0, 0), (-1, -1), font_name),
-            ("FONTSIZE",      (0, 0), (-1, 0),  9),
-            ("FONTSIZE",      (0, 1), (-1, -1), 8),
+            ("FONTSIZE",      (0, 0), (-1, 0),  10),
+            ("FONTSIZE",      (0, 1), (-1, -1), 9),
             ("ALIGN",         (0, 0), (-1, -1), "CENTER"),
             ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
             ("GRID",          (0, 0), (-1, -1), 0.4, BORDER_COLOR),
             ("LINEBELOW",     (0, 0), (-1, 0),  1,   colors.white),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-            ("TOPPADDING",    (0, 0), (-1, -1), 5),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+            ("TOPPADDING",    (0, 0), (-1, -1), 6),
         ])
 
     elements = []
 
-    # 제목
-    year_str = request.args.get("year", "전체")
-    elements.append(Paragraph(f"재무 현황 보고서 ({year_str})", title_style))
+    # 제목 — 필터가 있을 때만 괄호에 조건 표시
+    _year   = request.args.get("year", "")
+    _parts  = request.args.getlist("part")
+    _stages = request.args.getlist("stage")
+    _filter_labels = []
+    if _year:
+        _filter_labels.append(f"{_year}년")
+    if _parts:
+        _filter_labels.append(", ".join(_parts))
+    if _stages:
+        _filter_labels.append(", ".join(_stages))
+
+    title_text = "재무 현황 보고서"
+    if _filter_labels:
+        title_text += f" ({' | '.join(_filter_labels)})"
+
+    elements.append(Paragraph(title_text, title_style))
     elements.append(Paragraph(f"출력일: {datetime.now().strftime('%Y-%m-%d %H:%M')}", normal_style))
-    elements.append(Spacer(1, 6*mm))
+    elements.append(Spacer(1, 4*mm))
 
     # 요약 KPI — 5컬럼 (파트별 실적과 동일 구조)
     elements.append(Paragraph("전체 요약", sub_style))
