@@ -2,17 +2,43 @@ import { useChartViewModel } from '@/hooks/viewmodels';
 import { BarChart, DoughnutChart, EmptyState } from '@/components/ui';
 import styles from './ChartSection.module.css';
 
-/**
- * ChartSection
- * - 훅: useChartViewModel() — 데이터 fetch, 차트용 labels/datasets 변환 담당
- * - 컴포넌트: 렌더링만. 숫자 변환 로직 없음.
- */
+// 모듈 레벨 상수 — 매 렌더마다 새 객체 생성 방지
+const REV_EXP_OPTIONS = {
+  layout: { padding: { right: 48 } },  // 막대 끝 레이블 공간 확보
+  plugins: {
+    datalabels: {
+      display: true,
+      anchor: 'end' as const,
+      align:  'end'  as const,
+      color:  '#374151',
+      font:   { size: 10, weight: 'bold' as const },
+      formatter: (v: number) =>
+        Math.abs(v) >= 1 ? `${v.toFixed(1)}억` : `${(v * 10).toFixed(0)}천만`,
+    },
+  },
+} as const;
+
+const PROFIT_RATE_OPTIONS = {
+  layout: { padding: { top: 20 } },    // 막대 위 레이블 공간 확보
+  plugins: {
+    datalabels: {
+      display: true,
+      anchor: 'end'  as const,
+      align:  'top'  as const,
+      color:  '#374151',
+      font:   { size: 11, weight: 'bold' as const },
+      formatter: (v: number) => `${v}%`,
+    },
+  },
+  scales: { y: { ticks: { callback: (v: string | number) => v + '%' } } },
+} as const;
+
 const ChartSection = () => {
   const vm = useChartViewModel();
 
   if (vm.isLoading) return (
     <div className={styles.grid}>
-      {[0,1,2].map(i => <div key={i} className={styles.skeleton} />)}
+      {[0, 1, 2].map(i => <div key={i} className={styles.skeleton} />)}
     </div>
   );
 
@@ -32,6 +58,7 @@ const ChartSection = () => {
               { label: '매출(억)', data: vm.revExp.revenues, backgroundColor: 'rgba(54,132,235,0.75)' },
               { label: '이익(억)', data: vm.revExp.profits,  backgroundColor: 'rgba(5,150,105,0.75)' },
             ]}
+            options={REV_EXP_OPTIONS}
           />
         </div>
       </div>
@@ -56,7 +83,7 @@ const ChartSection = () => {
               data: vm.profitRate.rates,
               backgroundColor: vm.profitRate.colors,
             }]}
-            options={{ scales: { y: { ticks: { callback: v => v + '%' } } } }}
+            options={PROFIT_RATE_OPTIONS}
           />
         </div>
       </div>
