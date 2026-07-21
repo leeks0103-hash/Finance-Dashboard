@@ -1,12 +1,7 @@
 import { useInsightViewModel } from '@/hooks/viewmodels';
-import { InsightComment, InsightListCard, ProjectRankRow, EmptyState } from '@/components/ui';
+import { InsightComment, InsightListCard, ProjectRankRow, EmptyState, Button } from '@/components/ui';
 import styles from './InsightSection.module.css';
 
-/**
- * InsightSection
- * - 훅: useInsightViewModel() — 데이터 fetch, 포맷, 색상 계산 담당
- * - 컴포넌트: 렌더링만. 조건 분기 로직 없음.
- */
 const InsightSection = () => {
   const vm = useInsightViewModel();
 
@@ -31,6 +26,16 @@ const InsightSection = () => {
               <InsightComment key={i} type={c.type} icon={c.icon} text={c.text} />
             ))}
           </div>
+          {vm.hasMoreComments && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={vm.toggleShowAll}
+              className={styles.moreBtn}
+            >
+              {vm.showAll ? '접기' : `더보기 +${vm.moreCount}`}
+            </Button>
+          )}
         </div>
 
         <div className={styles.listsPane}>

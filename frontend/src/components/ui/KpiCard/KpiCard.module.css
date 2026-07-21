@@ -9,10 +9,11 @@
 }
 .card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
 
-.brand { border-left-color: var(--brand-mid); }
+.brand  { border-left-color: var(--brand-mid); }
 .profit { border-left-color: var(--profit); }
 .loss   { border-left-color: var(--loss); }
 .warn   { border-left-color: var(--warn); }
+.purple { border-left-color: #7c3aed; }
 
 .label {
   font-size: 0.72rem;
@@ -28,7 +29,8 @@
   margin-top: 6px;
   color: var(--text-primary);
 }
-.brand .value { color: var(--brand-mid); }
+.brand .value  { color: var(--brand-mid); }
 .profit .value { color: var(--profit); }
 .loss .value   { color: var(--loss); }
 .warn .value   { color: var(--warn); }
+.purple .value { color: #7c3aed; }

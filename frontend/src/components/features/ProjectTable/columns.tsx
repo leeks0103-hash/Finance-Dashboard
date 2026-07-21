@@ -29,5 +29,14 @@ export const columns = [
     header: '이익율(%)',
     cell: i => <NegCell v={i.getValue()} text={formatRate(i.getValue())} />,
   }),
-  h.accessor('note', { header: '비고', size: 160 }),
+  h.accessor('note', {
+    header: '비고',
+    cell: i => {
+      const note = i.getValue() as string;
+      if (!note) return null;
+      if (note.includes('손실')) return <Badge label={note} variant="loss" />;
+      if (note.includes('저수익')) return <Badge label={note} variant="warn" />;
+      return <>{note}</>;
+    },
+  }),
 ];

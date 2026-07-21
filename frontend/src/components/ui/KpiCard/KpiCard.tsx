@@ -1,6 +1,6 @@
 import styles from './KpiCard.module.css';
 
-type Accent = 'brand' | 'profit' | 'loss' | 'warn';
+type Accent = 'brand' | 'profit' | 'loss' | 'warn' | 'purple';
 
 interface Props {
   label: string;

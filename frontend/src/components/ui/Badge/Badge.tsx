@@ -1,6 +1,6 @@
 import styles from './Badge.module.css';
 
-type Variant = 'part' | 'stage' | 'profit' | 'loss';
+type Variant = 'part' | 'stage' | 'profit' | 'loss' | 'warn';
 
 interface Props { label: string; variant?: Variant; }
 

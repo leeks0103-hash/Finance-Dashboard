@@ -50,6 +50,21 @@ const ChartSection = () => {
   return (
     <div className={styles.grid}>
       <div className={styles.card}>
+        <div className={styles.title}>파트별 이익율(%)</div>
+        <div className={styles.chartWrap}>
+          <BarChart
+            labels={vm.profitRate.labels}
+            datasets={[{
+              label: '이익율(%)',
+              data: vm.profitRate.rates,
+              backgroundColor: vm.profitRate.colors,
+            }]}
+            options={PROFIT_RATE_OPTIONS}
+          />
+        </div>
+      </div>
+
+      <div className={styles.card}>
         <div className={styles.title}>파트별 매출 / 지출</div>
         <div className={styles.chartWrap}>
           <BarChart
@@ -70,21 +85,6 @@ const ChartSection = () => {
           <DoughnutChart
             labels={vm.costBreakdown.labels}
             data={vm.costBreakdown.values}
-          />
-        </div>
-      </div>
-
-      <div className={styles.card}>
-        <div className={styles.title}>파트별 이익율(%)</div>
-        <div className={styles.chartWrap}>
-          <BarChart
-            labels={vm.profitRate.labels}
-            datasets={[{
-              label: '이익율(%)',
-              data: vm.profitRate.rates,
-              backgroundColor: vm.profitRate.colors,
-            }]}
-            options={PROFIT_RATE_OPTIONS}
           />
         </div>
       </div>

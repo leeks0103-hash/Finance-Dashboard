@@ -149,8 +149,7 @@ def apply_filters(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def bil(v):
-    b = v / 100_000_000
-    return f"{b:.1f}억원" if abs(b) >= 1 else f"{v / 10_000:.0f}만원"
+    return f"{v / 1e8:.1f}억원"
 
 
 def _safe_avg_rate(x) -> float:
@@ -471,19 +470,32 @@ def api_export_pdf():
         t3.setStyle(tbl_style())
         elements += [t3, Spacer(1, 6*mm)]
 
-    # 리스크 — 5컬럼 180mm
-    risk = valid[(valid["operating_profit"] < 0) | (valid["profit_rate"] < 5)].nsmallest(5, "operating_profit")
+    # 리스크 — 5컬럼 (손실 행은 빨간 텍스트 강조)
+    _risk_pool = valid[(valid["operating_profit"] < 0) | (valid["profit_rate"] < 5)].copy()
+    _risk_pool["_is_loss"] = (_risk_pool["operating_profit"] < 0).astype(int)
+    risk = (
+        _risk_pool
+        .sort_values(["_is_loss", "profit_rate"], ascending=[False, True])
+        .head(5)
+    )
     if not risk.empty:
         elements.append(Paragraph("리스크 프로젝트 (손실·이익율 5% 미만)", sub_style))
         risk_data = [["프로젝트코드", "파트", "단계", "경상이익", "이익율"]]
-        for _, row in risk.iterrows():
+        loss_rows = []  # 손실 행 인덱스 추적 (헤더=0 제외, 데이터 1부터)
+        for i, (_, row) in enumerate(risk.iterrows(), start=1):
             risk_data.append([
                 row["project_code"], row["part"], row["stage"],
-                f"{row['operating_profit']/1e4:.0f}만원",
+                f"{row['operating_profit']/1e8:.1f}억원",
                 f"{round(row['profit_rate'], 1)}%",
             ])
+            if row["operating_profit"] < 0:
+                loss_rows.append(i)
         t4 = Table(risk_data, colWidths=COL_W)
-        t4.setStyle(tbl_style())
+        _style = tbl_style()
+        LOSS_RED = colors.HexColor("#DC2626")
+        for r in loss_rows:
+            _style.add("TEXTCOLOR", (0, r), (-1, r), LOSS_RED)
+        t4.setStyle(_style)
         elements += [t4, Spacer(1, 6*mm)]
 
     doc.build(elements)

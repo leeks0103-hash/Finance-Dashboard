@@ -5,9 +5,7 @@ export const formatWon = (v: number): string =>
 
 export const formatBillion = (v: number): string => {
   if (v == null || !isFinite(v)) return '-';
-  const b = v / 1e8;
-  if (Math.abs(b) >= 1) return b.toFixed(1) + '억원';
-  return KO.format(Math.round(v / 1e4)) + '만원';
+  return (v / 1e8).toFixed(1) + '억원';
 };
 
 export const formatRate = (v: number): string =>

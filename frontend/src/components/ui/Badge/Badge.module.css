@@ -9,3 +9,4 @@
 .stage { background: #f0fdf4; color: #166534; }
 .profit { background: var(--profit-bg); color: var(--profit); }
 .loss   { background: var(--loss-bg);   color: var(--loss); }
+.warn   { background: var(--warn-bg);   color: var(--warn); }
