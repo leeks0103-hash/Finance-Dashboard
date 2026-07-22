@@ -5,9 +5,10 @@ import ChartDataLabels from 'chartjs-plugin-datalabels';
 Chart.register(ArcElement, Tooltip, Legend, ChartDataLabels);
 
 interface Props {
-  labels:  string[];
-  data:    number[];
-  colors?: string[];
+  labels:      string[];
+  data:        number[];
+  colors?:     string[];
+  showLabels?: boolean;
 }
 
 const DEFAULT_COLORS = [
@@ -16,7 +17,7 @@ const DEFAULT_COLORS = [
   'rgba(153,102,255,0.85)',
 ];
 
-const DoughnutChart = ({ labels, data, colors = DEFAULT_COLORS }: Props) => (
+const DoughnutChart = ({ labels, data, colors = DEFAULT_COLORS, showLabels = false }: Props) => (
   <Doughnut
     data={{
       labels,
@@ -57,7 +58,7 @@ const DoughnutChart = ({ labels, data, colors = DEFAULT_COLORS }: Props) => (
           },
         },
         datalabels: {
-          display: true,
+          display: showLabels,
           color:   '#111827',      // 검정에 가까운 색 — 흰 배경에서도 잘 보임
           font:    { size: 12, weight: 'bold' },
           textAlign: 'center',
