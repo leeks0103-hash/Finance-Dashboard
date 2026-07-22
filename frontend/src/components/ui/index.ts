@@ -13,3 +13,4 @@ export * from './DownloadModal';
 export * from './NegCell';
 export * from './ChartCard';
 export * from './Toggle';
+export * from './ScrollTop';

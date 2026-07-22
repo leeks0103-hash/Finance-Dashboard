@@ -104,7 +104,15 @@ const ProjectTable = () => {
           {[...Array(5)].map((_, i) => <div key={i} className={styles.skeletonRow} />)}
         </div>
       ) : rows.length === 0 ? (
-        <EmptyState icon="🔍" title="검색 결과 없음" description="다른 검색어나 필터 조건을 시도해 보세요." />
+        <EmptyState
+          icon="🔍"
+          title="검색 결과 없음"
+          description="다른 검색어나 필터 조건을 시도해 보세요."
+          action={vm.inputValue
+            ? <button onClick={vm.clearSearch} style={{ fontSize:'0.8rem', color:'var(--brand-mid)', background:'none', border:'none', cursor:'pointer', textDecoration:'underline' }}>검색어 초기화</button>
+            : undefined
+          }
+        />
       ) : (
         <>
           <div className={`${styles.tableWrap} ${vm.isFetching ? styles.fetching : ''}`}>

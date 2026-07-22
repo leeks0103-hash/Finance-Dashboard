@@ -49,3 +49,30 @@ body {
 }
 
 #root { min-height: 100vh; }
+
+/* ─── Global accessibility ───────────────────── */
+:focus-visible {
+  outline: 2px solid var(--brand-mid);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+/* ─── Custom scrollbar ───────────────────────── */
+::-webkit-scrollbar       { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+* { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+
+/* ─── Text selection ─────────────────────────── */
+::selection { background: var(--brand-bg); color: var(--brand); }
+
+/* ─── Section fade-in ────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fadeUp { animation: fadeUp 0.25s ease both; }
