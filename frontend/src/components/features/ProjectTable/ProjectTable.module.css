@@ -93,20 +93,8 @@
   border-top: 1px solid var(--border);
 }
 
-/* 페이지 번호 pill */
-.pageInfo {
-  padding: 3px 14px;
-  background: var(--bg-subtle);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
-  font-size: 0.8rem;
-  color: var(--text-sub);
-  min-width: 56px;
-  text-align: center;
-  font-variant-numeric: tabular-nums;
-}
 
-/* 화살표 버튼 — 정사각 아이콘 크기 */
+/* 화살표 버튼 — border 없음, 진하고 크게 */
 .pagination :global(.btn) {
   width: 30px;
   height: 30px;
@@ -114,8 +102,37 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
+  font-size: 1.15rem;
+  font-weight: 600;
+  border: none !important;
+  color: var(--text-primary) !important;
   border-radius: var(--radius-sm);
+}
+.pagination :global(.btn):hover:not(:disabled) {
+  color: var(--brand-mid) !important;
+  border: none !important;
+}
+.pagination :global(.btn):disabled { opacity: 0.3; }
+
+/* 페이지 번호 버튼 — border 없음 */
+.pageBtn {
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-sub);
+  cursor: pointer;
+  transition: all var(--transition);
+  font-family: inherit;
+}
+.pageBtn:hover { color: var(--brand-mid); background: var(--brand-bg); }
+.pageBtnActive {
+  background: var(--brand-mid);
+  color: #fff;
+  font-weight: 700;
 }
 
 @media (max-width: 768px) {

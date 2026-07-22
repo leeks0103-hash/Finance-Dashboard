@@ -17,6 +17,7 @@ export interface ProjectTableViewModel {
   handleSearch:    (e: React.ChangeEvent<HTMLInputElement>) => void;
   getRowVariant:   (row: Project) => 'loss' | 'warn' | '';
   getPageLabel:    (pageIndex: number, pageCount: number) => string;
+  getPageNumbers:  (currentPage: number, totalPages: number, windowSize?: number) => number[];
 }
 
 export const useProjectTableViewModel = (): ProjectTableViewModel => {
@@ -46,6 +47,16 @@ export const useProjectTableViewModel = (): ProjectTableViewModel => {
     getPageLabel: useCallback(
       (pageIndex: number, pageCount: number): string =>
         pageCount > 0 ? `${pageIndex + 1} / ${pageCount}` : '0 / 0',
+      []
+    ),
+    // 현재 페이지 주변 번호 배열 — UI 페이지네이션 버튼 렌더링용
+    getPageNumbers: useCallback(
+      (currentPage: number, totalPages: number, windowSize = 5): number[] => {
+        if (totalPages <= windowSize) return Array.from({ length: totalPages }, (_, i) => i);
+        const half = Math.floor(windowSize / 2);
+        const start = Math.max(0, Math.min(currentPage - half, totalPages - windowSize));
+        return Array.from({ length: windowSize }, (_, i) => start + i);
+      },
       []
     ),
   };
