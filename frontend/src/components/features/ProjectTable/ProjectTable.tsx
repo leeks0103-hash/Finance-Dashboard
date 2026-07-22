@@ -91,8 +91,8 @@ const ProjectTable = () => {
           </div>
 
           <div className={styles.pagination}>
-            <Button variant="ghost" size="sm" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}>«</Button>
-            <Button variant="ghost" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>‹</Button>
+            <Button variant="ghost" size="sm" className={styles.arrowBtn} onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}>«</Button>
+            <Button variant="ghost" size="sm" className={styles.arrowBtn} onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>‹</Button>
 
             {vm.getPageNumbers(table.getState().pagination.pageIndex, table.getPageCount()).map(pageIdx => (
               <button
@@ -104,8 +104,8 @@ const ProjectTable = () => {
               </button>
             ))}
 
-            <Button variant="ghost" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>›</Button>
-            <Button variant="ghost" size="sm" onClick={() => table.setPageIndex(table.getPageCount() - 1)} disabled={!table.getCanNextPage()}>»</Button>
+            <Button variant="ghost" size="sm" className={styles.arrowBtn} onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>›</Button>
+            <Button variant="ghost" size="sm" className={styles.arrowBtn} onClick={() => table.setPageIndex(table.getPageCount() - 1)} disabled={!table.getCanNextPage()}>»</Button>
           </div>
         </>
       )}
