@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import {
   useReactTable, getCoreRowModel, getSortedRowModel,
   getPaginationRowModel, getFilteredRowModel,
@@ -30,20 +31,38 @@ const ProjectTable = () => {
     table.getPageCount()
   );
 
+  // Escape → 검색 초기화
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') vm.clearSearch();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [vm.clearSearch]);
+
+  const filteredCount = table.getFilteredRowModel().rows.length;
+
   return (
     <div className={styles.wrapper}>
       <div className={styles.header}>
         <div className={styles.count}>
           프로젝트 재무 상세
-          <span className={styles.badge}>{vm.busy ? '…' : vm.data.length}</span>
+          <span className={styles.badge}>
+            {vm.busy ? '…' : vm.globalFilter ? `${filteredCount} / ${vm.data.length}` : vm.data.length}
+          </span>
         </div>
-        <input
-          className={styles.search}
-          placeholder="검색…"
-          value={vm.inputValue}
-          onChange={vm.handleSearch}
-          disabled={vm.busy}
-        />
+        <div className={styles.searchWrap}>
+          <input
+            className={styles.search}
+            placeholder="검색… (Esc: 초기화)"
+            value={vm.inputValue}
+            onChange={vm.handleSearch}
+            disabled={vm.busy}
+          />
+          {vm.inputValue && (
+            <button className={styles.searchClear} onClick={vm.clearSearch} aria-label="검색 초기화">✕</button>
+          )}
+        </div>
       </div>
 
       {vm.isLoading ? (
@@ -63,7 +82,10 @@ const ProjectTable = () => {
                       <th
                         key={header.id}
                         onClick={header.column.getToggleSortingHandler()}
-                        className={header.column.getCanSort() ? styles.sortable : ''}
+                        className={[
+                          header.column.getCanSort() ? styles.sortable : '',
+                          header.id === 'project_code' ? styles.stickyCol : '',
+                        ].join(' ')}
                       >
                         {flexRender(header.column.columnDef.header, header.getContext())}
                         {header.column.getIsSorted() === 'asc'  ? ' ↑' :
@@ -79,7 +101,10 @@ const ProjectTable = () => {
                   return (
                     <tr key={row.id} className={variant ? styles[variant] : ''}>
                       {row.getVisibleCells().map(cell => (
-                        <td key={cell.id}>
+                        <td
+                          key={cell.id}
+                          className={cell.column.id === 'project_code' ? styles.stickyCol : ''}
+                        >
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </td>
                       ))}
@@ -87,25 +112,46 @@ const ProjectTable = () => {
                   );
                 })}
               </tbody>
+              {/* 합계 행 */}
+              <tfoot>
+                <tr className={styles.summaryRow}>
+                  <td className={`${styles.stickyCol} ${styles.summaryLabel}`}>합계</td>
+                  <td>{/* 연도 */}</td>
+                  <td>{/* 파트 */}</td>
+                  <td>{/* 단계 */}</td>
+                  <td>{vm.summary.revenue}</td>
+                  <td>{vm.summary.expenditure}</td>
+                  <td>{vm.summary.directCost}</td>
+                  <td>{vm.summary.laborCost}</td>
+                  <td>{vm.summary.overhead}</td>
+                  <td className={Number(vm.summary.operatingProfit?.replace(/[^0-9.-]/g, '')) < 0 ? styles.lossText : ''}>
+                    {vm.summary.operatingProfit}
+                  </td>
+                  <td>{vm.summary.avgProfitRate}</td>
+                  <td>{/* 비고 */}</td>
+                </tr>
+              </tfoot>
             </table>
           </div>
 
           <div className={styles.pagination}>
-            <Button variant="ghost" size="sm" className={styles.arrowBtn} onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}>«</Button>
-            <Button variant="ghost" size="sm" className={styles.arrowBtn} onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>‹</Button>
+            <Button variant="ghost" size="sm" className={styles.arrowBtn}
+              onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}>«</Button>
+            <Button variant="ghost" size="sm" className={styles.arrowBtn}
+              onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>‹</Button>
 
             {vm.getPageNumbers(table.getState().pagination.pageIndex, table.getPageCount()).map(pageIdx => (
-              <button
-                key={pageIdx}
+              <button key={pageIdx}
                 className={`${styles.pageBtn} ${pageIdx === table.getState().pagination.pageIndex ? styles.pageBtnActive : ''}`}
-                onClick={() => table.setPageIndex(pageIdx)}
-              >
+                onClick={() => table.setPageIndex(pageIdx)}>
                 {pageIdx + 1}
               </button>
             ))}
 
-            <Button variant="ghost" size="sm" className={styles.arrowBtn} onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>›</Button>
-            <Button variant="ghost" size="sm" className={styles.arrowBtn} onClick={() => table.setPageIndex(table.getPageCount() - 1)} disabled={!table.getCanNextPage()}>»</Button>
+            <Button variant="ghost" size="sm" className={styles.arrowBtn}
+              onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>›</Button>
+            <Button variant="ghost" size="sm" className={styles.arrowBtn}
+              onClick={() => table.setPageIndex(table.getPageCount() - 1)} disabled={!table.getCanNextPage()}>»</Button>
           </div>
         </>
       )}

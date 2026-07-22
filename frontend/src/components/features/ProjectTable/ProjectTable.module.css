@@ -30,15 +30,33 @@
   margin-left: 6px;
 }
 
+/* 검색 영역 */
+.searchWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
 .search {
   border: 1.5px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 5px 10px;
+  padding: 5px 28px 5px 10px;
   font-size: 0.82rem;
-  width: 200px;
+  width: 220px;
   transition: border-color var(--transition);
 }
 .search:focus { border-color: var(--border-focus); outline: none; }
+.searchClear {
+  position: absolute;
+  right: 7px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  padding: 0;
+  line-height: 1;
+}
+.searchClear:hover { color: var(--text-primary); }
 
 /* 테이블 영역 — 남은 공간 모두 차지하고 세로 스크롤 */
 .tableWrap {
@@ -73,6 +91,30 @@
   text-align: center;
 }
 .table tbody tr:hover { background: var(--brand-bg); }
+
+/* Sticky 첫 번째 컬럼 — 가로 스크롤 시 프로젝트코드 고정 */
+.stickyCol {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: var(--bg-subtle);  /* th 기본 배경 */
+}
+.table td.stickyCol { background: var(--surface); }
+.loss td.stickyCol  { background: rgba(254, 242, 242, 0.95) !important; }
+.warn td.stickyCol  { background: rgba(255, 251, 235, 0.95) !important; }
+
+/* 합계(tfoot) 행 */
+.summaryRow td {
+  padding: 7px 10px;
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: var(--text-primary);
+  background: var(--bg-subtle);
+  border-top: 2px solid var(--border);
+  text-align: center;
+}
+.summaryLabel { color: var(--text-sub); font-size: 0.72rem; letter-spacing: 0.05em; }
+.lossText { color: var(--loss); }
 
 /* 손실 행 — 연한 빨강 */
 .loss { background: rgba(254, 242, 242, 0.7) !important; }
