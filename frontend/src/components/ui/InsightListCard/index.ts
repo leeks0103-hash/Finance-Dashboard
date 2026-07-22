@@ -1,1 +1,1 @@
-export { default as InsightListCard } from './InsightListCard';
+export { InsightListCard } from './InsightListCard';

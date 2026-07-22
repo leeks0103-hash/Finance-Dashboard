@@ -1,32 +1,15 @@
+/* 3-column grid — 개별 카드 스타일은 ChartCard 컴포넌트가 담당 */
 .grid {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 12px;
-  height: 308px; /* 고정 높이 — 데이터 변해도 움직이지 않음 */
+  height: 308px;
 }
 @media (max-width: 900px) {
   .grid { grid-template-columns: 1fr; height: auto; }
-  .card { height: 260px; }
-  .chartWrap { height: 196px; }
 }
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-sm);
-  padding: 16px;
-  height: 308px;   /* 고정 */
-  overflow: hidden;
-}
-.title {
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--text-sub);
-  margin-bottom: 12px;
-}
-.chartWrap { height: 244px; } /* M-12: 패딩+제목 높이 고려해 260→244 */
 
-/* 로딩 중 skeleton 카드 */
+/* 로딩 skeleton */
 .skeleton {
   background: var(--bg-subtle);
   border-radius: var(--radius);

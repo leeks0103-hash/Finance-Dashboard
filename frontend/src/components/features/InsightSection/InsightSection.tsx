@@ -27,42 +27,43 @@ const InsightSection = () => {
             ))}
           </div>
           {vm.hasMoreComments && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={vm.toggleShowAll}
-              className={styles.moreBtn}
-            >
+            <Button variant="ghost" size="sm" onClick={vm.toggleShowAll} className={styles.moreBtn}>
               {vm.toggleLabel}
             </Button>
           )}
         </div>
 
         <div className={styles.listsPane}>
-          <InsightListCard title="이익율 상위 프로젝트">
-            {vm.top.map((r, i) => (
-              <ProjectRankRow
-                key={r.projectCode}
-                rank={i + 1}
-                projectCode={r.displayCode}
-                part={r.part}
-                value={r.value}
-                valueColor={r.valueColor}
-              />
-            ))}
+          <InsightListCard>
+            <InsightListCard.Title>이익율 상위 프로젝트</InsightListCard.Title>
+            <InsightListCard.Body>
+              {vm.top.map((r, i) => (
+                <ProjectRankRow
+                  key={r.projectCode}
+                  rank={i + 1}
+                  projectCode={r.displayCode}
+                  part={r.part}
+                  value={r.value}
+                  valueColor={r.valueColor}
+                />
+              ))}
+            </InsightListCard.Body>
           </InsightListCard>
 
-          <InsightListCard title="저수익 / 손실 주의">
-            {vm.risk.map((r, i) => (
-              <ProjectRankRow
-                key={r.projectCode}
-                rank={i + 1}
-                projectCode={r.displayCode}
-                part={r.part}
-                value={r.value}
-                valueColor={r.valueColor}
-              />
-            ))}
+          <InsightListCard>
+            <InsightListCard.Title>저수익 / 손실 주의</InsightListCard.Title>
+            <InsightListCard.Body>
+              {vm.risk.map((r, i) => (
+                <ProjectRankRow
+                  key={r.projectCode}
+                  rank={i + 1}
+                  projectCode={r.displayCode}
+                  part={r.part}
+                  value={r.value}
+                  valueColor={r.valueColor}
+                />
+              ))}
+            </InsightListCard.Body>
           </InsightListCard>
         </div>
       </div>

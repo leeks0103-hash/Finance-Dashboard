@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react';
 import { useInsights } from '@/hooks/useInsights';
+import { useExpandableList } from '@/hooks/useExpandableList';
 import { formatRate } from '@/utils';
 
 export interface InsightRowViewModel {
@@ -15,7 +15,7 @@ export interface InsightViewModel {
   isEmpty:         boolean;
   comments:        Array<{ type: 'positive' | 'info' | 'neutral' | 'warning'; icon: string; text: string }>;
   hasMoreComments: boolean;
-  toggleLabel:     string;   // '접기' | '더보기 +N' — JSX 삼항 제거
+  toggleLabel:     string;
   toggleShowAll:   () => void;
   top:  InsightRowViewModel[];
   risk: InsightRowViewModel[];
@@ -25,33 +25,27 @@ const COMMENT_PREVIEW = 3;
 
 export const useInsightViewModel = (): InsightViewModel => {
   const { data, isLoading } = useInsights();
-  const [showAll, setShowAll] = useState(false);
 
-  const toggleShowAll = useCallback(() => setShowAll(s => !s), []);
+  // 접기/펼치기 — useExpandableList로 분리
+  const commentList = useExpandableList(data?.comments ?? [], COMMENT_PREVIEW);
 
   if (!data || isLoading) {
     return {
       isLoading, isEmpty: false, comments: [],
-      hasMoreComments: false, toggleLabel: '', toggleShowAll,
+      hasMoreComments: false, toggleLabel: '', toggleShowAll: commentList.toggleShowAll,
       top: [], risk: [],
     };
   }
 
   const isEmpty = !data.comments.length && !data.top.length && !data.risk.length;
 
-  const allComments     = data.comments;
-  const hasMoreComments = allComments.length > COMMENT_PREVIEW;
-  const moreCount       = Math.max(0, allComments.length - COMMENT_PREVIEW);
-  const visibleComments = showAll ? allComments : allComments.slice(0, COMMENT_PREVIEW);
-  const toggleLabel     = showAll ? '접기' : `더보기 +${moreCount}`;
-
   return {
     isLoading,
     isEmpty,
-    comments: visibleComments,
-    hasMoreComments,
-    toggleLabel,
-    toggleShowAll,
+    comments:        commentList.visible,
+    hasMoreComments: commentList.hasMore,
+    toggleLabel:     commentList.toggleLabel,
+    toggleShowAll:   commentList.toggleShowAll,
     top: data.top.map((r, i) => ({
       projectCode: `${r.project_code}-${r.stage ?? i}`,
       displayCode: r.project_code,

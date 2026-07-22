@@ -1,0 +1,23 @@
+.root {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 16px;
+  height: 308px;
+  overflow: hidden;
+}
+
+.title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-sub);
+  margin-bottom: 12px;
+}
+
+.body { height: 244px; }
+
+@media (max-width: 900px) {
+  .root { height: 260px; }
+  .body { height: 196px; }
+}
