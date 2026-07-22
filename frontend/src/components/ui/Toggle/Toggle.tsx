@@ -3,23 +3,20 @@ import styles from './Toggle.module.css';
 interface Props {
   checked:  boolean;
   onChange: () => void;
-  label?:   string;
+  label?:   string;  // 트랙 내부에 표시되는 텍스트
 }
 
 const Toggle = ({ checked, onChange, label }: Props) => (
-  <div className={styles.wrapper}>
-    <button
-      role="switch"
-      aria-checked={checked}
-      className={`${styles.track} ${checked ? styles.on : ''}`}
-      onClick={onChange}
-    >
-      <span className={styles.thumb} />
-    </button>
-    {label && (
-      <span className={styles.label} onClick={onChange}>{label}</span>
-    )}
-  </div>
+  <button
+    role="switch"
+    aria-checked={checked}
+    aria-label={label}
+    className={`${styles.track} ${checked ? styles.on : ''}`}
+    onClick={onChange}
+  >
+    {label && <span className={styles.innerLabel}>{label}</span>}
+    <span className={styles.thumb} />
+  </button>
 );
 
 export default Toggle;
