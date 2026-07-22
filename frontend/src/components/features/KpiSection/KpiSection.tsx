@@ -2,11 +2,6 @@ import { useKpiViewModel } from '@/hooks/viewmodels';
 import { KpiCard } from '@/components/ui';
 import styles from './KpiSection.module.css';
 
-/**
- * KpiSection
- * - 훅: useKpiViewModel() — 데이터 fetch, 포맷, null 처리 담당
- * - 컴포넌트: 렌더링만. 비즈니스 로직 없음.
- */
 const KpiSection = () => {
   const vm = useKpiViewModel();
 
@@ -18,10 +13,10 @@ const KpiSection = () => {
 
   return (
     <div className={styles.grid}>
-      <KpiCard accent="brand"           icon="💰" label="총매출"     value={vm.revenue} />
-      <KpiCard accent="warn"            icon="📉" label="지출합계"   value={vm.expenditure} />
-      <KpiCard accent={vm.profitAccent} icon="📈" label="경상이익"   value={vm.profit} />
-      <KpiCard accent="purple"          icon="🎯" label="평균 이익율" value={vm.rate} />
+      <KpiCard accent="brand"           label="총매출"     value={vm.revenue} />
+      <KpiCard accent="warn"            label="지출합계"   value={vm.expenditure} />
+      <KpiCard accent={vm.profitAccent} label="경상이익"   value={vm.profit} />
+      <KpiCard accent="purple"          label="평균 이익율" value={vm.rate} />
     </div>
   );
 };

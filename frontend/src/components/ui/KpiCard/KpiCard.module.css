@@ -8,22 +8,16 @@
   transition: transform var(--transition), box-shadow var(--transition);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 .card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
 
-/* accent별 그라디언트 배경 + border 색 */
+/* accent별 그라디언트 배경 */
 .brand  { border-left-color: var(--brand-mid); background: linear-gradient(135deg, #eef2ff 0%, var(--surface) 65%); }
 .profit { border-left-color: var(--profit);    background: linear-gradient(135deg, var(--profit-bg) 0%, var(--surface) 65%); }
 .loss   { border-left-color: var(--loss);      background: linear-gradient(135deg, var(--loss-bg)   0%, var(--surface) 65%); }
 .warn   { border-left-color: var(--warn);      background: linear-gradient(135deg, var(--warn-bg)   0%, var(--surface) 65%); }
 .purple { border-left-color: var(--purple);    background: linear-gradient(135deg, var(--purple-bg) 0%, var(--surface) 65%); }
-
-.iconWrap {
-  font-size: 1.6rem;
-  line-height: 1;
-  margin-bottom: 4px;
-}
 
 .label {
   font-size: 0.72rem;
@@ -34,10 +28,9 @@
 }
 
 .value {
-  font-size: 1.55rem;
+  font-size: 1.65rem;
   font-weight: 700;
   letter-spacing: -0.02em;
-  margin-top: 4px;
   color: var(--text-primary);
 }
 .brand  .value { color: var(--brand-mid); }
@@ -47,7 +40,6 @@
 .purple .value { color: var(--purple); }
 
 @media (max-width: 768px) {
-  .card { padding: 14px 16px; }
-  .iconWrap { font-size: 1.3rem; }
-  .value { font-size: 1.25rem; }
+  .card  { padding: 14px 16px; }
+  .value { font-size: 1.3rem; }
 }

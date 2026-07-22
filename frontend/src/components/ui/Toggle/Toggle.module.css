@@ -44,7 +44,7 @@
 
 /* OFF: 텍스트 오른쪽 (thumb 왼쪽) */
 .track:not(.on) .innerLabel {
-  right: 12px;
+  right: 11.5px;
   color: var(--text-muted);
 }
 

@@ -293,53 +293,62 @@ def api_insights():
 
     comments = []
 
-    # C-2: 동적 값 HTML escape (XSS 방지) — 파트명·프로젝트코드가 사용자 입력 포함 가능
-    if best_part and part_stats.loc[best_part, "avg_rate"] > avg_rate:
-        gap = round(part_stats.loc[best_part, "avg_rate"] - avg_rate, 1)
+    # C-2: 동적 값 HTML escape (XSS 방지)
+    # 실무형 투박체 — AI 요약 문구 지양, 핵심 수치+행동 중심
+
+    # 손실 프로젝트 — 가장 먼저, 가장 중요
+    loss_rows = valid[valid["operating_profit"] < 0].nsmallest(3, "operating_profit")
+    for _, lrow in loss_rows.iterrows():
         comments.append({
-            "type": "positive", "icon": "📈",
-            "text": f"<b>{html_escape(best_part)}</b> 파트의 평균 이익율은 <b>{part_stats.loc[best_part, 'avg_rate']}%</b>로, 전체 평균({avg_rate}%)보다 <b>{gap}%p</b> 높습니다."
+            "type": "warning", "icon": "",
+            "text": f"<b>{html_escape(str(lrow['project_code']))}</b> 손실 {bil(lrow['operating_profit'])} — 확인 필요"
         })
 
-    if top_rev_part is not None:
-        rev_share = round(part_stats.loc[top_rev_part, "revenue"] / total_revenue * 100, 1) if total_revenue else 0
+    # 저수익 (손실 아닌 5% 미만)
+    thin_rows = valid[(valid["operating_profit"] >= 0) & (valid["profit_rate"] < 5)].nsmallest(2, "profit_rate")
+    for _, trow in thin_rows.iterrows():
         comments.append({
-            "type": "info", "icon": "💼",
-            "text": f"매출 비중이 가장 큰 파트는 <b>{html_escape(top_rev_part)}</b>으로, 전체 매출의 <b>{rev_share}%</b>({bil(part_stats.loc[top_rev_part, 'revenue'])})를 차지합니다."
+            "type": "warning", "icon": "",
+            "text": f"<b>{html_escape(str(trow['project_code']))}</b> ({html_escape(str(trow['part']))}) 이익율 {round(trow['profit_rate'],1)}% — 저수익"
         })
 
-    if biggest is not None:
-        comments.append({
-            "type": "info", "icon": "🏆",
-            "text": f"단일 최대 매출 프로젝트는 <b>{html_escape(str(biggest['project_code']))}</b>({html_escape(str(biggest['part']))} · {html_escape(str(biggest['stage']))})으로 <b>{bil(biggest['revenue'])}</b>입니다."
-        })
-
-    if total_cost > 0:
-        comments.append({
-            "type": "neutral", "icon": "📊",
-            "text": f"전체 원가 구성: 직접원가 <b>{round(total_dc/total_cost*100,1)}%</b> · 직접인건비 <b>{round(total_lc/total_cost*100,1)}%</b> · 공통원가/관리비 <b>{round(total_oh/total_cost*100,1)}%</b>"
-        })
-
-    if loss_count > 0:
-        comments.append({
-            "type": "warning", "icon": "⚠️",
-            "text": f"경상이익이 <b>음수(손실)</b>인 프로젝트가 <b>{loss_count}건</b> 있습니다. 원가 구조 점검이 필요합니다."
-        })
-
+    # 파트 간 격차
     if worst_part and best_part and worst_part != best_part:
         gap2 = round(part_stats.loc[best_part, "avg_rate"] - part_stats.loc[worst_part, "avg_rate"], 1)
         comments.append({
-            "type": "warning", "icon": "🔍",
-            "text": f"파트 간 이익율 격차가 <b>{gap2}%p</b>입니다. <b>{html_escape(worst_part)}</b> 파트(평균 {part_stats.loc[worst_part, 'avg_rate']}%)의 수익성 개선이 필요합니다."
+            "type": "warning", "icon": "",
+            "text": f"<b>{html_escape(worst_part)}</b> 이익율 {part_stats.loc[worst_part, 'avg_rate']}% — {html_escape(best_part)} 대비 -{gap2}%p"
         })
 
+    # 우수 파트
+    if best_part and part_stats.loc[best_part, "avg_rate"] > avg_rate:
+        gap = round(part_stats.loc[best_part, "avg_rate"] - avg_rate, 1)
+        comments.append({
+            "type": "positive", "icon": "",
+            "text": f"<b>{html_escape(best_part)}</b> 이익율 {part_stats.loc[best_part, 'avg_rate']}% (평균 +{gap}%p)"
+        })
+
+    # 최대 매출 프로젝트
+    if biggest is not None:
+        comments.append({
+            "type": "info", "icon": "",
+            "text": f"최대 매출 <b>{html_escape(str(biggest['project_code']))}</b> {bil(biggest['revenue'])} ({html_escape(str(biggest['part']))} · {html_escape(str(biggest['stage']))})"
+        })
+
+    # 원가 구성 — 숫자만
+    if total_cost > 0:
+        comments.append({
+            "type": "neutral", "icon": "",
+            "text": f"원가: 직접 {round(total_dc/total_cost*100,1)}% / 인건비 {round(total_lc/total_cost*100,1)}% / 공통 {round(total_oh/total_cost*100,1)}%"
+        })
+
+    # 전체 이익율
     if total_revenue:
         overall_rate = round(total_profit / total_revenue * 100, 1)
-        if overall_rate > 0:
-            comments.append({
-                "type": "positive", "icon": "✅",
-                "text": f"현재 필터 기준 전체 실질 이익율은 <b>{overall_rate}%</b>입니다. (경상이익 합계 ÷ 총매출)"
-            })
+        comments.append({
+            "type": "positive" if overall_rate >= avg_rate else "neutral", "icon": "",
+            "text": f"전체 실질 이익율 <b>{overall_rate}%</b> (필터 기준)"
+        })
 
     return jsonify({"top": top5, "risk": risk, "comments": comments})
 
