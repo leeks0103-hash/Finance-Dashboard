@@ -11,6 +11,11 @@ const FilterPanel = () => {
       <div className={styles.group}>
         <span className={styles.label}>연도</span>
         <div className={styles.chips}>
+          <FilterChip
+            label="전체"
+            checked={vm.filters.year === ''}
+            onChange={() => vm.setYear('')}
+          />
           {vm.years.map(y => (
             <FilterChip
               key={y}

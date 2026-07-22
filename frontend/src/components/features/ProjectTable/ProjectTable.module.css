@@ -124,15 +124,37 @@
 .warn { background: rgba(255, 251, 235, 0.7) !important; }
 .warn:hover { background: rgba(254, 243, 199, 0.85) !important; }
 
-/* pagination — 항상 하단에 고정 */
-.pagination {
+/* pagination 전체 바 */
+.paginationBar {
   display: flex;
-  justify-content: center;
   align-items: center;
-  gap: 8px;
-  padding: 10px 0;
+  justify-content: space-between;
+  padding: 8px 0;
   flex-shrink: 0;
   border-top: 1px solid var(--border);
+  gap: 8px;
+}
+
+/* 페이지 크기 선택 */
+.pageSize {
+  font-size: 0.78rem;
+  color: var(--text-sub);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+  outline: none;
+  font-family: inherit;
+}
+.pageSize:hover { background: var(--bg-subtle); }
+
+/* 번호 pagination */
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 auto;
 }
 
 

@@ -2,14 +2,24 @@
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  padding: 8px 12px;
+  padding: 7px 12px;
   border-radius: var(--radius-sm);
-  font-size: 0.84rem;
+  font-size: 0.83rem;
   line-height: 1.5;
   border-left: 3px solid transparent;
+  transition: box-shadow var(--transition);
 }
 .positive { background: var(--profit-bg); border-left-color: var(--profit); }
 .info     { background: var(--info-bg);   border-left-color: var(--info); }
 .neutral  { background: var(--bg-subtle); border-left-color: var(--border); }
-.warning  { background: var(--warn-bg);   border-left-color: var(--warn); }
+
+/* warning — 더 강하게 강조 */
+.warning {
+  background: var(--warn-bg);
+  border-left-color: var(--warn);
+  border-left-width: 4px;
+  font-weight: 500;
+}
+.warning:hover { box-shadow: 0 0 0 1px var(--warn); }
+
 .icon { flex-shrink: 0; }

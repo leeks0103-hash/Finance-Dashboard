@@ -1,8 +1,8 @@
 import styles from './FilterChip.module.css';
 
 interface Props {
-  label: string;
-  checked: boolean;
+  label:    string;
+  checked:  boolean;
   onChange: () => void;
   onHover?: () => void;
 }
@@ -15,6 +15,7 @@ const FilterChip = ({ label, checked, onChange, onHover }: Props) => (
     onMouseEnter={onHover}
     aria-pressed={checked}
   >
+    {checked && <span className={styles.checkIcon} aria-hidden>✓</span>}
     {label}
   </button>
 );

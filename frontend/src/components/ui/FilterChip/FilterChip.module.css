@@ -1,3 +1,9 @@
+.checkIcon {
+  font-size: 0.65rem;
+  margin-right: 3px;
+  opacity: 0.9;
+}
+
 .chip {
   font-size: 0.74rem;
   font-weight: 500;

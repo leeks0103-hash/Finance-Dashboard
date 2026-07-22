@@ -134,6 +134,17 @@ const ProjectTable = () => {
             </table>
           </div>
 
+          <div className={styles.paginationBar}>
+            <select
+              className={styles.pageSize}
+              value={table.getState().pagination.pageSize}
+              onChange={e => table.setPageSize(Number(e.target.value))}
+            >
+              {[10, 30, 50, 100].map(s => (
+                <option key={s} value={s}>{s}행</option>
+              ))}
+            </select>
+
           <div className={styles.pagination}>
             <Button variant="ghost" size="sm" className={styles.arrowBtn}
               onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}>«</Button>
@@ -152,6 +163,7 @@ const ProjectTable = () => {
               onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>›</Button>
             <Button variant="ghost" size="sm" className={styles.arrowBtn}
               onClick={() => table.setPageIndex(table.getPageCount() - 1)} disabled={!table.getCanNextPage()}>»</Button>
+          </div>
           </div>
         </>
       )}
