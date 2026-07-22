@@ -36,7 +36,7 @@
   transform: translateY(-50%);
   font-size: 0.68rem;
   font-weight: 700;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.08em;
   white-space: nowrap;
   transition: opacity 0.15s, color 0.2s;
   pointer-events: none;
@@ -44,7 +44,7 @@
 
 /* OFF: 텍스트 오른쪽 (thumb 왼쪽) */
 .track:not(.on) .innerLabel {
-  right: 7px;
+  right: 12px;
   color: var(--text-muted);
 }
 
