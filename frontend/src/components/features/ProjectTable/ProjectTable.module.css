@@ -30,6 +30,51 @@
   margin-left: 6px;
 }
 
+/* 헤더 오른쪽 영역 */
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 컬럼 가시성 토글 */
+.colToggle { position: relative; }
+.colToggleBtn {
+  font-size: 0.78rem;
+  color: var(--text-sub);
+  background: none;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all var(--transition);
+  font-family: inherit;
+}
+.colToggleBtn:hover { border-color: var(--brand-mid); color: var(--brand-mid); }
+.colMenu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  padding: 6px 0;
+  z-index: 50;
+  min-width: 110px;
+}
+.colMenuItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 14px;
+  font-size: 0.8rem;
+  color: var(--text-sub);
+  cursor: pointer;
+}
+.colMenuItem:hover { background: var(--brand-bg); color: var(--brand-mid); }
+.colMenuItem input { cursor: pointer; }
+
 /* 검색 영역 */
 .searchWrap {
   position: relative;

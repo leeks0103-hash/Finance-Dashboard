@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
   useReactTable, getCoreRowModel, getSortedRowModel,
   getPaginationRowModel, getFilteredRowModel,
@@ -9,15 +9,25 @@ import { EmptyState, Button } from '@/components/ui';
 import { columns } from './columns.tsx';
 import styles from './ProjectTable.module.css';
 
+const HIDE_LABELS: Record<string, string> = {
+  direct_cost: '직접원가',
+  labor_cost:  '인건비',
+  overhead:    '공통원가',
+  note:        '비고',
+};
+
 const ProjectTable = () => {
   const vm = useProjectTableViewModel();
+  const [colVisibility, setColVisibility] = useState<Record<string, boolean>>({});
+  const [showColMenu, setShowColMenu] = useState(false);
 
   const table = useReactTable({
     data: vm.data,
     columns,
-    state: { sorting: vm.sorting, globalFilter: vm.globalFilter },
-    onSortingChange:      vm.onSortingChange,
-    onGlobalFilterChange: vm.onFilterChange,
+    state: { sorting: vm.sorting, globalFilter: vm.globalFilter, columnVisibility: colVisibility },
+    onSortingChange:          vm.onSortingChange,
+    onGlobalFilterChange:     vm.onFilterChange,
+    onColumnVisibilityChange: setColVisibility,
     getCoreRowModel:       getCoreRowModel(),
     getSortedRowModel:     getSortedRowModel(),
     getFilteredRowModel:   getFilteredRowModel(),
@@ -51,6 +61,29 @@ const ProjectTable = () => {
             {vm.busy ? '…' : vm.globalFilter ? `${filteredCount} / ${vm.data.length}` : vm.data.length}
           </span>
         </div>
+        <div className={styles.headerRight}>
+        {/* 컬럼 가시성 토글 */}
+        <div className={styles.colToggle}>
+          <button className={styles.colToggleBtn} onClick={() => setShowColMenu(v => !v)}>
+            컬럼 ▾
+          </button>
+          {showColMenu && (
+            <div className={styles.colMenu}>
+              {table.getAllLeafColumns()
+                .filter(col => col.id in HIDE_LABELS)
+                .map(col => (
+                  <label key={col.id} className={styles.colMenuItem}>
+                    <input
+                      type="checkbox"
+                      checked={col.getIsVisible()}
+                      onChange={col.getToggleVisibilityHandler()}
+                    />
+                    {HIDE_LABELS[col.id]}
+                  </label>
+                ))}
+            </div>
+          )}
+        </div>
         <div className={styles.searchWrap}>
           <input
             className={styles.search}
@@ -62,6 +95,7 @@ const ProjectTable = () => {
           {vm.inputValue && (
             <button className={styles.searchClear} onClick={vm.clearSearch} aria-label="검색 초기화">✕</button>
           )}
+        </div>
         </div>
       </div>
 
