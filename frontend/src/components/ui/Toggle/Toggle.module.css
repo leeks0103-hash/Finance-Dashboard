@@ -1,8 +1,8 @@
 .track {
   position: relative;
-  width: 88px;
-  height: 26px;
-  border-radius: 13px;
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
   background: var(--border);
   border: none;
   cursor: pointer;
@@ -27,7 +27,7 @@
   transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 1;
 }
-.on .thumb { transform: translateX(62px); }  /* 88 - 3 - 20 - 3 = 62 */
+.on .thumb { transform: translateX(20px); }
 
 /* 텍스트 — thumb 반대편에 위치 */
 .innerLabel {

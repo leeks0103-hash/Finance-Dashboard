@@ -21,7 +21,6 @@ const ChartSection = () => {
         <Toggle
           checked={vm.showLabels}
           onChange={vm.toggleLabels}
-          label="수치표시"
         />
       </div>
 
