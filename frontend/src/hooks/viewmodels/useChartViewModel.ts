@@ -48,7 +48,8 @@ export const useChartViewModel = (): ChartViewModel => {
       },
       costBreakdown: {
         labels: ['직접원가', '직접인건비', '공통원가/관리비'],
-        values: [cb.direct_cost, cb.labor_cost, cb.overhead].map(v => +(v / 1e4).toFixed(0)),
+        // revExp와 동일 단위(억원)로 통일 — 툴팁/레이블 값 불일치 해소
+        values: [cb.direct_cost, cb.labor_cost, cb.overhead].map(v => +(v / 1e8).toFixed(2)),
       },
       profitRate: {
         labels: parts,

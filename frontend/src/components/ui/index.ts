@@ -10,3 +10,4 @@ export * from './Button';
 export * from './InsightListCard';
 export * from './ProjectRankRow';
 export * from './DownloadModal';
+export * from './NegCell';

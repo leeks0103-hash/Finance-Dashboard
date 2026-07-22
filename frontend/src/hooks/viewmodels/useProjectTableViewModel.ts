@@ -16,6 +16,7 @@ export interface ProjectTableViewModel {
   inputValue:      string;
   handleSearch:    (e: React.ChangeEvent<HTMLInputElement>) => void;
   getRowVariant:   (row: Project) => 'loss' | 'warn' | '';
+  getPageLabel:    (pageIndex: number, pageCount: number) => string;
 }
 
 export const useProjectTableViewModel = (): ProjectTableViewModel => {
@@ -48,11 +49,16 @@ export const useProjectTableViewModel = (): ProjectTableViewModel => {
     onFilterChange:  setGlobalFilter,
     inputValue,
     handleSearch,
-    // useCallback으로 안정적 참조 — handleSearch와 동일 패턴
     getRowVariant: useCallback((row: Project): 'loss' | 'warn' | '' => {
       if (row.operating_profit < 0) return 'loss';
-      if (row.profit_rate >= 0 && row.profit_rate < 5) return 'warn';  // 0 포함 (PDF 기준과 통일)
+      if (row.profit_rate >= 0 && row.profit_rate < 5) return 'warn';
       return '';
     }, []),
+    // 페이지 레이블 포맷 — 컴포넌트 JSX 삼항 제거
+    getPageLabel: useCallback(
+      (pageIndex: number, pageCount: number): string =>
+        pageCount > 0 ? `${pageIndex + 1} / ${pageCount}` : '0 / 0',
+      []
+    ),
   };
 };

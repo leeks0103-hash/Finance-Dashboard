@@ -48,6 +48,14 @@ const DoughnutChart = ({ labels, data, colors = DEFAULT_COLORS }: Props) => (
             },
           },
         },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              const v = ctx.parsed as number;
+              return `${ctx.label}: ${v.toFixed(2)}억원`;
+            },
+          },
+        },
         datalabels: {
           display: true,
           color:   '#111827',      // 검정에 가까운 색 — 흰 배경에서도 잘 보임

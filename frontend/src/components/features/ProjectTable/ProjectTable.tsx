@@ -24,11 +24,11 @@ const ProjectTable = () => {
     initialState: { pagination: { pageSize: 30 } },
   });
 
-  const rows     = table.getRowModel().rows;
-  const pageCount = table.getPageCount();
-  const pageLabel = pageCount > 0
-    ? `${table.getState().pagination.pageIndex + 1} / ${pageCount}`
-    : '0 / 0';
+  const rows      = table.getRowModel().rows;
+  const pageLabel = vm.getPageLabel(
+    table.getState().pagination.pageIndex,
+    table.getPageCount()
+  );
 
   return (
     <div className={styles.wrapper}>

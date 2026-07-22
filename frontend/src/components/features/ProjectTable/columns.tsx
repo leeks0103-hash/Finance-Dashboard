@@ -1,15 +1,9 @@
 import { createColumnHelper } from '@tanstack/react-table';
 import type { Project } from '@/types';
 import { formatBillion, formatRate, getNoteVariant } from '@/utils';
-import { Badge } from '@/components/ui';
+import { Badge, NegCell } from '@/components/ui';
 
 const h = createColumnHelper<Project>();
-
-/** M-17: 음수 값은 var(--loss) 빨강 + 볼드로 표시 */
-const NegCell = ({ v, text }: { v: number; text: string }) =>
-  v < 0
-    ? <span style={{ color: 'var(--loss)', fontWeight: 600 }}>{text}</span>
-    : <>{text}</>;
 
 export const columns = [
   h.accessor('project_code', { header: '프로젝트코드' }),
