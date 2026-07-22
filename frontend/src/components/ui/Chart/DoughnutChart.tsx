@@ -26,6 +26,7 @@ const DoughnutChart = ({ labels, data, colors = DEFAULT_COLORS, showLabels = fal
     options={{
       responsive: true,
       maintainAspectRatio: false,
+      animation: false,  // 수치 토글 시 재애니메이션 방지
       plugins: {
         legend: {
           position: 'bottom',

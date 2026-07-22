@@ -1,5 +1,5 @@
 import { useChartViewModel } from '@/hooks/viewmodels';
-import { ChartCard, BarChart, DoughnutChart, EmptyState, Button } from '@/components/ui';
+import { ChartCard, BarChart, DoughnutChart, EmptyState, Toggle } from '@/components/ui';
 import styles from './ChartSection.module.css';
 
 const ChartSection = () => {
@@ -18,13 +18,11 @@ const ChartSection = () => {
   return (
     <>
       <div className={styles.toolbar}>
-        <Button
-          variant={vm.showLabels ? 'primary' : 'ghost'}
-          size="sm"
-          onClick={vm.toggleLabels}
-        >
-          수치 {vm.showLabels ? 'ON' : 'OFF'}
-        </Button>
+        <Toggle
+          checked={vm.showLabels}
+          onChange={vm.toggleLabels}
+          label="수치 표시"
+        />
       </div>
 
       <div className={styles.grid}>

@@ -4,6 +4,7 @@ import type { ChartOptions } from 'chart.js';
 
 // 기본 옵션 — display는 showLabels 상태로 덮어씀
 const makeRevExpOptions = (display: boolean): ChartOptions<'bar'> => ({
+  animation: false,  // 옵션 변경(수치 토글) 시 재애니메이션 방지
   layout: { padding: { right: 52 } },
   plugins: {
     datalabels: {
@@ -19,6 +20,7 @@ const makeRevExpOptions = (display: boolean): ChartOptions<'bar'> => ({
 } as ChartOptions<'bar'>);
 
 const makeProfitRateOptions = (display: boolean): ChartOptions<'bar'> => ({
+  animation: false,
   layout: { padding: { top: 24 } },
   plugins: {
     datalabels: {
