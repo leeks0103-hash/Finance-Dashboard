@@ -94,27 +94,23 @@
 }
 
 
-/* pagination 내 모든 button 엘리먼트 — border 완전 제거 */
-.pagination button {
+/* 화살표 전용 — border·배경 제거, 진하고 크게 */
+.arrowBtn {
+  width: 30px !important;
+  height: 30px !important;
+  padding: 0 !important;
+  font-size: 1.25rem !important;
+  font-weight: 700 !important;
+  color: var(--text-primary) !important;
   border: none !important;
   background: transparent !important;
   box-shadow: none !important;
-}
-
-/* 화살표 전용 — 진하고 크게 */
-.arrowBtn {
-  width: 30px;
-  height: 30px;
-  padding: 0;
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--text-primary);
   display: inline-flex;
   align-items: center;
   justify-content: center;
 }
-.arrowBtn:hover:not(:disabled) { color: var(--brand-mid); background: var(--brand-bg) !important; }
-.arrowBtn:disabled { opacity: 0.25; cursor: not-allowed; }
+.arrowBtn:hover:not(:disabled) { color: var(--brand-mid) !important; background: var(--brand-bg) !important; }
+.arrowBtn:disabled { opacity: 0.25 !important; cursor: not-allowed; }
 
 /* 페이지 번호 버튼 — border 없음 */
 .pageBtn {
