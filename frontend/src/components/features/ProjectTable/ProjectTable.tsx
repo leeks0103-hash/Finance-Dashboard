@@ -91,9 +91,9 @@ const ProjectTable = () => {
           </div>
 
           <div className={styles.pagination}>
-            <Button variant="ghost" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>이전</Button>
-            <span>{pageLabel}</span>
-            <Button variant="ghost" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>다음</Button>
+            <Button variant="ghost" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>←</Button>
+            <span className={styles.pageInfo}>{pageLabel}</span>
+            <Button variant="ghost" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>→</Button>
           </div>
         </>
       )}
