@@ -130,8 +130,12 @@ const ProjectTable = () => {
                         ].join(' ')}
                       >
                         {flexRender(header.column.columnDef.header, header.getContext())}
-                        {header.column.getIsSorted() === 'asc'  ? ' ↑' :
-                         header.column.getIsSorted() === 'desc' ? ' ↓' : ''}
+                        {header.column.getCanSort() && (
+                          <span style={{ marginLeft: 4, opacity: header.column.getIsSorted() ? 1 : 0.35, fontSize: '0.7rem' }}>
+                            {header.column.getIsSorted() === 'asc'  ? '▲' :
+                             header.column.getIsSorted() === 'desc' ? '▼' : '⇅'}
+                          </span>
+                        )}
                       </th>
                     ))}
                   </tr>
@@ -182,30 +186,28 @@ const ProjectTable = () => {
               value={table.getState().pagination.pageSize}
               onChange={e => table.setPageSize(Number(e.target.value))}
             >
-              {[10, 30, 50, 100].map(s => (
-                <option key={s} value={s}>{s}행</option>
-              ))}
+              {[10, 30, 50, 100].map(s => <option key={s} value={s}>{s}행</option>)}
             </select>
 
-          <div className={styles.pagination}>
-            <Button variant="ghost" size="sm" className={styles.arrowBtn}
-              onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}>«</Button>
-            <Button variant="ghost" size="sm" className={styles.arrowBtn}
-              onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>‹</Button>
+            {/* 구버전 스타일 페이지네이션 */}
+            <nav className={styles.pagination} aria-label="페이지 이동">
+              <button className={styles.pgItem} onClick={() => table.previousPage()}
+                disabled={!table.getCanPreviousPage()}>이전</button>
+              {vm.getPageNumbers(table.getState().pagination.pageIndex, table.getPageCount()).map(pageIdx => (
+                <button key={pageIdx}
+                  className={`${styles.pgItem} ${pageIdx === table.getState().pagination.pageIndex ? styles.pgActive : ''}`}
+                  onClick={() => table.setPageIndex(pageIdx)}>
+                  {pageIdx + 1}
+                </button>
+              ))}
+              <button className={styles.pgItem} onClick={() => table.nextPage()}
+                disabled={!table.getCanNextPage()}>다음</button>
+            </nav>
 
-            {vm.getPageNumbers(table.getState().pagination.pageIndex, table.getPageCount()).map(pageIdx => (
-              <button key={pageIdx}
-                className={`${styles.pageBtn} ${pageIdx === table.getState().pagination.pageIndex ? styles.pageBtnActive : ''}`}
-                onClick={() => table.setPageIndex(pageIdx)}>
-                {pageIdx + 1}
-              </button>
-            ))}
-
-            <Button variant="ghost" size="sm" className={styles.arrowBtn}
-              onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>›</Button>
-            <Button variant="ghost" size="sm" className={styles.arrowBtn}
-              onClick={() => table.setPageIndex(table.getPageCount() - 1)} disabled={!table.getCanNextPage()}>»</Button>
-          </div>
+            {/* 총 페이지 정보 */}
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+              {pageLabel}
+            </span>
           </div>
         </>
       )}

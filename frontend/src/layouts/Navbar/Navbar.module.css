@@ -1,9 +1,9 @@
 /* M-25: FilterBar의 top 계산에서 참조 */
-:global(:root) { --navbar-height: 44px; }
+:global(:root) { --navbar-height: 48px; }
 
 .nav {
-  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
-  box-shadow: 0 2px 8px rgba(30,27,75,0.35);
+  background: #111827;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.06), 0 2px 8px rgba(0,0,0,0.4);
   height: var(--navbar-height);
   padding: 0 24px;
   display: flex;
@@ -13,8 +13,19 @@
   top: 0;
   z-index: 100;
 }
-.brand { font-weight: 700; font-size: 1rem; color: #fff; letter-spacing: -0.01em; }
-.team  { font-size: 0.78rem; color: var(--brand-light); opacity: 0.85; }
+
+.brand {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #fff;
+  letter-spacing: -0.01em;
+}
+
+.team {
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.45);
+  letter-spacing: 0.01em;
+}
 
 @media (max-width: 480px) {
   .nav  { padding: 0 14px; }

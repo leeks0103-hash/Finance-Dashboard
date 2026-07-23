@@ -169,68 +169,71 @@
 .warn { background: rgba(255, 251, 235, 0.7) !important; }
 .warn:hover { background: rgba(254, 243, 199, 0.85) !important; }
 
-/* pagination 전체 바 */
+/* ─── Pagination — Bootstrap 클래식 스타일 ─── */
 .paginationBar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 0;
+  padding: 10px 0 8px;
   flex-shrink: 0;
   border-top: 1px solid var(--border);
-  gap: 8px;
 }
 
-/* 페이지 크기 선택 */
 .pageSize {
   font-size: 0.78rem;
   color: var(--text-sub);
-  border: none;
-  background: transparent;
+  border: 1px solid var(--border);
+  background: var(--surface);
   cursor: pointer;
-  padding: 2px 4px;
+  padding: 3px 6px;
   border-radius: var(--radius-sm);
   outline: none;
   font-family: inherit;
 }
-.pageSize:hover { background: var(--bg-subtle); }
+.pageSize:hover { border-color: var(--text-muted); }
 
 /* 번호 pagination */
 .pagination {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0;
   margin: 0 auto;
-}
-
-
-/* 화살표 전용 — border·배경 제거, 진하고 크게 */
-.arrowBtn {
-  width: 30px !important;
-  height: 30px !important;
-  padding: 0 !important;
-  font-size: 1.25rem !important;
-  font-weight: 700 !important;
-  color: var(--text-primary) !important;
-  border: none !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-.arrowBtn:hover:not(:disabled) { color: var(--brand-mid) !important; background: var(--brand-bg) !important; }
-.arrowBtn:disabled { opacity: 0.25 !important; cursor: not-allowed; }
-
-/* 페이지 번호 버튼 — border 없음 */
-.pageBtn {
-  width: 30px;
-  height: 30px;
-  border: none;
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: transparent;
-  font-size: 0.85rem;
-  font-weight: 500;
+  overflow: hidden;
+}
+
+/* 이전/다음 + 번호 — 공통 */
+.pgItem {
+  padding: 5px 12px;
+  font-size: 0.82rem;
+  font-family: inherit;
   color: var(--text-sub);
+  background: var(--surface);
+  border: none;
+  border-right: 1px solid var(--border);
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.pgItem:last-child { border-right: none; }
+.pgItem:hover:not(:disabled):not(.pgActive) {
+  background: var(--bg-subtle);
+  color: var(--text-primary);
+}
+.pgItem:disabled { opacity: 0.4; cursor: not-allowed; }
+.pgActive {
+  background: var(--brand-mid);
+  color: #fff;
+  font-weight: 600;
+  cursor: default;
+}
+
+/* 아래 선언을 위해 dummy로 유지 */
+.arrowBtn { display: none; }
+.pageBtn {
+  display: none;
   cursor: pointer;
   transition: all var(--transition);
   font-family: inherit;
