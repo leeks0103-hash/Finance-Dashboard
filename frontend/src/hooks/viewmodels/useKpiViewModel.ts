@@ -37,6 +37,37 @@ export const useKpiViewModel = (): KpiViewModel => {
   // animExpenditure 사용 → value의 카운트업과 지출률 배지가 동기화됨
   const expenseRatio = hasSales ? (animExpenditure / revenueRaw) * 100 : null;
 
+  // 파트별 이익율 최고/최저 계산 — 평균이익율 카드 trend용
+  const byPart = data?.by_part ?? {};
+  const partNames = Object.keys(byPart);
+  let avgRateTrend: string | null = null;
+  if (partNames.length >= 2) {
+    let bestPart = partNames[0];
+    let worstPart = partNames[0];
+    for (const p of partNames) {
+      const partData = byPart[p] as { revenue: number; expenditure: number; profit: number; count: number };
+      const partRevenue = partData.revenue ?? 0;
+      const partProfit  = partData.profit  ?? 0;
+      const partRate    = partRevenue > 0 ? (partProfit / partRevenue) * 100 : 0;
+      const bestData    = byPart[bestPart]  as typeof partData;
+      const worstData   = byPart[worstPart] as typeof partData;
+      const bestRate    = bestData.revenue  > 0 ? (bestData.profit  / bestData.revenue)  * 100 : 0;
+      const worstRate   = worstData.revenue > 0 ? (worstData.profit / worstData.revenue) * 100 : 0;
+      if (partRate > bestRate)  bestPart  = p;
+      if (partRate < worstRate) worstPart = p;
+    }
+    const bestData  = byPart[bestPart]  as { revenue: number; profit: number };
+    const worstData = byPart[worstPart] as { revenue: number; profit: number };
+    const bestRate  = bestData.revenue  > 0 ? (bestData.profit  / bestData.revenue)  * 100 : 0;
+    const worstRate = worstData.revenue > 0 ? (worstData.profit / worstData.revenue) * 100 : 0;
+    const gap = Math.round((bestRate - worstRate) * 10) / 10;
+    avgRateTrend = `최고 ${bestPart} +${gap}%p`;
+  } else if (partNames.length === 1) {
+    const partData = byPart[partNames[0]] as { revenue: number; profit: number };
+    const partRate = partData.revenue > 0 ? Math.round((partData.profit / partData.revenue) * 1000) / 10 : 0;
+    avgRateTrend = `${partNames[0]} ${partRate}%`;
+  }
+
   const cards: KpiCardData[] = [
     {
       label:   '총매출',
@@ -65,7 +96,7 @@ export const useKpiViewModel = (): KpiViewModel => {
       label:   '평균 이익율',
       value:   formatRate(animRate),
       accent:  'purple',
-      trend:   null,
+      trend:   avgRateTrend,
       trendUp: rateRaw > 0,  // 0은 손익분기 — 하향 스파크라인으로 표시
     },
   ];

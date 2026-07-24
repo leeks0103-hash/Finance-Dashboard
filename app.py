@@ -54,6 +54,7 @@ COLUMNS = [
 _cached_df: pd.DataFrame = pd.DataFrame()
 _last_loaded = None
 _cache_lock = threading.Lock()  # C-1: 스레드 안전성
+_last_correction_count = 0
 
 
 def _sample_df() -> pd.DataFrame:
@@ -110,7 +111,7 @@ def _extract_part(filename: str) -> str:
 
 def load_excel():
     """_cache_lock 을 보유한 상태에서만 호출할 것 (C-1)."""
-    global _cached_df, _last_loaded
+    global _cached_df, _last_loaded, _last_correction_count
     if not os.path.exists(EXCEL_PATH):
         logger.warning("EXCEL_PATH 없음 — 샘플 데이터 사용: %s", EXCEL_PATH)
         _cached_df = _sample_df()
@@ -156,6 +157,7 @@ def load_excel():
 
     # PPT 파싱 오류 보정: profit_rate > 200이면 operating_profit/revenue로 재산정
     bad_rate = df["profit_rate"].abs() > 200
+    _last_correction_count = int(bad_rate.sum())
     if bad_rate.any():
         bad_rows = df.loc[bad_rate, ["project_code", "filename", "profit_rate"]]
         logger.warning(
@@ -255,12 +257,24 @@ def _register_pdf_font() -> str:
 _PDF_FONT = _register_pdf_font()
 
 
+_STAGE_PRIORITY = ["최종", "완료", "확정", "중간", "착수", "제안", "사전검토", "사업계획", "검토"]
+
+
+def _sort_stages(stage_list):
+    """보고단계를 우선순위 순서로 정렬. 미지정 단계는 알파벳순으로 뒤에 추가."""
+    priority_map = {s: i for i, s in enumerate(_STAGE_PRIORITY)}
+    known = [s for s in _STAGE_PRIORITY if s in stage_list]
+    others = sorted(s for s in stage_list if s not in priority_map)
+    return known + others
+
+
 @app.route("/")
 def index():
     df = get_df()
     years = sorted(df[df["year"].str.strip() != ""]["year"].unique())
     parts = sorted(df[df["part"].str.strip() != ""]["part"].unique())
-    stages = sorted(df[df["stage"].str.strip() != ""]["stage"].unique())
+    raw_stages = df[df["stage"].str.strip() != ""]["stage"].unique().tolist()
+    stages = _sort_stages(raw_stages)
     return render_template(
         "index.html",
         years=years, parts=parts, stages=stages,
@@ -280,7 +294,7 @@ def api_summary():
     if df.empty:
         return jsonify({
             "total_revenue": 0, "total_expenditure": 0, "total_profit": 0,
-            "avg_profit_rate": 0, "count": 0, "by_part": {},
+            "avg_profit_rate": 0, "count": 0, "by_part": {}, "by_year": {},
             # H-5: 빈 필터에도 항상 모든 키 포함
             "cost_breakdown": {"direct_cost": 0, "labor_cost": 0, "overhead": 0},
         })
@@ -298,6 +312,18 @@ def api_summary():
         .to_dict(orient="index")
     )
 
+    by_year = (
+        df.groupby("year")
+        .agg(
+            revenue=("revenue", "sum"),
+            expenditure=("expenditure", "sum"),
+            profit=("operating_profit", "sum"),
+            count=("project_code", "count"),
+            avg_profit_rate=("profit_rate", _safe_avg_rate),
+        )
+        .to_dict(orient="index")
+    )
+
     return jsonify({
         "total_revenue": df["revenue"].sum(),
         "total_expenditure": df["expenditure"].sum(),
@@ -305,6 +331,7 @@ def api_summary():
         "avg_profit_rate": round(rates.mean(), 1) if not rates.empty else 0,
         "count": len(df),
         "by_part": by_part,
+        "by_year": by_year,
         "cost_breakdown": {
             "direct_cost": df["direct_cost"].sum(),
             "labor_cost": df["labor_cost"].sum(),
@@ -425,7 +452,12 @@ def api_reload():
     try:
         with _cache_lock:  # C-1: reload도 잠금 보유
             load_excel()
-        return jsonify({"ok": True, "loaded_at": _last_loaded, "count": len(_cached_df)})
+        return jsonify({
+            "ok": True,
+            "loaded_at": _last_loaded,
+            "count": len(_cached_df),
+            "corrected_rows": _last_correction_count,
+        })
     except Exception as e:
         logger.error("api_reload 실패: %s", e)
         return jsonify({"ok": False, "error": str(e)}), 500

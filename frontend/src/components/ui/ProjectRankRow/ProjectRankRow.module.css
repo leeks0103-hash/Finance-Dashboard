@@ -48,11 +48,26 @@
 }
 
 /* CopyText 컴포넌트가 font-family/size를 처리 */
-.code {
+.codeWrap {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.code {
   min-width: 0;
   overflow: hidden;
   color: var(--text-sub);
+}
+
+.subValue {
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .value {

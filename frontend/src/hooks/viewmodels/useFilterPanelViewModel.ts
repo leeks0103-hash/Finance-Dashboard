@@ -4,6 +4,14 @@ import { usePrefetch } from '@/hooks/usePrefetch';
 import { toggle } from '@/utils/array';
 import type { Filters } from '@/types';
 
+const STAGE_ORDER = ['최종', '완료', '확정', '중간', '착수', '제안', '사전검토', '사업계획', '검토'];
+
+const sortStages = (stages: string[]): string[] => {
+  const known   = STAGE_ORDER.filter(s => stages.includes(s));
+  const unknown = stages.filter(s => !STAGE_ORDER.includes(s)).sort();
+  return [...known, ...unknown];
+};
+
 export interface FilterPanelViewModel {
   filters:          Filters;
   years:            string[];
@@ -34,7 +42,7 @@ export const useFilterPanelViewModel = (): FilterPanelViewModel => {
     filters,
     years,
     parts,
-    stages,
+    stages: sortStages(stages),
     hasActiveFilters,
     activeCount,
     setYear,

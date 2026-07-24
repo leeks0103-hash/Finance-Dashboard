@@ -1,5 +1,5 @@
 import { useInsights } from '@/hooks/useInsights';
-import { formatRate } from '@/utils';
+import { formatRate, formatBillion } from '@/utils';
 
 export interface InsightRowViewModel {
   projectCode: string;
@@ -7,6 +7,7 @@ export interface InsightRowViewModel {
   part:        string;
   value:       string;
   valueColor:  string;
+  subValue:    string;
 }
 
 export interface InsightViewModel {
@@ -49,6 +50,7 @@ export const useInsightViewModel = (): InsightViewModel => {
       part:        r.part,
       value:       formatRate(r.profit_rate),
       valueColor:  'var(--profit)',
+      subValue:    formatBillion(r.revenue),
     })),
     risk: data.risk.filter(r => isValid(r.project_code)).slice(0, 5).map((r, i) => ({
       projectCode: `${r.project_code}-${r.stage ?? i}`,
@@ -56,6 +58,9 @@ export const useInsightViewModel = (): InsightViewModel => {
       part:        r.part,
       value:       r.operating_profit < 0 ? '손실' : formatRate(r.profit_rate),
       valueColor:  r.operating_profit < 0 ? 'var(--loss)' : 'var(--warn)',
+      subValue:    r.operating_profit < 0
+        ? `손실 ${formatBillion(Math.abs(r.operating_profit))}`
+        : formatBillion(r.revenue),
     })),
   };
 };

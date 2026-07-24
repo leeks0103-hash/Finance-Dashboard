@@ -1,12 +1,20 @@
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import { useChartViewModel } from '@/hooks/viewmodels';
 import { useTheme } from '@/hooks';
+import { useFilterStore, useUiStore } from '@/store';
 import { ChartCard, BarChart, DoughnutChart, EmptyState } from '@/components/ui';
 import styles from './ChartSection.module.css';
 
 const ChartSection = () => {
   const { theme } = useTheme();
   const dark = theme === 'dark';
+
+  const togglePart    = useFilterStore(s => s.togglePart);
+  const showYearChart = useUiStore(s => s.showYearChart);
+
+  const handlePartClick = useCallback((part: string) => {
+    togglePart(part);
+  }, [togglePart]);
 
   const labelColor   = dark ? 'rgba(180,230,255,0.9)' : '#1e293b';
   const gridColor    = dark ? 'rgba(0,200,255,0.07)'  : 'rgba(0,0,0,0.06)';
@@ -41,12 +49,24 @@ const ChartSection = () => {
 
   const profitRateOptions = useMemo(() => ({
     ...vm.profitRate.options,
-    scales: { ...vm.profitRate.options.scales, y: { ...scaleOverride.y, ticks: { ...scaleOverride.y.ticks, callback: (v: string | number) => v + '%' } } },
-  }), [vm.profitRate.options, scaleOverride]);
+    scales: {
+      ...vm.profitRate.options.scales,
+      y: {
+        ...scaleOverride.y,
+        type: vm.showLogScale ? ('logarithmic' as const) : ('linear' as const),
+        ticks: { ...scaleOverride.y.ticks, callback: (v: string | number) => v + '%' },
+      },
+    },
+  }), [vm.profitRate.options, scaleOverride, vm.showLogScale]);
+
+  const yearTrendOptions = useMemo(() => ({
+    ...vm.yearTrend.options,
+    scales: { ...scaleOverride, x: { ...scaleOverride.x, stacked: false } },
+  }), [vm.yearTrend.options, scaleOverride]);
 
   if (vm.isLoading) return (
     <div className={styles.grid}>
-      {[0, 1, 2].map(i => <div key={i} className={styles.skeleton} />)}
+      {[0, 1, 2, ...(showYearChart ? [3] : [])].map(i => <div key={i} className={styles.skeleton} />)}
     </div>
   );
 
@@ -65,6 +85,7 @@ const ChartSection = () => {
               labels={vm.profitRate.labels}
               datasets={[{ label: '이익율(%)', data: vm.profitRate.rates, backgroundColor: profitColors }]}
               options={profitRateOptions}
+              onClick={handlePartClick}
             />
           </ChartCard.Body>
         </ChartCard>
@@ -80,6 +101,7 @@ const ChartSection = () => {
                 { label: '이익(억)', data: vm.revExp.profits,  backgroundColor: barGreen },
               ]}
               options={revExpOptions}
+              onClick={handlePartClick}
             />
           </ChartCard.Body>
         </ChartCard>
@@ -96,6 +118,22 @@ const ChartSection = () => {
             />
           </ChartCard.Body>
         </ChartCard>
+
+        {showYearChart && vm.yearTrend.labels.length > 0 && (
+          <ChartCard>
+            <ChartCard.Title>연도별 매출 / 이익 추이</ChartCard.Title>
+            <ChartCard.Body>
+              <BarChart
+                labels={vm.yearTrend.labels}
+                datasets={[
+                  { label: '매출(억)', data: vm.yearTrend.revenues, backgroundColor: barBlue  },
+                  { label: '이익(억)', data: vm.yearTrend.profits,  backgroundColor: barGreen },
+                ]}
+                options={yearTrendOptions}
+              />
+            </ChartCard.Body>
+          </ChartCard>
+        )}
       </div>
     </>
   );

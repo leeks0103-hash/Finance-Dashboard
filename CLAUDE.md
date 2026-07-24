@@ -60,6 +60,7 @@ return <KpiCard value={vm.revenue} />;
 - `variant`: primary / danger / success / ghost
 - `loading` prop으로 로딩 상태 처리
 - **`<button>` 직접 사용 절대 금지** — 코드 작성 시 즉시 거부
+- 단, `<select>`는 직접 사용 허용 (스타일링은 pageSize CSS class 사용)
 
 ### 상태관리 규칙
 - 서버 상태 → TanStack Query (useSummary, useProjects 등)

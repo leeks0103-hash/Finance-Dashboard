@@ -22,9 +22,10 @@ const makeBarOptions = (
 } as ChartOptions<'bar'>);
 
 export interface ChartViewModel {
-  isLoading:  boolean;
-  isEmpty:    boolean;
-  showLabels: boolean;
+  isLoading:    boolean;
+  isEmpty:      boolean;
+  showLabels:   boolean;
+  showLogScale: boolean;
   revExp: {
     labels:   string[];
     revenues: number[];
@@ -41,12 +42,20 @@ export interface ChartViewModel {
     isProfit: boolean[];   // true = 흑자, false = 적자
     options:  ChartOptions<'bar'>;
   };
+  yearTrend: {
+    labels:   string[];   // e.g. ['2024', '2025', '2026']
+    revenues: number[];
+    profits:  number[];
+    rates:    number[];
+    options:  ChartOptions<'bar'>;
+  };
   labelColor: string;  // 테마별 레이블 색 — ChartSection이 차트에 직접 전달
 }
 
 export const useChartViewModel = (labelColor: string): ChartViewModel => {
   const { data, isLoading } = useSummary();
-  const showLabels = useUiStore(s => s.showChartLabels);
+  const showLabels   = useUiStore(s => s.showChartLabels);
+  const showLogScale = useUiStore(s => s.showLogScale);
 
   const revExpOptions = useMemo(() => makeBarOptions(showLabels, labelColor, {
     layout: { padding: { right: 52 } },
@@ -70,13 +79,35 @@ export const useChartViewModel = (labelColor: string): ChartViewModel => {
         formatter: (v: number) => `${v}%`,
       },
     },
-    scales: { y: { ticks: { callback: (v: string | number) => v + '%' } } },
+    scales: {
+      y: {
+        type: showLogScale ? 'logarithmic' : 'linear',
+        ticks: { callback: (v: string | number) => v + '%' },
+      },
+    },
+  }), [showLabels, labelColor, showLogScale]);
+
+  const yearTrendOptions = useMemo(() => makeBarOptions(showLabels, labelColor, {
+    layout: { padding: { right: 52 } },
+    plugins: {
+      datalabels: {
+        anchor: 'end',
+        align:  'end',
+        formatter: (v: number) =>
+          Math.abs(v) >= 1 ? `${v.toFixed(1)}억` : `${(v * 10).toFixed(0)}천만`,
+      },
+    },
   }), [showLabels, labelColor]);
 
   const chartData = useMemo(() => {
     if (!data || isLoading) return null;
     const parts   = Object.keys(data.by_part);
     const cb      = data.cost_breakdown;
+
+    // by_year: 연도 오름차순 정렬
+    const byYear = data.by_year ?? {};
+    const years  = Object.keys(byYear).sort();
+
     return {
       isEmpty: parts.length === 0,
       revExp: {
@@ -96,25 +127,39 @@ export const useChartViewModel = (labelColor: string): ChartViewModel => {
         }),
         isProfit: parts.map(p => data.by_part[p].profit >= 0),
       },
+      yearTrend: {
+        labels:   years,
+        revenues: years.map(y => +(byYear[y].revenue / 1e8).toFixed(2)),
+        profits:  years.map(y => +(byYear[y].profit  / 1e8).toFixed(2)),
+        rates:    years.map(y => {
+          const rev = byYear[y].revenue;
+          return rev === 0 ? 0 : +(byYear[y].profit / rev * 100).toFixed(1);
+        }),
+      },
     };
   }, [data, isLoading]);
 
+  const emptyYearTrend = { labels: [], revenues: [], profits: [], rates: [], options: yearTrendOptions };
+
   if (!chartData || isLoading) {
     return {
-      isLoading, isEmpty: false, showLabels, labelColor,
+      isLoading, isEmpty: false, showLabels, showLogScale, labelColor,
       revExp:        { labels: [], revenues: [], profits: [], options: revExpOptions },
       costBreakdown: { labels: [], values: [] },
       profitRate:    { labels: [], rates: [], isProfit: [], options: profitRateOptions },
+      yearTrend:     emptyYearTrend,
     };
   }
 
   return {
     isLoading,
-    isEmpty:   chartData.isEmpty,
+    isEmpty:      chartData.isEmpty,
     showLabels,
+    showLogScale,
     labelColor,
-    revExp:        { ...chartData.revExp,      options: revExpOptions },
+    revExp:        { ...chartData.revExp,       options: revExpOptions },
     costBreakdown:   chartData.costBreakdown,
-    profitRate:    { ...chartData.profitRate,  options: profitRateOptions },
+    profitRate:    { ...chartData.profitRate,   options: profitRateOptions },
+    yearTrend:     { ...chartData.yearTrend,    options: yearTrendOptions },
   };
 };

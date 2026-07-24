@@ -133,7 +133,10 @@
   margin: 4px 0;
 }
 
-@media (max-width: 480px) {
-  .nav  { padding: 0 14px; }
+@media (max-width: 640px) {
   .team { display: none; }
+}
+
+@media (max-width: 480px) {
+  .nav { padding: 0 14px; }
 }

@@ -23,7 +23,7 @@ const InsightSection = () => {
           <div className={styles.paneTitle}>■ 주요 코멘트</div>
           <div className={styles.commentScroll}>
             {vm.comments.map((c, i) => (
-              <InsightComment key={c.type + i + c.text.slice(0, 20)} type={c.type} icon={c.icon} text={c.text} />
+              <InsightComment key={c.type + i + c.text.slice(0, 20)} type={c.type} text={c.text} />
             ))}
           </div>
         </div>
@@ -40,6 +40,7 @@ const InsightSection = () => {
                   part={r.part}
                   value={r.value}
                   valueColor={r.valueColor}
+                  subValue={r.subValue}
                 />
               ))}
             </InsightListCard.Body>
@@ -56,6 +57,7 @@ const InsightSection = () => {
                   part={r.part}
                   value={r.value}
                   valueColor={r.valueColor}
+                  subValue={r.subValue}
                 />
               ))}
             </InsightListCard.Body>

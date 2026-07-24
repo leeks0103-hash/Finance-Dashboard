@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { reloadData, getPdfUrl, getProjects } from '@/api';
 import { useFilters } from './useFilters';
+import { useUiStore } from '@/store';
 
 /** RFC 4180 — 쉼표/개행/따옴표가 포함된 필드를 안전하게 인용 */
 const csvField = (v: unknown): string => {
@@ -15,9 +16,11 @@ const csvField = (v: unknown): string => {
 export const useExport = () => {
   const { filters } = useFilters();
   const qc = useQueryClient();
+  const setLastLoaded = useUiStore(s => s.setLastLoaded);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   // 300ms 이상 걸릴 때만 모달 표시 — 짧은 다운로드에서 번쩍임 방지
   const [showModal, setShowModal] = useState(false);
+  const [correctedRows, setCorrectedRows] = useState<number>(0);
 
   const exportCsv = async () => {
     try {
@@ -92,11 +95,20 @@ export const useExport = () => {
 
   const reloadMutation = useMutation({
     mutationFn: reloadData,
-    onSuccess: () => {
+    onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['summary'] });
       qc.invalidateQueries({ queryKey: ['insights'] });
       qc.invalidateQueries({ queryKey: ['projects'] });
       qc.invalidateQueries({ queryKey: ['projects-all'] });
+      if (data.ok) {
+        // MM-DD HH:mm 형식으로 단축 표시 (예: "07-24 09:32")
+        const ts = data.loaded_at ?? '';
+        const shortTs = ts.length >= 16 ? ts.slice(5, 16).replace('T', ' ') : ts;
+        setLastLoaded(shortTs || null);
+        // corrected_rows는 서버가 제공할 때만 (현재는 미지원, 향후 확장 대비)
+        const cr = (data as any).corrected_rows;
+        setCorrectedRows(typeof cr === 'number' ? cr : 0);
+      }
     },
     onError: (err) => {
       console.error('[Reload]', err);
@@ -110,5 +122,6 @@ export const useExport = () => {
     showPdfModal: showModal,  // 300ms 지연 후 true — 모달 표시 여부
     reload: reloadMutation.mutate,
     isReloading: reloadMutation.isPending,
+    correctedRows,
   };
 };
