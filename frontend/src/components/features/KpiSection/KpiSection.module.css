@@ -17,6 +17,8 @@
   min-height: 112px;
   animation: pulse 1.4s ease infinite;
 }
+/* 데이터 없음 안전장치 */
+.dimmed { opacity: 0.35; animation: none; }
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.45; }

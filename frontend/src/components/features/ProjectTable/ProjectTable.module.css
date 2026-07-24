@@ -184,65 +184,83 @@
 .warn { box-shadow: inset 2px 0 0 var(--warn) !important; }
 .warn:hover { background: var(--warn-bg) !important; }
 
-/* ─── Pagination — Bootstrap 클래식 스타일 ─── */
+/* ─── Pagination — 프리미엄 스타일 ─── */
 .paginationBar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 0 8px;
+  padding: 12px 4px 10px;
   flex-shrink: 0;
   border-top: 1px solid var(--border);
 }
 
 .pageSize {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: var(--text-sub);
   border: 1px solid var(--border);
-  background: var(--bg-subtle);
+  background: var(--surface);
   cursor: pointer;
-  padding: 3px 6px;
-  border-radius: var(--radius-sm);
+  padding: 5px 8px;
+  border-radius: 8px;
   outline: none;
   font-family: inherit;
+  transition: border-color 0.15s ease;
 }
-.pageSize:hover { border-color: var(--text-muted); }
+.pageSize:hover { border-color: var(--brand-mid); }
 
-/* 번호 pagination */
+/* 분리된 pill 페이지네이션 */
 .pagination {
   display: flex;
   align-items: center;
-  gap: 0;
+  gap: 4px;
   margin: 0 auto;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
 }
 
 /* 이전/다음 + 번호 — 공통 */
 .pgItem {
-  padding: 5px 12px;
+  min-width: 34px;
+  height: 34px;
+  padding: 0 10px;
   font-size: 0.82rem;
   font-family: inherit;
+  font-weight: 500;
   color: var(--text-sub);
-  background: var(--bg-subtle);
-  border: none;
-  border-right: 1px solid var(--border);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
   cursor: pointer;
-  transition: background var(--transition), color var(--transition);
-  line-height: 1.4;
+  transition: all 0.15s ease;
+  line-height: 1;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
-.pgItem:last-child { border-right: none; }
 .pgItem:hover:not(:disabled):not(.pgActive) {
-  background: var(--brand-bg);
+  border-color: var(--brand-mid);
   color: var(--brand-mid);
+  background: var(--brand-bg);
 }
-.pgItem:disabled { opacity: 0.4; cursor: not-allowed; }
+.pgItem:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* active 페이지 — KPI 카드 변수 공유로 브랜드 색상 자동 동기화 */
 .pgActive {
-  background: var(--brand-mid);
+  background: linear-gradient(135deg, var(--kpi-brand-start) 0%, var(--kpi-brand-mid) 60%, var(--kpi-brand-end) 100%);
+  border-color: transparent;
   color: #fff;
   font-weight: 700;
   cursor: default;
+  box-shadow: 0 3px 10px var(--kpi-brand-shadow);
+}
+
+[data-theme="dark"] .pgActive {
+  color: var(--kpi-brand-value, #6BB8FF);
+  box-shadow: 0 3px 10px var(--kpi-brand-shadow), 0 0 0 1px rgba(80,140,255,0.25);
+}
+
+[data-theme="dark"] .pgItem {
+  background: var(--bg-subtle);
+  border-color: var(--border);
 }
 
 /* 아래 선언을 위해 dummy로 유지 */

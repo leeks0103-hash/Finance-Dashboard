@@ -1,3 +1,5 @@
+export type KpiAccent = 'brand' | 'profit' | 'loss' | 'warn' | 'purple';
+
 export interface Filters {
   year: string;
   parts: string[];

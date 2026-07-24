@@ -43,6 +43,7 @@ export const useProjectTableViewModel = (): ProjectTableViewModel => {
     debouncedValue: globalFilter,
     handleChange: handleSearch,
     reset: clearSearch,
+    setFilter,
   } = useDebouncedSearch(350);
 
   // 합계 행 — 서버 필터 기준 전체 합산
@@ -54,7 +55,7 @@ export const useProjectTableViewModel = (): ProjectTableViewModel => {
     };
     const sum = (key: keyof Project) =>
       data.reduce((a, r) => a + (Number(r[key]) || 0), 0);
-    const rates = data.map(r => r.profit_rate).filter(v => isFinite(v) && v > 0);
+    const rates = data.map(r => r.profit_rate).filter(v => isFinite(v));
     const avgRate = rates.length ? rates.reduce((a, b) => a + b, 0) / rates.length : 0;
     return {
       revenue:         formatBillion(sum('revenue')),
@@ -76,7 +77,7 @@ export const useProjectTableViewModel = (): ProjectTableViewModel => {
     sorting,
     onSortingChange: setSorting,
     globalFilter,
-    onFilterChange:  () => {},
+    onFilterChange:  setFilter,
     inputValue,
     handleSearch,
     clearSearch,

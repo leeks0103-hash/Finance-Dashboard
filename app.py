@@ -458,11 +458,24 @@ def api_export_pdf():
     # 단일 색상 — 헤더·테두리만 회색, 나머지 전부 검정
     HEADER_COLOR = colors.HexColor("#374151")
     BORDER_COLOR = colors.HexColor("#D1D5DB")
-    # 모든 테이블 동일 폭: A4(210mm) - 좌우마진(15mm×2) = 180mm, 5컬럼 균일 구조
+    # A4(210mm) - 좌우마진(15mm×2) = 180mm
+    # 요약/파트 테이블 — 균일 5컬럼
     COL_W = [50*mm, 40*mm, 40*mm, 30*mm, 20*mm]
+    # 프로젝트 테이블 (TOP5/리스크) — 프로젝트코드 칼럼 넓힘, 파트·단계 좁힘
+    PROJECT_COL_W = [70*mm, 22*mm, 22*mm, 36*mm, 30*mm]  # 합계 180mm
 
-    def tbl_style():
-        return TableStyle([
+    # 프로젝트코드 셀용 Paragraph 스타일 (자동 줄바꿈)
+    code_style = ParagraphStyle(
+        "code", fontName=font_name, fontSize=8,
+        leading=11, wordWrap="LTR", alignment=0,  # LEFT
+    )
+
+    def wrap_code(text: str) -> "Paragraph":
+        """긴 프로젝트코드를 Paragraph로 감싸 자동 줄바꿈 처리."""
+        return Paragraph(str(text), code_style)
+
+    def tbl_style(left_align_col0: bool = False):
+        style = TableStyle([
             ("BACKGROUND",    (0, 0), (-1, 0),  HEADER_COLOR),
             ("TEXTCOLOR",     (0, 0), (-1, 0),  colors.white),
             ("FONTNAME",      (0, 0), (-1, -1), font_name),
@@ -475,6 +488,10 @@ def api_export_pdf():
             ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
             ("TOPPADDING",    (0, 0), (-1, -1), 6),
         ])
+        if left_align_col0:
+            # 프로젝트코드 칼럼은 좌측 정렬
+            style.add("ALIGN", (0, 1), (0, -1), "LEFT")
+        return style
 
     elements = []
 
@@ -540,12 +557,12 @@ def api_export_pdf():
         top_data = [["프로젝트코드", "파트", "단계", "매출", "이익율"]]
         for _, row in top5.iterrows():
             top_data.append([
-                row["project_code"], row["part"], row["stage"],
+                wrap_code(row["project_code"]), row["part"], row["stage"],
                 f"{row['revenue']/1e8:.1f}억",
                 f"{round(row['profit_rate'], 1)}%",
             ])
-        t3 = Table(top_data, colWidths=COL_W)
-        t3.setStyle(tbl_style())
+        t3 = Table(top_data, colWidths=PROJECT_COL_W, repeatRows=1)
+        t3.setStyle(tbl_style(left_align_col0=True))
         elements += [t3, Spacer(1, 6*mm)]
 
     # 리스크 — 5컬럼 (손실 행은 빨간 텍스트 강조)
@@ -563,14 +580,14 @@ def api_export_pdf():
         loss_rows = []  # 손실 행 인덱스 추적 (헤더=0 제외, 데이터 1부터)
         for i, (_, row) in enumerate(risk.iterrows(), start=1):
             risk_data.append([
-                row["project_code"], row["part"], row["stage"],
+                wrap_code(row["project_code"]), row["part"], row["stage"],
                 f"{row['operating_profit']/1e8:.1f}억원",
                 f"{round(row['profit_rate'], 1)}%",
             ])
             if row["operating_profit"] < 0:
                 loss_rows.append(i)
-        t4 = Table(risk_data, colWidths=COL_W)
-        _style = tbl_style()
+        t4 = Table(risk_data, colWidths=PROJECT_COL_W, repeatRows=1)
+        _style = tbl_style(left_align_col0=True)
         LOSS_RED = colors.HexColor("#DC2626")
         for r in loss_rows:
             _style.add("TEXTCOLOR", (0, r), (-1, r), LOSS_RED)

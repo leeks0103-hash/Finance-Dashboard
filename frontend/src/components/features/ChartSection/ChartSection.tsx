@@ -10,7 +10,7 @@ const ChartSection = () => {
 
   const labelColor   = dark ? 'rgba(180,230,255,0.9)' : '#1e293b';
   const gridColor    = dark ? 'rgba(0,200,255,0.07)'  : 'rgba(0,0,0,0.06)';
-  const tickColor    = dark ? 'rgba(91,168,204,0.80)' : '#64748B';
+  const tickColor    = dark ? 'rgba(91,168,204,0.80)' : '#334155';  // 라이트: --text-sub 값
 
   const vm = useChartViewModel(labelColor);
 

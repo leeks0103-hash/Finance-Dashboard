@@ -1,67 +1,135 @@
+/* ══════════════════════════════════════════════
+   KPI Card — CSS 변수 기반 테마 대응
+   accent별 --kpi-* 변수를 :root와 [data-theme="dark"]에서 정의,
+   컴포넌트 파일에는 :global 오버라이드가 필요 없음
+   ══════════════════════════════════════════════ */
+
+/* 모든 --kpi-* 변수는 index.css에서 라이트/다크별로 정의됨 */
+
+/* ══ 카드 베이스 ══ */
 .card {
-  background: var(--surface);
-  border-radius: var(--radius);
-  padding: 24px 28px 20px;
+  border-radius: 14px;
+  padding: 22px 24px 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  border: 1px solid var(--border);
-  /* 라이트: 하단에 accent 색상이 스며드는 shadow */
-  box-shadow: var(--shadow-sm), 0 4px 0 -2px var(--accent-color, var(--brand-mid));
-  transition: box-shadow 0.2s ease, transform 0.18s ease;
+  gap: 4px;
+  position: relative;
+  overflow: hidden;
+  min-height: 136px;
+  transition: transform 0.22s cubic-bezier(0.34, 1.2, 0.64, 1), box-shadow 0.22s ease;
+  cursor: default;
+  isolation: isolate;
+}
+
+/* 유리 반사광 */
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, var(--kpi-glass-line) 40%, var(--kpi-glass-line) 60%, transparent 100%);
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* 글래스 오버레이 */
+.card::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 45%;
+  background: linear-gradient(180deg, var(--kpi-glass-fade) 0%, transparent 100%);
+  pointer-events: none;
+  z-index: 1;
 }
 
 .card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md), 0 4px 0 -2px var(--accent-color, var(--brand-mid));
+  transform: translateY(-4px) scale(1.015);
+  box-shadow: 0 20px 48px rgba(0,0,0,0.22), 0 6px 16px rgba(0,0,0,0.14);
 }
 
-/* 다크: 글로우 */
-:global([data-theme="dark"]) .card {
-  border-color: rgba(0,200,255,0.18);
-  box-shadow: var(--glow-sm);
-}
-:global([data-theme="dark"]) .card:hover {
-  border-color: rgba(0,200,255,0.45);
-  box-shadow: var(--glow);
-  transform: translateY(-2px);
+/* ── accent별 그라디언트 (변수 참조) ── */
+.brand  { background: linear-gradient(145deg, var(--kpi-brand-start)  0%, var(--kpi-brand-mid)  42%, var(--kpi-brand-end)  100%); box-shadow: 0 6px 20px var(--kpi-brand-shadow),  0 2px 6px rgba(0,0,0,0.1); }
+.profit { background: linear-gradient(145deg, var(--kpi-profit-start) 0%, var(--kpi-profit-mid) 42%, var(--kpi-profit-end) 100%); box-shadow: 0 6px 20px var(--kpi-profit-shadow), 0 2px 6px rgba(0,0,0,0.1); }
+.loss   { background: linear-gradient(145deg, var(--kpi-loss-start)   0%, var(--kpi-loss-mid)   42%, var(--kpi-loss-end)   100%); box-shadow: 0 6px 20px var(--kpi-loss-shadow),   0 2px 6px rgba(0,0,0,0.1); }
+.warn   { background: linear-gradient(145deg, var(--kpi-warn-start)   0%, var(--kpi-warn-mid)   42%, var(--kpi-warn-end)   100%); box-shadow: 0 6px 20px var(--kpi-warn-shadow),   0 2px 6px rgba(0,0,0,0.1); }
+.purple { background: linear-gradient(145deg, var(--kpi-purple-start) 0%, var(--kpi-purple-mid) 42%, var(--kpi-purple-end) 100%); box-shadow: 0 6px 20px var(--kpi-purple-shadow), 0 2px 6px rgba(0,0,0,0.1); }
+
+/* ── 다크: 외곽 1px 글로우 테두리 (.card.accent 로 상위 클래스 포함) ── */
+[data-theme="dark"] .card.brand  { box-shadow: 0 6px 20px var(--kpi-brand-shadow),  0 0 0 1px rgba(80,140,255,0.2); }
+[data-theme="dark"] .card.profit { box-shadow: 0 6px 20px var(--kpi-profit-shadow), 0 0 0 1px rgba(60,200,100,0.2); }
+[data-theme="dark"] .card.loss   { box-shadow: 0 6px 20px var(--kpi-loss-shadow),   0 0 0 1px rgba(255,80,80,0.2); }
+[data-theme="dark"] .card.warn   { box-shadow: 0 6px 20px var(--kpi-warn-shadow),   0 0 0 1px rgba(255,190,50,0.2); }
+[data-theme="dark"] .card.purple { box-shadow: 0 6px 20px var(--kpi-purple-shadow), 0 0 0 1px rgba(160,100,255,0.2); }
+
+/* ── 헤더 ── */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  z-index: 3;
 }
 
 .label {
-  font-size: 0.72rem;
-  font-weight: 500;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--kpi-label-color);
   letter-spacing: 0.04em;
-  color: var(--text-muted);
+  flex: 1;
 }
 
-:global([data-theme="dark"]) .label {
-  color: var(--brand-mid);
-  opacity: 0.55;
-  font-size: 0.65rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+/* 트렌드 배지 */
+.badge {
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 100px;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+/* backdrop-filter: @supports 로 점진적 적용 */
+@supports (backdrop-filter: blur(4px)) {
+  .badge { backdrop-filter: blur(4px); }
 }
 
+.up   { background: var(--kpi-badge-up, rgba(255,255,255,0.20)); color: #fff; }
+.down { background: var(--kpi-badge-down, rgba(0,0,0,0.20)); color: rgba(255,220,220,0.95); }
+
+/* ── 큰 숫자 ── */
 .value {
   font-family: var(--font-mono);
-  font-size: 2.2rem;
+  font-size: 2.05rem;
   font-weight: 800;
   letter-spacing: -0.04em;
   line-height: 1;
-  color: var(--accent-color, var(--text-primary));
+  color: #fff;
+  text-shadow: var(--kpi-value-shadow, 0 2px 12px rgba(0,0,0,0.22));
+  position: relative;
+  z-index: 3;
+  margin-top: 4px;
 }
 
-:global([data-theme="dark"]) .value {
-  text-shadow: 0 0 24px currentColor;
-}
+/* 다크: 네온 숫자 — .card.accent .value 로 상위 카드 클래스 함께 지정해 스타일 누출 방지 */
+[data-theme="dark"] .card.brand  .value { color: var(--kpi-brand-value,  #fff); text-shadow: 0 0 20px var(--kpi-brand-glow,  transparent); }
+[data-theme="dark"] .card.profit .value { color: var(--kpi-profit-value, #fff); text-shadow: 0 0 20px var(--kpi-profit-glow, transparent); }
+[data-theme="dark"] .card.loss   .value { color: var(--kpi-loss-value,   #fff); text-shadow: 0 0 20px var(--kpi-loss-glow,   transparent); }
+[data-theme="dark"] .card.warn   .value { color: var(--kpi-warn-value,   #fff); text-shadow: 0 0 20px var(--kpi-warn-glow,   transparent); }
+[data-theme="dark"] .card.purple .value { color: var(--kpi-purple-value, #fff); text-shadow: 0 0 20px var(--kpi-purple-glow, transparent); }
 
-.brand  { --accent-color: var(--brand-mid); }
-.profit { --accent-color: var(--profit); }
-.loss   { --accent-color: var(--loss); }
-.warn   { --accent-color: var(--warn); }
-.purple { --accent-color: var(--purple); }
+/* ── 스파크라인 ── */
+.sparkWrap {
+  position: absolute;
+  bottom: 0; right: 0;
+  width: 58%;
+  height: 56px;
+  color: var(--kpi-spark, rgba(255,255,255,0.38));
+  pointer-events: none;
+  z-index: 2;
+}
+.spark { width: 100%; height: 100%; }
 
 @media (max-width: 900px) {
-  .card  { padding: 18px 20px 16px; }
-  .value { font-size: 1.8rem; }
+  .card  { min-height: 116px; padding: 18px 20px 0; border-radius: 12px; }
+  .value { font-size: 1.75rem; }
 }
