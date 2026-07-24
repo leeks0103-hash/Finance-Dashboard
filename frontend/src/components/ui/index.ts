@@ -14,3 +14,4 @@ export * from './NegCell';
 export * from './ChartCard';
 export * from './Toggle';
 export * from './ScrollTop';
+export * from './CopyText';

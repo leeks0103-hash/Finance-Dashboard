@@ -1,26 +1,24 @@
 .toolbar {
   display: flex;
   justify-content: flex-end;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
-/* 3-column grid — 개별 카드 스타일은 ChartCard 컴포넌트가 담당 */
 .grid {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  gap: 12px;
-  height: 308px;
+  gap: 14px;
+  height: 380px;
 }
 @media (max-width: 900px) {
   .grid { grid-template-columns: 1fr; height: auto; }
 }
 
-/* 로딩 skeleton */
 .skeleton {
   background: var(--bg-subtle);
   border-radius: var(--radius);
   border: 1px solid var(--border);
-  min-height: 308px;
+  min-height: 380px;
   animation: pulse 1.4s ease infinite;
 }
 @keyframes pulse {

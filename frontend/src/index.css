@@ -1,40 +1,86 @@
-/* ─── Design Tokens ─────────────────────────── */
-:root {
-  --brand:        #3730a3;
-  --brand-mid:    #4f46e5;
-  --brand-light:  #818cf8;
-  --brand-bg:     #eef2ff;
+/* ─── Light mode (기본) ───────────────────────── */
+:root,
+[data-theme="light"] {
+  --nav-bg: #1E293B;
 
-  --profit:       #059669;
-  --profit-bg:    #ecfdf5;
-  --loss:         #dc2626;
-  --loss-bg:      #fef2f2;
-  --warn:         #d97706;
-  --warn-bg:      #fffbeb;
-  --info:         #0284c7;
-  --info-bg:      #f0f9ff;
-  --purple:       #7c3aed;
-  --purple-bg:    #f5f3ff;
+  --brand:        #1D4ED8;
+  --brand-mid:    #2563EB;
+  --brand-light:  #60A5FA;
+  --brand-bg:     rgba(37, 99, 235, 0.08);
 
-  --surface:      #ffffff;
-  --bg:           #f1f3f9;
-  --bg-subtle:    #f8f9fc;
-  --border:       #e2e8f0;
-  --border-focus: #818cf8;
+  --profit:       #16A34A;
+  --profit-bg:    rgba(22, 163, 74, 0.09);
+  --loss:         #DC2626;
+  --loss-bg:      rgba(220, 38, 38, 0.08);
+  --warn:         #D97706;
+  --warn-bg:      rgba(217, 119, 6, 0.09);
+  --info:         #0369A1;
+  --info-bg:      rgba(3, 105, 161, 0.09);
+  --purple:       #7C3AED;
+  --purple-bg:    rgba(124, 58, 237, 0.09);
 
-  --text-primary: #1e293b;
+  --surface:      #FFFFFF;
+  --bg:           #F1F5F9;
+  --bg-subtle:    #E8EEF5;
+  --border:       #CBD5E1;
+  --border-focus: #2563EB;
+
+  --text-primary: #0F172A;
   --text-sub:     #475569;
-  --text-muted:   #94a3b8;
+  --text-muted:   #94A3B8;
 
-  --radius:       10px;
-  --radius-sm:    6px;
-  --radius-btn:   8px;
-  --radius-pill:  100px;
+  --shadow-sm: 0 1px 4px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06);
+}
 
-  --shadow-sm:  0 1px 4px rgba(0,0,0,0.08);
-  --shadow-md:  0 4px 12px rgba(0,0,0,0.10);
+/* ─── Dark mode — Cyber HUD ──────────────────── */
+[data-theme="dark"] {
+  --nav-bg: #020A16;
 
-  --transition: 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  --brand:        #0096CC;
+  --brand-mid:    #00C8FF;
+  --brand-light:  #66DFFF;
+  --brand-bg:     rgba(0, 200, 255, 0.08);
+
+  --profit:       #00E676;
+  --profit-bg:    rgba(0, 230, 118, 0.10);
+  --loss:         #FF4458;
+  --loss-bg:      rgba(255, 68, 88, 0.10);
+  --warn:         #F0E040;
+  --warn-bg:      rgba(240, 224, 64, 0.10);
+  --info:         #38BDF8;
+  --info-bg:      rgba(56, 189, 248, 0.10);
+  --purple:       #B47EFF;
+  --purple-bg:    rgba(180, 126, 255, 0.10);
+
+  --surface:      #071526;
+  --bg:           #040D1A;
+  --bg-subtle:    #0A1A2E;
+  --border:       rgba(0, 200, 255, 0.16);
+  --border-focus: #00C8FF;
+
+  --text-primary: #D4EAF7;
+  --text-sub:     #5BA8CC;
+  --text-muted:   rgba(91, 168, 204, 0.55);
+
+  --shadow-sm: 0 1px 6px rgba(0,0,0,0.6);
+  --shadow-md: 0 4px 20px rgba(0,0,0,0.7);
+
+  /* 글로우 */
+  --glow:    0 0 14px rgba(0,200,255,0.22), 0 0 40px rgba(0,200,255,0.06);
+  --glow-sm: 0 0 8px rgba(0,200,255,0.18);
+}
+
+/* ─── 공통 토큰 ──────────────────────────────── */
+:root {
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+
+  --radius:     8px;
+  --radius-sm:  4px;
+  --radius-btn: 6px;
+  --radius-pill: 100px;
+
+  --transition: 0.16s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ─── Reset ──────────────────────────────────── */
@@ -44,35 +90,49 @@ body {
   background: var(--bg);
   font-family: 'Pretendard', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
   color: var(--text-primary);
-  -webkit-font-smoothing: antialiased;
   font-size: 14px;
+  transition: background 0.2s ease, color 0.2s ease;
 }
+
+[data-theme="dark"] body {
+  -webkit-font-smoothing: antialiased;
+  font-weight: 450;
+  /* 배경 격자 — cyber HUD */
+  background-image:
+    linear-gradient(rgba(0,200,255,0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,200,255,0.035) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+[data-theme="light"] body { -webkit-font-smoothing: auto; font-weight: 400; }
 
 #root { min-height: 100vh; }
 
-/* ─── Global accessibility ───────────────────── */
 :focus-visible {
   outline: 2px solid var(--brand-mid);
   outline-offset: 2px;
   border-radius: 3px;
 }
 
-/* ─── Custom scrollbar ───────────────────────── */
-::-webkit-scrollbar       { width: 6px; height: 6px; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 3px;
-}
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 * { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
 
-/* ─── Text selection ─────────────────────────── */
-::selection { background: var(--brand-bg); color: var(--brand); }
+::selection { background: var(--brand-bg); color: var(--brand-mid); }
 
-/* ─── Section fade-in ────────────────────────── */
+/* ─── 섹션 입장 애니메이션 ───────────────────── */
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(18px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-.fadeUp { animation: fadeUp 0.25s ease both; }
+.fadeUp { animation: fadeUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+@media (prefers-reduced-motion: reduce) { .fadeUp { animation: none; } }
+
+/* 스켈레톤 pulse — 각 CSS Module에서 @keyframes 중복 선언 대신 이 클래스 사용 */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.45; }
+}
+.pulse { animation: pulse 1.4s ease infinite; }

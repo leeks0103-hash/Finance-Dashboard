@@ -1,25 +1,24 @@
 import { useExport } from '@/hooks/useExport';
+import { useFilterPanelViewModel } from '@/hooks/viewmodels';
 import { Button, DownloadModal } from '@/components/ui';
-import styles from './ActionBar.module.css';
 
 const ActionBar = () => {
   const { exportCsv, exportPdf, isExportingPdf, showPdfModal, reload, isReloading } = useExport();
+  const { hasActiveFilters, resetFilters } = useFilterPanelViewModel();
 
   return (
     <>
-      <div className={styles.bar}>
-        <Button variant="success" onClick={exportCsv}>↓ CSV</Button>
-        <Button variant="danger"  onClick={exportPdf} loading={isExportingPdf} disabled={isExportingPdf}>
-          {isExportingPdf ? 'PDF 생성 중…' : '↓ PDF'}
+      <div style={{ display:'flex', alignItems:'center', gap:'6px', flexShrink:0 }}>
+        {hasActiveFilters && (
+          <Button variant="danger" size="sm" onClick={resetFilters}>✕ 초기화</Button>
+        )}
+        <Button variant="success" size="sm" onClick={exportCsv}>↓ CSV</Button>
+        <Button variant="danger"  size="sm" onClick={exportPdf} loading={isExportingPdf} disabled={isExportingPdf}>
+          {isExportingPdf ? '생성 중…' : '↓ PDF'}
         </Button>
-        <button
-          className={styles.reloadBtn}
-          onClick={() => reload()}
-          disabled={isReloading}
-          aria-label="데이터 갱신"
-        >
+        <Button variant="ghost"   size="sm" onClick={() => reload()} disabled={isReloading}>
           {isReloading ? '갱신 중…' : '↺ 갱신'}
-        </button>
+        </Button>
       </div>
       <DownloadModal open={showPdfModal} filename="재무현황 PDF" />
     </>

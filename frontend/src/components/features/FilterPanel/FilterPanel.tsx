@@ -1,5 +1,5 @@
 import { useFilterPanelViewModel } from '@/hooks/viewmodels';
-import { FilterChip, Button } from '@/components/ui';
+import { FilterChip } from '@/components/ui';
 import styles from './FilterPanel.module.css';
 
 const FilterPanel = () => {
@@ -7,23 +7,13 @@ const FilterPanel = () => {
 
   return (
     <div className={styles.panel}>
-      {/* 연도 — chip 단일 선택 */}
       <div className={styles.group}>
         <span className={styles.label}>연도</span>
         <div className={styles.chips}>
-          <FilterChip
-            label="전체"
-            checked={vm.filters.year === ''}
-            onChange={() => vm.setYear('')}
-          />
+          <FilterChip label="전체" checked={vm.filters.year === ''} onChange={() => vm.setYear('')} />
           {vm.years.map(y => (
-            <FilterChip
-              key={y}
-              label={y}
-              checked={vm.filters.year === y}
-              onChange={() => vm.toggleYear(y)}
-              onHover={() => vm.prefetchYear(y)}
-            />
+            <FilterChip key={y} label={y} checked={vm.filters.year === y}
+              onChange={() => vm.toggleYear(y)} onHover={() => vm.prefetchYear(y)} />
           ))}
         </div>
       </div>
@@ -51,16 +41,6 @@ const FilterPanel = () => {
           ))}
         </div>
       </div>
-
-      {/* 활성 필터 초기화 */}
-      {vm.hasActiveFilters && (
-        <>
-          <div className={styles.divider} />
-          <Button variant="ghost" size="sm" onClick={vm.resetFilters} className={styles.resetBtn}>
-            ✕ 초기화
-          </Button>
-        </>
-      )}
     </div>
   );
 };

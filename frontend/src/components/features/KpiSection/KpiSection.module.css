@@ -1,17 +1,20 @@
 .grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  min-height: 88px; /* 레이아웃 고정 */
+  gap: 14px;
+  min-height: 112px;
 }
-@media (max-width: 768px) {
-  .grid { grid-template-columns: repeat(2, 1fr); min-height: 176px; }
+@media (max-width: 900px) {
+  .grid { grid-template-columns: repeat(2, 1fr); min-height: 224px; }
+}
+@media (max-width: 480px) {
+  .grid { grid-template-columns: 1fr 1fr; gap: 10px; }
 }
 .skeleton {
   background: var(--bg-subtle);
   border-radius: var(--radius);
   border: 1px solid var(--border);
-  min-height: 88px;
+  min-height: 112px;
   animation: pulse 1.4s ease infinite;
 }
 @keyframes pulse {

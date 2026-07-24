@@ -1,13 +1,36 @@
 .bar {
   background: var(--surface);
   border-bottom: 1px solid var(--border);
-  padding: 12px 24px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
   box-shadow: var(--shadow-sm);
   position: sticky;
-  top: var(--navbar-height, 44px); /* M-25: Navbar 높이 변수 참조 */
+  top: var(--navbar-height, 50px);
   z-index: 90;
+  display: flex;
+  align-items: center;
+  height: 48px;          /* 고정 높이 — 칩 래핑으로 높이 변하지 않음 */
+  padding: 0 16px 0 20px;
+  gap: 0;
+}
+
+/* 칩 스크롤 영역 — 좌측 flex: 1, 스크롤바 숨김 */
+.scrollArea {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  display: flex;
+  align-items: center;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding-right: 12px;
+}
+.scrollArea::-webkit-scrollbar { display: none; }
+
+/* 우측 액션 — 스크롤 영역 밖, 항상 표시 */
+.actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  border-left: 1px solid var(--border);
+  padding-left: 12px;
 }

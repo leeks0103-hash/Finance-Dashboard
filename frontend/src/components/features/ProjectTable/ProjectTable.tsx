@@ -41,7 +41,6 @@ const ProjectTable = () => {
     table.getPageCount()
   );
 
-  // Escape → 검색 초기화
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') vm.clearSearch();
@@ -62,40 +61,42 @@ const ProjectTable = () => {
           </span>
         </div>
         <div className={styles.headerRight}>
-        {/* 컬럼 가시성 토글 */}
-        <div className={styles.colToggle}>
-          <button className={styles.colToggleBtn} onClick={() => setShowColMenu(v => !v)}>
-            컬럼 ▾
-          </button>
-          {showColMenu && (
-            <div className={styles.colMenu}>
-              {table.getAllLeafColumns()
-                .filter(col => col.id in HIDE_LABELS)
-                .map(col => (
-                  <label key={col.id} className={styles.colMenuItem}>
-                    <input
-                      type="checkbox"
-                      checked={col.getIsVisible()}
-                      onChange={col.getToggleVisibilityHandler()}
-                    />
-                    {HIDE_LABELS[col.id]}
-                  </label>
-                ))}
-            </div>
-          )}
-        </div>
-        <div className={styles.searchWrap}>
-          <input
-            className={styles.search}
-            placeholder="검색… (Esc: 초기화)"
-            value={vm.inputValue}
-            onChange={vm.handleSearch}
-            disabled={vm.busy}
-          />
-          {vm.inputValue && (
-            <button className={styles.searchClear} onClick={vm.clearSearch} aria-label="검색 초기화">✕</button>
-          )}
-        </div>
+          {/* 컬럼 가시성 토글 */}
+          <div className={styles.colToggle}>
+            <Button variant="ghost" size="sm" onClick={() => setShowColMenu(v => !v)}>
+              컬럼 ▾
+            </Button>
+            {showColMenu && (
+              <div className={styles.colMenu}>
+                {table.getAllLeafColumns()
+                  .filter(col => col.id in HIDE_LABELS)
+                  .map(col => (
+                    <label key={col.id} className={styles.colMenuItem}>
+                      <input
+                        type="checkbox"
+                        checked={col.getIsVisible()}
+                        onChange={col.getToggleVisibilityHandler()}
+                      />
+                      {HIDE_LABELS[col.id]}
+                    </label>
+                  ))}
+              </div>
+            )}
+          </div>
+          <div className={styles.searchWrap}>
+            <input
+              className={styles.search}
+              placeholder="검색… (Esc: 초기화)"
+              value={vm.inputValue}
+              onChange={vm.handleSearch}
+              disabled={vm.busy}
+            />
+            {vm.inputValue && (
+              <Button variant="ghost" size="sm" className={styles.searchClear} onClick={vm.clearSearch} aria-label="검색 초기화">
+                ✕
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -109,7 +110,7 @@ const ProjectTable = () => {
           title="검색 결과 없음"
           description="다른 검색어나 필터 조건을 시도해 보세요."
           action={vm.inputValue
-            ? <button onClick={vm.clearSearch} style={{ fontSize:'0.8rem', color:'var(--brand-mid)', background:'none', border:'none', cursor:'pointer', textDecoration:'underline' }}>검색어 초기화</button>
+            ? <Button variant="ghost" size="sm" onClick={vm.clearSearch}>검색어 초기화</Button>
             : undefined
           }
         />
@@ -158,13 +159,10 @@ const ProjectTable = () => {
                   );
                 })}
               </tbody>
-              {/* 합계 행 */}
               <tfoot>
                 <tr className={styles.summaryRow}>
                   <td className={`${styles.stickyCol} ${styles.summaryLabel}`}>합계</td>
-                  <td>{/* 연도 */}</td>
-                  <td>{/* 파트 */}</td>
-                  <td>{/* 단계 */}</td>
+                  <td /><td /><td />
                   <td>{vm.summary.revenue}</td>
                   <td>{vm.summary.expenditure}</td>
                   <td>{vm.summary.directCost}</td>
@@ -174,7 +172,7 @@ const ProjectTable = () => {
                     {vm.summary.operatingProfit}
                   </td>
                   <td>{vm.summary.avgProfitRate}</td>
-                  <td>{/* 비고 */}</td>
+                  <td />
                 </tr>
               </tfoot>
             </table>
@@ -189,22 +187,23 @@ const ProjectTable = () => {
               {[10, 30, 50, 100].map(s => <option key={s} value={s}>{s}행</option>)}
             </select>
 
-            {/* 구버전 스타일 페이지네이션 */}
             <nav className={styles.pagination} aria-label="페이지 이동">
-              <button className={styles.pgItem} onClick={() => table.previousPage()}
-                disabled={!table.getCanPreviousPage()}>이전</button>
+              <Button variant="ghost" size="sm" className={styles.pgItem}
+                onClick={() => table.previousPage()}
+                disabled={!table.getCanPreviousPage()}>이전</Button>
               {vm.getPageNumbers(table.getState().pagination.pageIndex, table.getPageCount()).map(pageIdx => (
-                <button key={pageIdx}
+                <Button key={pageIdx} variant={pageIdx === table.getState().pagination.pageIndex ? 'primary' : 'ghost'}
+                  size="sm"
                   className={`${styles.pgItem} ${pageIdx === table.getState().pagination.pageIndex ? styles.pgActive : ''}`}
                   onClick={() => table.setPageIndex(pageIdx)}>
                   {pageIdx + 1}
-                </button>
+                </Button>
               ))}
-              <button className={styles.pgItem} onClick={() => table.nextPage()}
-                disabled={!table.getCanNextPage()}>다음</button>
+              <Button variant="ghost" size="sm" className={styles.pgItem}
+                onClick={() => table.nextPage()}
+                disabled={!table.getCanNextPage()}>다음</Button>
             </nav>
 
-            {/* 총 페이지 정보 */}
             <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
               {pageLabel}
             </span>

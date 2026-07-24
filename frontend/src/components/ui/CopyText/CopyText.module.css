@@ -1,0 +1,74 @@
+.root {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  border-radius: 3px;
+  padding: 1px 4px;
+  transition: background 0.14s ease, color 0.14s ease;
+  user-select: none;
+  font-family: var(--font-mono);
+  font-size: 0.82em;
+  letter-spacing: -0.01em;
+}
+
+.root:hover {
+  background: var(--brand-bg);
+  color: var(--brand-mid);
+}
+
+/* CSS로만 만든 복사 아이콘 — hover 시 작은 사각형 2개 겹친 모양 */
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  position: relative;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  font-size: 0.75rem;
+}
+
+/* hover 시 아이콘 테두리 표시 */
+.root:hover .icon:not(.check) {
+  opacity: 0.7;
+}
+.root:hover .icon:not(.check)::before {
+  content: '';
+  display: block;
+  width: 8px;
+  height: 8px;
+  border: 1.5px solid currentColor;
+  border-radius: 1px;
+  position: absolute;
+  top: 1px;
+  left: 2px;
+}
+.root:hover .icon:not(.check)::after {
+  content: '';
+  display: block;
+  width: 8px;
+  height: 8px;
+  border: 1.5px solid currentColor;
+  border-radius: 1px;
+  background: var(--surface);
+  position: absolute;
+  bottom: 1px;
+  right: 1px;
+}
+
+/* 복사 완료: ✓ 텍스트 표시 */
+.check {
+  opacity: 1 !important;
+  color: var(--profit);
+  font-size: 0.85rem;
+  width: auto;
+}
+
+/* 복사 완료 행 전체 */
+.copied {
+  background: var(--profit-bg) !important;
+  color: var(--profit) !important;
+}

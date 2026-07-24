@@ -1,4 +1,4 @@
-import Badge from '../Badge/Badge';
+import { CopyText } from '../CopyText';
 import styles from './ProjectRankRow.module.css';
 
 interface Props {
@@ -12,8 +12,8 @@ interface Props {
 const ProjectRankRow = ({ rank, projectCode, part, value, valueColor }: Props) => (
   <div className={styles.row}>
     {rank !== undefined && <span className={styles.rank}>{rank}</span>}
-    <span className={styles.code}>{projectCode}</span>
-    <Badge label={part} variant="part" />
+    <span className={styles.part}>{part}</span>
+    <CopyText text={projectCode} className={styles.code} />
     <span className={styles.value} style={{ color: valueColor }}>{value}</span>
   </div>
 );

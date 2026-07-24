@@ -1,45 +1,67 @@
 .card {
   background: var(--surface);
-  border: 1px solid var(--border);
   border-radius: var(--radius);
-  border-left: 5px solid var(--brand-mid);
-  padding: 20px 24px;
-  box-shadow: var(--shadow-sm);
-  transition: transform var(--transition), box-shadow var(--transition);
+  padding: 24px 28px 20px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+  border: 1px solid var(--border);
+  /* 라이트: 하단에 accent 색상이 스며드는 shadow */
+  box-shadow: var(--shadow-sm), 0 4px 0 -2px var(--accent-color, var(--brand-mid));
+  transition: box-shadow 0.2s ease, transform 0.18s ease;
 }
-.card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
 
-/* accent별 그라디언트 배경 */
-.brand  { border-left-color: var(--brand-mid); background: linear-gradient(135deg, #eef2ff 0%, var(--surface) 65%); }
-.profit { border-left-color: var(--profit);    background: linear-gradient(135deg, var(--profit-bg) 0%, var(--surface) 65%); }
-.loss   { border-left-color: var(--loss);      background: linear-gradient(135deg, var(--loss-bg)   0%, var(--surface) 65%); }
-.warn   { border-left-color: var(--warn);      background: linear-gradient(135deg, var(--warn-bg)   0%, var(--surface) 65%); }
-.purple { border-left-color: var(--purple);    background: linear-gradient(135deg, var(--purple-bg) 0%, var(--surface) 65%); }
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md), 0 4px 0 -2px var(--accent-color, var(--brand-mid));
+}
+
+/* 다크: 글로우 */
+:global([data-theme="dark"]) .card {
+  border-color: rgba(0,200,255,0.18);
+  box-shadow: var(--glow-sm);
+}
+:global([data-theme="dark"]) .card:hover {
+  border-color: rgba(0,200,255,0.45);
+  box-shadow: var(--glow);
+  transform: translateY(-2px);
+}
 
 .label {
   font-size: 0.72rem;
-  font-weight: 700;
+  font-weight: 500;
+  letter-spacing: 0.04em;
   color: var(--text-muted);
+}
+
+:global([data-theme="dark"]) .label {
+  color: var(--brand-mid);
+  opacity: 0.55;
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  letter-spacing: 0.07em;
 }
 
 .value {
-  font-size: 1.65rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 2.2rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  color: var(--accent-color, var(--text-primary));
 }
-.brand  .value { color: var(--brand-mid); }
-.profit .value { color: var(--profit); }
-.loss   .value { color: var(--loss); }
-.warn   .value { color: var(--warn); }
-.purple .value { color: var(--purple); }
 
-@media (max-width: 768px) {
-  .card  { padding: 14px 16px; }
-  .value { font-size: 1.3rem; }
+:global([data-theme="dark"]) .value {
+  text-shadow: 0 0 24px currentColor;
+}
+
+.brand  { --accent-color: var(--brand-mid); }
+.profit { --accent-color: var(--profit); }
+.loss   { --accent-color: var(--loss); }
+.warn   { --accent-color: var(--warn); }
+.purple { --accent-color: var(--purple); }
+
+@media (max-width: 900px) {
+  .card  { padding: 18px 20px 16px; }
+  .value { font-size: 1.8rem; }
 }

@@ -1,5 +1,5 @@
 .wrapper {
-  height: 480px;           /* 고정 높이 — 데이터 양에 무관 */
+  height: 720px;           /* 고정 높이 — 데이터 양에 무관 */
   display: flex;
   flex-direction: column;
   background: var(--surface);
@@ -8,6 +8,11 @@
   box-shadow: var(--shadow-sm);
   padding: 16px 20px 0;    /* 하단 패딩은 pagination이 담당 */
   overflow: hidden;
+  transition: box-shadow 0.2s ease;
+}
+:global([data-theme="dark"]) .wrapper {
+  border-color: rgba(0,200,255,0.18);
+  box-shadow: var(--glow-sm);
 }
 
 .header {
@@ -42,7 +47,7 @@
 .colToggleBtn {
   font-size: 0.78rem;
   color: var(--text-sub);
-  background: none;
+  background: var(--bg-subtle);
   border: 1.5px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 4px 10px;
@@ -55,7 +60,7 @@
   position: absolute;
   top: calc(100% + 4px);
   right: 0;
-  background: var(--surface);
+  background: var(--bg-subtle);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-md);
@@ -87,8 +92,11 @@
   padding: 5px 28px 5px 10px;
   font-size: 0.82rem;
   width: 220px;
+  background: var(--bg-subtle);
+  color: var(--text-primary);
   transition: border-color var(--transition);
 }
+.search::placeholder { color: var(--text-muted); }
 .search:focus { border-color: var(--border-focus); outline: none; }
 .searchClear {
   position: absolute;
@@ -135,7 +143,13 @@
   vertical-align: middle;
   text-align: center;
 }
+.table tbody tr {
+  transition: background 0.14s ease;
+}
 .table tbody tr:hover { background: var(--brand-bg); }
+.table tbody tr:hover td:first-child {
+  box-shadow: inset 3px 0 0 var(--brand-mid);
+}
 
 /* Sticky 첫 번째 컬럼 — 가로 스크롤 시 프로젝트코드 고정 */
 .stickyCol {
@@ -145,8 +159,9 @@
   background: var(--bg-subtle);  /* th 기본 배경 */
 }
 .table td.stickyCol { background: var(--surface); }
-.loss td.stickyCol  { background: rgba(254, 242, 242, 0.95) !important; }
-.warn td.stickyCol  { background: rgba(255, 251, 235, 0.95) !important; }
+/* stickyCol은 항상 surface — box-shadow 인디케이터가 대신 역할 */
+.loss td.stickyCol { background: var(--surface) !important; }
+.warn td.stickyCol { background: var(--surface) !important; }
 
 /* 합계(tfoot) 행 */
 .summaryRow td {
@@ -161,13 +176,13 @@
 .summaryLabel { color: var(--text-sub); font-size: 0.72rem; letter-spacing: 0.05em; }
 .lossText { color: var(--loss); }
 
-/* 손실 행 — 연한 빨강 */
-.loss { background: rgba(254, 242, 242, 0.7) !important; }
-.loss:hover { background: rgba(254, 226, 226, 0.85) !important; }
+/* 손실 행 — 배경 + 좌측 인디케이터 */
+.loss { box-shadow: inset 3px 0 0 var(--loss) !important; }
+.loss:hover { background: var(--loss-bg) !important; }
 
-/* 저수익 행 — 연한 노랑 */
-.warn { background: rgba(255, 251, 235, 0.7) !important; }
-.warn:hover { background: rgba(254, 243, 199, 0.85) !important; }
+/* 저수익 행 — 배경 없이 좌측 인디케이터만 */
+.warn { box-shadow: inset 2px 0 0 var(--warn) !important; }
+.warn:hover { background: var(--warn-bg) !important; }
 
 /* ─── Pagination — Bootstrap 클래식 스타일 ─── */
 .paginationBar {
@@ -183,7 +198,7 @@
   font-size: 0.78rem;
   color: var(--text-sub);
   border: 1px solid var(--border);
-  background: var(--surface);
+  background: var(--bg-subtle);
   cursor: pointer;
   padding: 3px 6px;
   border-radius: var(--radius-sm);
@@ -209,7 +224,7 @@
   font-size: 0.82rem;
   font-family: inherit;
   color: var(--text-sub);
-  background: var(--surface);
+  background: var(--bg-subtle);
   border: none;
   border-right: 1px solid var(--border);
   cursor: pointer;
@@ -219,14 +234,14 @@
 }
 .pgItem:last-child { border-right: none; }
 .pgItem:hover:not(:disabled):not(.pgActive) {
-  background: var(--bg-subtle);
-  color: var(--text-primary);
+  background: var(--brand-bg);
+  color: var(--brand-mid);
 }
 .pgItem:disabled { opacity: 0.4; cursor: not-allowed; }
 .pgActive {
   background: var(--brand-mid);
   color: #fff;
-  font-weight: 600;
+  font-weight: 700;
   cursor: default;
 }
 
@@ -246,7 +261,7 @@
 }
 
 @media (max-width: 768px) {
-  .wrapper { height: auto; max-height: 70vh; padding: 12px 12px 0; }
+  .wrapper { height: auto; max-height: 75vh; padding: 12px 12px 0; }
   .search  { width: 130px; }
 }
 

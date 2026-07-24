@@ -1,6 +1,7 @@
 import io
 import logging
 import os
+import re
 import threading
 from datetime import datetime
 from urllib.parse import quote
@@ -29,13 +30,20 @@ class NumpyJSONProvider(DefaultJSONProvider):
 app = Flask(__name__)
 app.json = NumpyJSONProvider(app)  # M-1: 이중 등록 제거 (json_provider_class 라인 삭제)
 
-EXCEL_PATH = (
-    "D:/24.기술교육사업기획팀"
-    "\\23. 표준 템플릿 데이터 추출 프로젝트"
-    "\\[기술교육실]프로젝트 보고서 수집"
-    "\\재무관점 필수 데이터 추출.xlsx"
+EXCEL_PATH = os.environ.get(
+    "EXCEL_PATH",
+    r"C:\Users\aaa\Desktop\기술교육실_프로젝트 보고서 수집\재무관점 필수 데이터 추출.xlsx",
 )
 
+# 엑셀 실제 컬럼 (13개) — 구분=stage, year/part는 파일명에서 파생
+EXCEL_COLS = [
+    "project_code", "stage",
+    "revenue", "expenditure", "direct_cost", "labor_cost",
+    "overhead", "operating_profit", "profit_rate",
+    "note", "filename", "processed_at", "reflected_at",
+]
+
+# 내부 표준 컬럼 (year·part 파생 포함)
 COLUMNS = [
     "project_code", "year", "part", "stage",
     "revenue", "expenditure", "direct_cost", "labor_cost",
@@ -65,25 +73,76 @@ def _sample_df() -> pd.DataFrame:
     return pd.DataFrame(rows, columns=COLUMNS)
 
 
+def _is_valid_code(code: str) -> bool:
+    """임시·미정·숫자만 코드 제외 — 프론트엔드와 동일 로직을 백엔드에서 처리."""
+    c = code.strip()
+    if not c or c == "0":
+        return False
+    if re.fullmatch(r"\d+", c):
+        return False
+    if re.search(r"예정|미정|생성|추진|신규", c):
+        return False
+    return True
+
+
+def _extract_year(filename: str, reflected_at) -> str:
+    """파일명 '26년' 패턴 → '2026'. 없으면 반영일시 연도 사용."""
+    m = re.search(r"(\d{2})년", str(filename))
+    if m:
+        return "20" + m.group(1)
+    try:
+        return str(pd.to_datetime(reflected_at).year)
+    except Exception:
+        return ""
+
+
+def _extract_part(filename: str) -> str:
+    """파일명 규칙: 프로젝트명_파트명_단계.pptx → 파트명 추출."""
+    name = re.sub(r"\.pptx?$", "", str(filename), flags=re.IGNORECASE)
+    parts = name.split("_")
+    if len(parts) >= 2:
+        raw = re.sub(r"[\[\]]", "", parts[-2]).strip()
+        if re.fullmatch(r"\d{4,6}", raw):
+            return "기타"
+        return raw
+    return "기타"
+
+
 def load_excel():
     """_cache_lock 을 보유한 상태에서만 호출할 것 (C-1)."""
     global _cached_df, _last_loaded
     if not os.path.exists(EXCEL_PATH):
-        # H-7: 운영자가 인지할 수 있도록 로그 출력
         logger.warning("EXCEL_PATH 없음 — 샘플 데이터 사용: %s", EXCEL_PATH)
         _cached_df = _sample_df()
         _last_loaded = datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " [샘플]"
         return _cached_df
 
-    df = pd.read_excel(EXCEL_PATH, sheet_name="취합", header=0, usecols=range(15))
+    # 실제 엑셀: 13컬럼
+    df = pd.read_excel(EXCEL_PATH, sheet_name="취합", header=0, usecols=range(13))
 
-    # M-3: 컬럼 수 검증
-    if df.shape[1] != len(COLUMNS):
-        raise ValueError(f"엑셀 컬럼 수 불일치: 기대 {len(COLUMNS)}, 실제 {df.shape[1]}")
+    if df.shape[1] != len(EXCEL_COLS):
+        raise ValueError(f"엑셀 컬럼 수 불일치: 기대 {len(EXCEL_COLS)}, 실제 {df.shape[1]}")
 
-    df.columns = COLUMNS
-    df = df[df["project_code"].notna() & (df["project_code"] != "")]
+    df.columns = EXCEL_COLS
+    df = df[df["project_code"].notna() & (df["project_code"].astype(str).str.strip() != "")]
+    # 임시·미정 코드 행 제거 — 메인 테이블·요약 API 모두에서 제외
+    df = df[df["project_code"].astype(str).apply(_is_valid_code)]
 
+    # 날짜 먼저 파싱 (year 파생에 사용)
+    for col in ["processed_at", "reflected_at"]:
+        df[col] = (
+            pd.to_datetime(df[col], errors="coerce")
+            .dt.strftime("%Y-%m-%d")
+            .fillna("")
+        )
+
+    # year · part 파생
+    df["year"] = df.apply(
+        lambda r: _extract_year(r["filename"], r["reflected_at"]), axis=1
+    )
+    df["part"] = df["filename"].apply(_extract_part)
+
+    # 숫자 컬럼 정규화
     num_cols = ["revenue", "expenditure", "direct_cost", "labor_cost",
                 "overhead", "operating_profit", "profit_rate"]
     for col in num_cols:
@@ -95,27 +154,33 @@ def load_excel():
         )
         df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
 
-    # M-4: year가 숫자로 저장된 경우 "2024.0" → "2024" 변환
-    df["year"] = (
-        df["year"].astype(str)
-        .str.replace(r"\.0$", "", regex=True)
-        .replace("nan", "")
-    )
+    # PPT 파싱 오류 보정: profit_rate > 200이면 operating_profit/revenue로 재산정
+    bad_rate = df["profit_rate"].abs() > 200
+    if bad_rate.any():
+        bad_rows = df.loc[bad_rate, ["project_code", "filename", "profit_rate"]]
+        logger.warning(
+            "profit_rate 보정 %d행 (추출 스크립트 확인 필요): %s",
+            len(bad_rows),
+            bad_rows.to_dict("records"),
+        )
+    has_revenue = df["revenue"] > 0
+    df.loc[bad_rate & has_revenue, "profit_rate"] = (
+        df.loc[bad_rate & has_revenue, "operating_profit"]
+        / df.loc[bad_rate & has_revenue, "revenue"]
+        * 100
+    ).round(1)
+    df.loc[bad_rate & ~has_revenue, "profit_rate"] = 0
 
     plain_str_cols = ["project_code", "part", "stage", "note", "filename"]
     for col in plain_str_cols:
-        df[col] = df[col].astype(str).replace("nan", "")
+        df[col] = df[col].astype(str).str.strip().replace("nan", "")
 
-    # M-2: 날짜 컬럼 — "2024-01-10 00:00:00" → "2024-01-10"
-    for col in ["processed_at", "reflected_at"]:
-        df[col] = (
-            pd.to_datetime(df[col], errors="coerce")
-            .dt.strftime("%Y-%m-%d")
-            .fillna("")
-        )
+    # 컬럼 순서를 COLUMNS 표준으로 맞춤
+    df = df[COLUMNS]
 
     _cached_df = df
     _last_loaded = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    logger.info("엑셀 로드 완료: %d행", len(df))
     return df
 
 
@@ -256,14 +321,16 @@ def api_insights():
     if valid.empty:
         return jsonify({"top": [], "risk": [], "comments": []})
 
+    # 유효하지 않은 임시 코드 제외 (미정·숫자만·예정 등)
+    valid_coded = valid[valid["project_code"].apply(_is_valid_code)]
+
     top5 = (
-        valid[valid["profit_rate"] > 0]
+        valid_coded[valid_coded["profit_rate"] > 0]
         .nlargest(5, "profit_rate")
         [["project_code", "part", "stage", "revenue", "operating_profit", "profit_rate"]]
         .to_dict(orient="records")
     )
-    # 손실 프로젝트 우선 → 이익율 낮은 순 (nsmallest는 흑자 대규모 프로젝트를 오분류)
-    _risk_pool = valid[(valid["operating_profit"] < 0) | (valid["profit_rate"] < 5)].copy()
+    _risk_pool = valid_coded[(valid_coded["operating_profit"] < 0) | (valid_coded["profit_rate"] < 5)].copy()
     _risk_pool["_is_loss"] = (_risk_pool["operating_profit"] < 0).astype(int)
     risk = (
         _risk_pool

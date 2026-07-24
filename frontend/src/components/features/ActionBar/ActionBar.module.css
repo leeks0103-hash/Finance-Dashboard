@@ -1,11 +1,25 @@
 .bar {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-left: auto;
+  gap: 6px;
+  flex-shrink: 0;  /* 절대 줄어들지 않음 — 스크롤 영역 밖에 고정 */
 }
 
-/* 갱신 버튼 — outline 스타일 */
+.resetBtn {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 5px 10px;
+  border: 1.5px solid var(--loss);
+  border-radius: var(--radius-btn);
+  background: transparent;
+  color: var(--loss);
+  cursor: pointer;
+  transition: background 0.15s ease;
+  white-space: nowrap;
+  font-family: inherit;
+}
+.resetBtn:hover { background: var(--loss-bg); }
+
 .reloadBtn {
   font-size: 0.8rem;
   font-weight: 500;
@@ -22,6 +36,5 @@
 .reloadBtn:hover:not(:disabled) {
   border-color: var(--text-sub);
   color: var(--text-primary);
-  background: var(--bg-subtle);
 }
 .reloadBtn:disabled { opacity: 0.55; cursor: not-allowed; }

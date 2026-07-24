@@ -10,13 +10,13 @@ const Dashboard = () => (
     <div className="fadeUp" style={{ animationDelay: '0ms' }}>
       <ErrorBoundary><KpiSection /></ErrorBoundary>
     </div>
-    <div className="fadeUp" style={{ animationDelay: '60ms' }}>
+    <div className="fadeUp" style={{ animationDelay: '100ms' }}>
       <ErrorBoundary><ChartSection /></ErrorBoundary>
     </div>
-    <div className="fadeUp" style={{ animationDelay: '120ms' }}>
+    <div className="fadeUp" style={{ animationDelay: '200ms' }}>
       <ErrorBoundary><InsightSection /></ErrorBoundary>
     </div>
-    <div className="fadeUp" style={{ animationDelay: '180ms' }}>
+    <div className="fadeUp" style={{ animationDelay: '300ms' }}>
       <ErrorBoundary><ProjectTable /></ErrorBoundary>
     </div>
   </main>

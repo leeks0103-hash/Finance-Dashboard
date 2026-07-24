@@ -1,9 +1,8 @@
-/* M-25: FilterBar의 top 계산에서 참조 */
-:global(:root) { --navbar-height: 48px; }
+:global(:root) { --navbar-height: 50px; }
 
 .nav {
-  background: #111827;
-  box-shadow: 0 1px 0 rgba(255,255,255,0.06), 0 2px 8px rgba(0,0,0,0.4);
+  background: var(--nav-bg);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
   height: var(--navbar-height);
   padding: 0 24px;
   display: flex;
@@ -12,19 +11,126 @@
   position: sticky;
   top: 0;
   z-index: 100;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
 }
 
 .brand {
+  font-size: 0.92rem;
   font-weight: 700;
-  font-size: 1rem;
   color: #fff;
   letter-spacing: -0.01em;
 }
 
+.right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
 .team {
-  font-size: 0.78rem;
-  color: rgba(255,255,255,0.45);
-  letter-spacing: 0.01em;
+  font-size: 0.72rem;
+  color: rgba(255,255,255,0.65);
+  letter-spacing: 0.02em;
+}
+
+/* 설정 버튼 + 드롭다운 */
+.settings { position: relative; }
+
+.settingsBtn {
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 6px;
+  color: rgba(255,255,255,0.85);
+  cursor: pointer;
+  font-size: 0.9rem;
+  width: 30px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  padding: 0;
+  line-height: 1;
+}
+.settingsBtn:hover {
+  background: rgba(255,255,255,0.22);
+  border-color: rgba(255,255,255,0.4);
+  color: #fff;
+}
+
+.dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  padding: 12px 0;
+  min-width: 200px;
+  z-index: 200;
+  animation: dropIn 0.15s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes dropIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.section {
+  padding: 8px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sectionLabel {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rowIcon {
+  font-size: 1.1rem;
+  line-height: 1;
+  transition: opacity 0.2s, filter 0.2s;
+}
+
+/* 비활성 — 각각 다른 기본 밝기 */
+.moon { opacity: 0.45; }
+.sun  { opacity: 0.50; }  /* 해는 배경과 달라서 조금 더 높게 */
+
+/* 활성 */
+.rowIcon.active { opacity: 1; }
+
+/* 달 🌙 — active 시 시안 글로우 */
+.moon.active {
+  filter: drop-shadow(0 0 5px rgba(0, 200, 255, 0.85));
+}
+
+/* 해 ☀ — active 시 골드 글로우 */
+.sun.active {
+  filter: drop-shadow(0 0 6px rgba(255, 185, 0, 0.95));
+}
+
+.rowText {
+  font-size: 0.8rem;
+  color: var(--text-sub);
+  flex: 1;
+}
+
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
 }
 
 @media (max-width: 480px) {

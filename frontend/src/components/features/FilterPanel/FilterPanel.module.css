@@ -1,31 +1,30 @@
-.panel { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+/* nowrap 필수 — wrap이면 FilterBar 높이 변해 페이지 점프 */
+.panel { display: flex; align-items: center; gap: 10px; flex-wrap: nowrap; }
 
-.group { display: flex; flex-direction: column; gap: 6px; }
+.group { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 
 .label {
-  font-size: 0.68rem;
+  font-size: 0.65rem;
   font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* 다크: 더 선명한 cyan 계열로 */
+:global([data-theme="dark"]) .label {
+  color: var(--brand-mid);
+  opacity: 0.7;
+  font-size: 0.6rem;
 }
 
 .divider {
   width: 1px;
-  height: 44px;
+  height: 20px;
   background: var(--border);
   flex-shrink: 0;
-  align-self: center;
 }
 
-.chips { display: flex; flex-wrap: wrap; gap: 5px; }
-
-/* 초기화 버튼 */
-.resetBtn {
-  color: var(--loss) !important;
-  font-size: 0.78rem !important;
-  font-weight: 600 !important;
-  border: none !important;
-  padding: 4px 8px !important;
-}
-.resetBtn:hover { background: var(--loss-bg) !important; }
+.chips { display: flex; flex-wrap: nowrap; gap: 5px; }

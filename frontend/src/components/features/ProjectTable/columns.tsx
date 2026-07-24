@@ -1,12 +1,15 @@
 import { createColumnHelper } from '@tanstack/react-table';
 import type { Project } from '@/types';
 import { formatBillion, formatRate, getNoteVariant } from '@/utils';
-import { Badge, NegCell } from '@/components/ui';
+import { Badge, NegCell, CopyText } from '@/components/ui';
 
 const h = createColumnHelper<Project>();
 
 export const columns = [
-  h.accessor('project_code', { header: '프로젝트코드' }),
+  h.accessor('project_code', {
+    header: '프로젝트코드',
+    cell: i => <CopyText text={i.getValue()} />,
+  }),
   h.accessor('year',         { header: '연도' }),
   h.accessor('part',  { header: '파트',  cell: i => <Badge label={i.getValue()} variant="part"  /> }),
   h.accessor('stage', { header: '단계',  cell: i => <Badge label={i.getValue()} variant="stage" /> }),

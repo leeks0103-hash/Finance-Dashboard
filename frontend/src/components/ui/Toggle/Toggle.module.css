@@ -1,55 +1,47 @@
 .track {
   position: relative;
-  width: 44px;
-  height: 24px;
-  border-radius: 12px;
+  width: 42px;
+  height: 22px;
+  border-radius: 11px;
+  /* 라이트: border 기반 / 다크: 반투명 흰색 */
   background: var(--border);
   border: none;
   cursor: pointer;
   padding: 0;
   flex-shrink: 0;
-  transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 0.22s ease;
   outline: none;
   display: block;
 }
+:global([data-theme="dark"]) .track { background: rgba(255,255,255,0.18); }
 .track:focus-visible { box-shadow: 0 0 0 3px var(--brand-bg); }
-.on { background: var(--brand-mid); }
+/* 다크 네브바 안의 토글 — 사이트 시안 고정 */
+.on { background: #00C8FF !important; }
 
 .thumb {
   position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 20px;
-  height: 20px;
+  top: 3px; left: 3px;
+  width: 16px; height: 16px;
   border-radius: 50%;
   background: #fff;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
-  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 1;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+  transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1),
+              width 0.12s ease;
 }
 .on .thumb { transform: translateX(20px); }
 
-/* 텍스트 — thumb 반대편에 위치 */
+.track:active .thumb { width: 20px; }
+.on:active .thumb { transform: translateX(16px); width: 20px; }
+
 .innerLabel {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 0.68rem;
-  font-weight: 500;
-  letter-spacing: 0.08em;
+  font-size: 0.6rem;
+  font-weight: 600;
   white-space: nowrap;
-  transition: opacity 0.15s, color 0.2s;
   pointer-events: none;
+  letter-spacing: 0.06em;
 }
-
-/* OFF: 텍스트 오른쪽 (thumb 왼쪽) */
-.track:not(.on) .innerLabel {
-  right: 16px;
-  color: var(--text-muted);
-}
-
-/* ON: 텍스트 왼쪽 (thumb 오른쪽) */
-.on .innerLabel {
-  left: 7px;
-  color: #fff;
-}
+.track:not(.on) .innerLabel { right: 14px; color: var(--text-muted); }
+.on .innerLabel { left: 6px; color: #fff; }

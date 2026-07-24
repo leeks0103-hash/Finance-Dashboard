@@ -1,4 +1,6 @@
 export { useFilters } from './useFilters';
+export { useTheme } from './useTheme';
+export { useChartTheme } from './useChartTheme';
 export { useSummary } from './useSummary';
 export { useInsights } from './useInsights';
 export { useProjects } from './useProjects';

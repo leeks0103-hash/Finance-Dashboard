@@ -1,46 +1,30 @@
-import { useMemo, useState, useCallback } from 'react';
+import { useMemo } from 'react';
 import { useSummary } from '@/hooks/useSummary';
+import { useUiStore } from '@/store';
 import type { ChartOptions } from 'chart.js';
 
-// 기본 옵션 — display는 showLabels 상태로 덮어씀
-const makeRevExpOptions = (display: boolean): ChartOptions<'bar'> => ({
-  animation: false,  // 옵션 변경(수치 토글) 시 재애니메이션 방지
-  layout: { padding: { right: 52 } },
+const makeBarOptions = (
+  display: boolean,
+  labelColor: string,
+  extra?: Partial<ChartOptions<'bar'>>,
+): ChartOptions<'bar'> => ({
+  animation: { duration: 700, easing: 'easeInOutQuart' },
+  layout: extra?.layout,
   plugins: {
     datalabels: {
       display,
-      anchor: 'end',
-      align:  'end',
-      color:  '#111827',
+      color:  labelColor,
       font:   { size: 12, weight: 'bold' },
-      formatter: (v: number) =>
-        Math.abs(v) >= 1 ? `${v.toFixed(1)}억` : `${(v * 10).toFixed(0)}천만`,
+      ...((extra?.plugins as any)?.datalabels ?? {}),
     },
   },
-} as ChartOptions<'bar'>);
-
-const makeProfitRateOptions = (display: boolean): ChartOptions<'bar'> => ({
-  animation: false,
-  layout: { padding: { top: 24 } },
-  plugins: {
-    datalabels: {
-      display,
-      anchor: 'end',
-      align:  'top',
-      offset: 2,
-      color:  '#111827',
-      font:   { size: 12, weight: 'bold' },
-      formatter: (v: number) => `${v}%`,
-    },
-  },
-  scales: { y: { ticks: { callback: (v: string | number) => v + '%' } } },
+  scales: extra?.scales,
 } as ChartOptions<'bar'>);
 
 export interface ChartViewModel {
-  isLoading:    boolean;
-  isEmpty:      boolean;
-  showLabels:   boolean;
-  toggleLabels: () => void;
+  isLoading:  boolean;
+  isEmpty:    boolean;
+  showLabels: boolean;
   revExp: {
     labels:   string[];
     revenues: number[];
@@ -52,31 +36,49 @@ export interface ChartViewModel {
     values: number[];
   };
   profitRate: {
-    labels:  string[];
-    rates:   number[];
-    colors:  string[];
-    options: ChartOptions<'bar'>;
+    labels:   string[];
+    rates:    number[];
+    isProfit: boolean[];   // true = 흑자, false = 적자
+    options:  ChartOptions<'bar'>;
   };
+  labelColor: string;  // 테마별 레이블 색 — ChartSection이 차트에 직접 전달
 }
 
-export const useChartViewModel = (): ChartViewModel => {
+export const useChartViewModel = (labelColor: string): ChartViewModel => {
   const { data, isLoading } = useSummary();
-  const [showLabels, setShowLabels] = useState(false);
-  const toggleLabels = useCallback(() => setShowLabels(s => !s), []);
+  const showLabels = useUiStore(s => s.showChartLabels);
 
-  // 옵션은 showLabels 변경 시만 재생성
-  const revExpOptions      = useMemo(() => makeRevExpOptions(showLabels),      [showLabels]);
-  const profitRateOptions  = useMemo(() => makeProfitRateOptions(showLabels),  [showLabels]);
+  const revExpOptions = useMemo(() => makeBarOptions(showLabels, labelColor, {
+    layout: { padding: { right: 52 } },
+    plugins: {
+      datalabels: {
+        anchor: 'end',
+        align:  'end',
+        formatter: (v: number) =>
+          Math.abs(v) >= 1 ? `${v.toFixed(1)}억` : `${(v * 10).toFixed(0)}천만`,
+      },
+    },
+  }), [showLabels, labelColor]);
+
+  const profitRateOptions = useMemo(() => makeBarOptions(showLabels, labelColor, {
+    layout: { padding: { top: 24 } },
+    plugins: {
+      datalabels: {
+        anchor: 'end',
+        align:  'top',
+        offset: 2,
+        formatter: (v: number) => `${v}%`,
+      },
+    },
+    scales: { y: { ticks: { callback: (v: string | number) => v + '%' } } },
+  }), [showLabels, labelColor]);
 
   const chartData = useMemo(() => {
     if (!data || isLoading) return null;
-
     const parts   = Object.keys(data.by_part);
-    const isEmpty = parts.length === 0;
     const cb      = data.cost_breakdown;
-
     return {
-      isEmpty,
+      isEmpty: parts.length === 0,
       revExp: {
         labels:   parts,
         revenues: parts.map(p => +(data.by_part[p].revenue / 1e8).toFixed(2)),
@@ -87,34 +89,32 @@ export const useChartViewModel = (): ChartViewModel => {
         values: [cb.direct_cost, cb.labor_cost, cb.overhead].map(v => +(v / 1e8).toFixed(2)),
       },
       profitRate: {
-        labels: parts,
-        rates: parts.map(p => {
+        labels:   parts,
+        rates:    parts.map(p => {
           const rev = data.by_part[p].revenue;
           return rev === 0 ? 0 : +(data.by_part[p].profit / rev * 100).toFixed(1);
         }),
-        colors: parts.map(p =>
-          data.by_part[p].profit >= 0 ? 'rgba(5,150,105,0.75)' : 'rgba(220,38,38,0.75)'
-        ),
+        isProfit: parts.map(p => data.by_part[p].profit >= 0),
       },
     };
   }, [data, isLoading]);
 
   if (!chartData || isLoading) {
     return {
-      isLoading, isEmpty: false, showLabels, toggleLabels,
-      revExp:       { labels: [], revenues: [], profits: [], options: revExpOptions },
+      isLoading, isEmpty: false, showLabels, labelColor,
+      revExp:        { labels: [], revenues: [], profits: [], options: revExpOptions },
       costBreakdown: { labels: [], values: [] },
-      profitRate:   { labels: [], rates: [], colors: [], options: profitRateOptions },
+      profitRate:    { labels: [], rates: [], isProfit: [], options: profitRateOptions },
     };
   }
 
   return {
     isLoading,
-    isEmpty:      chartData.isEmpty,
+    isEmpty:   chartData.isEmpty,
     showLabels,
-    toggleLabels,
-    revExp:        { ...chartData.revExp,       options: revExpOptions },
+    labelColor,
+    revExp:        { ...chartData.revExp,      options: revExpOptions },
     costBreakdown:   chartData.costBreakdown,
-    profitRate:    { ...chartData.profitRate,   options: profitRateOptions },
+    profitRate:    { ...chartData.profitRate,  options: profitRateOptions },
   };
 };

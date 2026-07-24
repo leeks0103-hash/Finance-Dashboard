@@ -1,5 +1,5 @@
 import { useInsightViewModel } from '@/hooks/viewmodels';
-import { InsightComment, InsightListCard, ProjectRankRow, EmptyState, Button } from '@/components/ui';
+import { InsightComment, InsightListCard, ProjectRankRow, EmptyState } from '@/components/ui';
 import styles from './InsightSection.module.css';
 
 const InsightSection = () => {
@@ -23,19 +23,14 @@ const InsightSection = () => {
           <div className={styles.paneTitle}>■ 주요 코멘트</div>
           <div className={styles.commentScroll}>
             {vm.comments.map((c, i) => (
-              <InsightComment key={i} type={c.type} icon={c.icon} text={c.text} />
+              <InsightComment key={c.type + i + c.text.slice(0, 20)} type={c.type} icon={c.icon} text={c.text} />
             ))}
           </div>
-          {vm.hasMoreComments && (
-            <Button variant="ghost" size="sm" onClick={vm.toggleShowAll} className={styles.moreBtn}>
-              {vm.toggleLabel}
-            </Button>
-          )}
         </div>
 
         <div className={styles.listsPane}>
-          <InsightListCard>
-            <InsightListCard.Title>이익율 상위 프로젝트</InsightListCard.Title>
+          <InsightListCard variant="profit">
+            <InsightListCard.Title>이익율 상위</InsightListCard.Title>
             <InsightListCard.Body>
               {vm.top.map((r, i) => (
                 <ProjectRankRow
@@ -50,8 +45,8 @@ const InsightSection = () => {
             </InsightListCard.Body>
           </InsightListCard>
 
-          <InsightListCard>
-            <InsightListCard.Title>저수익 / 손실 주의</InsightListCard.Title>
+          <InsightListCard variant="risk">
+            <InsightListCard.Title>저수익 / 손실</InsightListCard.Title>
             <InsightListCard.Body>
               {vm.risk.map((r, i) => (
                 <ProjectRankRow

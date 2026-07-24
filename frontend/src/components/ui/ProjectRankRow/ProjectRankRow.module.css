@@ -2,32 +2,63 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 4px;
+  padding: 8px 6px;
   border-bottom: 1px solid var(--border);
-  font-size: 0.82rem;
+  transition: background 0.12s ease;
+  min-width: 0;
+  border-radius: 2px;
 }
 .row:last-child { border-bottom: none; }
+.row:hover { background: var(--brand-bg); }
 
+/* 순위 — 라이트: 작은 채워진 원, 다크: 그냥 숫자 */
 .rank {
-  width: 18px;
-  font-weight: 700;
-  color: var(--text-muted);
+  width: 20px;
+  height: 20px;
+  font-size: 0.65rem;
+  font-weight: 800;
   flex-shrink: 0;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--bg-subtle);
+  color: var(--text-sub);
+  border: 1px solid var(--border);
 }
 
-.code {
-  flex: 1;
-  font-weight: 500;
-  color: var(--text-primary);
+:global([data-theme="dark"]) .rank {
+  background: transparent;
+  border: none;
+  color: var(--brand-mid);
+  width: 16px;
+  height: auto;
+  font-size: 0.7rem;
+}
+
+.part {
+  font-size: 0.68rem;
+  color: var(--brand-mid);
+  font-weight: 600;
+  flex-shrink: 0;
+  width: 52px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+/* CopyText 컴포넌트가 font-family/size를 처리 */
+.code {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-sub);
+}
+
 .value {
-  font-weight: 700;
+  font-weight: 800;
+  font-size: 0.9rem;
+  white-space: nowrap;
   flex-shrink: 0;
-  min-width: 62px;
-  text-align: right;
+  letter-spacing: -0.02em;
 }

@@ -11,48 +11,44 @@
   font-family: inherit;
 }
 .btn:active:not(:disabled) { transform: scale(0.97); }
-.btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
-/* Sizes */
-.sm { font-size: 0.8rem; padding: 5px 12px; }
-.md { font-size: 0.9rem; padding: 7px 16px; }
+.sm { font-size: 0.8rem;  padding: 5px 12px; }
+.md { font-size: 0.9rem;  padding: 7px 16px; }
 
-/* Variants */
 .primary {
-  background: linear-gradient(135deg, var(--brand), #3730a3);
+  background: var(--brand-mid);
   color: #fff;
-  box-shadow: 0 2px 6px rgba(79,70,229,0.30);
+  box-shadow: 0 1px 4px rgba(37, 99, 235, 0.25);
 }
 .primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, var(--brand-mid), var(--brand));
+  background: var(--brand);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(79,70,229,0.38);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.32);
 }
 
 .danger {
-  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  background: var(--loss);
   color: #fff;
-  box-shadow: 0 2px 6px rgba(220,38,38,0.28);
+  box-shadow: 0 1px 4px rgba(220, 38, 38, 0.22);
 }
 .danger:hover:not(:disabled) {
-  background: linear-gradient(135deg, #ef4444, #dc2626);
+  filter: brightness(1.1);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(220,38,38,0.38);
 }
 
 .success {
-  background: linear-gradient(135deg, #059669, #047857);
+  background: var(--profit);
   color: #fff;
-  box-shadow: 0 2px 6px rgba(5,150,105,0.28);
+  box-shadow: 0 1px 4px rgba(22, 163, 74, 0.22);
 }
 .success:hover:not(:disabled) {
-  background: linear-gradient(135deg, #10b981, #059669);
+  filter: brightness(1.08);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(5,150,105,0.38);
 }
 
 .ghost {
-  background: var(--surface);
+  background: transparent;
   color: var(--text-sub);
   border: 1.5px solid var(--border);
 }
@@ -62,11 +58,9 @@
   background: var(--brand-bg);
 }
 
-/* Loading spinner */
 .spinner {
   display: inline-block;
-  width: 12px;
-  height: 12px;
+  width: 12px; height: 12px;
   border: 2px solid currentColor;
   border-top-color: transparent;
   border-radius: 50%;

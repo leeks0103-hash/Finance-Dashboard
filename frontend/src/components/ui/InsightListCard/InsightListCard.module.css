@@ -1,22 +1,58 @@
 .card {
-  background: var(--bg-subtle);
   border-radius: var(--radius-sm);
-  padding: 12px;
+  padding: 10px 12px 8px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   flex: 1;
-  min-height: 0; /* flex child가 overflow-y: auto 동작하려면 필요 */
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--bg-subtle);
+}
+
+/* 라이트 variant — gradient 배경만으로 구분 (::before 제거) */
+.profit {
+  background: linear-gradient(160deg, rgba(22,163,74,0.08) 0%, var(--surface) 55%);
+  border-color: rgba(22,163,74,0.20);
+}
+
+.risk {
+  background: linear-gradient(160deg, rgba(220,38,38,0.08) 0%, var(--surface) 55%);
+  border-color: rgba(220,38,38,0.18);
+}
+
+/* 다크: 통일된 cyber 스타일 */
+:global([data-theme="dark"]) .profit,
+:global([data-theme="dark"]) .risk,
+:global([data-theme="dark"]) .card {
+  background: var(--bg-subtle);
+  border-color: rgba(0,200,255,0.15);
 }
 
 .title {
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 700;
   color: var(--text-sub);
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.profit .title { color: var(--profit); border-color: rgba(22,163,74,0.18); }
+.risk   .title { color: var(--loss);   border-color: rgba(220,38,38,0.15); }
+
+:global([data-theme="dark"]) .profit .title,
+:global([data-theme="dark"]) .risk   .title {
+  color: var(--text-sub);
+  border-color: var(--border);
 }
 
 .body {
   overflow-y: auto;
   flex: 1;
+  min-height: 0;
 }

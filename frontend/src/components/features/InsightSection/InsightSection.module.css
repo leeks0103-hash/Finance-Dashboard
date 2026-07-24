@@ -4,10 +4,15 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
-  height: 300px; /* 고정 높이 */
+  height: 360px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  transition: box-shadow 0.2s ease;
+}
+:global([data-theme="dark"]) .section {
+  border-color: rgba(0,200,255,0.18);
+  box-shadow: var(--glow-sm);
 }
 
 .header {
@@ -65,8 +70,8 @@
   overflow-y: auto;
   flex: 1;
   min-height: 0;
-
-  /* 스크롤바 스타일 */
+  /* 스크롤바 공간을 항상 예약 → hover 시 레이아웃 점프 방지 */
+  scrollbar-gutter: stable;
   scrollbar-width: thin;
   scrollbar-color: var(--border) transparent;
 }
@@ -95,7 +100,7 @@
   background: var(--bg-subtle);
   border-radius: var(--radius);
   border: 1px solid var(--border);
-  height: 300px; /* section과 동일한 고정 높이 */
+  height: 360px;
   animation: pulse 1.4s ease infinite;
 }
 

@@ -5,10 +5,11 @@ import ChartDataLabels from 'chartjs-plugin-datalabels';
 Chart.register(ArcElement, Tooltip, Legend, ChartDataLabels);
 
 interface Props {
-  labels:      string[];
-  data:        number[];
-  colors?:     string[];
-  showLabels?: boolean;
+  labels:       string[];
+  data:         number[];
+  colors?:      string[];
+  showLabels?:  boolean;
+  labelColor?:  string;
 }
 
 const DEFAULT_COLORS = [
@@ -17,31 +18,38 @@ const DEFAULT_COLORS = [
   'rgba(153,102,255,0.85)',
 ];
 
-const DoughnutChart = ({ labels, data, colors = DEFAULT_COLORS, showLabels = false }: Props) => (
+const DoughnutChart = ({
+  labels,
+  data,
+  colors = DEFAULT_COLORS,
+  showLabels = false,
+  labelColor = '#1e293b',
+}: Props) => (
   <Doughnut
     data={{
       labels,
-      datasets: [{ data, backgroundColor: colors, borderWidth: 1 }],
+      datasets: [{ data, backgroundColor: colors, borderWidth: 0 }],
     }}
     options={{
       responsive: true,
       maintainAspectRatio: false,
-      animation: false,  // 수치 토글 시 재애니메이션 방지
+      animation: { duration: 700, easing: 'easeInOutQuart' },
       plugins: {
         legend: {
           position: 'bottom',
           labels: {
+            color: labelColor,
             font: { size: 11 },
-            // 범례에 항목명 + % 함께 표시
             generateLabels: (chart) => {
-              const ds     = chart.data.datasets[0];
-              const nums   = ds.data as number[];
-              const total  = nums.reduce((a, b) => a + b, 0);
-              const bgs    = ds.backgroundColor as string[];
+              const ds   = chart.data.datasets[0];
+              const nums = ds.data as number[];
+              const total = nums.reduce((a, b) => a + b, 0);
+              const bgs   = ds.backgroundColor as string[];
               return (chart.data.labels as string[]).map((label, i) => ({
                 text:        `${label}  ${total > 0 ? ((nums[i] / total) * 100).toFixed(1) : 0}%`,
                 fillStyle:   bgs[i],
                 strokeStyle: bgs[i],
+                fontColor:   labelColor,  // generateLabels에서 텍스트 색 직접 지정
                 lineWidth:   0,
                 hidden:      false,
                 index:       i,
@@ -52,23 +60,18 @@ const DoughnutChart = ({ labels, data, colors = DEFAULT_COLORS, showLabels = fal
         },
         tooltip: {
           callbacks: {
-            label: (ctx) => {
-              const v = ctx.parsed as number;
-              return `${ctx.label}: ${v.toFixed(2)}억원`;
-            },
+            label: (ctx) => `${ctx.label}: ${(ctx.parsed as number).toFixed(2)}억원`,
           },
         },
         datalabels: {
           display: showLabels,
-          color:   '#111827',      // 검정에 가까운 색 — 흰 배경에서도 잘 보임
+          color:   labelColor,
           font:    { size: 12, weight: 'bold' },
           textAlign: 'center',
-          // 세그먼트 안에 % 만 표시 — 라벨 텍스트는 범례에서 확인
           formatter: (value: number, ctx) => {
             const total = (ctx.dataset.data as number[]).reduce((a, b) => a + b, 0);
             if (!total || value === 0) return '';
-            const pct = ((value / total) * 100).toFixed(1);
-            return `${pct}%`;
+            return `${((value / total) * 100).toFixed(1)}%`;
           },
         },
       },
