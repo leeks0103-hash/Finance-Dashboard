@@ -452,11 +452,15 @@ def api_reload():
     try:
         with _cache_lock:  # C-1: reload도 잠금 보유
             load_excel()
+            # 락 내부에서 캡처 — 해제 후 다른 스레드의 덮어쓰기 방지
+            local_corrected = _last_correction_count
+            local_loaded    = _last_loaded
+            local_count     = len(_cached_df)
         return jsonify({
             "ok": True,
-            "loaded_at": _last_loaded,
-            "count": len(_cached_df),
-            "corrected_rows": _last_correction_count,
+            "loaded_at": local_loaded,
+            "count": local_count,
+            "corrected_rows": local_corrected,
         })
     except Exception as e:
         logger.error("api_reload 실패: %s", e)

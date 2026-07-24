@@ -16,7 +16,7 @@
   position: relative;
   overflow: hidden;
   min-height: 136px;
-  transition: transform 0.22s cubic-bezier(0.34, 1.2, 0.64, 1), box-shadow 0.22s ease;
+  transition: filter 0.22s ease;
   cursor: default;
   isolation: isolate;
 }
@@ -44,8 +44,7 @@
 }
 
 .card:hover {
-  transform: translateY(-4px) scale(1.015);
-  box-shadow: 0 20px 48px rgba(0,0,0,0.22), 0 6px 16px rgba(0,0,0,0.14);
+  filter: brightness(1.12);
 }
 
 /* ── accent별 그라디언트 (변수 참조) ── */
@@ -117,15 +116,30 @@
 [data-theme="dark"] .card.warn   .value { color: var(--kpi-warn-value,   #fff); text-shadow: 0 0 20px var(--kpi-warn-glow,   transparent); }
 [data-theme="dark"] .card.purple .value { color: var(--kpi-purple-value, #fff); text-shadow: 0 0 20px var(--kpi-purple-glow, transparent); }
 
-/* ── 스파크라인 ── */
+/* ── 배경 대형 방향 아이콘 (은은한 워터마크) ── */
+.bgIcon {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 64px;
+  height: 64px;
+  color: rgba(255,255,255,0.08);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ── 스파크라인 — polyline 뾰족 + 그라디언트 fill ── */
 .sparkWrap {
   position: absolute;
   bottom: 0; right: 0;
-  width: 58%;
-  height: 56px;
-  color: var(--kpi-spark, rgba(255,255,255,0.38));
+  width: 62%;
+  height: 62px;
+  color: rgba(255,255,255,0.55);
   pointer-events: none;
-  z-index: 2;
+  z-index: 3;
+  /* 차트 자체에도 은은한 glow */
+  filter: drop-shadow(0 0 6px rgba(255,255,255,0.20));
 }
 .spark { width: 100%; height: 100%; }
 

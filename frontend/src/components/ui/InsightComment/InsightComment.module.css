@@ -6,26 +6,17 @@
   border-radius: var(--radius-sm);
   font-size: 0.82rem;
   line-height: 1.5;
-  border-left: 3px solid transparent;
   transition: transform 0.14s ease;
 }
 .comment:hover { transform: translateX(2px); }
 
-/* 라이트 */
-.positive { background: var(--profit-bg);  border-left-color: var(--profit); }
-.info     { background: var(--info-bg);    border-left-color: var(--info); }
-.neutral  { background: var(--bg-subtle);  border-left-color: var(--border); }
-.warning  {
-  background: var(--warn-bg);
-  border-left-color: var(--warn);
-  border-left-width: 4px;
-  font-weight: 500;
-}
-.warning:hover { box-shadow: 0 0 0 1px var(--warn); }
+/* 배경색만으로 구분 — border 제거 */
+.positive { background: var(--profit-bg); }
+.info     { background: var(--info-bg); }
+.neutral  { background: var(--bg-subtle); }
+.warning  { background: var(--warn-bg); font-weight: 500; }
 
-/* 다크 — var(--*-bg) 토큰 그대로 사용, 별도 override 불필요
-   다크 토큰: --profit-bg rgba(0,230,118,0.10) / --warn-bg rgba(240,224,64,0.10) / --info-bg rgba(56,189,248,0.10)
-   더 선명하게 보이도록 opacity 상향 */
+/* 다크: 더 선명하게 */
 :global([data-theme="dark"]) .positive { background: rgba(0, 230, 118, 0.14); }
 :global([data-theme="dark"]) .info     { background: rgba(56, 189, 248, 0.12); }
 :global([data-theme="dark"]) .warning  { background: rgba(240, 224, 64, 0.16); }

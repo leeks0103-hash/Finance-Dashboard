@@ -61,6 +61,15 @@ const ProjectTable = () => {
           </span>
         </div>
         <div className={styles.headerRight}>
+          {/* 행 수 드롭박스 — 컬럼 버튼 바로 옆 */}
+          <select
+            className={styles.pageSize}
+            value={table.getState().pagination.pageSize}
+            onChange={e => table.setPageSize(Number(e.target.value))}
+          >
+            {[10, 30, 50, 100].map(s => <option key={s} value={s}>{s}행</option>)}
+          </select>
+
           {/* 컬럼 가시성 토글 */}
           <div className={styles.colToggle}>
             <Button variant="ghost" size="sm" onClick={() => setShowColMenu(v => !v)}>
@@ -161,30 +170,41 @@ const ProjectTable = () => {
               </tbody>
               <tfoot>
                 <tr className={styles.summaryRow}>
-                  <td className={`${styles.stickyCol} ${styles.summaryLabel}`}>합계</td>
-                  <td /><td /><td />
-                  <td>{vm.summary.revenue}</td>
-                  <td>{vm.summary.expenditure}</td>
-                  <td>{vm.summary.directCost}</td>
-                  <td>{vm.summary.laborCost}</td>
-                  <td>{vm.summary.overhead}</td>
-                  <td className={Number(vm.summary.operatingProfit?.replace(/[^0-9.-]/g, '')) < 0 ? styles.lossText : ''}>
-                    {vm.summary.operatingProfit}
-                  </td>
-                  <td>{vm.summary.avgProfitRate}</td>
-                  <td />
+                  {table.getVisibleLeafColumns().map(col => {
+                    // 컬럼 ID → 합계값 매핑
+                    const summaryMap: Record<string, React.ReactNode> = {
+                      project_code:     <span className={styles.summaryLabel}>합계</span>,
+                      revenue:          vm.summary.revenue,
+                      expenditure:      vm.summary.expenditure,
+                      direct_cost:      vm.summary.directCost,
+                      labor_cost:       vm.summary.laborCost,
+                      overhead:         vm.summary.overhead,
+                      operating_profit: (
+                        <span className={Number(vm.summary.operatingProfit?.replace(/[^0-9.-]/g, '')) < 0 ? styles.lossText : ''}>
+                          {vm.summary.operatingProfit}
+                        </span>
+                      ),
+                      profit_rate:      vm.summary.avgProfitRate,
+                    };
+                    return (
+                      <td
+                        key={col.id}
+                        className={col.id === 'project_code' ? styles.stickyCol : ''}
+                      >
+                        {summaryMap[col.id] ?? null}
+                      </td>
+                    );
+                  })}
                 </tr>
               </tfoot>
             </table>
           </div>
 
           <div className={styles.paginationBar}>
-            {/* 좌측: 빈 공간 균형용 */}
             <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', minWidth: 40 }}>
               {pageLabel}
             </span>
 
-            {/* 중앙: 페이지네이션 + 행 수 드롭박스 나란히 */}
             <nav className={styles.pagination} aria-label="페이지 이동">
               <Button variant="ghost" size="sm" className={styles.pgItem}
                 onClick={() => table.previousPage()}
@@ -200,19 +220,8 @@ const ProjectTable = () => {
               <Button variant="ghost" size="sm" className={styles.pgItem}
                 onClick={() => table.nextPage()}
                 disabled={!table.getCanNextPage()}>다음</Button>
-
-              {/* 구분선 + 행 수 드롭박스 */}
-              <span style={{ width: 1, height: 20, background: 'var(--border)', margin: '0 6px', display: 'inline-block', verticalAlign: 'middle' }} />
-              <select
-                className={styles.pageSize}
-                value={table.getState().pagination.pageSize}
-                onChange={e => table.setPageSize(Number(e.target.value))}
-              >
-                {[10, 30, 50, 100].map(s => <option key={s} value={s}>{s}행</option>)}
-              </select>
             </nav>
 
-            {/* 우측: 균형용 빈 공간 */}
             <span style={{ minWidth: 40 }} />
           </div>
         </>

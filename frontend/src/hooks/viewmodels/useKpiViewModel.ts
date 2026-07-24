@@ -39,33 +39,25 @@ export const useKpiViewModel = (): KpiViewModel => {
 
   // 파트별 이익율 최고/최저 계산 — 평균이익율 카드 trend용
   const byPart = data?.by_part ?? {};
-  const partNames = Object.keys(byPart);
+  // revenue > 0인 파트만 대상 — 0나누기 및 의미없는 파트 제외
+  const validParts = Object.keys(byPart).filter(p => {
+    const d = byPart[p] as { revenue: number };
+    return (d.revenue ?? 0) > 0;
+  });
   let avgRateTrend: string | null = null;
-  if (partNames.length >= 2) {
-    let bestPart = partNames[0];
-    let worstPart = partNames[0];
-    for (const p of partNames) {
-      const partData = byPart[p] as { revenue: number; expenditure: number; profit: number; count: number };
-      const partRevenue = partData.revenue ?? 0;
-      const partProfit  = partData.profit  ?? 0;
-      const partRate    = partRevenue > 0 ? (partProfit / partRevenue) * 100 : 0;
-      const bestData    = byPart[bestPart]  as typeof partData;
-      const worstData   = byPart[worstPart] as typeof partData;
-      const bestRate    = bestData.revenue  > 0 ? (bestData.profit  / bestData.revenue)  * 100 : 0;
-      const worstRate   = worstData.revenue > 0 ? (worstData.profit / worstData.revenue) * 100 : 0;
-      if (partRate > bestRate)  bestPart  = p;
-      if (partRate < worstRate) worstPart = p;
-    }
-    const bestData  = byPart[bestPart]  as { revenue: number; profit: number };
-    const worstData = byPart[worstPart] as { revenue: number; profit: number };
-    const bestRate  = bestData.revenue  > 0 ? (bestData.profit  / bestData.revenue)  * 100 : 0;
-    const worstRate = worstData.revenue > 0 ? (worstData.profit / worstData.revenue) * 100 : 0;
-    const gap = Math.round((bestRate - worstRate) * 10) / 10;
-    avgRateTrend = `최고 ${bestPart} +${gap}%p`;
-  } else if (partNames.length === 1) {
-    const partData = byPart[partNames[0]] as { revenue: number; profit: number };
-    const partRate = partData.revenue > 0 ? Math.round((partData.profit / partData.revenue) * 1000) / 10 : 0;
-    avgRateTrend = `${partNames[0]} ${partRate}%`;
+  if (validParts.length >= 2) {
+    const rates = validParts.map(p => {
+      const d = byPart[p] as { revenue: number; profit: number };
+      return { part: p, rate: (d.profit / d.revenue) * 100 };
+    });
+    const best  = rates.reduce((a, b) => a.rate >= b.rate ? a : b);
+    const worst = rates.reduce((a, b) => a.rate <= b.rate ? a : b);
+    const gap = Math.round((best.rate - worst.rate) * 10) / 10;
+    avgRateTrend = `최고 ${best.part} +${gap}%p`;
+  } else if (validParts.length === 1) {
+    const d = byPart[validParts[0]] as { revenue: number; profit: number };
+    const rate = Math.round((d.profit / d.revenue) * 1000) / 10;
+    avgRateTrend = `${validParts[0]} ${rate}%`;
   }
 
   const cards: KpiCardData[] = [

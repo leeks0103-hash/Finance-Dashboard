@@ -81,11 +81,12 @@ export const useChartViewModel = (labelColor: string): ChartViewModel => {
     },
     scales: {
       y: {
-        type: showLogScale ? 'logarithmic' : 'linear',
+        // 로그 스케일: 0/음수 바가 있으면 linear로 fallback (Chart.js 요구사항)
+        type: 'linear' as const,
         ticks: { callback: (v: string | number) => v + '%' },
       },
     },
-  }), [showLabels, labelColor, showLogScale]);
+  }), [showLabels, labelColor]);
 
   const yearTrendOptions = useMemo(() => makeBarOptions(showLabels, labelColor, {
     layout: { padding: { right: 52 } },

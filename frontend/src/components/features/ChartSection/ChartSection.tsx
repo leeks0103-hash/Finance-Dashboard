@@ -47,17 +47,20 @@ const ChartSection = () => {
     scales: { ...scaleOverride, x: { ...scaleOverride.x, stacked: false } },
   }), [vm.revExp.options, scaleOverride]);
 
+  // 로그 스케일 사용 시 0이하 값이 있으면 자동 fallback
+  const canUseLogScale = vm.showLogScale && vm.profitRate.rates.every(r => r > 0);
+
   const profitRateOptions = useMemo(() => ({
     ...vm.profitRate.options,
     scales: {
       ...vm.profitRate.options.scales,
       y: {
         ...scaleOverride.y,
-        type: vm.showLogScale ? ('logarithmic' as const) : ('linear' as const),
+        type: canUseLogScale ? ('logarithmic' as const) : ('linear' as const),
         ticks: { ...scaleOverride.y.ticks, callback: (v: string | number) => v + '%' },
       },
     },
-  }), [vm.profitRate.options, scaleOverride, vm.showLogScale]);
+  }), [vm.profitRate.options, scaleOverride, canUseLogScale]);
 
   const yearTrendOptions = useMemo(() => ({
     ...vm.yearTrend.options,

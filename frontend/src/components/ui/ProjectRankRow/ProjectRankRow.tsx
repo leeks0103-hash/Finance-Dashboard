@@ -14,11 +14,11 @@ const ProjectRankRow = ({ rank, projectCode, part, value, valueColor, subValue }
   <div className={styles.row}>
     {rank !== undefined && <span className={styles.rank}>{rank}</span>}
     <span className={styles.part}>{part}</span>
-    <div className={styles.codeWrap}>
-      <CopyText text={projectCode} className={styles.code} />
+    <CopyText text={projectCode} className={styles.code} />
+    <div className={styles.valueGroup}>
       {subValue && <span className={styles.subValue}>{subValue}</span>}
+      <span className={styles.value} style={{ color: valueColor }}>{value}</span>
     </div>
-    <span className={styles.value} style={{ color: valueColor }}>{value}</span>
   </div>
 );
 
