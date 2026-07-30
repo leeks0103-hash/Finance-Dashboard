@@ -1,0 +1,829 @@
+import re
+import hashlib
+import logging
+from datetime import datetime
+from pathlib import Path
+from typing import Optional, List, Dict, Tuple
+
+from pptx import Presentation
+from openpyxl import load_workbook, Workbook
+
+
+# =========================================
+# 사용자 설정
+# =========================================
+ROOT_DIR = Path(r"D:\24.기술교육사업기획팀\23. 표준 템플릿 데이터 추출 프로젝트\(기술교육실)프로젝트 보고서 수집")
+
+# 출력 엑셀: 프로젝트 data/ 폴더로 저장
+_DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+_DATA_DIR.mkdir(exist_ok=True)
+
+TARGET_EXCEL_NAME = "KPI 지표 데이터 추출.xlsx"
+DATA_SHEET_NAME = "취합"
+HISTORY_SHEET_NAME = "처리 이력"
+SUMMARY_SHEET_NAME = "kpi 집계"
+
+TITLE_KEYWORD = "KPI/경영현황"
+
+PPT_EXTENSIONS = {".ppt", ".pptx"}
+START_ROW = 2
+END_ROW = 9
+KEY_COL_1 = 1
+KEY_COL_2 = 2
+DATA_COLS = [5, 6, 7, 8]
+FLOAT_ROWS = [4, 7, 8]
+
+PART_KEYWORDS = ["신사업", "PM", "전차", "미모", "AI", "SW", "K뉴딜TF"]
+REPORT_STAGE_KEYWORDS = ["사업계획", "제안", "착수", "중간", "완료"]
+
+LOG_FILE_NAME = "extract_kpi_ppt.log"
+HASH_CHUNK_SIZE = 1024 * 1024
+MAX_SEARCH_DEPTH = 2
+
+ILLEGAL_CHARACTERS_RE = re.compile(r"[\x00-\x08\x0B-\x0C\x0E-\x1F]")
+
+
+# =========================================
+# 로그 설정
+# =========================================
+def setup_logger(log_dir: Path) -> logging.Logger:
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_file_path = log_dir / LOG_FILE_NAME
+
+    logger = logging.getLogger("extract_kpi_ppt")
+    logger.setLevel(logging.INFO)
+
+    if logger.handlers:
+        return logger
+
+    formatter = logging.Formatter(
+        fmt="%(asctime)s | %(levelname)s | %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S"
+    )
+
+    file_handler = logging.FileHandler(log_file_path, encoding="utf-8")
+    file_handler.setLevel(logging.INFO)
+    file_handler.setFormatter(formatter)
+
+    stream_handler = logging.StreamHandler()
+    stream_handler.setLevel(logging.INFO)
+    stream_handler.setFormatter(formatter)
+
+    logger.addHandler(file_handler)
+    logger.addHandler(stream_handler)
+    return logger
+
+
+logger = setup_logger(_DATA_DIR)
+
+
+# =========================================
+# 공통 유틸
+# =========================================
+def now_str() -> str:
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
+def sanitize_excel_string(value: str) -> str:
+    if value is None:
+        return ""
+
+    value = str(value)
+    value = ILLEGAL_CHARACTERS_RE.sub("", value)
+    value = value.replace("\r\n", " ")
+    value = value.replace("\n", " ")
+    value = value.replace("\r", " ")
+    value = value.replace("\t", " ")
+    value = re.sub(r"\s+", " ", value)
+    value = value.strip()
+    return value
+
+
+def normalize_text(value) -> str:
+    if value is None:
+        return ""
+    return sanitize_excel_string(value)
+
+
+def normalize_for_match(value) -> str:
+    if value is None:
+        return ""
+    return re.sub(r"\s+", "", str(value))
+
+
+def normalize_int_value(value):
+    """
+    정수형 데이터 처리
+    - 공백, '-', 빈값 => 0
+    - 숫자형 문자열 => int 변환
+    - 문자열 => 그대로 반환
+    """
+    if value is None:
+        return 0
+
+    text = sanitize_excel_string(value)
+
+    if text in {"", "-"}:
+        return 0
+
+    text_no_comma = text.replace(",", "")
+
+    if re.fullmatch(r"[+-]?\d+(\.\d+)?", text_no_comma):
+        try:
+            return int(float(text_no_comma))
+        except ValueError:
+            return text
+
+    return text
+
+
+def normalize_float_value(value):
+    """
+    실수형 데이터 처리
+    - 공백, '-', 빈값 => 0
+    - 숫자형 문자열 => float 변환 후 소수점 첫째 자리 반올림
+    - 문자열 => 그대로 반환
+    """
+    if value is None:
+        return 0
+
+    text = sanitize_excel_string(value)
+
+    if text in {"", "-"}:
+        return 0
+
+    text_no_comma = text.replace(",", "")
+
+    if re.fullmatch(r"[+-]?\d+(\.\d+)?", text_no_comma):
+        try:
+            return round(float(text_no_comma), 1)
+        except ValueError:
+            return text
+
+    return text
+
+
+def extract_part_name(file_name: str) -> str:
+    clean_name = sanitize_excel_string(file_name)
+    for keyword in PART_KEYWORDS:
+        if keyword in clean_name:
+            return keyword
+    return "-"
+
+
+def extract_report_stage(file_name: str) -> str:
+    clean_name = sanitize_excel_string(file_name)
+    for keyword in REPORT_STAGE_KEYWORDS:
+        if keyword in clean_name:
+            return keyword
+    return "-"
+
+
+def is_temp_file(file_path: Path) -> bool:
+    return file_path.name.startswith("~$")
+
+
+def is_valid_ppt(file_path: Path) -> bool:
+    return (
+        file_path.is_file()
+        and not is_temp_file(file_path)
+        and file_path.suffix.lower() in PPT_EXTENSIONS
+    )
+
+
+def compute_file_sha256(file_path: Path) -> str:
+    sha256 = hashlib.sha256()
+    with open(file_path, "rb") as f:
+        while True:
+            chunk = f.read(HASH_CHUNK_SIZE)
+            if not chunk:
+                break
+            sha256.update(chunk)
+    return sha256.hexdigest()
+
+
+def get_file_meta(file_path: Path) -> Dict[str, str]:
+    stat = file_path.stat()
+    modified_dt = datetime.fromtimestamp(stat.st_mtime)
+    created_dt = datetime.fromtimestamp(stat.st_ctime)
+    file_size = stat.st_size
+    full_path = str(file_path.resolve())
+    file_sha256 = compute_file_sha256(file_path)
+    part_name = extract_part_name(file_path.name)
+    report_stage = extract_report_stage(file_path.name)
+
+    return {
+        "파일식별키": file_sha256,
+        "파일명": sanitize_excel_string(file_path.name),
+        "전체경로": sanitize_excel_string(full_path),
+        "최종수정일시": modified_dt.strftime("%Y-%m-%d %H:%M:%S"),
+        "생성일시": created_dt.strftime("%Y-%m-%d %H:%M:%S"),
+        "파일크기": str(file_size),
+        "파트명": sanitize_excel_string(part_name),
+        "보고단계": sanitize_excel_string(report_stage),
+    }
+
+
+# =========================================
+# Excel 처리
+# =========================================
+def load_or_create_workbook(excel_path: Path):
+    if excel_path.exists():
+        try:
+            logger.info(f"기존 엑셀 파일 로드: {excel_path}")
+            wb = load_workbook(excel_path)
+            return wb
+        except Exception as e:
+            logger.warning(f"기존 엑셀 파일 로드 실패: {e}")
+            logger.warning("손상된 파일로 판단되어 삭제 후 새로 생성합니다.")
+            excel_path.unlink()
+
+    logger.info(f"새 엑셀 파일 생성: {excel_path}")
+    wb = Workbook()
+
+    if wb.active and wb.active.title == "Sheet":
+        wb.active.title = DATA_SHEET_NAME
+
+    return wb
+
+
+def get_or_create_sheet(wb, sheet_name: str):
+    if sheet_name in wb.sheetnames:
+        logger.info(f"시트 사용: {sheet_name}")
+        return wb[sheet_name]
+    logger.info(f"시트 신규 생성: {sheet_name}")
+    return wb.create_sheet(sheet_name)
+
+
+def ensure_history_sheet_if_empty(ws):
+    headers = [
+        "파일식별키", "파일명", "전체경로", "최종수정일시",
+        "파일크기", "처리일시", "처리상태", "메시지"
+    ]
+
+    if ws.max_row == 1 and ws.max_column == 1 and ws["A1"].value is None:
+        for idx, h in enumerate(headers, start=1):
+            ws.cell(row=1, column=idx, value=h)
+        logger.info("처리 이력 시트 헤더 신규 생성")
+    else:
+        logger.info("처리 이력 시트 1행 유지")
+
+
+def ensure_summary_sheet_layout(ws):
+    ws["A1"] = "프로젝트 코드"
+    ws["B1"] = "수행연도"
+    ws["C1"] = "구분"
+    ws["D1"] = "’26년 목표"
+    ws["E1"] = "’26년 목표"
+    ws["F1"] = "’26년 실적"
+    ws["G1"] = "’25년 실적"
+    ws["H1"] = "비고"
+
+    ws["A2"] = "E111600126020001"
+    ws["B2"] = "2026년"
+    ws["C2"] = "교육 만족도 (NPS)"
+
+    ws["A3"] = "E111600126020001"
+    ws["B3"] = "2026년"
+    ws["C3"] = "그룹 연구개발 2030 전략기술 관련 과정 개발 (과정 건수)"
+
+    ws["A4"] = "E111600126020001"
+    ws["B4"] = "2026년"
+    ws["C4"] = "그룹 연구개발 2030 전략기술 관련 과정 개발 (교육 내용 구성 적절성)"
+
+    ws["A5"] = "E111600126020001"
+    ws["B5"] = "2026년"
+    ws["C5"] = "본부별/그룹사별 특화 교육체계 구축 (프로젝트 건수)"
+
+    ws["A6"] = "E111600126020001"
+    ws["B6"] = "2026년"
+    ws["C6"] = "그룹 내 AI 교육 확대 (고객사 건수)"
+
+    ws["A7"] = "E111600126020001"
+    ws["B7"] = "2026년"
+    ws["C7"] = "그룹 내 AI 교육 확대 (교육 내용 구성 적절성)"
+
+    ws["A8"] = "E111600126020001"
+    ws["B8"] = "2026년"
+    ws["C8"] = "정부지원 사업 및 신사업 확대 (매출액, 단위 : 억)"
+
+    ws["A9"] = "E111600126020001"
+    ws["B9"] = "2026년"
+    ws["C9"] = "정부지원 사업 및 신사업 확대 (신규/기존 사업 건수)"
+
+
+def append_history(ws, file_meta: Dict[str, str], status: str, message: str):
+    next_row = max(ws.max_row + 1, 2)
+    ws.cell(next_row, 1, file_meta["파일식별키"])
+    ws.cell(next_row, 2, file_meta["파일명"])
+    ws.cell(next_row, 3, file_meta["전체경로"])
+    ws.cell(next_row, 4, file_meta["최종수정일시"])
+    ws.cell(next_row, 5, file_meta["파일크기"])
+    ws.cell(next_row, 6, now_str())
+    ws.cell(next_row, 7, sanitize_excel_string(status))
+    ws.cell(next_row, 8, sanitize_excel_string(message))
+
+    logger.info(f"처리 이력 기록: 상태={status}, 메시지={message}")
+
+
+def find_existing_data_row(ws, key1: str, key2: str) -> Optional[int]:
+    for row_idx in range(2, ws.max_row + 1):
+        v1 = normalize_text(ws.cell(row=row_idx, column=1).value)
+        v2 = normalize_text(ws.cell(row=row_idx, column=2).value)
+        if v1 == key1 and v2 == key2:
+            return row_idx
+    return None
+
+
+def safe_cell_value(value):
+    if isinstance(value, str):
+        return sanitize_excel_string(value)
+    return value
+
+
+def upsert_data_rows(ws, rows: List[List]) -> Tuple[int, int]:
+    inserted = 0
+    updated = 0
+
+    for row_data in rows:
+        key1 = normalize_text(row_data[0])
+        key2 = normalize_text(row_data[1])
+        existing_row = find_existing_data_row(ws, key1, key2)
+
+        if existing_row is not None:
+            target_row = existing_row
+            updated += 1
+            logger.info(
+                f"기존 데이터 덮어쓰기: 행={target_row}, 프로젝트 코드={key1}, 수행연도={key2}"
+            )
+        else:
+            target_row = max(ws.max_row + 1, 2)
+            inserted += 1
+            logger.info(
+                f"신규 데이터 추가: 행={target_row}, 프로젝트 코드={key1}, 수행연도={key2}"
+            )
+
+        for col_idx, value in enumerate(row_data, start=1):
+            ws.cell(row=target_row, column=col_idx, value=safe_cell_value(value))
+
+    return inserted, updated
+
+
+# =========================================
+# KPI 집계 계산
+# =========================================
+def to_number_or_none(value):
+    """
+    집계용 숫자 판별:
+    - 숫자만 반영
+    - N, 공백, 특수문자, 일반 문자열은 제외
+    """
+    if value is None:
+        return None
+
+    if isinstance(value, (int, float)):
+        return float(value)
+
+    text = normalize_text(value)
+
+    if text in {"", "-", "N"}:
+        return None
+
+    text_no_comma = text.replace(",", "")
+
+    # 순수 숫자형만 허용
+    if re.fullmatch(r"[+-]?\d+(\.\d+)?", text_no_comma):
+        try:
+            return float(text_no_comma)
+        except ValueError:
+            return None
+
+    return None
+
+
+def get_numeric_values_from_column(ws, col_idx: int) -> List[float]:
+    values = []
+    for row_idx in range(2, ws.max_row + 1):
+        val = ws.cell(row=row_idx, column=col_idx).value
+        num = to_number_or_none(val)
+        if num is not None:
+            values.append(num)
+    return values
+
+
+def calc_sum(ws, col_idx: int):
+    values = get_numeric_values_from_column(ws, col_idx)
+    if not values:
+        return 0
+    return round(sum(values), 2)
+
+
+def calc_avg(ws, col_idx: int):
+    values = get_numeric_values_from_column(ws, col_idx)
+    if not values:
+        return 0
+    return round(sum(values) / len(values), 2)
+
+
+def calc_new_existing_count_text(ws, col_idx: int) -> str:
+    """
+    L열 / T열 전용
+    - 신규, 기존만 카운트
+    - 그 외 값은 무시
+    """
+    new_count = 0
+    existing_count = 0
+
+    for row_idx in range(2, ws.max_row + 1):
+        raw = ws.cell(row=row_idx, column=col_idx).value
+        text = normalize_text(raw)
+
+        if text == "신규":
+            new_count += 1
+        elif text == "기존":
+            existing_count += 1
+
+    return f"신규:{new_count}건/기존:{existing_count}건"
+
+
+def update_summary_sheet(summary_ws, data_ws):
+    """
+    취합 시트 기준으로 kpi 집계 시트를 항상 최신화
+    규칙:
+    - L열/T열 제외 나머지는 숫자만 반영
+    - L열/T열은 신규/기존만 카운트
+    """
+    ensure_summary_sheet_layout(summary_ws)
+
+    # E열 집계
+    summary_ws["E2"] = calc_avg(data_ws, 5)    # 취합 E열 평균
+    summary_ws["E3"] = calc_sum(data_ws, 6)    # 취합 F열 합계
+    summary_ws["E4"] = calc_avg(data_ws, 7)    # 취합 G열 평균
+    summary_ws["E5"] = calc_sum(data_ws, 8)    # 취합 H열 합계
+    summary_ws["E6"] = calc_sum(data_ws, 9)    # 취합 I열 합계
+    summary_ws["E7"] = calc_avg(data_ws, 10)   # 취합 J열 평균
+    summary_ws["E8"] = calc_sum(data_ws, 11)   # 취합 K열 합계
+    summary_ws["E9"] = calc_new_existing_count_text(data_ws, 12)  # 취합 L열
+
+    # F열 집계
+    summary_ws["F2"] = calc_avg(data_ws, 13)   # 취합 M열 평균
+    summary_ws["F3"] = calc_sum(data_ws, 14)   # 취합 N열 합계
+    summary_ws["F4"] = calc_avg(data_ws, 15)   # 취합 O열 평균
+    summary_ws["F5"] = calc_sum(data_ws, 16)   # 취합 P열 합계
+    summary_ws["F6"] = calc_sum(data_ws, 17)   # 취합 Q열 합계
+    summary_ws["F7"] = calc_avg(data_ws, 18)   # 취합 R열 평균
+    summary_ws["F8"] = calc_sum(data_ws, 19)   # 취합 S열 합계
+    summary_ws["F9"] = calc_new_existing_count_text(data_ws, 20)  # 취합 T열
+
+    logger.info("kpi 집계 시트 최신화 완료")
+
+
+# =========================================
+# 파일 선택 로직
+# =========================================
+def list_candidate_ppt_files_with_depth_limit(
+    root_dir: Path,
+    max_depth: int = MAX_SEARCH_DEPTH,
+    exclude_names: Optional[List[str]] = None
+) -> List[Path]:
+    r"""
+    깊이 제한 함수: max_depth까지만 재귀적으로 검색
+    """
+    exclude_names = exclude_names or []
+    files = []
+
+    logger.info(f"PPT 파일 검색 중... (경로: {root_dir}, 최대 깊이: {max_depth})")
+
+    def search_recursive(path: Path, current_depth: int):
+        if current_depth > max_depth:
+            logger.debug(f"깊이 초과로 검색 중단: {path} (깊이: {current_depth})")
+            return
+
+        try:
+            for item in path.iterdir():
+                if is_valid_ppt(item):
+                    if item.name not in exclude_names:
+                        files.append(item)
+                        logger.debug(f"PPT 파일 발견: {item}")
+                elif item.is_dir(follow_symlinks=False):
+                    try:
+                        search_recursive(item, current_depth + 1)
+                    except PermissionError:
+                        logger.warning(f"접근 불가: {item}")
+                    except Exception as e:
+                        logger.warning(f"폴더 검색 오류 {item}: {e}")
+        except PermissionError:
+            logger.warning(f"접근 불가: {path}")
+        except Exception as e:
+            logger.warning(f"검색 오류 {path}: {e}")
+
+    search_recursive(root_dir, 0)
+
+    logger.info(f"발견된 PPT 파일: {len(files)}개")
+    return files
+
+
+def get_all_target_files(
+    root_dir: Path,
+    exclude_names: Optional[List[str]] = None
+) -> List[Tuple[Path, Dict[str, str]]]:
+    candidates = list_candidate_ppt_files_with_depth_limit(
+        root_dir,
+        max_depth=MAX_SEARCH_DEPTH,
+        exclude_names=exclude_names
+    )
+
+    all_files = []
+
+    for file_path in candidates:
+        try:
+            meta = get_file_meta(file_path)
+            all_files.append((file_path, meta))
+        except Exception as e:
+            logger.exception(f"파일 메타 조회 실패: {file_path} / {e}")
+
+    all_files.sort(
+        key=lambda item: (item[0].stat().st_ctime, item[0].stat().st_mtime),
+        reverse=True
+    )
+    return all_files
+
+
+# =========================================
+# PowerPoint 처리
+# =========================================
+def get_slide_title(slide) -> str:
+    try:
+        if slide.shapes.title is not None:
+            return normalize_text(slide.shapes.title.text)
+    except Exception:
+        pass
+    return ""
+
+
+def slide_contains_keyword(slide, keyword: str) -> bool:
+    normalized_keyword = normalize_for_match(keyword)
+    title = get_slide_title(slide)
+    if normalized_keyword in normalize_for_match(title):
+        return True
+
+    for shape in slide.shapes:
+        try:
+            if hasattr(shape, "has_text_frame") and shape.has_text_frame:
+                shape_text = normalize_text(shape.text)
+                if normalized_keyword in normalize_for_match(shape_text):
+                    return True
+        except Exception:
+            continue
+
+    return False
+
+
+def get_first_table(slide):
+    for idx, shape in enumerate(slide.shapes, start=1):
+        try:
+            if shape.has_table:
+                logger.info(f"첫 번째 표 발견: shape index={idx}")
+                return shape.table
+        except Exception:
+            continue
+
+    logger.warning("슬라이드에서 표를 찾지 못했습니다.")
+    return None
+
+
+def get_table_text(table, row_1based: int, col_1based: int) -> str:
+    try:
+        return normalize_text(table.cell(row_1based - 1, col_1based - 1).text)
+    except Exception:
+        return ""
+
+
+def extract_record_from_table(
+    table,
+    source_file_name: str,
+    source_modified: str,
+    part_name: str,
+    report_stage: str
+) -> Optional[List]:
+    row_count = len(table.rows)
+    col_count = len(table.columns)
+
+    logger.info(f"표 크기 확인: rows={row_count}, cols={col_count}")
+
+    if row_count < END_ROW or col_count < max(DATA_COLS):
+        logger.warning(
+            f"표 구조 부족: 최소 rows={END_ROW}, cols={max(DATA_COLS)} 필요 / 실제 rows={row_count}, cols={col_count}"
+        )
+        return None
+
+    key1 = get_table_text(table, 2, 1)
+    key2 = get_table_text(table, 2, 2)
+
+    logger.info(
+        f"추출 키값 확인: 프로젝트 코드='{key1}', 수행연도='{key2}', 파트명='{part_name}', 보고단계='{report_stage}'"
+    )
+
+    if not key1 or not key2:
+        logger.warning("키값(2행 1열, 2행 2열)이 비어 있어 추출을 건너뜁니다.")
+        return None
+
+    row_values = [
+        key1,
+        key2,
+        sanitize_excel_string(part_name),
+        sanitize_excel_string(report_stage),
+    ]
+
+    for col in DATA_COLS:
+        for row in range(START_ROW, END_ROW + 1):
+            val = get_table_text(table, row, col)
+
+            if row in FLOAT_ROWS:
+                row_values.append(normalize_float_value(val))
+            else:
+                row_values.append(normalize_int_value(val))
+
+    row_values.append(sanitize_excel_string(source_file_name))
+    row_values.append(source_modified)
+    row_values.append(now_str())
+
+    logger.info(f"1개 표 -> 1개 행 변환 완료, 총 컬럼 수={len(row_values)}")
+    return row_values
+
+
+def extract_records_from_ppt(ppt_path: Path, file_meta: Dict[str, str]) -> List[List]:
+    if ppt_path.suffix.lower() == ".ppt":
+        raise ValueError(
+            f".ppt 형식은 python-pptx로 직접 처리할 수 없습니다: {ppt_path.name}\n"
+            f"먼저 .pptx로 변환 후 실행해주세요."
+        )
+
+    prs = Presentation(str(ppt_path))
+    extracted = []
+
+    logger.info(f"PowerPoint 열기: {ppt_path}")
+    logger.info(f"슬라이드 수: {len(prs.slides)}")
+
+    for slide_idx, slide in enumerate(prs.slides, start=1):
+        title_text = get_slide_title(slide)
+        logger.info(f"슬라이드 {slide_idx} 제목: {title_text}")
+
+        if not slide_contains_keyword(slide, TITLE_KEYWORD):
+            logger.info(f"슬라이드 {slide_idx}: KPI 키워드 불일치")
+            continue
+
+        logger.info(f"대상 슬라이드 발견: {slide_idx}")
+
+        table = get_first_table(slide)
+        if table is None:
+            logger.warning(f"슬라이드 {slide_idx}: 첫 번째 표를 찾지 못했습니다.")
+            continue
+
+        record = extract_record_from_table(
+            table=table,
+            source_file_name=file_meta["파일명"],
+            source_modified=file_meta["최종수정일시"],
+            part_name=file_meta["파트명"],
+            report_stage=file_meta["보고단계"]
+        )
+
+        if record:
+            extracted.append(record)
+            logger.info(f"슬라이드 {slide_idx}: 데이터 1건 추출")
+        else:
+            logger.warning(f"슬라이드 {slide_idx}: 표 구조 또는 키값 부족으로 건너뜀")
+
+    logger.info(f"총 추출 건수: {len(extracted)}")
+    return extracted
+
+
+# =========================================
+# 파일 1건 처리
+# =========================================
+def process_single_file(
+    ppt_path: Path,
+    file_meta: Dict[str, str],
+    data_ws,
+    history_ws
+) -> Tuple[bool, str, List[List]]:
+    try:
+        if ppt_path.suffix.lower() == ".ppt":
+            msg = ".ppt 형식은 직접 처리할 수 없습니다. .pptx로 변환 후 실행해주세요."
+            append_history(history_ws, file_meta, "실패", msg)
+            logger.error(msg)
+            return False, msg, []
+
+        records = extract_records_from_ppt(ppt_path, file_meta)
+
+        if not records:
+            msg = "조건에 맞는 슬라이드 또는 표 데이터를 찾지 못했습니다."
+            append_history(history_ws, file_meta, "처리완료", msg)
+            logger.info(msg)
+            return True, msg, []
+
+        msg = f"추출 {len(records)}건"
+        append_history(history_ws, file_meta, "처리완료", msg)
+
+        logger.info(f"파일 처리 완료: {ppt_path.name} / {msg}")
+        return True, msg, records
+
+    except Exception as e:
+        msg = str(e)
+        append_history(history_ws, file_meta, "실패", msg)
+        logger.exception(f"파일 처리 중 예외 발생: {ppt_path.name}")
+        return False, msg, []
+
+
+# =========================================
+# 메인 처리
+# =========================================
+def main():
+    logger.info("=== KPI PowerPoint 데이터 추출 작업 시작 ===")
+    logger.info(f"대상 디렉토리: {ROOT_DIR}")
+    logger.info(f"검색 깊이: {MAX_SEARCH_DEPTH}단계")
+    logger.info("처리 방식: 순차 처리(안정성 우선)")
+    logger.info("엑셀 1행 컬럼값은 현재 상태 유지")
+    logger.info("파일명 추출 항목: 파트명(C열), 보고단계(D열)")
+    logger.info("kpi 집계 시트는 추출 시마다 최신화 업데이트")
+    logger.info("집계 규칙: L/T열 제외 숫자만 반영, L/T열은 신규/기존만 카운트")
+
+    if not ROOT_DIR.exists():
+        logger.error(f"대상 폴더가 존재하지 않습니다: {ROOT_DIR}")
+        print(f"[ERROR] 대상 폴더가 존재하지 않습니다: {ROOT_DIR}")
+        return
+
+    excel_path = _DATA_DIR / TARGET_EXCEL_NAME
+
+    wb = load_or_create_workbook(excel_path)
+    data_ws = get_or_create_sheet(wb, DATA_SHEET_NAME)
+    history_ws = get_or_create_sheet(wb, HISTORY_SHEET_NAME)
+    summary_ws = get_or_create_sheet(wb, SUMMARY_SHEET_NAME)
+
+    ensure_history_sheet_if_empty(history_ws)
+    ensure_summary_sheet_layout(summary_ws)
+
+    all_target_files = get_all_target_files(
+        ROOT_DIR,
+        exclude_names=[TARGET_EXCEL_NAME]
+    )
+
+    logger.info(f"전체 대상 파일 수: {len(all_target_files)}")
+
+    if not all_target_files:
+        update_summary_sheet(summary_ws, data_ws)
+        wb.save(excel_path)
+        logger.info("처리할 PowerPoint 파일이 없습니다.")
+        print("[INFO] 처리할 PowerPoint 파일이 없습니다.")
+        return
+
+    total_success = 0
+    total_fail = 0
+    all_records = []
+
+    for ppt_path, file_meta in all_target_files:
+        logger.info(f"전체 추출 요청: {ppt_path.name}")
+        logger.info(f"파일 경로: {file_meta['전체경로']}")
+        logger.info(f"추출된 파트명: {file_meta['파트명']}")
+        logger.info(f"추출된 보고단계: {file_meta['보고단계']}")
+
+        success, message, records = process_single_file(
+            ppt_path=ppt_path,
+            file_meta=file_meta,
+            data_ws=data_ws,
+            history_ws=history_ws
+        )
+
+        if records:
+            all_records.extend(records)
+
+        if success:
+            total_success += 1
+        else:
+            total_fail += 1
+
+        wb.save(excel_path)
+
+    if all_records:
+        inserted, updated = upsert_data_rows(data_ws, all_records)
+        logger.info(f"전체 데이터 적재 완료: 신규 {inserted}건 / 덮어쓰기 {updated}건")
+
+    update_summary_sheet(summary_ws, data_ws)
+
+    wb.save(excel_path)
+
+    logger.info(f"전체 처리 결과: 성공 {total_success}건 / 실패 {total_fail}건")
+    logger.info(f"총 데이터 건수: {len(all_records)}건")
+    logger.info(f"저장 파일: {excel_path}")
+    logger.info("=== KPI PowerPoint 데이터 추출 작업 종료 ===")
+
+    print("[DONE] 작업 완료")
+    print(f" - 처리 성공 파일 수: {total_success}")
+    print(f" - 처리 실패 파일 수: {total_fail}")
+    print(f" - 총 데이터 건수: {len(all_records)}")
+    print(f" - 저장 파일: {excel_path}")
+    print(f" - 로그 파일: {_DATA_DIR / LOG_FILE_NAME}")
+
+
+if __name__ == "__main__":
+    main()

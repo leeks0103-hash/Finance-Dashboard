@@ -22,3 +22,12 @@ frontend/dist/
 Thumbs.db
 *.png
 *.jpg
+
+# 추출된 데이터 파일 (대용량 바이너리, git 제외)
+data/*.xlsx
+data/*.xls
+data/*.csv
+
+# 로그
+*.log
+scripts/*.log

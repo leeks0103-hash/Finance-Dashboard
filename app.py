@@ -30,20 +30,23 @@ class NumpyJSONProvider(DefaultJSONProvider):
 app = Flask(__name__)
 app.json = NumpyJSONProvider(app)  # M-1: 이중 등록 제거 (json_provider_class 라인 삭제)
 
+_BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+_DATA_DIR  = os.path.join(_BASE_DIR, "data")
+
 EXCEL_PATH = os.environ.get(
     "EXCEL_PATH",
-    r"C:\Users\aaa\Desktop\파이썬\재무관점 필수 데이터 추출.xlsx",
+    os.path.join(_DATA_DIR, "재무관점 필수 데이터 추출.xlsx"),
 )
 
 PERF_EXCEL_PATH = os.environ.get(
     "PERF_EXCEL_PATH",
-    r"C:\Users\aaa\Desktop\파이썬\26년 사업계획 통합관리 파일_ver7.7_260709_6월 실적 집계.xlsx",
+    os.path.join(_DATA_DIR, "26년 사업계획 통합관리 파일_ver7.7_260709_6월 실적 집계.xlsx"),
 )
 PERF_SHEET = "2026년 (6월 집계)"
 
 KPI_EXCEL_PATH = os.environ.get(
     "KPI_EXCEL_PATH",
-    r"C:\Users\aaa\Desktop\파이썬\KPI 지표 데이터 추출.xlsx",
+    os.path.join(_DATA_DIR, "KPI 지표 데이터 추출.xlsx"),
 )
 
 # 엑셀 실제 컬럼 (15개) — year·part 이미 포함
