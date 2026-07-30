@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { usePerformanceViewModel } from '@/hooks/viewmodels/usePerformanceViewModel';
-import { Spinner, ChartCard, BarChart, DataTable } from '@/components/ui';
+import { ChartCard, BarChart, DataTable } from '@/components/ui';
 import { perfColumns, PERF_HIDEABLE_COLS } from '@/components/features/PerformanceTable/columns';
 import { formatEok } from '@/utils';
 import styles from './PerformancePage.module.css';
@@ -25,9 +25,6 @@ const PerformancePage = () => {
       ),
     };
   }, [vm.projects]);
-
-  if (vm.isLoading) return <Spinner size="lg" fullPage label="실적 데이터 로딩 중…" />;
-  if (vm.isEmpty)   return <div className={styles.empty}>실적 데이터를 불러올 수 없습니다.</div>;
 
   return (
     <main className={styles.main}>

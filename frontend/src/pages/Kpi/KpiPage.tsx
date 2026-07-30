@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { createColumnHelper } from '@tanstack/react-table';
 import { useKpiPageViewModel } from '@/hooks/viewmodels/useKpiPageViewModel';
-import { Spinner, ChartCard, BarChart, DataTable, CopyText } from '@/components/ui';
+import { ChartCard, BarChart, DataTable, CopyText } from '@/components/ui';
 import type { HideableColumn } from '@/components/ui/DataTable';
 import type { KpiRawRow } from '@/types/kpi.types';
 import type { KpiSummaryRow } from '@/hooks/viewmodels/useKpiPageViewModel';
@@ -68,8 +68,6 @@ const KpiPage = () => {
     const code = row['프로젝트코드'] ?? row['수행연도'] ?? row['파트명'];
     return code != null && String(code).trim() !== '' ? String(code) : undefined;
   };
-
-  if (vm.isLoading) return <Spinner size="lg" fullPage label="KPI 데이터 로딩 중…" />;
 
   if (!vm.available) {
     return (

@@ -6,7 +6,7 @@ interface Props {
   label?: string;
 }
 
-const Spinner = ({ size = 'md', fullPage = false, label = '로딩 중…' }: Props) => (
+const Spinner = ({ size = 'lg', fullPage = true, label = '로딩 중…' }: Props) => (
   <div className={`${styles.wrap} ${fullPage ? styles.fullPage : ''}`} role="status" aria-label={label}>
     <div className={`${styles.ring} ${styles[size]}`} />
     {label && <span className={styles.label}>{label}</span>}

@@ -1,8 +1,7 @@
-import { lazy, Suspense } from 'react';
+import { lazy } from 'react';
 import { FilterBar } from '@/layouts/FilterBar';
 import { PerformanceFilterBar } from '@/layouts/PerformanceFilterBar';
-import { Spinner, TabNav } from '@/components/ui';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { TabNav } from '@/components/ui';
 import { useChartTheme } from '@/hooks';
 import { useTabStore } from '@/store/tab.store';
 
@@ -20,20 +19,12 @@ const TabLayout = () => {
 
   return (
     <>
-      {/* 탭 네비게이션 — sticky (navbar 바로 아래 고정) */}
       <TabNav active={activeTab} onChange={setTab} />
-
-      {/* 탭별 필터바 — FilterBar와 동일한 레벨로 sticky */}
       {activeTab === 'finance'     && <FilterBar />}
       {activeTab === 'performance' && <PerformanceFilterBar />}
-
-      <ErrorBoundary>
-        <Suspense fallback={<Spinner size="lg" fullPage label="로딩 중…" />}>
-          {activeTab === 'finance'     && <FinancePage />}
-          {activeTab === 'kpi'         && <KpiPage />}
-          {activeTab === 'performance' && <PerformancePage />}
-        </Suspense>
-      </ErrorBoundary>
+      {activeTab === 'finance'     && <FinancePage />}
+      {activeTab === 'kpi'         && <KpiPage />}
+      {activeTab === 'performance' && <PerformancePage />}
     </>
   );
 };
