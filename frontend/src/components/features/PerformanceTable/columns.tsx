@@ -56,7 +56,7 @@ export const perfColumns = [
   h.accessor('cost_overhead',     { header: '공통원가',  cell: i => eok(i.getValue()) }),
   h.accessor('cost_mgmt',         { header: '관리비',    cell: i => eok(i.getValue()) }),
   h.accessor('operating_profit',  { header: '경상손익',  enableSorting: true, cell: i => eok(i.getValue()) }),
-  h.accessor('profit_rate',       { header: '손익률',    enableSorting: true, cell: i => i.getValue() ? `${(i.getValue() as number).toFixed(1)}%` : '-' }),
+  h.accessor('profit_rate',       { header: '손익률',    enableSorting: true, cell: i => i.getValue() ? `${(Math.round((i.getValue() as number) * 100) / 100).toFixed(2)}%` : '-' }),
   // 6월 점검 — 월별 상세는 차트에서 표시하므로 연간합계만
   h.accessor('jun_check_total', { header: '6월 점검 연간', cell: i => eok(i.getValue()) }),
   h.accessor('chk_cost_rate',   { header: '점검원가율', cell: i => pct(i.getValue()) }),
