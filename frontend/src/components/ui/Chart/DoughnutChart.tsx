@@ -60,7 +60,7 @@ const DoughnutChart = ({
         },
         tooltip: {
           callbacks: {
-            label: (ctx) => `${ctx.label}: ${(ctx.parsed as number).toFixed(2)}억원`,
+            label: (ctx) => `${ctx.label}: ${(ctx.parsed as number).toFixed(1)}억원`,
           },
         },
         datalabels: {

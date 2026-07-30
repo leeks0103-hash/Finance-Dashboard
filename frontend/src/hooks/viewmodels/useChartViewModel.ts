@@ -113,12 +113,12 @@ export const useChartViewModel = (labelColor: string): ChartViewModel => {
       isEmpty: parts.length === 0,
       revExp: {
         labels:   parts,
-        revenues: parts.map(p => +(data.by_part[p].revenue / 1e8).toFixed(2)),
-        profits:  parts.map(p => +(data.by_part[p].profit  / 1e8).toFixed(2)),
+        revenues: parts.map(p => +(data.by_part[p].revenue / 1e8).toFixed(1)),
+        profits:  parts.map(p => +(data.by_part[p].profit  / 1e8).toFixed(1)),
       },
       costBreakdown: {
         labels: ['직접원가', '직접인건비', '공통원가/관리비'],
-        values: [cb.direct_cost, cb.labor_cost, cb.overhead].map(v => +(v / 1e8).toFixed(2)),
+        values: [cb.direct_cost, cb.labor_cost, cb.overhead].map(v => +(v / 1e8).toFixed(1)),
       },
       profitRate: {
         labels:   parts,
@@ -130,8 +130,8 @@ export const useChartViewModel = (labelColor: string): ChartViewModel => {
       },
       yearTrend: {
         labels:   years,
-        revenues: years.map(y => +(byYear[y].revenue / 1e8).toFixed(2)),
-        profits:  years.map(y => +(byYear[y].profit  / 1e8).toFixed(2)),
+        revenues: years.map(y => +(byYear[y].revenue / 1e8).toFixed(1)),
+        profits:  years.map(y => +(byYear[y].profit  / 1e8).toFixed(1)),
         rates:    years.map(y => {
           const rev = byYear[y].revenue;
           return rev === 0 ? 0 : +(byYear[y].profit / rev * 100).toFixed(1);

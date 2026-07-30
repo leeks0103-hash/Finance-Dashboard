@@ -42,7 +42,7 @@ export const perfColumns = [
   h.accessor('jun_est_rate',   { header: '6월 추정율',  cell: i => pct(i.getValue()) }),
   h.accessor('jun_actual',     { header: '6월 실적',    enableSorting: true, cell: i => eok(i.getValue()) }),
   h.accessor('jun_cost_rate',  { header: '6월 원가율',  cell: i => pct(i.getValue()) }),
-  h.accessor('cost_rate_diff', { header: '원가율 차이', cell: i => i.getValue() ? (i.getValue() as number).toFixed(3) : '-' }),
+  h.accessor('cost_rate_diff', { header: '원가율 차이', cell: i => i.getValue() ? `${((i.getValue() as number) * 100).toFixed(1)}%p` : '-' }),
   h.accessor('est_vs_actual',  { header: '추정 대비',   cell: i => eok(i.getValue()) }),
   h.accessor('cost_rate_reason',{ header: '원가율 사유' }),
   // 차이분석
