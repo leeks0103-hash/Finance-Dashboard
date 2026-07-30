@@ -7,6 +7,7 @@ export interface Filters {
 }
 
 export interface Project {
+  _row_num:     number;
   project_code: string;
   year: string;
   part: string;

@@ -340,8 +340,10 @@ def api_data():
     except (ValueError, TypeError):
         page, page_size = 1, 30
 
-    start = (page - 1) * page_size
-    return jsonify({"data": df.iloc[start:start + page_size].to_dict(orient="records"), "total": total})
+    start  = (page - 1) * page_size
+    paged  = df.iloc[start:start + page_size].copy()
+    paged["_row_num"] = range(start, start + len(paged))   # 전역 행 번호 (페이지 통틀어 유일)
+    return jsonify({"data": paged.to_dict(orient="records"), "total": total})
 
 
 @app.route("/api/summary")

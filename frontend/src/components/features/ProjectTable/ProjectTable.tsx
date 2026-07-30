@@ -36,7 +36,7 @@ const ProjectTable = () => {
     <DataTable
       data={vm.rows}
       columns={columns}
-      getRowId={(row) => `${row.project_code}-${row.stage}`}
+      getRowId={(row) => String(row._row_num)}
       stickyFirstCol
       title="프로젝트 재무 상세"
       isLoading={vm.isLoading}
