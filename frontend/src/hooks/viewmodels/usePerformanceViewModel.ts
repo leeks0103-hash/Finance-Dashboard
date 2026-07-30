@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from 'react';
+import { useMemo } from 'react';
 import { usePerformanceSummary } from '@/hooks/usePerformanceSummary';
 import { usePerformanceData } from '@/hooks/usePerformanceData';
 import { usePerformanceOptions } from '@/hooks/usePerformanceData';
@@ -52,8 +52,8 @@ export interface PerformanceViewModel {
   chartLabels:  string[];
   chartDatasets: PerfChartDataset[];
   projects:     PerfProject[];
-  /** 프로젝트 상세 합계 행 — pages/에서 직접 reduce 금지 */
-  footer:       Record<string, ReactNode> | undefined;
+  /** 프로젝트 상세 합계 행 집계값 — JSX 렌더링은 pages/ 담당 */
+  footerData:   { planInitial: string; junActual: string; opProfit: string; isLoss: boolean } | undefined;
   parts:        string[];
   selectedParts: string[];
   togglePart:   (part: string) => void;
@@ -166,21 +166,17 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
     },
   ], [monthly]);
 
-  // 프로젝트 상세 합계 — 집계 로직은 ViewModel 책임
-  const footer = useMemo((): Record<string, ReactNode> | undefined => {
+  // 프로젝트 상세 합계 — 집계만 담당, JSX 렌더링은 pages/ 책임
+  const footerData = useMemo(() => {
     if (!projects.length) return undefined;
-    const plan      = projects.reduce((s, r) => s + r.plan_initial, 0);
-    const junAct    = projects.reduce((s, r) => s + r.jun_actual, 0);
-    const opProfit  = projects.reduce((s, r) => s + r.operating_profit, 0);
+    const plan     = projects.reduce((s, r) => s + r.plan_initial, 0);
+    const junAct   = projects.reduce((s, r) => s + r.jun_actual, 0);
+    const opProfit = projects.reduce((s, r) => s + r.operating_profit, 0);
     return {
-      project_code:     <span style={{ fontWeight: 700 }}>합계</span>,
-      plan_initial:     formatEok(plan),
-      jun_actual:       formatEok(junAct),
-      operating_profit: (
-        <span style={{ color: opProfit < 0 ? 'var(--loss)' : 'var(--profit)', fontWeight: 600 }}>
-          {formatEok(opProfit)}
-        </span>
-      ),
+      planInitial: formatEok(plan),
+      junActual:   formatEok(junAct),
+      opProfit:    formatEok(opProfit),
+      isLoss:      opProfit < 0,
     };
   }, [projects]);
 
@@ -193,7 +189,7 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
     chartLabels,
     chartDatasets,
     projects,
-    footer,
+    footerData,
     parts:        options?.parts ?? [],
     selectedParts,
     togglePart,
