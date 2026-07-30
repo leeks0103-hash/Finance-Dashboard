@@ -3,6 +3,7 @@ export interface KpiSummaryItem {
   agg:          'sum' | 'avg';
   target_2026:  number;
   actual_2026:  number;
+  prev_actual:  number;   // 25년 실적 (PJ유사 컬럼 집계)
   achieve_rate: number | null;
 }
 

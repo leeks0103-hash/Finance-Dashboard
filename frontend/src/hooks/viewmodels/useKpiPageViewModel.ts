@@ -24,6 +24,7 @@ export interface KpiSummaryRow {
   targetStr:   string;
   targetNum:   number;
   actual:      string;
+  prevActual:  string;
   achieveRate: string;
   isGood:      boolean;
 }
@@ -82,7 +83,8 @@ export const useKpiPageViewModel = (): KpiPageViewModel => {
       agg:        it.agg === 'sum' ? '합계' : '평균',
       targetStr:  typeof it.target_2026 === 'number' ? fmtNum(it.target_2026) : String(it.target_2026),
       targetNum:  typeof it.target_2026 === 'number' ? it.target_2026 : 0,
-      actual:     fmtNum(it.actual_2026),
+      actual:     it.actual_2026 ? fmtNum(it.actual_2026) : '-',
+      prevActual: it.prev_actual  ? fmtNum(it.prev_actual)  : '-',
       achieveRate: it.achieve_rate !== null && it.achieve_rate !== undefined ? `${it.achieve_rate}%` : '-',
       isGood: (it.achieve_rate ?? 0) >= 100,
     })),

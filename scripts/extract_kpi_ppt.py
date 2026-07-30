@@ -448,34 +448,46 @@ def calc_new_existing_count_text(ws, col_idx: int) -> str:
 
 def update_summary_sheet(summary_ws, data_ws):
     """
-    취합 시트 기준으로 kpi 집계 시트를 항상 최신화
-    규칙:
-    - L열/T열 제외 나머지는 숫자만 반영
-    - L열/T열은 신규/기존만 카운트
+    취합 시트 기준으로 kpi 집계 시트 최신화.
+    컬럼 매핑:
+      E열 = 26년 목표 집계  (취합 col 5~12  : PJ목표)
+      F열 = 26년 실적 집계  (취합 col 13~20 : PJ실적)
+      G열 = 25년 실적 집계  (취합 col 21~28 : PJ유사)
+    신규/기존 형식(col 12, 20, 28)은 별도 카운트 텍스트로 기록.
     """
     ensure_summary_sheet_layout(summary_ws)
 
-    # E열 집계
-    summary_ws["E2"] = calc_avg(data_ws, 5)    # 취합 E열 평균
-    summary_ws["E3"] = calc_sum(data_ws, 6)    # 취합 F열 합계
-    summary_ws["E4"] = calc_avg(data_ws, 7)    # 취합 G열 평균
-    summary_ws["E5"] = calc_sum(data_ws, 8)    # 취합 H열 합계
-    summary_ws["E6"] = calc_sum(data_ws, 9)    # 취합 I열 합계
-    summary_ws["E7"] = calc_avg(data_ws, 10)   # 취합 J열 평균
-    summary_ws["E8"] = calc_sum(data_ws, 11)   # 취합 K열 합계
-    summary_ws["E9"] = calc_new_existing_count_text(data_ws, 12)  # 취합 L열
+    # ── E열: 26년 목표 (PJ목표, col 5~12) ─────────────────
+    summary_ws["E2"] = calc_avg(data_ws, 5)
+    summary_ws["E3"] = calc_sum(data_ws, 6)
+    summary_ws["E4"] = calc_avg(data_ws, 7)
+    summary_ws["E5"] = calc_sum(data_ws, 8)
+    summary_ws["E6"] = calc_sum(data_ws, 9)
+    summary_ws["E7"] = calc_avg(data_ws, 10)
+    summary_ws["E8"] = calc_sum(data_ws, 11)
+    summary_ws["E9"] = calc_new_existing_count_text(data_ws, 12)
 
-    # F열 집계
-    summary_ws["F2"] = calc_avg(data_ws, 13)   # 취합 M열 평균
-    summary_ws["F3"] = calc_sum(data_ws, 14)   # 취합 N열 합계
-    summary_ws["F4"] = calc_avg(data_ws, 15)   # 취합 O열 평균
-    summary_ws["F5"] = calc_sum(data_ws, 16)   # 취합 P열 합계
-    summary_ws["F6"] = calc_sum(data_ws, 17)   # 취합 Q열 합계
-    summary_ws["F7"] = calc_avg(data_ws, 18)   # 취합 R열 평균
-    summary_ws["F8"] = calc_sum(data_ws, 19)   # 취합 S열 합계
-    summary_ws["F9"] = calc_new_existing_count_text(data_ws, 20)  # 취합 T열
+    # ── F열: 26년 실적 (PJ실적, col 13~20) ────────────────
+    summary_ws["F2"] = calc_avg(data_ws, 13)
+    summary_ws["F3"] = calc_sum(data_ws, 14)
+    summary_ws["F4"] = calc_avg(data_ws, 15)
+    summary_ws["F5"] = calc_sum(data_ws, 16)
+    summary_ws["F6"] = calc_sum(data_ws, 17)
+    summary_ws["F7"] = calc_avg(data_ws, 18)
+    summary_ws["F8"] = calc_sum(data_ws, 19)
+    summary_ws["F9"] = calc_new_existing_count_text(data_ws, 20)
 
-    logger.info("kpi 집계 시트 최신화 완료")
+    # ── G열: 25년 실적 (PJ유사, col 21~28) ────────────────
+    summary_ws["G2"] = calc_avg(data_ws, 21)
+    summary_ws["G3"] = calc_sum(data_ws, 22)
+    summary_ws["G4"] = calc_avg(data_ws, 23)
+    summary_ws["G5"] = calc_sum(data_ws, 24)
+    summary_ws["G6"] = calc_sum(data_ws, 25)
+    summary_ws["G7"] = calc_avg(data_ws, 26)
+    summary_ws["G8"] = calc_sum(data_ws, 27)
+    summary_ws["G9"] = calc_new_existing_count_text(data_ws, 28)
+
+    logger.info("kpi 집계 시트 최신화 완료 (목표/실적/유사 3개 열)")
 
 
 # =========================================

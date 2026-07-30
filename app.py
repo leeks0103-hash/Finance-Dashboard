@@ -1092,22 +1092,42 @@ def get_kpi_df() -> pd.DataFrame:
 
 def _load_kpi_items_from_cache() -> list:
     """캐시된 _kpi_agg_df(kpi 집계)에서 KPI 항목 로드.
-    - iloc[2]: 항목명(C열), iloc[4]: 26년 목표(E열)
-    - 빈 행(항목명 null/공백)은 skip — while True + break 패턴 제거
+    컬럼명 기반으로 항목명과 목표값을 찾아 처리.
+    - '구분' 컬럼 → 항목명
+    - '26년 목표' 계열에서 숫자 값이 있는 컬럼 → 목표
+    pandas는 '-'를 NaN으로 파싱하므로 위치 기반(iloc) 대신 컬럼명 기반으로 처리.
     """
     if _kpi_agg_df.empty:
         return []
 
+    cols = list(_kpi_agg_df.columns)
+
+    # 항목명 컬럼: '구분' 또는 유사 이름
+    name_col = next((c for c in cols if "구분" in str(c)), None)
+    if name_col is None:
+        logger.warning("_load_kpi_items: '구분' 컬럼 없음. 헤더: %s", cols)
+        return []
+
+    # 목표 컬럼: '26년 목표' 계열 중 숫자 또는 문자열 값이 있는 컬럼
+    target_col_candidates = [c for c in cols if "목표" in str(c)]
+    target_col = None
+    for c in target_col_candidates:
+        if _kpi_agg_df[c].notna().any():
+            target_col = c
+            break
+    if target_col is None and target_col_candidates:
+        target_col = target_col_candidates[0]
+
     items = []
     for _, row in _kpi_agg_df.iterrows():
-        name_val = row.iloc[2] if len(row) > 2 else None
+        name_val = row[name_col] if name_col else None
         if name_val is None or (isinstance(name_val, float) and np.isnan(name_val)):
-            continue                     # 빈 행 skip
+            continue
         name = str(name_val).strip()
         if not name:
             continue
 
-        target_val = row.iloc[4] if len(row) > 4 else None
+        target_val = row[target_col] if target_col else None
         agg = "sum" if "건수" in name else "avg"
 
         if isinstance(target_val, str) and target_val.strip():
@@ -1122,42 +1142,33 @@ def _load_kpi_items_from_cache() -> list:
     return items
 
 
-def _calc_kpi_actuals_from_cache(kpi_items: list) -> list:
-    """캐시된 _kpi_raw_df(취합)에서 KPI 실적 계산.
-    - 공백 정규화 후 'PJ실적' 포함 컬럼을 이름 기반으로 찾아 매핑
-    - 컬럼을 찾지 못하면 경고 로그 후 0.0 반환
-    - re.search 결과 None 체크로 AttributeError 방지
+def _aggregate_kpi_col(kpi_items: list, col_keyword: str) -> list:
+    """취합 시트에서 col_keyword 포함 컬럼들을 KPI 항목 순서대로 집계.
+    - 'PJ실적' → 26년 실적, 'PJ유사' → 25년 실적(비교년도)
+    - 신규/기존 형식은 신규 건수만 추출
     """
     if _kpi_raw_df.empty:
         return [0.0] * len(kpi_items)
 
-    # 공백 정규화 후 'PJ실적' 포함 컬럼 추출 (스페이스·전각 공백 허용)
-    actual_cols = [
+    target_cols = [
         c for c in _kpi_raw_df.columns
-        if "PJ실적" in re.sub(r"\s+", "", str(c))
+        if col_keyword in re.sub(r"\s+", "", str(c))
     ]
 
-    if not actual_cols:
-        logger.warning(
-            "_calc_kpi_actuals: 'PJ실적' 컬럼을 찾지 못했습니다. "
-            "취합 시트 헤더 확인 필요. 현재 헤더: %s",
-            list(_kpi_raw_df.columns[:10])
-        )
+    if not target_cols:
+        logger.warning("_aggregate_kpi_col: '%s' 컬럼 없음. 헤더: %s",
+                       col_keyword, list(_kpi_raw_df.columns[:10]))
         return [0.0] * len(kpi_items)
 
-    if len(actual_cols) != len(kpi_items):
-        logger.warning(
-            "_calc_kpi_actuals: 'PJ실적' 컬럼 수(%d)가 KPI 항목 수(%d)와 다릅니다.",
-            len(actual_cols), len(kpi_items)
-        )
+    if len(target_cols) != len(kpi_items):
+        logger.warning("_aggregate_kpi_col: '%s' 컬럼 수(%d) ≠ KPI 항목 수(%d)",
+                       col_keyword, len(target_cols), len(kpi_items))
 
-    actuals = []
+    result = []
     for i, kpi in enumerate(kpi_items):
-        col = actual_cols[i] if i < len(actual_cols) else None
-        agg = kpi["agg"]
-
+        col = target_cols[i] if i < len(target_cols) else None
         if col is None:
-            actuals.append(0.0)
+            result.append(0.0)
             continue
 
         values = []
@@ -1167,14 +1178,11 @@ def _calc_kpi_actuals_from_cache(kpi_items: list) -> list:
             val_str = str(raw_val).strip()
             if not val_str or val_str in ("0", "0.0", "nan"):
                 continue
-
-            # 신규/기존 건수 형식 처리
             if "신규" in val_str:
                 m = re.search(r"신규\s*:\s*(\d+)건", val_str)
-                if m:                              # AttributeError 방지: None 체크
+                if m:
                     values.append(float(m.group(1)))
                 continue
-
             try:
                 f = float(val_str.replace(",", ""))
                 if np.isfinite(f) and f != 0:
@@ -1183,13 +1191,23 @@ def _calc_kpi_actuals_from_cache(kpi_items: list) -> list:
                 pass
 
         if not values:
-            actuals.append(0.0)
-        elif agg == "sum":
-            actuals.append(round(sum(values), 2))
+            result.append(0.0)
+        elif kpi["agg"] == "sum":
+            result.append(round(sum(values), 2))
         else:
-            actuals.append(round(sum(values) / len(values), 2))
+            result.append(round(sum(values) / len(values), 2))
 
-    return actuals
+    return result
+
+
+def _calc_kpi_actuals_from_cache(kpi_items: list) -> list:
+    """26년 실적 집계 (PJ실적 컬럼)"""
+    return _aggregate_kpi_col(kpi_items, "PJ실적")
+
+
+def _calc_kpi_prev_from_cache(kpi_items: list) -> list:
+    """25년 실적 집계 (PJ유사 컬럼 — 비교연도 실적)"""
+    return _aggregate_kpi_col(kpi_items, "PJ유사")
 
 
 @app.route("/api/kpi/data")
@@ -1230,13 +1248,15 @@ def api_kpi_summary():
         return jsonify({"available": False, "message": "kpi 집계 시트를 읽을 수 없습니다."})
 
     try:
-        kpi_items = _load_kpi_items_from_cache()   # 캐시 재활용, 파일 재열기 없음
-        actuals   = _calc_kpi_actuals_from_cache(kpi_items)  # 캐시 재활용
+        kpi_items = _load_kpi_items_from_cache()
+        actuals   = _calc_kpi_actuals_from_cache(kpi_items)  # 26년 실적 (PJ실적)
+        prevs     = _calc_kpi_prev_from_cache(kpi_items)     # 25년 실적 (PJ유사)
 
         result = []
         for i, kpi in enumerate(kpi_items):
-            target = kpi["target"]
-            actual = actuals[i] if i < len(actuals) else 0.0
+            target   = kpi["target"]
+            actual   = actuals[i] if i < len(actuals) else 0.0
+            prev     = prevs[i]   if i < len(prevs)   else 0.0
 
             if isinstance(target, str):
                 achieve    = None
@@ -1244,18 +1264,18 @@ def api_kpi_summary():
             else:
                 target_num = float(target)
                 target_out = target_num
-                # Fix: 0.0 목표는 falsy가 아닌 명시적 None 비교로 처리
                 if target_num != 0:
                     achieve = round(actual / target_num * 100, 1)
                 else:
-                    achieve = 0.0  # 목표 0 → 달성률 0%
+                    achieve = 0.0
 
             result.append({
-                "name":         kpi["name"],
-                "agg":          kpi["agg"],
-                "target_2026":  target_out,
-                "actual_2026":  actual,
-                "achieve_rate": achieve,
+                "name":          kpi["name"],
+                "agg":           kpi["agg"],
+                "target_2026":   target_out,
+                "actual_2026":   actual,
+                "prev_actual":   prev,       # 25년 실적 (PJ유사)
+                "achieve_rate":  achieve,
             })
 
         return jsonify({"available": True, "items": result})

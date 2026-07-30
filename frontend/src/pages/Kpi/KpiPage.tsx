@@ -122,7 +122,11 @@ const KpiPage = () => {
                   <div className={styles.kpiValue}>{row.targetStr}</div>
                 </div>
                 <div className={styles.kpiMeta}>
-                  <div className={styles.kpiLabel}>실적</div>
+                  <div className={styles.kpiLabel}>25년 실적</div>
+                  <div className={styles.kpiValue}>{row.prevActual}</div>
+                </div>
+                <div className={styles.kpiMeta}>
+                  <div className={styles.kpiLabel}>26년 실적</div>
                   <div className={styles.kpiValue}>{row.actual}</div>
                 </div>
                 <div className={styles.kpiAchieve}>
