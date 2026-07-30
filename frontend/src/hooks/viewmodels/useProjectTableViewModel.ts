@@ -1,7 +1,5 @@
-import { useState, useCallback, useMemo } from 'react';
-import { type SortingState } from '@tanstack/react-table';
+import { useCallback, useMemo } from 'react';
 import { useProjects } from '@/hooks/useProjects';
-import { useDebouncedSearch } from '@/hooks/useDebouncedSearch';
 import { formatBillion, formatRate } from '@/utils';
 import type { Project } from '@/types';
 
@@ -16,37 +14,19 @@ export interface TableSummary {
   count:           number;
 }
 
+// DataTable이 정렬·검색·페이지네이션을 내부에서 관리하므로
+// ViewModel은 데이터·합계·행 변형 판단만 담당
 export interface ProjectTableViewModel {
-  data:            Project[];
-  isLoading:       boolean;
-  isFetching:      boolean;
-  busy:            boolean;
-  sorting:         SortingState;
-  onSortingChange: React.Dispatch<React.SetStateAction<SortingState>>;
-  globalFilter:    string;
-  onFilterChange:  React.Dispatch<React.SetStateAction<string>>;
-  inputValue:      string;
-  handleSearch:    (e: React.ChangeEvent<HTMLInputElement>) => void;
-  clearSearch:     () => void;
-  summary:         TableSummary;
-  getRowVariant:   (row: Project) => 'loss' | 'warn' | '';
-  getPageLabel:    (pageIndex: number, pageCount: number) => string;
-  getPageNumbers:  (currentPage: number, totalPages: number, windowSize?: number) => number[];
+  data:          Project[];
+  isLoading:     boolean;
+  isFetching:    boolean;
+  summary:       TableSummary;
+  getRowVariant: (row: Project) => 'loss' | 'warn' | '';
 }
 
 export const useProjectTableViewModel = (): ProjectTableViewModel => {
   const { data = [], isLoading, isFetching } = useProjects();
-  const [sorting, setSorting] = useState<SortingState>([]);
 
-  const {
-    inputValue,
-    debouncedValue: globalFilter,
-    handleChange: handleSearch,
-    reset: clearSearch,
-    setFilter,
-  } = useDebouncedSearch(350);
-
-  // 합계 행 — 서버 필터 기준 전체 합산
   const summary = useMemo((): TableSummary => {
     if (!data.length) return {
       revenue: '-', expenditure: '-', directCost: '-',
@@ -73,33 +53,11 @@ export const useProjectTableViewModel = (): ProjectTableViewModel => {
     data,
     isLoading,
     isFetching,
-    busy: isLoading || isFetching,
-    sorting,
-    onSortingChange: setSorting,
-    globalFilter,
-    onFilterChange:  setFilter,
-    inputValue,
-    handleSearch,
-    clearSearch,
     summary,
     getRowVariant: useCallback((row: Project): 'loss' | 'warn' | '' => {
       if (row.operating_profit < 0) return 'loss';
       if (row.profit_rate >= 0 && row.profit_rate < 5) return 'warn';
       return '';
     }, []),
-    getPageLabel: useCallback(
-      (pageIndex: number, pageCount: number): string =>
-        pageCount > 0 ? `${pageIndex + 1} / ${pageCount}` : '0 / 0',
-      []
-    ),
-    getPageNumbers: useCallback(
-      (currentPage: number, totalPages: number, windowSize = 5): number[] => {
-        if (totalPages <= windowSize) return Array.from({ length: totalPages }, (_, i) => i);
-        const half = Math.floor(windowSize / 2);
-        const start = Math.max(0, Math.min(currentPage - half, totalPages - windowSize));
-        return Array.from({ length: windowSize }, (_, i) => start + i);
-      },
-      []
-    ),
   };
 };

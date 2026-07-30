@@ -15,3 +15,5 @@ export * from './ChartCard';
 export * from './Toggle';
 export * from './ScrollTop';
 export * from './CopyText';
+export * from './TabNav';
+export * from './DataTable';

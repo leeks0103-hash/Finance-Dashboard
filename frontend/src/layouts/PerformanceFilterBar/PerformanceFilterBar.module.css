@@ -1,0 +1,39 @@
+/* FilterBar와 동일한 레이아웃 — 네비바 + 탭바 아래에 sticky */
+.bar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  position: sticky;
+  top: calc(var(--navbar-height, 56px) + 48px); /* navbar + tabnav */
+  z-index: 88;
+  display: flex;
+  align-items: center;
+  height: 48px;
+  padding: 0 20px;
+  gap: 10px;
+}
+
+.label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-sub);
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding-right: 4px;
+  border-right: 1px solid var(--border);
+  margin-right: 4px;
+}
+
+.chips {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.chips::-webkit-scrollbar { display: none; }

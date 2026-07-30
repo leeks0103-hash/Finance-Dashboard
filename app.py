@@ -32,29 +32,43 @@ app.json = NumpyJSONProvider(app)  # M-1: 이중 등록 제거 (json_provider_cl
 
 EXCEL_PATH = os.environ.get(
     "EXCEL_PATH",
-    r"C:\Users\aaa\Desktop\기술교육실_프로젝트 보고서 수집\재무관점 필수 데이터 추출.xlsx",
+    r"C:\Users\aaa\Desktop\파이썬\재무관점 필수 데이터 추출.xlsx",
 )
 
-# 엑셀 실제 컬럼 (13개) — 구분=stage, year/part는 파일명에서 파생
-EXCEL_COLS = [
-    "project_code", "stage",
-    "revenue", "expenditure", "direct_cost", "labor_cost",
-    "overhead", "operating_profit", "profit_rate",
-    "note", "filename", "processed_at", "reflected_at",
-]
+PERF_EXCEL_PATH = os.environ.get(
+    "PERF_EXCEL_PATH",
+    r"C:\Users\aaa\Desktop\파이썬\26년 사업계획 통합관리 파일_ver7.7_260709_6월 실적 집계.xlsx",
+)
+PERF_SHEET = "2026년 (6월 집계)"
 
-# 내부 표준 컬럼 (year·part 파생 포함)
-COLUMNS = [
+KPI_EXCEL_PATH = os.environ.get(
+    "KPI_EXCEL_PATH",
+    r"C:\Users\aaa\Desktop\파이썬\KPI 지표 데이터 추출.xlsx",
+)
+
+# 엑셀 실제 컬럼 (15개) — year·part 이미 포함
+EXCEL_COLS = [
     "project_code", "year", "part", "stage",
     "revenue", "expenditure", "direct_cost", "labor_cost",
     "overhead", "operating_profit", "profit_rate",
     "note", "filename", "processed_at", "reflected_at",
 ]
 
+# 내부 표준 컬럼 (EXCEL_COLS와 동일)
+COLUMNS = EXCEL_COLS
+
 _cached_df: pd.DataFrame = pd.DataFrame()
 _last_loaded = None
 _cache_lock = threading.Lock()  # C-1: 스레드 안전성
 _last_correction_count = 0
+
+_perf_cached_df: pd.DataFrame = pd.DataFrame()
+_perf_last_loaded = None
+_perf_cache_lock = threading.Lock()
+
+_kpi_cached_df: pd.DataFrame = pd.DataFrame()
+_kpi_last_loaded = None
+_kpi_cache_lock = threading.Lock()
 
 
 def _sample_df() -> pd.DataFrame:
@@ -118,30 +132,49 @@ def load_excel():
         _last_loaded = datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " [샘플]"
         return _cached_df
 
-    # 실제 엑셀: 13컬럼
-    df = pd.read_excel(EXCEL_PATH, sheet_name="취합", header=0, usecols=range(13))
+    # 실제 엑셀: 15컬럼 (year·part 포함)
+    # usecols 없이 전체 로드 후 컬럼 수 검증 — 구형 13컬럼 파일 감지
+    df_all = pd.read_excel(EXCEL_PATH, sheet_name="취합", header=0)
+    actual_cols = df_all.shape[1]
+
+    if actual_cols < len(EXCEL_COLS):
+        # 구형 13컬럼 파일이면 샘플 대신 명확한 오류 반환
+        raise ValueError(
+            f"엑셀 컬럼 수 부족 (기대 {len(EXCEL_COLS)}개, 실제 {actual_cols}개). "
+            f"year·part 컬럼이 추가된 최신 추출 스크립트로 재추출 필요. "
+            f"헤더: {list(df_all.columns[:5])}"
+        )
+
+    df = df_all.iloc[:, :len(EXCEL_COLS)]
 
     if df.shape[1] != len(EXCEL_COLS):
         raise ValueError(f"엑셀 컬럼 수 불일치: 기대 {len(EXCEL_COLS)}, 실제 {df.shape[1]}")
 
     df.columns = EXCEL_COLS
     df = df[df["project_code"].notna() & (df["project_code"].astype(str).str.strip() != "")]
-    # 임시·미정 코드 행 제거 — 메인 테이블·요약 API 모두에서 제외
     df = df[df["project_code"].astype(str).apply(_is_valid_code)]
 
-    # 날짜 먼저 파싱 (year 파생에 사용)
+    # year: 엑셀 값 우선, 없으면 파일명에서 파생
+    df["year"] = df["year"].astype(str).str.strip()
+    mask_no_year = df["year"].isin(["", "nan", "None"])
+    if mask_no_year.any():
+        df.loc[mask_no_year, "year"] = df.loc[mask_no_year].apply(
+            lambda r: _extract_year(r["filename"], r["reflected_at"]), axis=1
+        )
+
+    # part: 엑셀 값 우선, 없으면 파일명에서 파생
+    df["part"] = df["part"].astype(str).str.strip()
+    mask_no_part = df["part"].isin(["", "nan", "None"])
+    if mask_no_part.any():
+        df.loc[mask_no_part, "part"] = df.loc[mask_no_part, "filename"].apply(_extract_part)
+
+    # 날짜 파싱
     for col in ["processed_at", "reflected_at"]:
         df[col] = (
             pd.to_datetime(df[col], errors="coerce")
             .dt.strftime("%Y-%m-%d")
             .fillna("")
         )
-
-    # year · part 파생
-    df["year"] = df.apply(
-        lambda r: _extract_year(r["filename"], r["reflected_at"]), axis=1
-    )
-    df["part"] = df["filename"].apply(_extract_part)
 
     # 숫자 컬럼 정규화
     num_cols = ["revenue", "expenditure", "direct_cost", "labor_cost",
@@ -642,6 +675,549 @@ def api_export_pdf():
         f'attachment; filename="report.pdf"; filename*=UTF-8\'\'{encoded_name}'
     )
     return response
+
+
+# ──────────────────────────────────────────────────────────────
+# 실적 데이터 (사업계획 통합관리 엑셀)
+# ──────────────────────────────────────────────────────────────
+
+# 열 인덱스(0-based) → 내부 필드명 (헤더는 12행, 데이터는 13행~)
+_PERF_COL_MAP = {
+    # ── 식별
+    1:  "tech_category",      # 미래기술 분류
+    2:  "team",               # 팀
+    3:  "part",               # 파트
+    4:  "use_yn",             # 사용여부
+    5:  "biz_division",       # 사업 분류
+    6:  "biz_type",           # 사업구분
+    7:  "customer_type",      # 고객구분
+    8:  "biz_plan",           # 사업계획
+    9:  "progress",           # 진행
+    10: "category",           # 구분(매출/원가)
+    11: "edu_type",           # 교육형태
+    12: "budget_code",        # 예산코드
+    13: "project_code",       # 프로젝트코드
+    14: "biz_type2",          # 사업유형
+    15: "budget_unit",        # 예산단위
+    16: "project_name",       # 26년 프로젝트명
+    18: "manager",            # 담당자
+    # ── 재무
+    19: "actual_2025",        # 2025년 실적
+    20: "plan_initial",       # 최초사업계획
+    21: "plan_cost_rate",     # 최초사업계획 원가율
+    22: "course_count",       # 과정
+    23: "session_count",      # 차수
+    24: "participant_count",  # 인원
+    # ── 6월 기준 실적 집계 현황 (두 그룹)
+    36: "jun_est",            # 6월 추정 재무
+    37: "jun_est_rate",       # 6월 추정 원가율
+    38: "jun_actual",         # 6월 실적 집계 재무
+    39: "jun_cost_rate",      # 6월 실적 집계 원가율
+    40: "cost_rate_diff",     # 원가율 차이(전월비)
+    41: "est_vs_actual",      # 당월 추정 대비 실적
+    42: "cost_rate_reason",   # 원가율 차이 사유
+    # ── 차이(최초 계획 vs 연간 추정)
+    43: "plan_diff_amount",   # 차이금액
+    44: "plan_diff_rate",     # 증감율
+    45: "plan_diff_reason",   # 사유
+    # ── 손익 점검
+    46: "profit_gross",       # 매출이익
+    47: "cost_direct",        # 직접원가
+    48: "cost_labor",         # 인건비
+    49: "cost_overhead",      # 공통원가
+    50: "cost_mgmt",          # 관리비
+    51: "operating_profit",   # 경상손익
+    52: "profit_rate_raw",    # 손익률(소수)
+    # ── 6월 점검
+    53: "jun_check_total",    # 합계
+    54: "chk_m01",            # 1월
+    55: "chk_m02",            # 2월
+    56: "chk_m03",            # 3월
+    57: "chk_m04",            # 4월
+    58: "chk_m05",            # 5월
+    59: "chk_m06",            # 6월
+    60: "chk_m07",            # 7월
+    61: "chk_m08",            # 8월
+    62: "chk_m09",            # 9월
+    63: "chk_m10",            # 10월
+    64: "chk_m11",            # 11월
+    65: "chk_m12",            # 12월
+    66: "chk_cost_rate",      # 6월 점검 원가율
+    67: "chk_course",         # 과정
+    68: "chk_session",        # 차수
+    69: "chk_participant",    # 인원
+    # ── 변동 검토의견 (71~73 중 첫 번째만)
+    70: "change_note",        # 변동 검토의견
+    # ── 대차
+    73: "balance_amount",     # 대차금액
+    74: "balance_rate",       # 대차비율
+    # ── 참조용
+    76: "dup_check",          # 중복 코드 점검
+    77: "ref_code",           # 참조 코드
+    # ── 신사업파트 직접원가(천원)
+    80: "sa_direct_total",    # 소계
+    81: "sa_instructor",      # 강사비
+    82: "sa_sub_instructor",  # 보조강사비
+    83: "sa_venue",           # 강의장
+    84: "sa_practice",        # 실습비(노트북)
+    85: "sa_textbook",        # 교재비
+    86: "sa_other_direct",    # 기타
+    # ── 신사업파트 공통원가(천원)
+    87: "sa_overhead_total",  # 소계
+    88: "sa_refreshment",     # 다과비
+    89: "sa_edu_venue",       # 교육장
+    90: "sa_parking",         # 주차비
+    91: "sa_sw_practice",     # 실습비(SW)
+    92: "sa_intern",          # 인턴/파견인건비
+    # ── 인건비(천원)
+    93: "sa_labor_total",     # 소계
+    94: "sa_regular",         # 정규직
+    95: "sa_overhead_cost",   # 제경비
+    # ── 기타
+    97: "note",               # 비고
+}
+
+
+def load_perf_excel():
+    """_perf_cache_lock 보유 상태에서만 호출."""
+    global _perf_cached_df, _perf_last_loaded
+    if not os.path.exists(PERF_EXCEL_PATH):
+        logger.warning("PERF_EXCEL_PATH 없음: %s", PERF_EXCEL_PATH)
+        _perf_cached_df = pd.DataFrame()
+        _perf_last_loaded = None
+        return _perf_cached_df
+
+    col_indices = sorted(_PERF_COL_MAP.keys())
+    df = pd.read_excel(
+        PERF_EXCEL_PATH,
+        sheet_name=PERF_SHEET,
+        header=None,
+        skiprows=12,        # 데이터는 13행(1-based)부터
+        usecols=col_indices,
+    )
+    df.columns = [_PERF_COL_MAP[i] for i in col_indices]
+
+    # 유효 행: project_code가 있고 category가 매출/원가, 사용여부=사용
+    df = df[df["project_code"].notna()]
+    df["project_code"] = df["project_code"].astype(str).str.strip()
+    df = df[df["project_code"] != ""]
+    df["use_yn"] = df["use_yn"].astype(str).str.strip()
+    df = df[df["use_yn"] == "사용"]
+    df = df[df["category"].isin(["매출", "원가"])]
+
+    str_cols = [
+        "tech_category", "team", "part", "biz_division", "biz_type", "customer_type",
+        "biz_plan", "progress", "category", "edu_type", "budget_code", "project_code",
+        "biz_type2", "budget_unit", "project_name", "manager",
+        "cost_rate_reason", "plan_diff_reason", "change_note", "dup_check", "ref_code", "note",
+    ]
+    for col in str_cols:
+        if col in df.columns:
+            df[col] = df[col].fillna("").astype(str).str.strip()
+            df[col] = df[col].replace({"nan": "", "<NA>": "", "NaN": ""})
+
+    num_cols = [
+        "actual_2025", "plan_initial", "plan_cost_rate",
+        "course_count", "session_count", "participant_count",
+        "jun_est", "jun_est_rate", "jun_actual", "jun_cost_rate",
+        "cost_rate_diff", "est_vs_actual",
+        "plan_diff_amount", "plan_diff_rate",
+        "profit_gross", "cost_direct", "cost_labor", "cost_overhead", "cost_mgmt",
+        "operating_profit", "profit_rate_raw",
+        "jun_check_total",
+        "chk_m01","chk_m02","chk_m03","chk_m04","chk_m05","chk_m06",
+        "chk_m07","chk_m08","chk_m09","chk_m10","chk_m11","chk_m12",
+        "chk_cost_rate", "chk_course", "chk_session", "chk_participant",
+        "balance_amount", "balance_rate",
+        "sa_direct_total","sa_instructor","sa_sub_instructor","sa_venue",
+        "sa_practice","sa_textbook","sa_other_direct",
+        "sa_overhead_total","sa_refreshment","sa_edu_venue","sa_parking",
+        "sa_sw_practice","sa_intern",
+        "sa_labor_total","sa_regular","sa_overhead_cost",
+    ]
+    for col in num_cols:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
+
+    # 손익률: 소수 → % (0.07 → 7.0)
+    df["profit_rate"] = (df["profit_rate_raw"] * 100).round(1)
+    df = df.drop(columns=["profit_rate_raw"])
+
+    # 남은 NaN → None (JSON 직렬화 시 null로 처리, NaN은 유효하지 않은 JSON)
+    df = df.where(df.notna(), other=None)
+
+    _perf_cached_df = df
+    _perf_last_loaded = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    logger.info("실적 엑셀 로드 완료: %d행 (매출 %d, 원가 %d)",
+                len(df),
+                int((df["category"] == "매출").sum()),
+                int((df["category"] == "원가").sum()))
+    return df
+
+
+def get_perf_df() -> pd.DataFrame:
+    global _perf_cached_df
+    if not _perf_cached_df.empty:
+        return _perf_cached_df
+    with _perf_cache_lock:
+        if _perf_cached_df.empty:
+            try:
+                load_perf_excel()
+            except Exception as e:
+                logger.error("load_perf_excel() 실패: %s", e)
+                _perf_cached_df = pd.DataFrame()
+    return _perf_cached_df
+
+
+def apply_perf_filters(df: pd.DataFrame) -> pd.DataFrame:
+    parts = request.args.getlist("part")
+    team  = request.args.get("team", "")
+    if parts:
+        df = df[df["part"].isin(parts)]
+    if team:
+        df = df[df["team"] == team]
+    return df
+
+
+@app.route("/api/performance/options")
+def api_perf_options():
+    """필터 옵션 반환."""
+    df = get_perf_df()
+    if df.empty:
+        return jsonify({"parts": [], "teams": []})
+    parts = sorted(df["part"].dropna().unique().tolist())
+    teams = sorted(df["team"].dropna().unique().tolist())
+    return jsonify({"parts": parts, "teams": teams})
+
+
+@app.route("/api/performance/data")
+def api_perf_data():
+    """프로젝트별 실적 (매출 행만). _row_num 필드로 고유 key 보장."""
+    df = apply_perf_filters(get_perf_df())
+    if df.empty:
+        return jsonify([])
+    rev = df[df["category"] == "매출"].copy()
+    # _row_num: reset 없이 원본 df 인덱스 사용 → 필터 변경 시에도 안정적
+    rev = rev.copy()
+    rev["_row_num"] = rev.index
+    return jsonify(rev.to_dict(orient="records"))
+
+
+@app.route("/api/performance/summary")
+def api_perf_summary():
+    """집계 요약: 전체 합계 + 파트별."""
+    df = apply_perf_filters(get_perf_df())
+    if df.empty:
+        return jsonify({"total": {}, "by_part": {}})
+
+    rev  = df[df["category"] == "매출"]
+    cost = df[df["category"] == "원가"]
+
+    pos_rate = rev[rev["profit_rate"] > 0]["profit_rate"]
+    total = {
+        "plan_initial":      float(rev["plan_initial"].sum()),
+        "actual_2025":       float(rev["actual_2025"].sum()),
+        "jun_actual":        float(rev["jun_actual"].sum()),
+        "jun_cost":          float(cost["jun_actual"].sum()),
+        "jun_check_total":   float(rev["jun_check_total"].sum()),
+        "operating_profit":  float(rev["operating_profit"].sum()),
+        "profit_gross":      float(rev["profit_gross"].sum()),
+        "cost_direct":       float(rev["cost_direct"].sum()),
+        "cost_labor":        float(rev["cost_labor"].sum()),
+        "cost_overhead":     float(rev["cost_overhead"].sum()),
+        "cost_mgmt":         float(rev["cost_mgmt"].sum()),
+        "avg_profit_rate":   round(float(pos_rate.mean()), 1) if not pos_rate.empty else 0,
+        "count":             int(len(rev)),
+    }
+
+    by_part = {}
+    for part_name, rev_grp in rev.groupby("part"):
+        cost_grp = cost[cost["part"] == part_name]
+        pos = rev_grp[rev_grp["profit_rate"] > 0]["profit_rate"]
+        by_part[part_name] = {
+            "plan_initial":     float(rev_grp["plan_initial"].sum()),
+            "jun_actual":       float(rev_grp["jun_actual"].sum()),
+            "jun_cost":         float(cost_grp["jun_actual"].sum()),
+            "jun_check_total":  float(rev_grp["jun_check_total"].sum()),
+            "operating_profit": float(rev_grp["operating_profit"].sum()),
+            "avg_profit_rate":  round(float(pos.mean()), 1) if not pos.empty else 0,
+            "count":            int(len(rev_grp)),
+        }
+
+    # 월별 집계 — chk_m01~m12 컬럼 합계 (매출 행 기준)
+    MONTH_COLS = [
+        ("chk_m01","1월"), ("chk_m02","2월"), ("chk_m03","3월"),
+        ("chk_m04","4월"), ("chk_m05","5월"), ("chk_m06","6월"),
+        ("chk_m07","7월"), ("chk_m08","8월"), ("chk_m09","9월"),
+        ("chk_m10","10월"),("chk_m11","11월"),("chk_m12","12월"),
+    ]
+    monthly = [
+        {"month": label, "revenue": float(rev[col].sum())}
+        for col, label in MONTH_COLS
+        if col in rev.columns
+    ]
+
+    return jsonify({"total": total, "by_part": by_part, "monthly": monthly})
+
+
+@app.route("/api/performance/reload", methods=["POST"])
+def api_perf_reload():
+    try:
+        with _perf_cache_lock:
+            load_perf_excel()
+            count     = len(_perf_cached_df)
+            loaded_at = _perf_last_loaded
+        return jsonify({"ok": True, "loaded_at": loaded_at, "count": count})
+    except Exception as e:
+        logger.error("api_perf_reload 실패: %s", e)
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# ──────────────────────────────────────────────────────────────
+# KPI 데이터 (KPI 추출 스크립트 결과 엑셀)
+# ──────────────────────────────────────────────────────────────
+
+# 8개 KPI 항목 — 이름에 "건수" 포함 → sum, 아니면 → avg
+# 취합 시트 컬럼 위치 (1-based, openpyxl 기준)
+# 실적_col: 취합의 F열 집계 기준 컬럼 (col 13~20)
+_KPI_ITEMS = [
+    {"kpi_row": 2, "name": "교육 만족도 (NPS)",                              "agg": "avg", "raw_col": 5,  "actual_col": 13},
+    {"kpi_row": 3, "name": "과정 개발 (과정 건수)",                             "agg": "sum", "raw_col": 6,  "actual_col": 14},
+    {"kpi_row": 4, "name": "과정 개발 (교육 내용 구성 적절성)",                   "agg": "avg", "raw_col": 7,  "actual_col": 15},
+    {"kpi_row": 5, "name": "특화 교육체계 구축 (프로젝트 건수)",                   "agg": "sum", "raw_col": 8,  "actual_col": 16},
+    {"kpi_row": 6, "name": "AI 교육 확대 (고객사 건수)",                         "agg": "sum", "raw_col": 9,  "actual_col": 17},
+    {"kpi_row": 7, "name": "AI 교육 확대 (교육 내용 구성 적절성)",                 "agg": "avg", "raw_col": 10, "actual_col": 18},
+    {"kpi_row": 8, "name": "신사업 확대 (매출액, 억)",                            "agg": "sum", "raw_col": 11, "actual_col": 19},
+    {"kpi_row": 9, "name": "신사업 확대 (신규/기존 사업 건수)",                    "agg": "sum", "raw_col": 12, "actual_col": 20},
+]
+
+_kpi_raw_df: pd.DataFrame = pd.DataFrame()      # 취합 시트
+_kpi_agg_df: pd.DataFrame = pd.DataFrame()      # kpi 집계 시트
+_kpi_last_loaded = None
+
+
+def _safe_num(v) -> float:
+    try:
+        f = float(v)
+        return f if np.isfinite(f) else 0.0
+    except Exception:
+        return 0.0
+
+
+def load_kpi_excel():
+    """_kpi_cache_lock 보유 상태에서만 호출."""
+    global _kpi_cached_df, _kpi_raw_df, _kpi_agg_df, _kpi_last_loaded
+    if not os.path.exists(KPI_EXCEL_PATH):
+        logger.warning("KPI_EXCEL_PATH 없음 — 추출 스크립트 실행 필요: %s", KPI_EXCEL_PATH)
+        _kpi_cached_df = pd.DataFrame()
+        _kpi_raw_df    = pd.DataFrame()
+        _kpi_agg_df    = pd.DataFrame()
+        _kpi_last_loaded = None
+        return
+
+    wb = pd.ExcelFile(KPI_EXCEL_PATH)
+    sheet_names = wb.sheet_names
+
+    # ── 취합 시트
+    if "취합" in sheet_names:
+        _kpi_raw_df = wb.parse("취합", header=0)
+        _kpi_raw_df = _kpi_raw_df.fillna(0)
+        logger.info("KPI 취합 로드: %d행", len(_kpi_raw_df))
+    else:
+        _kpi_raw_df = pd.DataFrame()
+
+    # ── kpi 집계 시트 (26년 목표 고정값)
+    if "kpi 집계" in sheet_names:
+        _kpi_agg_df = wb.parse("kpi 집계", header=0)
+        logger.info("KPI 집계 로드: %d행", len(_kpi_agg_df))
+    else:
+        _kpi_agg_df = pd.DataFrame()
+
+    _kpi_cached_df   = _kpi_raw_df
+    _kpi_last_loaded = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
+def get_kpi_df() -> pd.DataFrame:
+    global _kpi_cached_df, _kpi_raw_df
+    if not _kpi_raw_df.empty:
+        return _kpi_raw_df
+    with _kpi_cache_lock:
+        if _kpi_raw_df.empty:
+            try:
+                load_kpi_excel()
+            except Exception as e:
+                logger.error("load_kpi_excel() 실패: %s", e)
+    return _kpi_raw_df
+
+
+def _load_kpi_items_from_cache() -> list:
+    """캐시된 _kpi_agg_df(kpi 집계)에서 KPI 항목 로드.
+    - iloc[2]: 항목명(C열), iloc[4]: 26년 목표(E열)
+    - 빈 행(항목명 null/공백)은 skip — while True + break 패턴 제거
+    """
+    if _kpi_agg_df.empty:
+        return []
+
+    items = []
+    for _, row in _kpi_agg_df.iterrows():
+        name_val = row.iloc[2] if len(row) > 2 else None
+        if name_val is None or (isinstance(name_val, float) and np.isnan(name_val)):
+            continue                     # 빈 행 skip
+        name = str(name_val).strip()
+        if not name:
+            continue
+
+        target_val = row.iloc[4] if len(row) > 4 else None
+        agg = "sum" if "건수" in name else "avg"
+
+        if isinstance(target_val, str) and target_val.strip():
+            target = target_val.strip()
+        elif target_val is None or (isinstance(target_val, float) and np.isnan(target_val)):
+            target = 0.0
+        else:
+            target = _safe_num(target_val)
+
+        items.append({"name": name, "agg": agg, "target": target})
+
+    return items
+
+
+def _calc_kpi_actuals_from_cache(kpi_items: list) -> list:
+    """캐시된 _kpi_raw_df(취합)에서 KPI 실적 계산.
+    - 공백 정규화 후 'PJ실적' 포함 컬럼을 이름 기반으로 찾아 매핑
+    - 컬럼을 찾지 못하면 경고 로그 후 0.0 반환
+    - re.search 결과 None 체크로 AttributeError 방지
+    """
+    if _kpi_raw_df.empty:
+        return [0.0] * len(kpi_items)
+
+    # 공백 정규화 후 'PJ실적' 포함 컬럼 추출 (스페이스·전각 공백 허용)
+    actual_cols = [
+        c for c in _kpi_raw_df.columns
+        if "PJ실적" in re.sub(r"\s+", "", str(c))
+    ]
+
+    if not actual_cols:
+        logger.warning(
+            "_calc_kpi_actuals: 'PJ실적' 컬럼을 찾지 못했습니다. "
+            "취합 시트 헤더 확인 필요. 현재 헤더: %s",
+            list(_kpi_raw_df.columns[:10])
+        )
+        return [0.0] * len(kpi_items)
+
+    if len(actual_cols) != len(kpi_items):
+        logger.warning(
+            "_calc_kpi_actuals: 'PJ실적' 컬럼 수(%d)가 KPI 항목 수(%d)와 다릅니다.",
+            len(actual_cols), len(kpi_items)
+        )
+
+    actuals = []
+    for i, kpi in enumerate(kpi_items):
+        col = actual_cols[i] if i < len(actual_cols) else None
+        agg = kpi["agg"]
+
+        if col is None:
+            actuals.append(0.0)
+            continue
+
+        values = []
+        for raw_val in _kpi_raw_df[col]:
+            if raw_val is None:
+                continue
+            val_str = str(raw_val).strip()
+            if not val_str or val_str in ("0", "0.0", "nan"):
+                continue
+
+            # 신규/기존 건수 형식 처리
+            if "신규" in val_str:
+                m = re.search(r"신규\s*:\s*(\d+)건", val_str)
+                if m:                              # AttributeError 방지: None 체크
+                    values.append(float(m.group(1)))
+                continue
+
+            try:
+                f = float(val_str.replace(",", ""))
+                if np.isfinite(f) and f != 0:
+                    values.append(f)
+            except (ValueError, TypeError):
+                pass
+
+        if not values:
+            actuals.append(0.0)
+        elif agg == "sum":
+            actuals.append(round(sum(values), 2))
+        else:
+            actuals.append(round(sum(values) / len(values), 2))
+
+    return actuals
+
+
+@app.route("/api/kpi/data")
+def api_kpi_data():
+    df = get_kpi_df()
+    if df.empty:
+        return jsonify([])
+    records = df.replace({float("nan"): None}).to_dict(orient="records")
+    return jsonify(records)
+
+
+@app.route("/api/kpi/summary")
+def api_kpi_summary():
+    if not os.path.exists(KPI_EXCEL_PATH):
+        return jsonify({"available": False, "message": "KPI 추출 스크립트를 먼저 실행해주세요."})
+
+    get_kpi_df()  # 캐시 초기화 (파일이 있으면 _kpi_raw_df, _kpi_agg_df 채워짐)
+
+    if _kpi_agg_df.empty:
+        return jsonify({"available": False, "message": "kpi 집계 시트를 읽을 수 없습니다."})
+
+    try:
+        kpi_items = _load_kpi_items_from_cache()   # 캐시 재활용, 파일 재열기 없음
+        actuals   = _calc_kpi_actuals_from_cache(kpi_items)  # 캐시 재활용
+
+        result = []
+        for i, kpi in enumerate(kpi_items):
+            target = kpi["target"]
+            actual = actuals[i] if i < len(actuals) else 0.0
+
+            if isinstance(target, str):
+                achieve    = None
+                target_out = target
+            else:
+                target_num = float(target)
+                target_out = target_num
+                # Fix: 0.0 목표는 falsy가 아닌 명시적 None 비교로 처리
+                if target_num != 0:
+                    achieve = round(actual / target_num * 100, 1)
+                else:
+                    achieve = 0.0  # 목표 0 → 달성률 0%
+
+            result.append({
+                "name":         kpi["name"],
+                "agg":          kpi["agg"],
+                "target_2026":  target_out,
+                "actual_2026":  actual,
+                "achieve_rate": achieve,
+            })
+
+        return jsonify({"available": True, "items": result})
+
+    except Exception as e:
+        logger.error("api_kpi_summary 오류: %s", e)
+        return jsonify({"available": False, "message": f"KPI 집계 오류: {e}"})
+
+
+@app.route("/api/kpi/reload", methods=["POST"])
+def api_kpi_reload():
+    try:
+        with _kpi_cache_lock:
+            load_kpi_excel()
+            count     = len(_kpi_raw_df)
+            loaded_at = _kpi_last_loaded
+        return jsonify({"ok": True, "loaded_at": loaded_at, "count": count})
+    except Exception as e:
+        logger.error("api_kpi_reload 실패: %s", e)
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 if __name__ == "__main__":

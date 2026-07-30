@@ -1,0 +1,384 @@
+/* ─── 공통 DataTable 스타일 — ProjectTable 품질 기준 ─── */
+
+.wrapper {
+  height: 580px;               /* 고정 높이 — 데이터 수에 무관하게 페이지네이션 위치 일정 */
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  transition: box-shadow 0.2s ease;
+}
+
+:global([data-theme="dark"]) .wrapper {
+  border-color: rgba(0,200,255,0.18);
+  box-shadow: var(--glow-sm);
+}
+
+/* ── 툴바 ─────────────────────────────── */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.searchWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search {
+  padding: 5px 28px 5px 10px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-subtle);
+  color: var(--text-primary);
+  font-size: 0.82rem;
+  width: 220px;
+  outline: none;
+  transition: border-color var(--transition);
+}
+
+.search::placeholder { color: var(--text-muted); }
+.search:focus { border-color: var(--border-focus); }
+
+.searchClear {
+  position: absolute;
+  right: 7px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  padding: 0;
+  line-height: 1;
+}
+.searchClear:hover { color: var(--text-primary); }
+
+.pageSizeSelect {
+  font-size: 0.75rem;
+  color: var(--text-sub);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  cursor: pointer;
+  padding: 5px 8px;
+  border-radius: 8px;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.15s ease;
+}
+.pageSizeSelect:hover { border-color: var(--brand-mid); }
+
+.count {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+/* 컬럼 숨김 */
+.colToggleWrap { position: relative; }
+
+.colMenu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 200;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  padding: 6px 0;
+  min-width: 120px;
+}
+
+.colMenuItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 14px;
+  font-size: 0.8rem;
+  color: var(--text-sub);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.colMenuItem:hover { background: var(--brand-bg); color: var(--brand-mid); }
+
+/* ── 테이블 스크롤 영역 ─────────────────── */
+.scroll {
+  flex: 1;
+  overflow: auto;
+  min-height: 0;           /* flex child overflow 동작에 필수 */
+  max-height: 580px;       /* ProjectTable 수준의 고정 높이 */
+  transition: opacity 0.15s;
+}
+
+.fetching { opacity: 0.7; pointer-events: none; }
+
+/* ── 테이블 ─────────────────────────────── */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.83rem;
+  min-width: 600px;
+}
+
+.table th {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-sub);
+  background: var(--bg-subtle);
+  padding: 8px 10px;
+  text-align: center;
+  white-space: nowrap;
+  border-bottom: 2px solid var(--border);
+  border-right: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  user-select: none;
+}
+
+.table th:last-child { border-right: none; }
+
+.table td {
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  vertical-align: middle;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 260px;
+}
+
+.table td:last-child { border-right: none; }
+
+.table th:first-child,
+.table td:first-child { text-align: left; }
+
+.table tbody tr { transition: background 0.14s ease; }
+.table tbody tr:hover { background: var(--brand-bg); }
+.table tbody tr:last-child td { border-bottom: none; }
+
+/* 정렬 */
+.sortable { cursor: pointer; }
+.sortable:hover { color: var(--brand-mid); }
+.sortIdle   { margin-left: 4px; font-size: 11px; opacity: 0.35; }
+.sortActive { margin-left: 4px; font-size: 11px; color: var(--accent); }
+
+/* 행 변형 */
+.loss { box-shadow: inset 3px 0 0 var(--loss) !important; }
+.loss:hover { background: var(--loss-bg, rgba(239,68,68,.08)) !important; }
+.warn { box-shadow: inset 2px 0 0 var(--warn) !important; }
+.warn:hover { background: var(--warn-bg, rgba(245,158,11,.08)) !important; }
+
+/* Sticky 첫 번째 컬럼 */
+.stickyFirst th:first-child,
+.stickyFirst td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: var(--bg-subtle);
+}
+.stickyFirst td:first-child   { background: var(--surface); }
+.stickyFirst .loss td:first-child,
+.stickyFirst .warn td:first-child { background: var(--surface) !important; }
+
+/* 합계(tfoot) 행 */
+.footerRow td {
+  padding: 7px 10px;
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: var(--text-primary);
+  background: var(--bg-subtle);
+  border-top: 2px solid var(--border);
+  text-align: center;
+}
+
+/* 빈 상태 */
+.empty { padding: 0; }
+.emptyInner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 40px 24px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.emptyIcon { font-size: 32px; }
+
+/* 스켈레톤 */
+.skeletonWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 8px 0;
+  flex: 1;
+}
+
+.skeletonRow {
+  height: 36px;
+  background: var(--bg-subtle);
+  border-radius: var(--radius-sm);
+  animation: pulse 1.4s ease infinite;
+}
+.skeletonRow:nth-child(odd) { animation-delay: 0.1s; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.45; }
+}
+
+/* ── 페이지네이션 ─────────────────────────── */
+.paginationBar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.pageLabel {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  min-width: 80px;
+  text-align: center;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 auto;
+}
+
+.pgItem {
+  min-width: 34px;
+  height: 34px;
+  padding: 0 10px;
+  font-size: 0.82rem;
+  font-family: inherit;
+  font-weight: 500;
+  color: var(--text-sub);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  line-height: 1;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.pgItem:hover:not(:disabled):not(.pgActive) {
+  border-color: var(--brand-mid);
+  color: var(--brand-mid);
+  background: var(--brand-bg);
+}
+.pgItem:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.pgActive {
+  background: linear-gradient(135deg, var(--kpi-brand-start, #3b82f6) 0%, var(--kpi-brand-mid, #6366f1) 60%, var(--kpi-brand-end, #8b5cf6) 100%);
+  border-color: transparent;
+  color: #fff;
+  font-weight: 700;
+  cursor: default;
+  box-shadow: 0 3px 10px var(--kpi-brand-shadow, rgba(99,102,241,.35));
+}
+
+[data-theme="dark"] .pgItem {
+  background: var(--bg-subtle);
+  border-color: var(--border);
+}
+
+@media (max-width: 768px) {
+  .search { width: 130px; }
+}
+
+/* ── 셀 클릭 가능 표시 ─── */
+.clickable {
+  cursor: pointer;
+}
+.clickable:hover {
+  text-decoration: underline dotted var(--text-muted);
+}
+
+/* ── 셀 내용 팝업 모달 ─── */
+.popupOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.popupBox {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  max-width: 560px;
+  width: 100%;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.popupHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-sub);
+}
+
+.popupClose {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-muted);
+  padding: 2px 6px;
+  border-radius: 4px;
+  line-height: 1;
+}
+.popupClose:hover { background: var(--bg-subtle); color: var(--text-primary); }
+
+.popupBody {
+  padding: 16px;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  line-height: 1.7;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* 컴팩트 모드 — 고정 행 수 테이블 (파트별 실적 등), height auto */
+.compact { height: auto; }
