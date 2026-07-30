@@ -111,7 +111,7 @@ const PerformancePage = () => {
         getRowVariant={(row) =>
           row.operating_profit < 0 ? 'loss' : row.profit_rate < 5 ? 'warn' : ''
         }
-        footer={footer}
+        // footer={footer}  // 서버사이드 페이지네이션으로 전체 합계와 불일치 — 상단 KPI 카드로 대체
         hideableColumns={PERF_HIDEABLE_COLS}
         serverPagination={vm.serverPagination}
         serverSearch={vm.serverSearch}
