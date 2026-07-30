@@ -33,6 +33,8 @@ interface Props<T> {
   stickyFirstCol?:    boolean;
   /** 고정 행 수 테이블 — height auto (페이지네이션 없는 소규모 테이블용) */
   compact?:           boolean;
+  /** 툴바 전체 숨김 (행 수 드롭박스, 건수 표시 불필요한 소규모 테이블) */
+  hideToolbar?:       boolean;
   emptyIcon?:         string;
   emptyTitle?:        string;
   emptyDescription?:  string;
@@ -58,6 +60,7 @@ const DataTable = <T extends object>({
   searchPlaceholder = '검색… (Esc: 초기화)',
   stickyFirstCol    = false,
   compact           = false,
+  hideToolbar       = false,
   emptyIcon         = '🔍',
   emptyTitle        = '데이터가 없습니다.',
   emptyDescription  = '다른 검색어나 필터 조건을 시도해보세요.',
@@ -121,63 +124,64 @@ const DataTable = <T extends object>({
   return (
     <div className={`${styles.wrapper} ${compact ? styles.compact : ''}`}>
 
-      {/* 툴바 */}
-      <div className={styles.toolbar}>
-        {title && <span className={styles.title}>{title}</span>}
+      {/* 툴바 — hideToolbar=true면 전체 숨김 */}
+      {!hideToolbar && (
+        <div className={styles.toolbar}>
+          {title && <span className={styles.title}>{title}</span>}
 
-        {searchable && (
-          <div className={styles.searchWrap}>
-            <input
-              className={styles.search}
-              placeholder={searchPlaceholder}
-              value={searchInput}
-              onChange={e => { setSearchInput(e.target.value); table.setPageIndex(0); }}
-            />
-            {searchInput && (
-              <Button variant="ghost" size="sm" className={styles.searchClear}
-                onClick={() => { setSearchInput(''); setGlobalFilter(''); }} aria-label="초기화">✕</Button>
-            )}
-          </div>
-        )}
+          {searchable && (
+            <div className={styles.searchWrap}>
+              <input
+                className={styles.search}
+                placeholder={searchPlaceholder}
+                value={searchInput}
+                onChange={e => { setSearchInput(e.target.value); table.setPageIndex(0); }}
+              />
+              {searchInput && (
+                <Button variant="ghost" size="sm" className={styles.searchClear}
+                  onClick={() => { setSearchInput(''); setGlobalFilter(''); }} aria-label="초기화">✕</Button>
+              )}
+            </div>
+          )}
 
-        <select
-          className={styles.pageSizeSelect}
-          value={pageSize}
-          onChange={e => { table.setPageSize(Number(e.target.value)); table.setPageIndex(0); }}
-        >
-          {pageSizeOptions.map(n => <option key={n} value={n}>{n}행</option>)}
-        </select>
+          <select
+            className={styles.pageSizeSelect}
+            value={pageSize}
+            onChange={e => { table.setPageSize(Number(e.target.value)); table.setPageIndex(0); }}
+          >
+            {pageSizeOptions.map(n => <option key={n} value={n}>{n}행</option>)}
+          </select>
 
-        <span className={styles.count}>
-          {globalFilter
-            ? `${filtered.length} / ${data.length}건`
-            : `${data.length}건`}
-        </span>
+          <span className={styles.count}>
+            {globalFilter
+              ? `${filtered.length} / ${data.length}건`
+              : `${data.length}건`}
+          </span>
 
-        {hideableColumns && hideableColumns.length > 0 && (
-          <div className={styles.colToggleWrap}>
-            <Button variant="ghost" size="sm" onClick={() => setShowColMenu(v => !v)}>
-              컬럼 ▾
-            </Button>
-            {showColMenu && (
-              <div className={styles.colMenu}>
-                {hideableColumns.map(({ id, label }) => {
-                  const col = table.getColumn(id);
-                  return col ? (
-                    <label key={id} className={styles.colMenuItem}>
-                      <input type="checkbox"
-                        checked={col.getIsVisible()}
-                        onChange={col.getToggleVisibilityHandler()} />
-                      {label}
-                    </label>
-                  ) : null;
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-      </div>
+          {hideableColumns && hideableColumns.length > 0 && (
+            <div className={styles.colToggleWrap}>
+              <Button variant="ghost" size="sm" onClick={() => setShowColMenu(v => !v)}>
+                컬럼 ▾
+              </Button>
+              {showColMenu && (
+                <div className={styles.colMenu}>
+                  {hideableColumns.map(({ id, label }) => {
+                    const col = table.getColumn(id);
+                    return col ? (
+                      <label key={id} className={styles.colMenuItem}>
+                        <input type="checkbox"
+                          checked={col.getIsVisible()}
+                          onChange={col.getToggleVisibilityHandler()} />
+                        {label}
+                      </label>
+                    ) : null;
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 테이블 */}
       {isLoading ? (

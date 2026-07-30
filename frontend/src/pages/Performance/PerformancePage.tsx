@@ -96,6 +96,7 @@ const PerformancePage = () => {
           defaultPageSize={10}
           pageSizeOptions={[10]}
           compact
+          hideToolbar
         />
       </div>
 
