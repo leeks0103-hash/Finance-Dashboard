@@ -7,15 +7,64 @@
 ## 데이터 흐름
 
 ```
-PPT 보고서
-  ↓ scripts/extract_financial_ppt.py  (재무 데이터 추출)
-  ↓ scripts/extract_kpi_ppt.py        (KPI 데이터 추출)
-data/*.xlsx  (추출된 엑셀 파일)
-  ↓ app.py  (Flask API — 엑셀 파싱 후 REST 제공)
-frontend/   (React 대시보드)
-  ↓
-사용자
+┌─────────────────────────────────────────────────────────────┐
+│                     데이터 업데이트 흐름                       │
+└─────────────────────────────────────────────────────────────┘
+
+  [기존 PPT 폴더]        [새 PPT 폴더]
+        │                      │
+        └──────────┬───────────┘
+                   ▼
+     compare_and_update.py   ← 명령 하나로 전체 자동화
+                   │
+          ┌────────┴────────┐
+          │   파일 비교      │  file_compare.py
+          │  (신규·수정 감지) │
+          └────────┬────────┘
+                   │
+         변경 있음? ├── 없음 → "변경 없음" 종료
+                   │
+                   ▼
+     extract_financial_ppt.py  (새 폴더 기준 재추출)
+                   │
+                   ▼
+          data/재무관점 필수 데이터 추출.xlsx
+                   │
+                   ▼
+          POST /api/reload  (Flask 캐시 자동 갱신)
+                   │
+                   ▼
+           React 대시보드  (최신 데이터 반영)
 ```
+
+---
+
+## PPT 데이터 업데이트 방법 (가장 빠른 방법)
+
+새 PPT 폴더를 받았을 때 **명령 하나**로 비교 → 추출 → 갱신이 자동으로 진행됩니다.
+
+```powershell
+python scripts/compare_and_update.py "기존폴더경로" "새폴더경로"
+```
+
+**예시:**
+```powershell
+python scripts/compare_and_update.py `
+  "C:\Users\aaa\Desktop\기술교육실_프로젝트 보고서 수집" `
+  "C:\Users\aaa\Desktop\기술교육실_프로젝트 보고서 수집 NEW"
+```
+
+**스크립트 동작:**
+1. 두 폴더의 PPT 파일 비교 (신규·수정 감지)
+2. 변경이 있으면 새 폴더 기준으로 재무 데이터 자동 추출
+3. Flask 서버에 캐시 갱신 요청 (`/api/reload`)
+4. 비교 리포트 Excel 저장 → `data/compare_report.xlsx`
+5. 변경이 없으면 추출 생략 (빠르게 종료)
+
+> **참고**: Flask 서버(`python app.py`)가 실행 중이어야 캐시 갱신이 자동으로 됩니다.
+> 서버가 꺼져 있으면 추출만 완료되고, 서버 재시작 시 자동 반영됩니다.
+
+---
 
 ---
 
@@ -47,7 +96,8 @@ dashboard/
 ├── scripts/                  # 데이터 추출 스크립트
 │   ├── extract_financial_ppt.py   # PPT → 재무 엑셀 추출
 │   ├── extract_kpi_ppt.py         # PPT → KPI 엑셀 추출
-│   ├── file_compare.py            # NAS ↔ 로컬 파일 비교
+│   ├── compare_and_update.py      # ★ 비교 → 추출 → 갱신 통합 자동화
+│   ├── file_compare.py            # PPT 폴더 비교 (compare_and_update 내부 사용)
 │   └── README.md
 ├── data/                     # 추출된 엑셀 파일 (git 제외)
 │   ├── 재무관점 필수 데이터 추출.xlsx
@@ -67,18 +117,23 @@ dashboard/
 
 ## 실행 방법
 
-### 1. 데이터 추출 (PPT → 엑셀)
+### 1. 데이터 업데이트 (권장)
+
+새 PPT 폴더가 생겼을 때 → 비교·추출·갱신 한 번에:
+
+```powershell
+python scripts/compare_and_update.py "기존폴더" "새폴더"
+```
+
+### 1-1. 개별 추출 (필요 시)
 
 ```powershell
 # 재무 데이터 추출 (win32com, PowerPoint 필요)
 python scripts/extract_financial_ppt.py
 
-# KPI 데이터 추출
+# KPI 데이터 추출 (python-pptx)
 python scripts/extract_kpi_ppt.py
 ```
-
-> **주의**: `extract_kpi_ppt.py`의 `ROOT_DIR`을 PPT 파일 위치로 맞춰야 합니다.
-> `extract_financial_ppt.py`도 `BASE_DIR`을 실제 경로로 확인하세요.
 
 ### 2. 백엔드 서버 실행
 

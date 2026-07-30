@@ -11,11 +11,9 @@ from openpyxl.utils import get_column_letter
 # ============================================================
 # 📁 경로 설정
 # ============================================================
-NAS_PATH   = r"X:\\"
-LOCAL_PATH = r"D:\24.기술교육사업기획팀\23. 표준 템플릿 데이터 추출 프로젝트\(기술교육실)프로젝트 보고서 수집"
-
-# ✅ 엑셀 저장 경로 변경
-EXCEL_PATH = r"D:\24.기술교육사업기획팀\23. 표준 템플릿 데이터 추출 프로젝트\(기술교육실)프로젝트 보고서 수집\compare_report.xlsx"
+NAS_PATH   = r"C:\Users\aaa\Desktop\기술교육실_프로젝트 보고서 수집"       # 기존 파일
+LOCAL_PATH = r"C:\Users\aaa\Desktop\기술교육실_프로젝트 보고서 수집 NEW"   # 새 파일
+EXCEL_PATH = r"C:\Users\aaa\coding\dashboard\data\compare_report.xlsx"      # 결과 저장
 
 # ============================================================
 # ⚙️ 옵션 설정

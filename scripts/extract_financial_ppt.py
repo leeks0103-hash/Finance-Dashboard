@@ -12,7 +12,11 @@ from openpyxl import Workbook, load_workbook
 # =========================
 # 설정값
 # =========================
-BASE_DIR = r"C:\Users\aaa\Desktop\기술교육실_프로젝트 보고서 수집"
+# 환경변수 EXTRACT_BASE_DIR 우선 사용 — compare_and_update.py가 자동 주입
+BASE_DIR = os.environ.get(
+    "EXTRACT_BASE_DIR",
+    r"C:\Users\aaa\Desktop\기술교육실_프로젝트 보고서 수집",
+)
 
 # 출력 엑셀: 프로젝트 data/ 폴더로 저장
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
