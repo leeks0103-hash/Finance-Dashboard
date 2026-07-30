@@ -69,26 +69,12 @@ _perf_cached_df: pd.DataFrame = pd.DataFrame()
 _perf_last_loaded = None
 _perf_cache_lock = threading.Lock()
 
-_kpi_cached_df: pd.DataFrame = pd.DataFrame()
-_kpi_last_loaded = None
 _kpi_cache_lock = threading.Lock()
 
 
-def _sample_df() -> pd.DataFrame:
-    """엑셀 파일 없을 때 UI 확인용 샘플 데이터"""
-    rows = [
-        ["P001","2024","A파트","최종",    500_000_000, 380_000_000, 200_000_000, 100_000_000, 80_000_000,  120_000_000, 24.0, "", "sample.xlsx", "2024-01-10", "2024-01-15"],
-        ["P002","2024","A파트","확정",    320_000_000, 260_000_000, 140_000_000,  70_000_000, 50_000_000,   60_000_000, 18.8, "", "sample.xlsx", "2024-02-01", "2024-02-05"],
-        ["P003","2024","B파트","최종",    450_000_000, 400_000_000, 210_000_000, 110_000_000, 80_000_000,   50_000_000, 11.1, "", "sample.xlsx", "2024-01-20", "2024-01-25"],
-        ["P004","2024","B파트","중간",    280_000_000, 310_000_000, 160_000_000,  90_000_000, 60_000_000,  -30_000_000, -10.7,"손실주의", "sample.xlsx", "2024-03-01", "2024-03-05"],
-        ["P005","2024","C파트","최종",    600_000_000, 420_000_000, 230_000_000, 110_000_000, 80_000_000,  180_000_000, 30.0, "", "sample.xlsx", "2024-01-05", "2024-01-10"],
-        ["P006","2024","C파트","확정",    180_000_000, 175_000_000,  90_000_000,  50_000_000, 35_000_000,    5_000_000,  2.8, "저수익", "sample.xlsx", "2024-04-01", "2024-04-03"],
-        ["P007","2023","A파트","최종",    400_000_000, 300_000_000, 160_000_000,  80_000_000, 60_000_000,  100_000_000, 25.0, "", "sample.xlsx", "2023-06-01", "2023-06-05"],
-        ["P008","2023","B파트","최종",    350_000_000, 290_000_000, 150_000_000,  80_000_000, 60_000_000,   60_000_000, 17.1, "", "sample.xlsx", "2023-07-01", "2023-07-05"],
-        ["P009","2023","C파트","확정",    220_000_000, 195_000_000, 100_000_000,  55_000_000, 40_000_000,   25_000_000, 11.4, "", "sample.xlsx", "2023-08-01", "2023-08-03"],
-        ["P010","2023","A파트","최종",    550_000_000, 370_000_000, 200_000_000,  90_000_000, 80_000_000,  180_000_000, 32.7, "", "sample.xlsx", "2023-09-01", "2023-09-05"],
-    ]
-    return pd.DataFrame(rows, columns=COLUMNS)
+def _empty_df() -> pd.DataFrame:
+    """엑셀 파일 없거나 로드 실패 시 반환할 빈 DataFrame"""
+    return pd.DataFrame(columns=COLUMNS)
 
 
 def _is_valid_code(code: str) -> bool:
@@ -130,9 +116,9 @@ def load_excel():
     """_cache_lock 을 보유한 상태에서만 호출할 것 (C-1)."""
     global _cached_df, _last_loaded, _last_correction_count
     if not os.path.exists(EXCEL_PATH):
-        logger.warning("EXCEL_PATH 없음 — 샘플 데이터 사용: %s", EXCEL_PATH)
-        _cached_df = _sample_df()
-        _last_loaded = datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " [샘플]"
+        logger.error("EXCEL_PATH 없음: %s", EXCEL_PATH)
+        _cached_df = _empty_df()
+        _last_loaded = None
         return _cached_df
 
     # 실제 엑셀: 15컬럼 (year·part 포함)
@@ -232,9 +218,9 @@ def get_df() -> pd.DataFrame:
             try:
                 load_excel()
             except Exception as e:
-                logger.error("load_excel() 실패, 샘플 데이터로 강등: %s", e)
-                _cached_df = _sample_df()
-                _last_loaded = datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " [샘플-오류]"
+                logger.error("load_excel() 실패, 빈 데이터 반환: %s", e)
+                _cached_df = _empty_df()
+                _last_loaded = None
         return _cached_df
 
 
@@ -1019,20 +1005,6 @@ def api_perf_reload():
 # KPI 데이터 (KPI 추출 스크립트 결과 엑셀)
 # ──────────────────────────────────────────────────────────────
 
-# 8개 KPI 항목 — 이름에 "건수" 포함 → sum, 아니면 → avg
-# 취합 시트 컬럼 위치 (1-based, openpyxl 기준)
-# 실적_col: 취합의 F열 집계 기준 컬럼 (col 13~20)
-_KPI_ITEMS = [
-    {"kpi_row": 2, "name": "교육 만족도 (NPS)",                              "agg": "avg", "raw_col": 5,  "actual_col": 13},
-    {"kpi_row": 3, "name": "과정 개발 (과정 건수)",                             "agg": "sum", "raw_col": 6,  "actual_col": 14},
-    {"kpi_row": 4, "name": "과정 개발 (교육 내용 구성 적절성)",                   "agg": "avg", "raw_col": 7,  "actual_col": 15},
-    {"kpi_row": 5, "name": "특화 교육체계 구축 (프로젝트 건수)",                   "agg": "sum", "raw_col": 8,  "actual_col": 16},
-    {"kpi_row": 6, "name": "AI 교육 확대 (고객사 건수)",                         "agg": "sum", "raw_col": 9,  "actual_col": 17},
-    {"kpi_row": 7, "name": "AI 교육 확대 (교육 내용 구성 적절성)",                 "agg": "avg", "raw_col": 10, "actual_col": 18},
-    {"kpi_row": 8, "name": "신사업 확대 (매출액, 억)",                            "agg": "sum", "raw_col": 11, "actual_col": 19},
-    {"kpi_row": 9, "name": "신사업 확대 (신규/기존 사업 건수)",                    "agg": "sum", "raw_col": 12, "actual_col": 20},
-]
-
 _kpi_raw_df: pd.DataFrame = pd.DataFrame()      # 취합 시트
 _kpi_agg_df: pd.DataFrame = pd.DataFrame()      # kpi 집계 시트
 _kpi_last_loaded = None
@@ -1048,19 +1020,17 @@ def _safe_num(v) -> float:
 
 def load_kpi_excel():
     """_kpi_cache_lock 보유 상태에서만 호출."""
-    global _kpi_cached_df, _kpi_raw_df, _kpi_agg_df, _kpi_last_loaded
+    global _kpi_raw_df, _kpi_agg_df, _kpi_last_loaded
     if not os.path.exists(KPI_EXCEL_PATH):
         logger.warning("KPI_EXCEL_PATH 없음 — 추출 스크립트 실행 필요: %s", KPI_EXCEL_PATH)
-        _kpi_cached_df = pd.DataFrame()
-        _kpi_raw_df    = pd.DataFrame()
-        _kpi_agg_df    = pd.DataFrame()
+        _kpi_raw_df  = pd.DataFrame()
+        _kpi_agg_df  = pd.DataFrame()
         _kpi_last_loaded = None
         return
 
     wb = pd.ExcelFile(KPI_EXCEL_PATH)
     sheet_names = wb.sheet_names
 
-    # ── 취합 시트
     if "취합" in sheet_names:
         _kpi_raw_df = wb.parse("취합", header=0)
         _kpi_raw_df = _kpi_raw_df.fillna(0)
@@ -1068,19 +1038,17 @@ def load_kpi_excel():
     else:
         _kpi_raw_df = pd.DataFrame()
 
-    # ── kpi 집계 시트 (26년 목표 고정값)
     if "kpi 집계" in sheet_names:
         _kpi_agg_df = wb.parse("kpi 집계", header=0)
         logger.info("KPI 집계 로드: %d행", len(_kpi_agg_df))
     else:
         _kpi_agg_df = pd.DataFrame()
 
-    _kpi_cached_df   = _kpi_raw_df
     _kpi_last_loaded = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
 def get_kpi_df() -> pd.DataFrame:
-    global _kpi_cached_df, _kpi_raw_df
+    global _kpi_raw_df
     if not _kpi_raw_df.empty:
         return _kpi_raw_df
     with _kpi_cache_lock:
