@@ -15,7 +15,7 @@ const PerformancePage = () => {
     const junAct   = vm.projects.reduce((s, r) => s + r.jun_actual, 0);
     const opProfit = vm.projects.reduce((s, r) => s + r.operating_profit, 0);
     return {
-      part:             <span style={{ fontWeight: 700 }}>합계</span>,
+      project_code:     <span style={{ fontWeight: 700 }}>합계</span>,
       plan_initial:     formatEok(plan),
       jun_actual:       formatEok(junAct),
       operating_profit: (

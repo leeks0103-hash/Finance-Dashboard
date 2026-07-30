@@ -1,7 +1,8 @@
 /* ─── 공통 DataTable 스타일 — ProjectTable 품질 기준 ─── */
 
 .wrapper {
-  height: 580px;               /* 고정 높이 — 데이터 수에 무관하게 페이지네이션 위치 일정 */
+  min-height: 200px;           /* 최소 높이 — 데이터 없을 때 너무 찌그러지지 않게 */
+  max-height: 580px;           /* 최대 높이 — 이상 커지면 내부 스크롤 */
   display: flex;
   flex-direction: column;
   background: var(--surface);
@@ -121,7 +122,6 @@
   flex: 1;
   overflow: auto;
   min-height: 0;           /* flex child overflow 동작에 필수 */
-  max-height: 580px;       /* ProjectTable 수준의 고정 높이 */
   transition: opacity 0.15s;
 }
 
@@ -380,5 +380,8 @@
   word-break: break-all;
 }
 
-/* 컴팩트 모드 — 고정 행 수 테이블 (파트별 실적 등), height auto */
-.compact { height: auto; }
+/* 컴팩트 모드 — 고정 행 수 테이블 (파트별 실적 등), height auto + 모서리 제거 */
+.compact {
+  height: auto;
+  border-radius: 0;
+}
