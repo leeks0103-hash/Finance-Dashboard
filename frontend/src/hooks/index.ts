@@ -8,3 +8,4 @@ export { useExport } from './useExport';
 export { useFilterOptions } from './useFilterOptions';
 export { usePrefetch } from './usePrefetch';
 export { createDataHook } from './createDataHook';
+export { useBackgroundPrefetch } from './useBackgroundPrefetch';

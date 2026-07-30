@@ -8,6 +8,6 @@ export const usePerformanceSummary = () => {
     queryKey: ['perf-summary', selectedParts],
     queryFn: () => getPerfSummary(selectedParts),
     placeholderData: keepPreviousData,
-    staleTime: 30_000,
+    staleTime: 5 * 60_000,
   });
 };
