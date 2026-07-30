@@ -80,7 +80,7 @@
   outline: none;
   font-family: inherit;
   transition: border-color 0.15s ease;
-  margin-left: auto;   /* 오른쪽으로 밀어내기 — 이후 컬럼 토글과 함께 우측 정렬 */
+  margin-left: auto;   /* count 다음 오른쪽 끝으로 밀기 */
 }
 .pageSizeSelect:hover { border-color: var(--brand-mid); }
 

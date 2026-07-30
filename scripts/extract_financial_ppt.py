@@ -12,7 +12,7 @@ from openpyxl import Workbook, load_workbook
 # =========================
 # 설정값
 # =========================
-BASE_DIR = r"D:\24.기술교육사업기획팀\23. 표준 템플릿 데이터 추출 프로젝트\(기술교육실)프로젝트 보고서 수집"
+BASE_DIR = r"C:\Users\aaa\Desktop\기술교육실_프로젝트 보고서 수집"
 
 # 출력 엑셀: 프로젝트 data/ 폴더로 저장
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))

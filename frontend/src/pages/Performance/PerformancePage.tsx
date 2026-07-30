@@ -99,29 +99,27 @@ const PerformancePage = () => {
         />
       </div>
 
-      {/* 프로젝트 상세 — footer는 ViewModel에서 계산 (pages/에서 reduce 금지) */}
-      <div className={styles.section}>
-        <h3 className={styles.sectionTitle}>프로젝트 상세 (단위: 억원 / 원가율·손익률: %)</h3>
-        <DataTable<PerfProject>
-          data={vm.projects}
-          columns={perfColumns as never}
-          getRowId={(row) => String(row._row_num)}
-          isLoading={vm.isLoading}
-          isFetching={vm.isFetching}
-          stickyFirstCol
-          searchable
-          searchPlaceholder="프로젝트코드·이름·담당자 검색…"
-          defaultPageSize={30}
-          getRowVariant={(row) =>
-            row.operating_profit < 0 ? 'loss' : row.profit_rate < 5 ? 'warn' : ''
-          }
-          footer={footer}
-          hideableColumns={PERF_HIDEABLE_COLS}
-          emptyIcon="🔍"
-          emptyTitle="검색 결과 없음"
-          emptyDescription="다른 검색어나 필터 조건을 시도해보세요."
-        />
-      </div>
+      {/* 프로젝트 상세 — title을 DataTable 내부로 이동해 재무 상세와 동일한 구도 */}
+      <DataTable<PerfProject>
+        data={vm.projects}
+        columns={perfColumns as never}
+        getRowId={(row) => String(row._row_num)}
+        title="프로젝트 상세"
+        isLoading={vm.isLoading}
+        isFetching={vm.isFetching}
+        stickyFirstCol
+        searchable
+        searchPlaceholder="프로젝트코드·이름·담당자 검색…"
+        defaultPageSize={30}
+        getRowVariant={(row) =>
+          row.operating_profit < 0 ? 'loss' : row.profit_rate < 5 ? 'warn' : ''
+        }
+        footer={footer}
+        hideableColumns={PERF_HIDEABLE_COLS}
+        emptyIcon="🔍"
+        emptyTitle="검색 결과 없음"
+        emptyDescription="다른 검색어나 필터 조건을 시도해보세요."
+      />
 
     </main>
   );

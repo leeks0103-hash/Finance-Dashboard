@@ -96,10 +96,8 @@ export const useExport = () => {
   const reloadMutation = useMutation({
     mutationFn: reloadData,
     onSuccess: (data) => {
-      qc.invalidateQueries({ queryKey: ['summary'] });
-      qc.invalidateQueries({ queryKey: ['insights'] });
-      qc.invalidateQueries({ queryKey: ['projects'] });
-      qc.invalidateQueries({ queryKey: ['projects-all'] });
+      // 전체 캐시 무효화 — 재무·실적·KPI 모든 탭 즉시 재요청
+      qc.invalidateQueries();
       if (data.ok) {
         // MM-DD HH:mm 형식으로 단축 표시 (예: "07-24 09:32")
         const ts = data.loaded_at ?? '';

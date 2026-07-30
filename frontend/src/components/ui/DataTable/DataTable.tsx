@@ -127,31 +127,15 @@ const DataTable = <T extends object>({
       {/* 툴바 — hideToolbar=true면 전체 숨김 */}
       {!hideToolbar && (
         <div className={styles.toolbar}>
-          {/* ── 왼쪽: title · 건수 · 검색 바 ── */}
+          {/* ── 왼쪽: title · 건수 ── */}
           {title && <span className={styles.title}>{title}</span>}
-
           <span className={styles.count}>
             {globalFilter
               ? `${filtered.length} / ${data.length}건`
               : `${data.length}건`}
           </span>
 
-          {searchable && (
-            <div className={styles.searchWrap}>
-              <input
-                className={styles.search}
-                placeholder={searchPlaceholder}
-                value={searchInput}
-                onChange={e => { setSearchInput(e.target.value); table.setPageIndex(0); }}
-              />
-              {searchInput && (
-                <Button variant="ghost" size="sm" className={styles.searchClear}
-                  onClick={() => { setSearchInput(''); setGlobalFilter(''); }} aria-label="초기화">✕</Button>
-              )}
-            </div>
-          )}
-
-          {/* ── 오른쪽: 행 수 · 컬럼 토글 ── */}
+          {/* ── 오른쪽: 행 드롭박스 · 컬럼 드롭박스 · 검색창 ── */}
           <select
             className={styles.pageSizeSelect}
             value={pageSize}
@@ -179,6 +163,21 @@ const DataTable = <T extends object>({
                     ) : null;
                   })}
                 </div>
+              )}
+            </div>
+          )}
+
+          {searchable && (
+            <div className={styles.searchWrap}>
+              <input
+                className={styles.search}
+                placeholder={searchPlaceholder}
+                value={searchInput}
+                onChange={e => { setSearchInput(e.target.value); table.setPageIndex(0); }}
+              />
+              {searchInput && (
+                <Button variant="ghost" size="sm" className={styles.searchClear}
+                  onClick={() => { setSearchInput(''); setGlobalFilter(''); }} aria-label="초기화">✕</Button>
               )}
             </div>
           )}
