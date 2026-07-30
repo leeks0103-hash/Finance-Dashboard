@@ -127,7 +127,14 @@ const DataTable = <T extends object>({
       {/* 툴바 — hideToolbar=true면 전체 숨김 */}
       {!hideToolbar && (
         <div className={styles.toolbar}>
+          {/* ── 왼쪽: title · 건수 · 검색 바 ── */}
           {title && <span className={styles.title}>{title}</span>}
+
+          <span className={styles.count}>
+            {globalFilter
+              ? `${filtered.length} / ${data.length}건`
+              : `${data.length}건`}
+          </span>
 
           {searchable && (
             <div className={styles.searchWrap}>
@@ -144,6 +151,7 @@ const DataTable = <T extends object>({
             </div>
           )}
 
+          {/* ── 오른쪽: 행 수 · 컬럼 토글 ── */}
           <select
             className={styles.pageSizeSelect}
             value={pageSize}
@@ -151,12 +159,6 @@ const DataTable = <T extends object>({
           >
             {pageSizeOptions.map(n => <option key={n} value={n}>{n}행</option>)}
           </select>
-
-          <span className={styles.count}>
-            {globalFilter
-              ? `${filtered.length} / ${data.length}건`
-              : `${data.length}건`}
-          </span>
 
           {hideableColumns && hideableColumns.length > 0 && (
             <div className={styles.colToggleWrap}>
