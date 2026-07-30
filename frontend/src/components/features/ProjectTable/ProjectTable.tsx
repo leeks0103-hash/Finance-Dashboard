@@ -33,19 +33,18 @@ const ProjectTable = () => {
 
   return (
     <DataTable
-      data={vm.data}
+      data={vm.rows}
       columns={columns}
       getRowId={(row) => `${row.project_code}-${row.stage}`}
       stickyFirstCol
       title="프로젝트 재무 상세"
       isLoading={vm.isLoading}
       isFetching={vm.isFetching}
-      searchable
-      searchPlaceholder="검색… (Esc: 초기화)"
       hideableColumns={HIDEABLE}
-      footer={vm.data.length ? footer : undefined}
+      footer={vm.rows.length ? footer : undefined}
       getRowVariant={vm.getRowVariant}
-      defaultPageSize={30}
+      serverPagination={vm.serverPagination}
+      serverSearch={vm.serverSearch}
       emptyIcon="🔍"
       emptyTitle="검색 결과 없음"
       emptyDescription="다른 검색어나 필터 조건을 시도해보세요."

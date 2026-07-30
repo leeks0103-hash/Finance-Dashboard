@@ -146,20 +146,24 @@ const KpiPage = () => {
       </div>
 
       {/* KPI 취합 */}
-      {vm.rawRows.length > 0 && (
+      {(vm.rawRows.length > 0 || vm.isLoading) && (
         <div className={styles.section}>
-          <h3 className={styles.sectionTitle}>KPI 취합 ({vm.rawRows.length}건)</h3>
+          <h3 className={styles.sectionTitle}>
+            KPI 취합 ({vm.infiniteLoadMore.total}건)
+          </h3>
           <DataTable<KpiRawRow>
             data={vm.rawRows}
             columns={rawColumns as never}
-            getRowId={(row, i) => {
-              const k = getRawRowKey(row);
-              return k ?? String(i);
+            getRowId={(row) => getRawRowKey(row) ?? String(Math.random())}
+            isLoading={vm.isLoading}
+            isFetching={vm.isFetchingNext}
+            serverSearch={{
+              value:    vm.searchValue,
+              onChange: vm.onSearchChange,
             }}
-            searchable
             searchPlaceholder="프로젝트코드·파트명 검색…"
+            infiniteLoadMore={vm.infiniteLoadMore}
             hideableColumns={rawHideableCols}
-            defaultPageSize={20}
             emptyTitle="검색 결과가 없습니다."
           />
         </div>

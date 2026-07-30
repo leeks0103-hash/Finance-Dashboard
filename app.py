@@ -321,7 +321,27 @@ def index():
 @app.route("/api/data")
 def api_data():
     df = apply_filters(get_df())
-    return jsonify(df.to_dict(orient="records"))
+
+    search = request.args.get("search", "").strip()
+    if search:
+        s = search.lower()
+        mask = (
+            df["project_code"].str.lower().str.contains(s, na=False) |
+            df["part"].str.lower().str.contains(s, na=False) |
+            df["stage"].str.lower().str.contains(s, na=False) |
+            df["note"].str.lower().str.contains(s, na=False)
+        )
+        df = df[mask]
+
+    total = len(df)
+    try:
+        page      = max(1, int(request.args.get("page", 1)))
+        page_size = min(200, max(1, int(request.args.get("page_size", 30))))
+    except (ValueError, TypeError):
+        page, page_size = 1, 30
+
+    start = (page - 1) * page_size
+    return jsonify({"data": df.iloc[start:start + page_size].to_dict(orient="records"), "total": total})
 
 
 @app.route("/api/summary")
@@ -898,12 +918,29 @@ def api_perf_data():
     """프로젝트별 실적 (매출 행만). _row_num 필드로 고유 key 보장."""
     df = apply_perf_filters(get_perf_df())
     if df.empty:
-        return jsonify([])
+        return jsonify({"data": [], "total": 0})
     rev = df[df["category"] == "매출"].copy()
-    # _row_num: reset 없이 원본 df 인덱스 사용 → 필터 변경 시에도 안정적
-    rev = rev.copy()
     rev["_row_num"] = rev.index
-    return jsonify(rev.to_dict(orient="records"))
+
+    search = request.args.get("search", "").strip()
+    if search:
+        s = search.lower()
+        str_cols = ["project_code", "project_name", "manager", "part", "team"]
+        mask = pd.Series([False] * len(rev), index=rev.index)
+        for col in str_cols:
+            if col in rev.columns:
+                mask |= rev[col].astype(str).str.lower().str.contains(s, na=False)
+        rev = rev[mask]
+
+    total = len(rev)
+    try:
+        page      = max(1, int(request.args.get("page", 1)))
+        page_size = min(200, max(1, int(request.args.get("page_size", 30))))
+    except (ValueError, TypeError):
+        page, page_size = 1, 30
+
+    start = (page - 1) * page_size
+    return jsonify({"data": rev.iloc[start:start + page_size].to_dict(orient="records"), "total": total})
 
 
 @app.route("/api/performance/summary")
@@ -1159,9 +1196,27 @@ def _calc_kpi_actuals_from_cache(kpi_items: list) -> list:
 def api_kpi_data():
     df = get_kpi_df()
     if df.empty:
-        return jsonify([])
-    records = df.replace({float("nan"): None}).to_dict(orient="records")
-    return jsonify(records)
+        return jsonify({"data": [], "total": 0})
+
+    search = request.args.get("search", "").strip()
+    if search:
+        s = search.lower()
+        mask = df.apply(
+            lambda row: any(s in str(v).lower() for v in row if v is not None),
+            axis=1,
+        )
+        df = df[mask]
+
+    total = len(df)
+    try:
+        page      = max(1, int(request.args.get("page", 1)))
+        page_size = min(200, max(1, int(request.args.get("page_size", 30))))
+    except (ValueError, TypeError):
+        page, page_size = 1, 30
+
+    start  = (page - 1) * page_size
+    paged  = df.iloc[start:start + page_size].replace({float("nan"): None})
+    return jsonify({"data": paged.to_dict(orient="records"), "total": total})
 
 
 @app.route("/api/kpi/summary")

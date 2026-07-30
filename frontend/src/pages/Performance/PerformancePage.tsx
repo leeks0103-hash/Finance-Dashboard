@@ -108,14 +108,14 @@ const PerformancePage = () => {
         isLoading={vm.isLoading}
         isFetching={vm.isFetching}
         stickyFirstCol
-        searchable
-        searchPlaceholder="프로젝트코드·이름·담당자 검색…"
-        defaultPageSize={30}
         getRowVariant={(row) =>
           row.operating_profit < 0 ? 'loss' : row.profit_rate < 5 ? 'warn' : ''
         }
         footer={footer}
         hideableColumns={PERF_HIDEABLE_COLS}
+        serverPagination={vm.serverPagination}
+        serverSearch={vm.serverSearch}
+        searchPlaceholder="프로젝트코드·이름·담당자 검색…"
         emptyIcon="🔍"
         emptyTitle="검색 결과 없음"
         emptyDescription="다른 검색어나 필터 조건을 시도해보세요."

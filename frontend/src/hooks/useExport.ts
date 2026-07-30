@@ -24,7 +24,7 @@ export const useExport = () => {
 
   const exportCsv = async () => {
     try {
-      const rows = await getProjects(filters);
+      const { data: rows } = await getProjects(filters, { page: 1, pageSize: 9999, search: '' });
       const headers = ['프로젝트코드','연도','파트','단계','매출','지출','직접원가','인건비','공통원가','경상이익','이익율','비고'];
       const lines = [
         headers.map(csvField).join(','),

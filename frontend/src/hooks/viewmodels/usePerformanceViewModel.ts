@@ -1,13 +1,13 @@
-import { useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { usePerformanceSummary } from '@/hooks/usePerformanceSummary';
-import { usePerformanceData } from '@/hooks/usePerformanceData';
-import { usePerformanceOptions } from '@/hooks/usePerformanceData';
+import { usePerformanceData, usePerformanceOptions } from '@/hooks/usePerformanceData';
+import { useDebouncedSearch } from '@/hooks/useDebouncedSearch';
 import { useCountUp } from '@/hooks/useCountUp';
 import { usePerfStore } from '@/store/perf.store';
 import { formatEok } from '@/utils';
 import type { PerfProject } from '@/types/performance.types';
+import type { ServerPagination, ServerSearch } from '@/components/ui/DataTable';
 
-// 천원 → 억원 (숫자용)
 const toEokNum = (v: number) => +(v / 100_000).toFixed(1);
 
 export interface PerfKpiCard {
@@ -28,7 +28,6 @@ export interface PerfPartRow {
   profitRate:      string;
   count:           number;
   isLoss:          boolean;
-  // 차트용 숫자
   planInitialNum:  number;
   junActualNum:    number;
   junCostNum:      number;
@@ -44,25 +43,33 @@ export interface PerfChartDataset {
 }
 
 export interface PerformanceViewModel {
-  isLoading:    boolean;
-  isFetching:   boolean;
-  isEmpty:      boolean;
-  kpiCards:     PerfKpiCard[];
-  byPart:       PerfPartRow[];
-  chartLabels:  string[];
+  isLoading:     boolean;
+  isFetching:    boolean;
+  isEmpty:       boolean;
+  kpiCards:      PerfKpiCard[];
+  byPart:        PerfPartRow[];
+  chartLabels:   string[];
   chartDatasets: PerfChartDataset[];
-  projects:     PerfProject[];
-  /** 프로젝트 상세 합계 행 집계값 — JSX 렌더링은 pages/ 담당 */
-  footerData:   { planInitial: string; junActual: string; opProfit: string; isLoss: boolean } | undefined;
-  parts:        string[];
+  projects:      PerfProject[];
+  /** 전체 집계 기반 합계 — 페이지네이션과 무관 */
+  footerData:    { planInitial: string; junActual: string; opProfit: string; isLoss: boolean } | undefined;
+  parts:         string[];
   selectedParts: string[];
-  togglePart:   (part: string) => void;
-  resetFilters: () => void;
+  togglePart:    (part: string) => void;
+  resetFilters:  () => void;
+  serverPagination: ServerPagination;
+  serverSearch:     ServerSearch;
 }
 
 export const usePerformanceViewModel = (): PerformanceViewModel => {
-  const { data: summary, isLoading: sumLoading } = usePerformanceSummary();
-  const { data: rawProjects, isLoading: projLoading, isFetching } = usePerformanceData();
+  const [page,     setPage]     = useState(1);
+  const [pageSize, setPageSize] = useState(30);
+  const search = useDebouncedSearch(350);
+
+  const { data: summary,    isLoading: sumLoading } = usePerformanceSummary();
+  const { data: paged,      isLoading: projLoading, isFetching } = usePerformanceData({
+    page, pageSize, search: search.debouncedValue,
+  });
   const { data: options } = usePerformanceOptions();
   const selectedParts = usePerfStore(s => s.selectedParts);
   const togglePart    = usePerfStore(s => s.togglePart);
@@ -71,11 +78,11 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
   const isLoading = sumLoading || projLoading;
   const total     = summary?.total;
 
-  const junActualRaw = total?.jun_actual        ?? 0;
-  const profitRaw    = total?.operating_profit  ?? 0;
-  const planRaw      = total?.plan_initial      ?? 0;
-  const rateRaw      = total?.avg_profit_rate   ?? 0;
-  const junCheckRaw  = total?.jun_check_total   ?? 0;
+  const junActualRaw = total?.jun_actual       ?? 0;
+  const profitRaw    = total?.operating_profit ?? 0;
+  const planRaw      = total?.plan_initial     ?? 0;
+  const rateRaw      = total?.avg_profit_rate  ?? 0;
+  const junCheckRaw  = total?.jun_check_total  ?? 0;
 
   const animJun    = useCountUp(toEokNum(junActualRaw));
   const animProfit = useCountUp(toEokNum(profitRaw));
@@ -87,37 +94,12 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
     if (!total) return [];
     const achieveRate = planRaw > 0 ? ((junActualRaw / planRaw) * 100).toFixed(1) : '-';
     return [
-      {
-        label:   '매출 계획 (최초)',
-        value:   `${animPlan.toFixed(1)}억원`,
-        sub:     `${total.count}개 프로젝트`,
-        accent:  'brand',
-        trendUp: true,
-      },
-      {
-        label:   '6월 실적 집계',
-        value:   `${animJun.toFixed(1)}억원`,
-        sub:     `달성률 ${achieveRate}%`,
-        accent:  junActualRaw >= planRaw ? 'profit' : 'warn',
-        trendUp: junActualRaw >= planRaw,
-      },
-      {
-        label:   '6월 점검 연간합계',
-        value:   `${animCheck.toFixed(1)}억원`,
-        sub:     `원가 ${formatEok(total.jun_cost)}`,
-        accent:  'purple',
-        trendUp: true,
-      },
-      {
-        label:   '경상손익',
-        value:   `${animProfit.toFixed(1)}억원`,
-        sub:     `손익률 ${animRate.toFixed(1)}%`,
-        accent:  profitRaw >= 0 ? 'profit' : 'loss',
-        trendUp: profitRaw >= 0,
-      },
+      { label: '매출 계획 (최초)', value: `${animPlan.toFixed(1)}억원`, sub: `${total.count}개 프로젝트`, accent: 'brand', trendUp: true },
+      { label: '6월 실적 집계',   value: `${animJun.toFixed(1)}억원`,  sub: `달성률 ${achieveRate}%`, accent: junActualRaw >= planRaw ? 'profit' : 'warn', trendUp: junActualRaw >= planRaw },
+      { label: '6월 점검 연간합계', value: `${animCheck.toFixed(1)}억원`, sub: `원가 ${formatEok(total.jun_cost)}`, accent: 'purple', trendUp: true },
+      { label: '경상손익', value: `${animProfit.toFixed(1)}억원`, sub: `손익률 ${animRate.toFixed(1)}%`, accent: profitRaw >= 0 ? 'profit' : 'loss', trendUp: profitRaw >= 0 },
     ];
-  }, [total, animPlan, animJun, animCheck, animProfit, animRate,
-      planRaw, junActualRaw, junCheckRaw, profitRaw, rateRaw]);
+  }, [total, animPlan, animJun, animCheck, animProfit, animRate, planRaw, junActualRaw, junCheckRaw, profitRaw]);
 
   const byPart = useMemo((): PerfPartRow[] => {
     if (!summary?.by_part) return [];
@@ -127,72 +109,55 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
         const planInitialNum = toEokNum(s.plan_initial);
         const junActualNum   = toEokNum(s.jun_actual);
         const junCostNum     = toEokNum(s.jun_cost);
-        const costRate = junActualNum > 0
-          ? `${((junCostNum / junActualNum) * 100).toFixed(1)}%`
-          : '-';
+        const costRate = junActualNum > 0 ? `${((junCostNum / junActualNum) * 100).toFixed(1)}%` : '-';
         return {
           part,
-          planInitial:     formatEok(s.plan_initial),
-          junActual:       formatEok(s.jun_actual),
-          junCost:         formatEok(s.jun_cost),
-          junCheckTotal:   formatEok(s.jun_check_total),
-          operatingProfit: formatEok(s.operating_profit),
-          profitRate:      `${s.avg_profit_rate.toFixed(1)}%`,
-          count:           s.count,
-          isLoss:          s.operating_profit < 0,
-          planInitialNum,
-          junActualNum,
-          junCostNum,
-          profitRateNum:   s.avg_profit_rate,
-          costRateStr:     costRate,
+          planInitial: formatEok(s.plan_initial), junActual: formatEok(s.jun_actual),
+          junCost: formatEok(s.jun_cost), junCheckTotal: formatEok(s.jun_check_total),
+          operatingProfit: formatEok(s.operating_profit), profitRate: `${s.avg_profit_rate.toFixed(1)}%`,
+          count: s.count, isLoss: s.operating_profit < 0,
+          planInitialNum, junActualNum, junCostNum, profitRateNum: s.avg_profit_rate, costRateStr: costRate,
         };
       });
   }, [summary?.by_part]);
 
-  const projects = useMemo(
-    () => Array.isArray(rawProjects) ? rawProjects : [],
-    [rawProjects],
-  );
+  const projects: PerfProject[] = paged?.rows ?? [];
 
-  // 월별 차트
-  const monthly = summary?.monthly ?? [];
-  const chartLabels   = useMemo(() => monthly.map(m => m.month), [monthly]);
-  const chartDatasets = useMemo((): PerfChartDataset[] => [
-    {
-      label:           '월별 실적',
-      data:            monthly.map(m => +(m.revenue / 100_000).toFixed(1)),
-      backgroundColor: 'rgba(59,130,246,0.65)',
-      borderRadius:    4,
-    },
-  ], [monthly]);
+  const monthly       = summary?.monthly ?? [];
+  const chartLabels   = useMemo(() => monthly.map(m => m.month),   [monthly]);
+  const chartDatasets = useMemo((): PerfChartDataset[] => [{
+    label: '월별 실적', data: monthly.map(m => +(m.revenue / 100_000).toFixed(1)),
+    backgroundColor: 'rgba(59,130,246,0.65)', borderRadius: 4,
+  }], [monthly]);
 
-  // 프로젝트 상세 합계 — 집계만 담당, JSX 렌더링은 pages/ 책임
-  const footerData = useMemo(() => {
-    if (!projects.length) return undefined;
-    const plan     = projects.reduce((s, r) => s + r.plan_initial, 0);
-    const junAct   = projects.reduce((s, r) => s + r.jun_actual, 0);
-    const opProfit = projects.reduce((s, r) => s + r.operating_profit, 0);
-    return {
-      planInitial: formatEok(plan),
-      junActual:   formatEok(junAct),
-      opProfit:    formatEok(opProfit),
-      isLoss:      opProfit < 0,
-    };
-  }, [projects]);
+  // footerData — summary.total 기반 (전체 집계, 페이지네이션과 무관)
+  const footerData = total ? {
+    planInitial: formatEok(total.plan_initial),
+    junActual:   formatEok(total.jun_actual),
+    opProfit:    formatEok(total.operating_profit),
+    isLoss:      total.operating_profit < 0,
+  } : undefined;
 
   return {
-    isLoading,
-    isFetching:   isFetching ?? false,
-    isEmpty:      !isLoading && !total,
-    kpiCards,
-    byPart,
-    chartLabels,
-    chartDatasets,
-    projects,
-    footerData,
-    parts:        options?.parts ?? [],
-    selectedParts,
-    togglePart,
-    resetFilters: reset,
+    isLoading, isFetching: isFetching ?? false,
+    isEmpty: !isLoading && !total,
+    kpiCards, byPart, chartLabels, chartDatasets,
+    projects, footerData,
+    parts: options?.parts ?? [], selectedParts, togglePart, resetFilters: reset,
+
+    serverPagination: {
+      total:            paged?.total ?? 0,
+      page, pageSize,
+      onPageChange:     (p) => setPage(p),
+      onPageSizeChange: (s) => { setPageSize(s); setPage(1); },
+    },
+
+    serverSearch: {
+      value:    search.inputValue,
+      onChange: (val) => {
+        search.handleChange({ target: { value: val } } as React.ChangeEvent<HTMLInputElement>);
+        setPage(1);
+      },
+    },
   };
 };

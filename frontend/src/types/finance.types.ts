@@ -83,3 +83,14 @@ export interface Insights {
 export type ReloadResponse =
   | { ok: true;  loaded_at: string; count: number }
   | { ok: false; error: string };
+
+export interface PagedResponse<T> {
+  data:  T[];
+  total: number;
+}
+
+export interface PageParams {
+  page:     number;
+  pageSize: number;
+  search:   string;
+}

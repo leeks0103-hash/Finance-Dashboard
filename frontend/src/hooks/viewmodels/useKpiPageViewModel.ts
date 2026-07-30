@@ -1,6 +1,8 @@
-import { useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useKpiSummary, useKpiData } from '@/hooks/useKpiSummary';
+import { useDebouncedSearch } from '@/hooks/useDebouncedSearch';
 import type { KpiRawRow } from '@/types/kpi.types';
+import type { InfiniteLoadMore } from '@/components/ui/DataTable';
 
 export interface KpiChartDataset {
   label:           string;
@@ -13,41 +15,54 @@ export interface KpiChartData {
   labels:   string[];
   targets:  number[];
   actuals:  number[];
-  datasets: KpiChartDataset[];  // 색상 포함 — pages/는 렌더링만
+  datasets: KpiChartDataset[];
 }
 
 export interface KpiSummaryRow {
   name:        string;
   agg:         string;
-  targetStr:   string;   // 표시용 (문자열 목표 그대로)
-  targetNum:   number;   // 차트용 (숫자만, 문자열→0)
+  targetStr:   string;
+  targetNum:   number;
   actual:      string;
   achieveRate: string;
   isGood:      boolean;
 }
 
 export interface KpiPageViewModel {
-  isLoading:  boolean;
-  available:  boolean;
-  message?:   string;
-  chart:      KpiChartData;
-  summaryRows: KpiSummaryRow[];
-  rawRows:    KpiRawRow[];
-  rawCols:    string[];   // useMemo로 메모이제이션 — 렌더마다 재계산 방지
+  isLoading:        boolean;
+  isFetchingNext:   boolean;
+  available:        boolean;
+  message?:         string;
+  chart:            KpiChartData;
+  summaryRows:      KpiSummaryRow[];
+  rawRows:          KpiRawRow[];
+  rawCols:          string[];
+  /** DataTable infiniteLoadMore prop에 그대로 전달 */
+  infiniteLoadMore: InfiniteLoadMore;
+  /** 서버 검색값 — DataTable serverSearch.value로 전달 */
+  searchValue:      string;
+  onSearchChange:   (val: string) => void;
 }
 
 const fmtNum = (v: number) => v !== 0 ? v.toLocaleString() : '0';
 
 export const useKpiPageViewModel = (): KpiPageViewModel => {
+  const [pageSize] = useState(30);
+  const search = useDebouncedSearch(350);
+
   const { data: summary, isLoading: sumLoading } = useKpiSummary();
-  const { data: rawData,  isLoading: dataLoading } = useKpiData();
+  const {
+    data,
+    isLoading:          dataLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+  } = useKpiData(search.debouncedValue, pageSize);
 
   const isLoading = sumLoading || dataLoading;
-  const items = summary?.items ?? [];
-  const rawRows: KpiRawRow[] = Array.isArray(rawData) ? rawData : [];
+  const items     = summary?.items ?? [];
+  const rawRows: KpiRawRow[] = data?.rows ?? [];
 
-  // 차트: 문자열 목표는 0으로 변환 → Chart.js에 숫자만 전달
-  // 색상도 ViewModel에서 반환 — pages/는 렌더링만
   const chart = useMemo((): KpiChartData => {
     const labels  = items.map(it => it.name.replace(/\s*\([^)]+\)\s*/g, ' ').trim());
     const targets = items.map(it => typeof it.target_2026 === 'number' ? it.target_2026 : 0);
@@ -65,19 +80,15 @@ export const useKpiPageViewModel = (): KpiPageViewModel => {
     items.map(it => ({
       name:       it.name,
       agg:        it.agg === 'sum' ? '합계' : '평균',
-      targetStr:  typeof it.target_2026 === 'number'
-        ? fmtNum(it.target_2026)
-        : String(it.target_2026),
+      targetStr:  typeof it.target_2026 === 'number' ? fmtNum(it.target_2026) : String(it.target_2026),
       targetNum:  typeof it.target_2026 === 'number' ? it.target_2026 : 0,
       actual:     fmtNum(it.actual_2026),
-      achieveRate: it.achieve_rate !== null && it.achieve_rate !== undefined
-        ? `${it.achieve_rate}%`
-        : '-',
+      achieveRate: it.achieve_rate !== null && it.achieve_rate !== undefined ? `${it.achieve_rate}%` : '-',
       isGood: (it.achieve_rate ?? 0) >= 100,
     })),
   [items]);
 
-  // rawCols 메모이제이션: Object.keys는 렌더마다 재계산되므로 useMemo 사용 (Fix 효율)
+  // 컬럼은 첫 행 기준 — structuralSharing으로 rows 참조가 안정적이면 여기도 안정적
   const rawCols = useMemo(
     () => rawRows.length > 0 ? Object.keys(rawRows[0]) : [],
     [rawRows],
@@ -85,11 +96,23 @@ export const useKpiPageViewModel = (): KpiPageViewModel => {
 
   return {
     isLoading,
-    available:   summary?.available ?? false,
-    message:     summary?.message,
+    isFetchingNext:   isFetchingNextPage,
+    available:        summary?.available ?? false,
+    message:          summary?.message,
     chart,
     summaryRows,
     rawRows,
     rawCols,
+
+    infiniteLoadMore: {
+      total:              data?.total ?? 0,
+      hasNextPage:        hasNextPage ?? false,
+      isFetchingNextPage: isFetchingNextPage,
+      fetchNextPage,
+    },
+
+    searchValue:    search.inputValue,
+    onSearchChange: (val) =>
+      search.handleChange({ target: { value: val } } as React.ChangeEvent<HTMLInputElement>),
   };
 };
