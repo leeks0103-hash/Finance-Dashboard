@@ -1,30 +1,41 @@
 import { useMemo } from 'react';
+import { createColumnHelper } from '@tanstack/react-table';
 import { usePerformanceViewModel } from '@/hooks/viewmodels/usePerformanceViewModel';
+import type { PerfPartRow } from '@/hooks/viewmodels/usePerformanceViewModel';
 import { ChartCard, BarChart, DataTable } from '@/components/ui';
 import { perfColumns, PERF_HIDEABLE_COLS } from '@/components/features/PerformanceTable/columns';
-import { formatEok } from '@/utils';
+import type { PerfProject } from '@/types/performance.types';
 import styles from './PerformancePage.module.css';
+
+// 파트별 실적 컬럼 — 모듈 스코프에서 한 번만 생성 (stable reference)
+const hp = createColumnHelper<PerfPartRow>();
+const byPartColumns = [
+  hp.accessor('part', {
+    header: '파트', enableSorting: true,
+    cell: i => i.getValue().replace(/^[①-⑦]\s*/, ''),
+  }),
+  hp.accessor('planInitial',   { header: '매출 계획',    enableSorting: true }),
+  hp.accessor('junActual',     { header: '6월 실적',     enableSorting: true }),
+  hp.accessor('junCost',       { header: '6월 원가' }),
+  hp.accessor('costRateStr',   { header: '원가율' }),
+  hp.accessor('junCheckTotal', { header: '6월 점검 연간' }),
+  hp.accessor('operatingProfit', {
+    header: '경상손익',
+    cell: i => {
+      const row = i.row.original;
+      return (
+        <span style={{ color: row.isLoss ? 'var(--loss)' : 'var(--profit)', fontWeight: row.isLoss ? 600 : undefined }}>
+          {row.operatingProfit}
+        </span>
+      );
+    },
+  }),
+  hp.accessor('profitRate', { header: '손익률' }),
+  hp.accessor('count',      { header: '건수', cell: i => String(i.getValue()) }),
+];
 
 const PerformancePage = () => {
   const vm = usePerformanceViewModel();
-
-  // footer 합계 — useMemo로 매 렌더 재계산 방지
-  const footer = useMemo(() => {
-    if (!vm.projects.length) return undefined;
-    const plan     = vm.projects.reduce((s, r) => s + r.plan_initial, 0);
-    const junAct   = vm.projects.reduce((s, r) => s + r.jun_actual, 0);
-    const opProfit = vm.projects.reduce((s, r) => s + r.operating_profit, 0);
-    return {
-      project_code:     <span style={{ fontWeight: 700 }}>합계</span>,
-      plan_initial:     formatEok(plan),
-      jun_actual:       formatEok(junAct),
-      operating_profit: (
-        <span style={{ color: opProfit < 0 ? 'var(--loss)' : 'var(--profit)', fontWeight: 600 }}>
-          {formatEok(opProfit)}
-        </span>
-      ),
-    };
-  }, [vm.projects]);
 
   return (
     <main className={styles.main}>
@@ -57,39 +68,14 @@ const PerformancePage = () => {
         </ChartCard.Body>
       </ChartCard>
 
-      {/* 파트별 실적 — DataTable (7행 고정, 페이지네이션 없음) */}
+      {/* 파트별 실적 — PerfPartRow 타입으로 DataTable<PerfPartRow> */}
       <div className={styles.section}>
         <h3 className={styles.sectionTitle}>파트별 실적 (2026년 6월 기준, 억원)</h3>
-        <DataTable
-          data={vm.byPart as unknown as Record<string, unknown>[]}
-          columns={[
-            {
-              accessorKey: 'part', header: '파트', enableSorting: true,
-              cell: (i: { getValue: () => unknown }) =>
-                String(i.getValue()).replace(/^[①-⑦]\s*/, ''),
-            },
-            { accessorKey: 'planInitial',   header: '매출 계획',    enableSorting: true },
-            { accessorKey: 'junActual',     header: '6월 실적',     enableSorting: true },
-            { accessorKey: 'junCost',       header: '6월 원가' },
-            { accessorKey: 'costRateStr',   header: '원가율' },
-            { accessorKey: 'junCheckTotal', header: '6월 점검 연간' },
-            {
-              accessorKey: 'operatingProfit',
-              header: '경상손익',
-              cell: (i: { getValue: () => unknown; row: { original: unknown } }) => {
-                const row = i.row.original as { isLoss: boolean; operatingProfit: string };
-                return (
-                  <span style={{ color: row.isLoss ? 'var(--loss)' : 'var(--profit)', fontWeight: row.isLoss ? 600 : undefined }}>
-                    {row.operatingProfit}
-                  </span>
-                );
-              },
-            },
-            { accessorKey: 'profitRate', header: '손익률' },
-            { accessorKey: 'count',      header: '건수' },
-          ] as never}
-          getRowId={(row) => String((row as { part: string }).part)}
-          getRowVariant={(row) => (row as { isLoss: boolean }).isLoss ? 'loss' : ''}
+        <DataTable<PerfPartRow>
+          data={vm.byPart}
+          columns={byPartColumns as never}
+          getRowId={(row) => row.part}
+          getRowVariant={(row) => row.isLoss ? 'loss' : ''}
           defaultPageSize={10}
           pageSizeOptions={[10]}
           compact
@@ -97,10 +83,10 @@ const PerformancePage = () => {
         />
       </div>
 
-      {/* 프로젝트 상세 — ViewModel의 projects 사용 (직접 훅 호출 제거) */}
+      {/* 프로젝트 상세 — footer는 ViewModel에서 계산 (pages/에서 reduce 금지) */}
       <div className={styles.section}>
         <h3 className={styles.sectionTitle}>프로젝트 상세 (단위: 억원 / 원가율·손익률: %)</h3>
-        <DataTable
+        <DataTable<PerfProject>
           data={vm.projects}
           columns={perfColumns as never}
           getRowId={(row) => String(row._row_num)}
@@ -113,7 +99,7 @@ const PerformancePage = () => {
           getRowVariant={(row) =>
             row.operating_profit < 0 ? 'loss' : row.profit_rate < 5 ? 'warn' : ''
           }
-          footer={footer}
+          footer={vm.footer}
           hideableColumns={PERF_HIDEABLE_COLS}
           emptyIcon="🔍"
           emptyTitle="검색 결과 없음"

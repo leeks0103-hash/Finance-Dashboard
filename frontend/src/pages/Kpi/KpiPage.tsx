@@ -7,6 +7,12 @@ import type { KpiRawRow } from '@/types/kpi.types';
 import type { KpiSummaryRow } from '@/hooks/viewmodels/useKpiPageViewModel';
 import styles from './KpiPage.module.css';
 
+// 취합 행 key — 모듈 스코프 (매 렌더 재생성 방지)
+const getRawRowKey = (row: KpiRawRow): string | undefined => {
+  const code = row['프로젝트코드'] ?? row['수행연도'] ?? row['파트명'];
+  return code != null && String(code).trim() !== '' ? String(code) : undefined;
+};
+
 // KPI 집계 컬럼 — 모듈 스코프에서 한 번만 생성 (stable reference)
 const sh = createColumnHelper<KpiSummaryRow>();
 const summaryColumns = [
@@ -62,12 +68,6 @@ const KpiPage = () => {
       .map(col => ({ id: col, label: col })),
     [vm.rawCols],
   );
-
-  // 취합 행 key — 프로젝트코드 기반 (content-based, 인덱스 사용 금지)
-  const rawRowKey = (row: KpiRawRow) => {
-    const code = row['프로젝트코드'] ?? row['수행연도'] ?? row['파트명'];
-    return code != null && String(code).trim() !== '' ? String(code) : undefined;
-  };
 
   if (!vm.available) {
     return (
@@ -153,7 +153,7 @@ const KpiPage = () => {
             data={vm.rawRows}
             columns={rawColumns as never}
             getRowId={(row, i) => {
-              const k = rawRowKey(row);
+              const k = getRawRowKey(row);
               return k ?? String(i);
             }}
             searchable
