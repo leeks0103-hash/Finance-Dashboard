@@ -88,33 +88,48 @@ def has_changes(result: dict) -> bool:
     return bool(result["only_in_local"] or result["modified"])
 
 
-# ── 4. 재무 데이터 추출 ─────────────────────────────────────────
-def extract(new_dir: str):
-    script = str(_SCRIPT_DIR / "extract_financial_ppt.py")
-    log.info("재무 데이터 추출 시작: %s", new_dir)
-    env = os.environ.copy()
-    env["EXTRACT_BASE_DIR"] = new_dir          # 환경변수로 경로 전달
+# ── 4. 데이터 추출 (재무 + KPI) ────────────────────────────────
+def _run_script(script_name: str, env: dict):
     result = subprocess.run(
-        [sys.executable, script],
+        [sys.executable, str(_SCRIPT_DIR / script_name)],
         env=env,
         capture_output=False,
     )
     if result.returncode != 0:
-        log.error("추출 스크립트 실패 (returncode=%d)", result.returncode)
+        log.error("%s 실패 (returncode=%d)", script_name, result.returncode)
         sys.exit(1)
-    log.info("추출 완료")
 
 
-# ── 5. API 캐시 갱신 ────────────────────────────────────────────
+def extract(new_dir: str):
+    env = os.environ.copy()
+    env["EXTRACT_BASE_DIR"]    = new_dir   # 재무 추출 경로
+    env["EXTRACT_KPI_ROOT_DIR"] = new_dir  # KPI 추출 경로
+
+    log.info("재무 데이터 추출 시작: %s", new_dir)
+    _run_script("extract_financial_ppt.py", env)
+    log.info("재무 추출 완료")
+
+    log.info("KPI 데이터 추출 시작")
+    _run_script("extract_kpi_ppt.py", env)
+    log.info("KPI 추출 완료")
+
+
+# ── 5. API 캐시 갱신 (재무 + KPI) ──────────────────────────────
 def reload_api():
-    try:
-        r = requests.post(API_RELOAD, timeout=10)
-        if r.status_code == 200 and r.json().get("ok"):
-            log.info("API 캐시 갱신 완료 (%d건)", r.json().get("count", 0))
-        else:
-            log.warning("API reload 응답 이상: %s", r.text[:200])
-    except requests.exceptions.ConnectionError:
-        log.warning("Flask 서버에 연결할 수 없습니다 — 서버 재시작 후 갱신 필요")
+    base = "http://localhost:5000/api"
+    endpoints = [
+        (f"{base}/reload",      "재무"),
+        (f"{base}/kpi/reload",  "KPI"),
+    ]
+    for url, name in endpoints:
+        try:
+            r = requests.post(url, timeout=10)
+            if r.status_code == 200 and r.json().get("ok"):
+                log.info("%s 캐시 갱신 완료 (%d건)", name, r.json().get("count", 0))
+            else:
+                log.warning("%s reload 응답 이상: %s", name, r.text[:100])
+        except requests.exceptions.ConnectionError:
+            log.warning("Flask 서버 미연결 — 서버 재시작 후 갱신 필요")
 
 
 # ── 메인 ────────────────────────────────────────────────────────

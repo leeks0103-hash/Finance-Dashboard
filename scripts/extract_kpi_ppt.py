@@ -1,3 +1,4 @@
+import os
 import re
 import hashlib
 import logging
@@ -12,7 +13,11 @@ from openpyxl import load_workbook, Workbook
 # =========================================
 # 사용자 설정
 # =========================================
-ROOT_DIR = Path(r"D:\24.기술교육사업기획팀\23. 표준 템플릿 데이터 추출 프로젝트\(기술교육실)프로젝트 보고서 수집")
+# 환경변수 EXTRACT_KPI_ROOT_DIR 우선 사용 — compare_and_update.py가 자동 주입
+ROOT_DIR = Path(os.environ.get(
+    "EXTRACT_KPI_ROOT_DIR",
+    r"C:\Users\aaa\Desktop\기술교육실_프로젝트 보고서 수집",
+))
 
 # 출력 엑셀: 프로젝트 data/ 폴더로 저장
 _DATA_DIR = Path(__file__).resolve().parent.parent / "data"
