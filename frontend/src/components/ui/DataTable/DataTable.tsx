@@ -65,6 +65,8 @@ interface Props<T> {
   serverSearch?:      ServerSearch;
   /** 무한 로드 모드 — serverPagination 대신 사용 (useInfiniteQuery 연동) */
   infiniteLoadMore?:  InfiniteLoadMore;
+  /** 초기 컬럼 표시 여부 (기본 숨김 컬럼 지정용) */
+  initialColumnVisibility?: Record<string, boolean>;
 }
 
 const DEFAULT_PAGE_SIZES = [10, 20, 30, 50, 100];
@@ -93,6 +95,7 @@ const DataTable = <T extends object>({
   serverPagination,
   serverSearch,
   infiniteLoadMore,
+  initialColumnVisibility = {},
 }: Props<T>) => {
   const isServerMode   = !!serverPagination;
   const isInfiniteMode = !!infiniteLoadMore;
@@ -100,7 +103,7 @@ const DataTable = <T extends object>({
   // 클라이언트 검색 상태 (서버모드에선 사용 안 함)
   const [searchInput,      setSearchInput]      = useState('');
   const [globalFilter,     setGlobalFilter]     = useState('');
-  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({});
+  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(initialColumnVisibility);
   const [showColMenu,      setShowColMenu]      = useState(false);
   const [popupText,        setPopupText]        = useState<string | null>(null);
 

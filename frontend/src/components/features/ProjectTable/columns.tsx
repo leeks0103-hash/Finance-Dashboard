@@ -35,4 +35,5 @@ export const columns = [
       return <Badge label={note} variant={variant} />;
     },
   }),
+  h.accessor('filename', { header: '파일명' }),
 ];
