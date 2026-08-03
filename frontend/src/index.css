@@ -53,7 +53,7 @@
 
 /* ─── Dark mode — Cyber HUD ──────────────────── */
 [data-theme="dark"] {
-  --nav-bg: #020A16;
+  --nav-bg: #0A1E32;
 
   --brand:        #0096CC;
   --brand-mid:    #00C8FF;
@@ -71,16 +71,16 @@
   --purple:       #B47EFF;
   --purple-bg:    rgba(180, 126, 255, 0.10);
 
-  --surface:      #0C1E32;
-  --bg:           #071526;
-  --bg-subtle:    #102236;
-  --border:       rgba(0, 200, 255, 0.20);
+  --surface:      #182E48;
+  --bg:           #112440;
+  --bg-subtle:    #1E3658;
+  --border:       rgba(0, 200, 255, 0.22);
   --border-focus: #00C8FF;
 
-  --text:         #E8F4FF;
-  --text-primary: #E8F4FF;
-  --text-sub:     #7EC8E8;
-  --text-muted:   rgba(140, 200, 230, 0.70);
+  --text:         #F0F8FF;
+  --text-primary: #F0F8FF;
+  --text-sub:     #9AD4F0;
+  --text-muted:   rgba(160, 215, 240, 0.80);
 
   --shadow-sm: 0 1px 6px rgba(0,0,0,0.6);
   --shadow-md: 0 4px 20px rgba(0,0,0,0.7);
