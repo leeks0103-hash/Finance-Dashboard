@@ -23,10 +23,14 @@ except ImportError:
 # 사용자 설정
 # =========================================
 # 환경변수 EXTRACT_KPI_ROOT_DIR 우선 사용 — compare_and_update.py가 자동 주입
+# CLI 인수로도 덮어쓰기 가능: python extract_kpi_ppt.py "C:\새폴더경로"
+import sys as _sys
 ROOT_DIR = Path(os.environ.get(
     "EXTRACT_KPI_ROOT_DIR",
-    r"C:\Users\aaa\Desktop\기술교육실_프로젝트 보고서 수집 NEW",
+    r"C:\Users\aaa\Desktop\기술교육실_프로젝트 보고서 수집",
 ))
+if len(_sys.argv) > 1 and Path(_sys.argv[1]).is_dir():
+    ROOT_DIR = Path(_sys.argv[1])
 
 # 출력 엑셀: 프로젝트 data/ 폴더로 저장
 _DATA_DIR = Path(__file__).resolve().parent.parent / "data"
@@ -61,6 +65,17 @@ KPI_METRIC_NAMES = [
 
 PART_KEYWORDS = ["신사업", "PM", "전차", "미모", "AI", "SW", "K뉴딜TF"]
 REPORT_STAGE_KEYWORDS = ["사업계획", "제안", "착수", "중간", "완료"]
+
+# 폴더명 → 파트명 매핑 (파일명에 키워드 없는 경우 상위 폴더명으로 판단)
+FOLDER_PART_MAP = {
+    "AI교육파트": "AI",
+    "SW교육파트": "SW",
+    "교육사업PM파트": "PM",
+    "신사업기획파트": "신사업",
+    "미래모빌리티교육파트": "미모",
+    "전동화&차량개발교육파트": "전차",
+    "K뉴딜 아카데미 TF": "K뉴딜TF",
+}
 
 LOG_FILE_NAME = "extract_kpi_ppt.log"
 HASH_CHUNK_SIZE = 1024 * 1024
@@ -189,8 +204,19 @@ def normalize_float_value(value):
     return text
 
 
-def extract_part_name(file_name: str) -> str:
-    clean_name = sanitize_excel_string(file_name)
+def extract_part_name(file_path) -> str:
+    """
+    파트명 추출 우선순위:
+    1. FOLDER_PART_MAP: 상위 폴더명 정확 매칭
+    2. PART_KEYWORDS: 파일명 내 키워드 검색
+    3. 없으면 '-'
+    """
+    path = Path(file_path) if not isinstance(file_path, Path) else file_path
+    parent_folder = path.parent.name
+    if parent_folder in FOLDER_PART_MAP:
+        return FOLDER_PART_MAP[parent_folder]
+
+    clean_name = sanitize_excel_string(path.name)
     for keyword in PART_KEYWORDS:
         if keyword in clean_name:
             return keyword
@@ -235,7 +261,7 @@ def get_file_meta(file_path: Path) -> Dict[str, str]:
     file_size = stat.st_size
     full_path = str(file_path.resolve())
     file_sha256 = compute_file_sha256(file_path)
-    part_name = extract_part_name(file_path.name)
+    part_name = extract_part_name(file_path)  # 폴더명 우선, 파일명 차선
     report_stage = extract_report_stage(file_path.name)
 
     return {

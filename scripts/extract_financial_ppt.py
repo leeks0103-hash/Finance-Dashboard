@@ -13,10 +13,13 @@ from openpyxl import Workbook, load_workbook
 # 설정값
 # =========================
 # 환경변수 EXTRACT_BASE_DIR 우선 사용 — compare_and_update.py가 자동 주입
+# CLI 인수로도 덮어쓰기 가능: python extract_financial_ppt.py "C:\새폴더경로"
 BASE_DIR = os.environ.get(
     "EXTRACT_BASE_DIR",
     r"C:\Users\aaa\Desktop\기술교육실_프로젝트 보고서 수집",
 )
+if len(sys.argv) > 1 and os.path.isdir(sys.argv[1]):
+    BASE_DIR = sys.argv[1]
 
 # 출력 엑셀: 프로젝트 data/ 폴더로 저장
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -34,11 +37,22 @@ EXCLUDE_FILENAMES = {
     "테스트 입니다.pptx",
 }
 
-# 기존 저장 데이터 삭제 후 전체 재추출
-FORCE_REPROCESS = True
-RESET_OUTPUT_ON_START = True
+# 기존 데이터 보존 + 증분 업데이트 (새 폴더 추가 시 기존 데이터 유지)
+FORCE_REPROCESS = False
+RESET_OUTPUT_ON_START = False
 
 PART_KEYWORDS = ["신사업", "PM", "전차", "미모", "AI", "SW", "K뉴딜TF"]
+
+# 폴더명 → 파트명 매핑 (파일명에 키워드 없는 경우 상위 폴더명으로 판단)
+FOLDER_PART_MAP = {
+    "AI교육파트": "AI",
+    "SW교육파트": "SW",
+    "교육사업PM파트": "PM",
+    "신사업기획파트": "신사업",
+    "미래모빌리티교육파트": "미모",
+    "전동화&차량개발교육파트": "전차",
+    "K뉴딜 아카데미 TF": "K뉴딜TF",
+}
 
 OUTPUT_HEADERS = [
     "프로젝트 코드",     # 1
@@ -208,13 +222,18 @@ def extract_year_from_filename(filename):
     return "-"
 
 
-def extract_part_from_filename(filename):
+def extract_part_from_path(filepath):
     """
-    파일명에 PART_KEYWORDS 중 포함되는 첫 번째 키워드 반환
-    없으면 '-'
+    파트명 추출 우선순위:
+    1. FOLDER_PART_MAP: 상위 폴더명 정확 매칭
+    2. PART_KEYWORDS: 파일명 내 키워드 검색
+    3. 없으면 '-'
     """
-    name = os.path.splitext(os.path.basename(filename))[0]
+    parent_folder = os.path.basename(os.path.dirname(filepath))
+    if parent_folder in FOLDER_PART_MAP:
+        return FOLDER_PART_MAP[parent_folder]
 
+    name = os.path.splitext(os.path.basename(filepath))[0]
     for keyword in PART_KEYWORDS:
         if keyword in name:
             return keyword
@@ -447,7 +466,7 @@ def extract_rows_from_table(table, source_file, source_mtime):
 
     source_filename = os.path.basename(source_file)
     extracted_year = extract_year_from_filename(source_filename)
-    extracted_part = extract_part_from_filename(source_filename)
+    extracted_part = extract_part_from_path(source_file)  # 폴더명 우선, 파일명 차선
 
     for r in range(2, row_count + 1):
         raw_values = []
