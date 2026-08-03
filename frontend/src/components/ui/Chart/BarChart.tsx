@@ -4,6 +4,7 @@ import {
 } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import type { ChartData, ChartOptions, ChartEvent, ActiveElement } from 'chart.js';
+import styles from './BarChart.module.css';
 
 Chart.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend, ChartDataLabels);
 
@@ -34,7 +35,11 @@ const BarChart = ({ labels, datasets, horizontal = false, options, onClick }: Pr
     },
   };
 
-  return <Bar data={{ labels, datasets }} options={merged} />;
+  return (
+    <div className={styles.wrap}>
+      <Bar data={{ labels, datasets }} options={merged} />
+    </div>
+  );
 };
 
 export default BarChart;

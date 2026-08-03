@@ -1,6 +1,7 @@
 import { Doughnut } from 'react-chartjs-2';
 import { Chart, ArcElement, Tooltip, Legend } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
+import styles from './BarChart.module.css';
 
 Chart.register(ArcElement, Tooltip, Legend, ChartDataLabels);
 
@@ -25,6 +26,7 @@ const DoughnutChart = ({
   showLabels = false,
   labelColor = '#1e293b',
 }: Props) => (
+  <div className={styles.wrap}>
   <Doughnut
     data={{
       labels,
@@ -77,6 +79,7 @@ const DoughnutChart = ({
       },
     }}
   />
+  </div>
 );
 
 export default DoughnutChart;
