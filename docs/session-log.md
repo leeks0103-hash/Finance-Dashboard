@@ -1,5 +1,42 @@
 # 세션 진행 기록
 
+## [2026-08-03] 대규모 개선 세션
+
+**목표**: KPI 상세 뷰 구현, URL 탭 유지, 컬럼 DnD/리사이즈, 코드 리뷰 수정
+
+**완료된 작업**
+
+### 백엔드 (app.py)
+- KPI 사업계획 컬럼 추출: extract_kpi_ppt.py에 PPT col 4('26년 목표 사업계획) 파싱 추가
+- kpi 집계 시트 D열 사업계획 집계 추가, 헤더 구분 명확화 (`'26년 목표(사업계획)` / `'26년 목표(프로젝트)`)
+- 신규/기존 건수 행: 26년 실적·25년 유사실적도 `신규:N건/기존:N건` 형식으로 반환
+- KPI 프로젝트코드 필터 regex: `str.match` → `str.fullmatch` ($ 앵커 누락 수정)
+- 차트 actual_2026 type 가드: 문자열 값이 Chart.js에 NaN으로 전달되던 문제 수정
+- AIP 암호화 Excel/PPT win32com 자동 우회 처리 (기존 세션에서 이미 구현)
+
+### 프론트엔드
+- **React Router(HashRouter) 도입**: 탭 URL 연동 (`/#/finance·kpi·performance`), 새로고침 후 탭 유지
+- **TabRemote(사이드 리모컨)**: 화면 오른쪽 고정, 스크롤 없이 탭 전환
+- **DataTable 컬럼 DnD + 리사이즈**: localStorage 저장, 새로고침 유지. DraggableTh 모듈 스코프 이동(hooks 규칙 준수)
+- **KpiRawTable(rowspan 뷰)**: 프로젝트 1개 = KPI 8행, PPT 표 형태 재현. 컬럼 DnD + 리사이즈 지원
+- **KPI 취합 뷰 토글**: 목록(플랫) ↔ KPI 상세(rowspan) 툴바 내 전환
+- **KPI 집계 테이블**: 검색·정렬 활성화 (hideToolbar 제거)
+- **KPI 집계 KPI 상세 뷰**: 툴바에 toolbarExtra prop으로 통합
+- 테이블 고정 높이 560px: 마지막 페이지 데이터 적어도 크기 유지
+- 테이블 하단 border 추가: 가로스크롤 없어도 하단 선 표시
+- 비고 컬럼 → '노트' 텍스트 변경, filename 기본 숨김 복구
+- KpiRawTable raw `<button>` → `<Button>` 컴포넌트 교체 (CLAUDE.md 준수)
+
+### 문서
+- README 전면 개정: 재무·KPI·실적 계산 방식, 신규 기능 사용법, 데이터 파이프라인
+
+**다음 세션 과제**
+- KPI 집계 시트 D열(사업계획) 추출 스크립트 재실행 필요 (서버 재시작 + extract_kpi_ppt.py 실행)
+- 실적 현황 탭 인사이트 섹션 미구현 (목표 대비 부진 파트, 손실 경고)
+- vite.config.ts 프록시 포트 환경변수화
+
+---
+
 ## [2026-07-30] 3탭 대시보드 구축 세션
 
 **목표**: 재무·KPI·실적 현황 3탭 구조 + 공통 컴포넌트 아키텍처 정비
