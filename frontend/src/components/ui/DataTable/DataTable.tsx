@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, type ReactNode } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import {
   useReactTable,
@@ -198,6 +198,7 @@ const DataTable = <T extends object>({
   const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(initialColumnVisibility);
   const [showColMenu,      setShowColMenu]      = useState(false);
   const [popupText,        setPopupText]        = useState<string | null>(null);
+  const colMenuRef = useRef<HTMLDivElement>(null);
 
   const openPopup  = useCallback((text: string) => setPopupText(text), []);
   const closePopup = useCallback(() => setPopupText(null), []);
@@ -248,6 +249,18 @@ const DataTable = <T extends object>({
       rowCount: serverPagination!.total,
     }),
   });
+
+  // 컬럼 드롭박스 외부 클릭 시 닫기
+  useEffect(() => {
+    if (!showColMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (colMenuRef.current && !colMenuRef.current.contains(e.target as Node)) {
+        setShowColMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showColMenu]);
 
   // data가 줄어들어 현재 페이지가 범위를 벗어나면 page 0으로 리셋
   useEffect(() => {
@@ -350,7 +363,7 @@ const DataTable = <T extends object>({
           </select>
 
           {hideableColumns && hideableColumns.length > 0 && (
-            <div className={styles.colToggleWrap}>
+            <div className={styles.colToggleWrap} ref={colMenuRef}>
               <Button variant="ghost" size="sm" onClick={() => setShowColMenu(v => !v)}>
                 컬럼 ▾
               </Button>

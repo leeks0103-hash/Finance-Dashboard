@@ -71,15 +71,16 @@
   --purple:       #B47EFF;
   --purple-bg:    rgba(180, 126, 255, 0.10);
 
-  --surface:      #071526;
-  --bg:           #040D1A;
-  --bg-subtle:    #0A1A2E;
-  --border:       rgba(0, 200, 255, 0.16);
+  --surface:      #0C1E32;
+  --bg:           #071526;
+  --bg-subtle:    #102236;
+  --border:       rgba(0, 200, 255, 0.20);
   --border-focus: #00C8FF;
 
-  --text-primary: #D4EAF7;
-  --text-sub:     #5BA8CC;
-  --text-muted:   rgba(91, 168, 204, 0.55);
+  --text:         #E8F4FF;
+  --text-primary: #E8F4FF;
+  --text-sub:     #7EC8E8;
+  --text-muted:   rgba(140, 200, 230, 0.70);
 
   --shadow-sm: 0 1px 6px rgba(0,0,0,0.6);
   --shadow-md: 0 4px 20px rgba(0,0,0,0.7);
