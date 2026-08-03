@@ -210,20 +210,53 @@ python scripts/extract_kpi_ppt.py
 
 ## 실행 방법
 
-### 1. 의존성 설치
+> **핵심 원칙**: 서버는 `python app.py` **하나만** 실행하면 됩니다.
+> 재무·KPI·실적 현황 3탭 모두 이 서버 하나가 담당합니다.
+> 추출 스크립트(`extract_*.py`)는 서버가 아닙니다 — PPT에서 Excel을 만드는 **1회성 변환 도구**입니다.
+
+### 서버 vs 추출 스크립트 구분
+
+```
+[추출 스크립트]  PPT 폴더 → (1회 실행) → data/*.xlsx  ← Flask가 읽어서 서빙
+[Flask 서버]     python app.py → 재무/KPI/실적 API 모두 제공
+[프론트엔드]     npm run dev   → 브라우저 화면
+```
+
+추출 스크립트는 PPT 데이터가 바뀔 때만 다시 실행합니다.  
+**평상시에는 `python app.py` + `npm run dev` 두 개만 켜면 됩니다.**
+
+---
+
+### 1. 최초 실행 시 (처음 세팅할 때만)
 
 ```powershell
+# 1) 의존성 설치
 pip install -r requirements.txt
-cd frontend && npm install
+cd frontend && npm install && cd ..
+
+# 2) KPI 데이터 추출 (data/ 폴더에 Excel이 없으면 KPI 탭이 빈 화면)
+python scripts/extract_kpi_ppt.py
+
+# 3) 재무 데이터 추출 (data/ 폴더에 Excel이 없으면 재무 탭이 빈 화면)
+python scripts/extract_financial_ppt.py
 ```
 
-### 2. 백엔드 서버 실행
+> 실적 현황은 엑셀 파일을 직접 읽으므로 추출 스크립트 없음.  
+> `data/` 폴더에 `26년 사업계획 통합관리 파일_*.xlsx`가 있으면 자동 인식.
+
+### 2. 매일 사용할 때 (서버 실행)
 
 ```powershell
+# 터미널 1 — Flask 서버 (재무·KPI·실적 API 전부 여기서 제공)
 python app.py
+
+# 터미널 2 — 프론트엔드
+cd frontend && npm run dev
 ```
 
-데이터 파일 경로 재정의 (경로가 다를 경우):
+브라우저 `http://localhost:5173` 접속
+
+### 3. 데이터 파일 경로 재정의 (경로가 다를 경우)
 
 ```powershell
 $env:EXCEL_PATH      = "data/재무관점 필수 데이터 추출.xlsx"
@@ -232,14 +265,18 @@ $env:KPI_EXCEL_PATH  = "data/KPI 지표 데이터 추출.xlsx"
 python app.py
 ```
 
-### 3. 프론트엔드 개발 서버
+### 4. KPI 데이터가 안 보일 때
 
 ```powershell
-cd frontend
-npm run dev
-```
+# data/ 폴더 확인
+ls data/
 
-브라우저에서 `http://localhost:5173` 접속
+# Excel 파일이 없으면 추출 실행
+python scripts/extract_kpi_ppt.py
+
+# 서버가 이미 켜져 있으면 재시작 없이 캐시만 갱신
+Invoke-RestMethod http://localhost:5000/api/kpi/reload -Method POST
+```
 
 ---
 
