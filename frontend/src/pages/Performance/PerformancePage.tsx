@@ -2,7 +2,7 @@ import { useMemo, type ReactNode } from 'react';
 import { createColumnHelper } from '@tanstack/react-table';
 import { usePerformanceViewModel } from '@/hooks/viewmodels/usePerformanceViewModel';
 import type { PerfPartRow } from '@/hooks/viewmodels/usePerformanceViewModel';
-import { ChartCard, BarChart, DataTable } from '@/components/ui';
+import { ChartCard, BarChart, DataTable, KpiCard } from '@/components/ui';
 import { perfColumns, PERF_HIDEABLE_COLS } from '@/components/features/PerformanceTable/columns';
 import type { PerfProject } from '@/types/performance.types';
 import styles from './PerformancePage.module.css';
@@ -59,11 +59,14 @@ const PerformancePage = () => {
       {/* KPI 카드 */}
       <div className={styles.kpiGrid}>
         {vm.kpiCards.map(card => (
-          <div key={card.label} className={`${styles.kpiCard} ${styles[card.accent]}`}>
-            <div className={styles.kpiLabel}>{card.label}</div>
-            <div className={styles.kpiValue}>{card.value}</div>
-            <div className={styles.kpiSub}>{card.sub}</div>
-          </div>
+          <KpiCard
+            key={card.label}
+            label={card.label}
+            value={card.value}
+            accent={card.accent}
+            sub={card.sub}
+            trendUp={card.trendUp}
+          />
         ))}
       </div>
 
@@ -119,6 +122,7 @@ const PerformancePage = () => {
         emptyIcon="🔍"
         emptyTitle="검색 결과 없음"
         emptyDescription="다른 검색어나 필터 조건을 시도해보세요."
+        storageKey="performance-project"
       />
 
     </main>

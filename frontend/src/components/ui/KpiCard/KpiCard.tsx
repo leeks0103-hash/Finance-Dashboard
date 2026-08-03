@@ -5,6 +5,7 @@ interface Props {
   label:    string;
   value:    string;
   accent:   KpiAccent;
+  sub?:     string;
   trend?:   string | null;
   trendUp?: boolean;
 }
@@ -90,7 +91,7 @@ const BgIcon = ({ up }: { up: boolean }) => (
   </svg>
 );
 
-const KpiCard = ({ label, value, accent, trend, trendUp = false }: Props) => {
+const KpiCard = ({ label, value, accent, sub, trend, trendUp = false }: Props) => {
   const gradId = `spark-grad-${accent}`;
 
   return (
@@ -107,6 +108,7 @@ const KpiCard = ({ label, value, accent, trend, trendUp = false }: Props) => {
         )}
       </div>
       <div className={styles.value}>{value}</div>
+      {sub && <div className={styles.sub}>{sub}</div>}
       <div className={styles.sparkWrap}>
         <Sparkline up={trendUp} gradId={gradId} />
       </div>

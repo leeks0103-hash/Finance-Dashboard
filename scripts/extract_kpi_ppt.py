@@ -2,12 +2,21 @@ import os
 import re
 import hashlib
 import logging
+import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, List, Dict, Tuple
 
 from pptx import Presentation
+from pptx.exc import PackageNotFoundError as PptxPackageNotFoundError
 from openpyxl import load_workbook, Workbook
+
+try:
+    import pythoncom
+    import win32com.client
+    WIN32_AVAILABLE = True
+except ImportError:
+    WIN32_AVAILABLE = False
 
 
 # =========================================
@@ -16,7 +25,7 @@ from openpyxl import load_workbook, Workbook
 # 환경변수 EXTRACT_KPI_ROOT_DIR 우선 사용 — compare_and_update.py가 자동 주입
 ROOT_DIR = Path(os.environ.get(
     "EXTRACT_KPI_ROOT_DIR",
-    r"C:\Users\aaa\Desktop\기술교육실_프로젝트 보고서 수집",
+    r"C:\Users\aaa\Desktop\기술교육실_프로젝트 보고서 수집 NEW",
 ))
 
 # 출력 엑셀: 프로젝트 data/ 폴더로 저장
@@ -37,6 +46,18 @@ KEY_COL_1 = 1
 KEY_COL_2 = 2
 DATA_COLS = [5, 6, 7, 8]
 FLOAT_ROWS = [4, 7, 8]
+
+# 취합 시트 헤더 — KPI 항목 순서 (PPT 표 row 2~9 순서와 동일)
+KPI_METRIC_NAMES = [
+    "NPS",
+    "전략기술과정_건수",
+    "전략기술과정_적절성",
+    "특화교육체계_건수",
+    "AI교육_고객사건수",
+    "AI교육_적절성",
+    "신사업_매출억",
+    "신사업_신규기존건수",
+]
 
 PART_KEYWORDS = ["신사업", "PM", "전차", "미모", "AI", "SW", "K뉴딜TF"]
 REPORT_STAGE_KEYWORDS = ["사업계획", "제안", "착수", "중간", "완료"]
@@ -274,14 +295,28 @@ def ensure_history_sheet_if_empty(ws):
         logger.info("처리 이력 시트 1행 유지")
 
 
+def ensure_data_sheet_layout(ws):
+    """취합 시트 row 1에 헤더 기록 (항상 덮어씀 — 데이터는 row 2부터)."""
+    fixed = ["프로젝트코드", "수행연도", "파트명", "보고단계"]
+    # PJ목표/실적/유사/비고 + 사업계획(col4) 순서 — update_summary_sheet 참조 순서 유지
+    groups = ["PJ목표", "PJ실적", "PJ유사", "비고", "사업계획"]
+    headers = fixed[:]
+    for g in groups:
+        for m in KPI_METRIC_NAMES:
+            headers.append(f"{m}_{g}")
+    headers += ["파일명", "최종수정일시", "처리일시"]
+    for col_idx, h in enumerate(headers, start=1):
+        ws.cell(row=1, column=col_idx, value=h)
+
+
 def ensure_summary_sheet_layout(ws):
     ws["A1"] = "프로젝트 코드"
     ws["B1"] = "수행연도"
     ws["C1"] = "구분"
-    ws["D1"] = "’26년 목표"
-    ws["E1"] = "’26년 목표"
-    ws["F1"] = "’26년 실적"
-    ws["G1"] = "’25년 실적"
+    ws["D1"] = "’26년 목표(사업계획)"
+    ws["E1"] = "’26년 목표(프로젝트)"
+    ws["F1"] = "’26년 실적(프로젝트)"
+    ws["G1"] = "’25년 실적(유사)"
     ws["H1"] = "비고"
 
     ws["A2"] = "E111600126020001"
@@ -462,7 +497,17 @@ def update_summary_sheet(summary_ws, data_ws):
     """
     ensure_summary_sheet_layout(summary_ws)
 
-    # ── E열: 26년 목표 (PJ목표, col 5~12) ─────────────────
+    # ── D열: 26년 목표(사업계획, col 37~44) ────────────────
+    summary_ws["D2"] = calc_avg(data_ws, 37)
+    summary_ws["D3"] = calc_sum(data_ws, 38)
+    summary_ws["D4"] = calc_avg(data_ws, 39)
+    summary_ws["D5"] = calc_sum(data_ws, 40)
+    summary_ws["D6"] = calc_sum(data_ws, 41)
+    summary_ws["D7"] = calc_avg(data_ws, 42)
+    summary_ws["D8"] = calc_sum(data_ws, 43)
+    summary_ws["D9"] = calc_new_existing_count_text(data_ws, 44)
+
+    # ── E열: 26년 목표(프로젝트, PJ목표, col 5~12) ─────────
     summary_ws["E2"] = calc_avg(data_ws, 5)
     summary_ws["E3"] = calc_sum(data_ws, 6)
     summary_ws["E4"] = calc_avg(data_ws, 7)
@@ -559,9 +604,10 @@ def get_all_target_files(
         except Exception as e:
             logger.exception(f"파일 메타 조회 실패: {file_path} / {e}")
 
+    # 오래된 파일부터 처리 → 최신 파일이 마지막에 upsert되어 완료/중간 실적 데이터가 보존됨
     all_files.sort(
         key=lambda item: (item[0].stat().st_ctime, item[0].stat().st_mtime),
-        reverse=True
+        reverse=False
     )
     return all_files
 
@@ -661,6 +707,14 @@ def extract_record_from_table(
             else:
                 row_values.append(normalize_int_value(val))
 
+    # col 4: '26년 목표(사업계획) — DATA_COLS 뒤에 추가
+    for row in range(START_ROW, END_ROW + 1):
+        val = get_table_text(table, row, 4)
+        if row in FLOAT_ROWS:
+            row_values.append(normalize_float_value(val))
+        else:
+            row_values.append(normalize_int_value(val))
+
     row_values.append(sanitize_excel_string(source_file_name))
     row_values.append(source_modified)
     row_values.append(now_str())
@@ -669,14 +723,259 @@ def extract_record_from_table(
     return row_values
 
 
-def extract_records_from_ppt(ppt_path: Path, file_meta: Dict[str, str]) -> List[List]:
-    if ppt_path.suffix.lower() == ".ppt":
-        raise ValueError(
-            f".ppt 형식은 python-pptx로 직접 처리할 수 없습니다: {ppt_path.name}\n"
-            f"먼저 .pptx로 변환 후 실행해주세요."
-        )
+def convert_to_pptx_via_win32(ppt_path: Path) -> Optional[Path]:
+    """win32com으로 구버전 .ppt 또는 손상된 .pptx를 새 .pptx로 변환 후 임시 경로 반환."""
+    if not WIN32_AVAILABLE:
+        logger.error("win32com 없음 — pip install pywin32 필요")
+        return None
 
-    prs = Presentation(str(ppt_path))
+    tmp_path = None
+    ppt_app = None
+    prs = None
+    try:
+        pythoncom.CoInitialize()
+        ppt_app = win32com.client.DispatchEx("PowerPoint.Application")
+        ppt_app.Visible = 1
+
+        abs_src = str(ppt_path.resolve())
+        prs = ppt_app.Presentations.Open(abs_src, True, False, False)
+
+        tmp_fd, tmp_str = tempfile.mkstemp(suffix=".pptx", prefix="kpi_conv_")
+        os.close(tmp_fd)
+        os.unlink(tmp_str)  # SaveAs가 직접 생성하므로 미리 삭제
+
+        prs.SaveAs(tmp_str, 24)  # 24 = ppSaveAsOpenXMLPresentation
+        tmp_path = Path(tmp_str)
+        logger.info(f"win32 변환 완료: {ppt_path.name} → {tmp_path}")
+        return tmp_path
+
+    except Exception as e:
+        logger.error(f"win32 변환 실패: {ppt_path.name} / {e}")
+        if tmp_path and tmp_path.exists():
+            tmp_path.unlink(missing_ok=True)
+        return None
+    finally:
+        try:
+            if prs is not None:
+                prs.Close()
+        except Exception:
+            pass
+        try:
+            if ppt_app is not None:
+                ppt_app.Quit()
+        except Exception:
+            pass
+        try:
+            pythoncom.CoUninitialize()
+        except Exception:
+            pass
+
+
+def _com_cell_text(table_com, row_1based: int, col_1based: int) -> str:
+    """COM Table 객체에서 셀 텍스트 추출."""
+    try:
+        cell = table_com.Cell(row_1based, col_1based)
+        return normalize_text(cell.Shape.TextFrame.TextRange.Text)
+    except Exception:
+        return ""
+
+
+def _com_slide_has_keyword(slide_com, keyword: str) -> bool:
+    """COM Slide 객체에서 키워드 포함 여부 확인."""
+    normalized = normalize_for_match(keyword)
+    try:
+        if slide_com.Shapes.HasTitle:
+            title = normalize_text(slide_com.Shapes.Title.TextFrame.TextRange.Text)
+            if normalized in normalize_for_match(title):
+                return True
+    except Exception:
+        pass
+    try:
+        for i in range(1, slide_com.Shapes.Count + 1):
+            shp = slide_com.Shapes(i)
+            try:
+                if shp.HasTextFrame and shp.TextFrame.HasText:
+                    if normalized in normalize_for_match(normalize_text(shp.TextFrame.TextRange.Text)):
+                        return True
+            except Exception:
+                continue
+    except Exception:
+        pass
+    return False
+
+
+def extract_records_from_ppt_via_com(ppt_path: Path, file_meta: Dict[str, str]) -> List[List]:
+    """AIP 암호화 등으로 python-pptx + SaveAs가 모두 실패할 때 COM API로 직접 추출."""
+    if not WIN32_AVAILABLE:
+        raise RuntimeError("win32com 없음")
+
+    ppt_app = None
+    prs_com = None
+    try:
+        pythoncom.CoInitialize()
+        ppt_app = win32com.client.DispatchEx("PowerPoint.Application")
+        ppt_app.Visible = 1
+
+        prs_com = ppt_app.Presentations.Open(str(ppt_path.resolve()), True, False, False)
+        logger.info(f"COM 직접 읽기: {ppt_path.name} (슬라이드 수: {prs_com.Slides.Count})")
+
+        extracted = []
+        for s_idx in range(1, prs_com.Slides.Count + 1):
+            slide = prs_com.Slides(s_idx)
+
+            if not _com_slide_has_keyword(slide, TITLE_KEYWORD):
+                continue
+
+            logger.info(f"COM: 대상 슬라이드 발견 — {s_idx}")
+
+            # 첫 번째 표 찾기
+            table_com = None
+            for i in range(1, slide.Shapes.Count + 1):
+                shp = slide.Shapes(i)
+                try:
+                    if shp.HasTable:
+                        table_com = shp.Table
+                        break
+                except Exception:
+                    continue
+
+            if table_com is None:
+                logger.warning(f"COM: 슬라이드 {s_idx} 표 없음")
+                continue
+
+            rows_n = table_com.Rows.Count
+            cols_n = table_com.Columns.Count
+            if rows_n < END_ROW or cols_n < max(DATA_COLS):
+                logger.warning(f"COM: 표 구조 부족 rows={rows_n} cols={cols_n}")
+                continue
+
+            key1 = _com_cell_text(table_com, 2, KEY_COL_1)
+            key2 = _com_cell_text(table_com, 2, KEY_COL_2)
+            if not key1 or not key2:
+                continue
+
+            row_values = [key1, key2,
+                          sanitize_excel_string(file_meta["파트명"]),
+                          sanitize_excel_string(file_meta["보고단계"])]
+
+            for col in DATA_COLS:
+                for row in range(START_ROW, END_ROW + 1):
+                    val = _com_cell_text(table_com, row, col)
+                    if row in FLOAT_ROWS:
+                        row_values.append(normalize_float_value(val))
+                    else:
+                        row_values.append(normalize_int_value(val))
+
+            # col 4: '26년 목표(사업계획)
+            for row in range(START_ROW, END_ROW + 1):
+                val = _com_cell_text(table_com, row, 4)
+                if row in FLOAT_ROWS:
+                    row_values.append(normalize_float_value(val))
+                else:
+                    row_values.append(normalize_int_value(val))
+
+            row_values.append(sanitize_excel_string(file_meta["파일명"]))
+            row_values.append(file_meta["최종수정일시"])
+            row_values.append(now_str())
+
+            extracted.append(row_values)
+            logger.info(f"COM: 데이터 1건 추출 완료")
+
+        logger.info(f"COM 추출 총 {len(extracted)}건: {ppt_path.name}")
+        return extracted
+
+    finally:
+        try:
+            if prs_com is not None:
+                prs_com.Close()
+        except Exception:
+            pass
+        try:
+            if ppt_app is not None:
+                ppt_app.Quit()
+        except Exception:
+            pass
+        try:
+            pythoncom.CoUninitialize()
+        except Exception:
+            pass
+
+
+def extract_records_from_ppt(ppt_path: Path, file_meta: Dict[str, str]) -> List[List]:
+    converted_tmp: Optional[Path] = None
+    actual_path = ppt_path
+
+    # .ppt 파일은 바로 변환
+    if ppt_path.suffix.lower() == ".ppt":
+        logger.info(f".ppt 감지 → win32 변환 시도: {ppt_path.name}")
+        converted_tmp = convert_to_pptx_via_win32(ppt_path)
+        if converted_tmp is None:
+            raise ValueError(f".ppt 변환 실패 (win32com 필요): {ppt_path.name}")
+        actual_path = converted_tmp
+
+    try:
+        try:
+            prs = Presentation(str(actual_path))
+        except Exception as e:
+            # 1차: win32 변환 후 재시도
+            if converted_tmp is None:
+                logger.warning(f"pptx 파싱 실패 → win32 변환 재시도: {ppt_path.name} ({e})")
+                converted_tmp = convert_to_pptx_via_win32(ppt_path)
+                if converted_tmp is not None:
+                    actual_path = converted_tmp
+                    try:
+                        prs = Presentation(str(actual_path))
+                    except Exception as e2:
+                        # 2차: 변환된 파일도 실패(AIP 재암호화) → COM 직접 추출
+                        logger.warning(f"변환 후도 실패 → COM 직접 추출: {ppt_path.name} ({e2})")
+                        return extract_records_from_ppt_via_com(ppt_path, file_meta)
+                else:
+                    # SaveAs 자체가 실패한 경우(AIP 쓰기 제한) → COM 직접 추출
+                    logger.warning(f"win32 변환 실패 → COM 직접 추출: {ppt_path.name}")
+                    return extract_records_from_ppt_via_com(ppt_path, file_meta)
+            else:
+                # 이미 변환된 상태인데도 실패 → COM 직접 추출
+                logger.warning(f"변환 파일 파싱 실패 → COM 직접 추출: {ppt_path.name} ({e})")
+                return extract_records_from_ppt_via_com(ppt_path, file_meta)
+
+        extracted = []
+        logger.info(f"PowerPoint 열기: {ppt_path.name} (슬라이드 수: {len(prs.slides)})")
+
+        for slide_idx, slide in enumerate(prs.slides, start=1):
+            title_text = get_slide_title(slide)
+            logger.info(f"슬라이드 {slide_idx} 제목: {title_text}")
+
+            if not slide_contains_keyword(slide, TITLE_KEYWORD):
+                logger.info(f"슬라이드 {slide_idx}: KPI 키워드 불일치")
+                continue
+
+            logger.info(f"대상 슬라이드 발견: {slide_idx}")
+
+            table = get_first_table(slide)
+            if table is None:
+                logger.warning(f"슬라이드 {slide_idx}: 첫 번째 표를 찾지 못했습니다.")
+                continue
+
+            record = extract_record_from_table(
+                table=table,
+                source_file_name=file_meta["파일명"],
+                source_modified=file_meta["최종수정일시"],
+                part_name=file_meta["파트명"],
+                report_stage=file_meta["보고단계"]
+            )
+
+            if record:
+                extracted.append(record)
+                logger.info(f"슬라이드 {slide_idx}: 데이터 1건 추출")
+            else:
+                logger.warning(f"슬라이드 {slide_idx}: 표 구조 또는 키값 부족으로 건너뜀")
+
+        logger.info(f"총 추출 건수: {len(extracted)}")
+        return extracted
+
+    finally:
+        if converted_tmp and converted_tmp.exists():
+            converted_tmp.unlink(missing_ok=True)
     extracted = []
 
     logger.info(f"PowerPoint 열기: {ppt_path}")
@@ -725,12 +1024,6 @@ def process_single_file(
     history_ws
 ) -> Tuple[bool, str, List[List]]:
     try:
-        if ppt_path.suffix.lower() == ".ppt":
-            msg = ".ppt 형식은 직접 처리할 수 없습니다. .pptx로 변환 후 실행해주세요."
-            append_history(history_ws, file_meta, "실패", msg)
-            logger.error(msg)
-            return False, msg, []
-
         records = extract_records_from_ppt(ppt_path, file_meta)
 
         if not records:
@@ -777,6 +1070,7 @@ def main():
     history_ws = get_or_create_sheet(wb, HISTORY_SHEET_NAME)
     summary_ws = get_or_create_sheet(wb, SUMMARY_SHEET_NAME)
 
+    ensure_data_sheet_layout(data_ws)
     ensure_history_sheet_if_empty(history_ws)
     ensure_summary_sheet_layout(summary_ws)
 

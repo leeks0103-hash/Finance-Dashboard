@@ -1,8 +1,23 @@
 /* ─── 공통 DataTable 스타일 — ProjectTable 품질 기준 ─── */
 
+/* ── 컬럼 리사이즈 핸들 ─────────────────── */
+.resizeHandle {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: 5px;
+  cursor: col-resize;
+  user-select: none;
+  touch-action: none;
+  background: transparent;
+  z-index: 3;
+}
+.resizeHandle:hover { background: var(--accent); opacity: 0.5; }
+.resizing { background: var(--accent) !important; opacity: 0.8; }
+
 .wrapper {
-  min-height: 200px;           /* 최소 높이 — 데이터 없을 때 너무 찌그러지지 않게 */
-  max-height: 580px;           /* 최대 높이 — 이상 커지면 내부 스크롤 */
+  height: 560px;               /* 고정 높이 — 마지막 페이지 데이터 부족해도 크기 유지 */
   display: flex;
   flex-direction: column;
   background: var(--surface);
@@ -11,6 +26,13 @@
   box-shadow: var(--shadow-sm);
   overflow: hidden;
   transition: box-shadow 0.2s ease;
+}
+
+/* compact 모드는 내용에 맞게 (KPI 집계 등 소형 테이블) */
+.compact {
+  height: auto;
+  min-height: 100px;
+  max-height: 480px;
 }
 
 :global([data-theme="dark"]) .wrapper {
@@ -121,8 +143,11 @@
 .scroll {
   flex: 1;
   overflow: auto;
-  min-height: 0;           /* flex child overflow 동작에 필수 */
+  min-height: 0;
   transition: opacity 0.15s;
+  border-right: none;
+  /* 가로스크롤 없어도 테이블 하단 border 보이도록 */
+  border-bottom: 1px solid var(--border);
 }
 
 .fetching { opacity: 0.7; pointer-events: none; }
@@ -153,8 +178,6 @@
   user-select: none;
 }
 
-.table th:last-child { border-right: none; }
-
 .table td {
   padding: 7px 10px;
   border-bottom: 1px solid var(--border);
@@ -167,14 +190,14 @@
   max-width: 260px;
 }
 
-.table td:last-child { border-right: none; }
+/* border-right는 모든 셀에 유지 — wrapper overflow:hidden 이 우측 클리핑 담당
+   :last-child 제거 → DnD 컬럼 순서 변경 후에도 일관성 유지 */
 
-.table th:first-child,
 .table td:first-child { text-align: left; }
 
 .table tbody tr { transition: background 0.14s ease; }
 .table tbody tr:hover { background: var(--brand-bg); }
-.table tbody tr:last-child td { border-bottom: none; }
+/* tr:last-child td border-bottom 제거 안 함 — 테이블 마지막 행 하단 선 유지 */
 
 /* 정렬 */
 .sortable { cursor: pointer; }

@@ -6,9 +6,68 @@ import {
   getPaginationRowModel, getFilteredRowModel,
   flexRender,
   type ColumnDef,
+  type Header,
 } from '@tanstack/react-table';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  horizontalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Button } from '@/components/ui/Button';
 import styles from './DataTable.module.css';
+
+// ── 드래그 가능 th — 모듈 스코프에서 정의해야 React가 컴포넌트 정체성 유지 ──
+interface DraggableThProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  header:      Header<any, unknown>;
+  isDraggable: boolean;
+}
+const DraggableTh = ({ header, isDraggable }: DraggableThProps) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: header.id });
+  return (
+    <th
+      ref={setNodeRef}
+      onClick={!isDragging ? header.column.getToggleSortingHandler() : undefined}
+      className={header.column.getCanSort() ? styles.sortable : ''}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+        cursor: isDraggable ? 'grab' : undefined,
+        width: header.getSize() !== 150 ? header.getSize() : undefined,
+        position: 'relative',
+      }}
+      {...(isDraggable ? { ...attributes, ...listeners } : {})}
+    >
+      {flexRender(header.column.columnDef.header, header.getContext())}
+      {header.column.getCanSort() && (
+        <span className={header.column.getIsSorted() ? styles.sortActive : styles.sortIdle}>
+          {header.column.getIsSorted() === 'asc'  ? '↑' :
+           header.column.getIsSorted() === 'desc' ? '↓' : '⇅'}
+        </span>
+      )}
+      {isDraggable && header.column.getCanResize() && (
+        <div
+          onPointerDown={e => { e.stopPropagation(); header.getResizeHandler()(e as never); }}
+          onTouchStart={e => { e.stopPropagation(); header.getResizeHandler()(e as never); }}
+          onClick={e => e.stopPropagation()}
+          className={`${styles.resizeHandle} ${header.column.getIsResizing() ? styles.resizing : ''}`}
+        />
+      )}
+    </th>
+  );
+};
 
 export interface HideableColumn {
   id:    string;
@@ -67,6 +126,10 @@ interface Props<T> {
   infiniteLoadMore?:  InfiniteLoadMore;
   /** 초기 컬럼 표시 여부 (기본 숨김 컬럼 지정용) */
   initialColumnVisibility?: Record<string, boolean>;
+  /** localStorage 저장 키 — 제공 시 컬럼 순서 DnD + 새로고침 유지 */
+  storageKey?: string;
+  /** 툴바 우측에 추가 렌더링할 요소 (뷰 전환 토글 등) */
+  toolbarExtra?: ReactNode;
 }
 
 const DEFAULT_PAGE_SIZES = [10, 20, 30, 50, 100];
@@ -96,9 +159,38 @@ const DataTable = <T extends object>({
   serverSearch,
   infiniteLoadMore,
   initialColumnVisibility = {},
+  storageKey,
+  toolbarExtra,
 }: Props<T>) => {
   const isServerMode   = !!serverPagination;
   const isInfiniteMode = !!infiniteLoadMore;
+
+  // ── 컬럼 순서 (DnD + localStorage) ────────────────────────────
+  const lsKey      = storageKey ? `dnd-cols-${storageKey}`   : null;
+  const lsSizeKey  = storageKey ? `col-sizes-${storageKey}`  : null;
+
+  const [colOrder, setColOrder] = useState<string[]>(() => {
+    if (!lsKey) return [];
+    try { return JSON.parse(localStorage.getItem(lsKey) ?? '[]'); } catch { return []; }
+  });
+
+  const [colSizing, setColSizing] = useState<Record<string, number>>(() => {
+    if (!lsSizeKey) return {};
+    try { return JSON.parse(localStorage.getItem(lsSizeKey) ?? '{}'); } catch { return {}; }
+  });
+
+  const dndSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setColOrder(prev => {
+      const ids = prev.length ? prev : table.getAllLeafColumns().map(c => c.id);
+      const next = arrayMove(ids, ids.indexOf(String(active.id)), ids.indexOf(String(over.id)));
+      if (lsKey) localStorage.setItem(lsKey, JSON.stringify(next));
+      return next;
+    });
+  }, [lsKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 클라이언트 검색 상태 (서버모드에선 사용 안 함)
   const [searchInput,      setSearchInput]      = useState('');
@@ -122,10 +214,27 @@ const DataTable = <T extends object>({
     state: {
       globalFilter: isServerMode ? undefined : globalFilter,
       columnVisibility,
+      columnSizing: colSizing,
+      ...(storageKey && colOrder.length ? { columnOrder: colOrder } : {}),
     },
+    columnResizeMode: storageKey ? 'onChange' : undefined,
     getRowId,
     onGlobalFilterChange:     isServerMode ? undefined : setGlobalFilter,
     onColumnVisibilityChange: setColumnVisibility,
+    onColumnSizingChange: storageKey ? (updater) => {
+      setColSizing(prev => {
+        const next = typeof updater === 'function' ? updater(prev) : updater;
+        if (lsSizeKey) localStorage.setItem(lsSizeKey, JSON.stringify(next));
+        return next;
+      });
+    } : undefined,
+    onColumnOrderChange: storageKey ? (updater) => {
+      setColOrder(prev => {
+        const next = typeof updater === 'function' ? updater(prev) : updater;
+        if (lsKey) localStorage.setItem(lsKey, JSON.stringify(next));
+        return next;
+      });
+    } : undefined,
     getCoreRowModel:       getCoreRowModel(),
     getSortedRowModel:     getSortedRowModel(),
     // 서버모드: 필터·페이지네이션 모델 제거 (서버가 처리)
@@ -139,6 +248,17 @@ const DataTable = <T extends object>({
       rowCount: serverPagination!.total,
     }),
   });
+
+  // data가 줄어들어 현재 페이지가 범위를 벗어나면 page 0으로 리셋
+  useEffect(() => {
+    if (isServerMode) return;
+    const state = table.getState().pagination;
+    const count = table.getPageCount();
+    if (count > 0 && state.pageIndex >= count) {
+      table.setPageIndex(0);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -266,6 +386,7 @@ const DataTable = <T extends object>({
               )}
             </div>
           )}
+          {toolbarExtra}
         </div>
       )}
 
@@ -278,23 +399,21 @@ const DataTable = <T extends object>({
           <table className={`${styles.table} ${stickyFirstCol ? styles.stickyFirst : ''}`}>
             <thead>
               {table.getHeaderGroups().map(hg => (
-                <tr key={hg.id}>
-                  {hg.headers.map(h => (
-                    <th
-                      key={h.id}
-                      onClick={h.column.getToggleSortingHandler()}
-                      className={h.column.getCanSort() ? styles.sortable : ''}
-                    >
-                      {flexRender(h.column.columnDef.header, h.getContext())}
-                      {h.column.getCanSort() && (
-                        <span className={h.column.getIsSorted() ? styles.sortActive : styles.sortIdle}>
-                          {h.column.getIsSorted() === 'asc'  ? '↑' :
-                           h.column.getIsSorted() === 'desc' ? '↓' : '⇅'}
-                        </span>
-                      )}
-                    </th>
-                  ))}
-                </tr>
+                <DndContext
+                  key={hg.id}
+                  sensors={dndSensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext
+                    items={hg.headers.map(h => h.id)}
+                    strategy={horizontalListSortingStrategy}
+                  >
+                    <tr>
+                      {hg.headers.map(h => <DraggableTh key={h.id} header={h} isDraggable={!!storageKey} />)}
+                    </tr>
+                  </SortableContext>
+                </DndContext>
               ))}
             </thead>
 

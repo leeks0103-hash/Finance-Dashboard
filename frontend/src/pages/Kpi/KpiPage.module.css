@@ -1,19 +1,16 @@
+/* stub 센터링 — layout: TabLayout.pageContent */
 .main {
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 60vh;
-  padding: 48px 24px;
 }
 
+/* padding/max-width: TabLayout.pageContent */
 .mainFull {
-  padding: 24px;
   display: flex;
   flex-direction: column;
   gap: 24px;
-  max-width: 1400px;
-  margin: 0 auto;
-  width: 100%;
 }
 
 /* stub */
@@ -33,6 +30,68 @@
 
 /* 차트 */
 .chartWrap { height: 320px; }
+
+/* ── KPI 취합 섹션 (토글 포함) ─────────── */
+.rawSection {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+:global([data-theme="dark"]) .rawSection {
+  border-color: rgba(0,200,255,0.18);
+}
+
+.rawHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.rawTitle {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.viewToggle {
+  display: flex;
+  gap: 4px;
+  background: var(--bg, #f3f4f6);
+  border-radius: 8px;
+  padding: 3px;
+}
+
+:global([data-theme="dark"]) .viewToggle {
+  background: rgba(255,255,255,0.06);
+}
+
+.toggleBtn {
+  padding: 4px 14px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.toggleActive {
+  background: var(--surface);
+  color: var(--text-primary);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  font-weight: 600;
+}
+
+:global([data-theme="dark"]) .toggleActive {
+  background: rgba(255,255,255,0.12);
+}
 
 /* 섹션 */
 .section {

@@ -82,6 +82,7 @@ export interface PerfProject {
   sa_overhead_cost:  number;
   // 기타
   note:              string;
+  filename:          string;
   _row_num:          number;   // 고유 key 용 행 번호
 }
 

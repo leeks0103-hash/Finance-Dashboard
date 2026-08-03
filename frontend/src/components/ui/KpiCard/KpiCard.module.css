@@ -116,6 +116,15 @@
 [data-theme="dark"] .card.warn   .value { color: var(--kpi-warn-value,   #fff); text-shadow: 0 0 20px var(--kpi-warn-glow,   transparent); }
 [data-theme="dark"] .card.purple .value { color: var(--kpi-purple-value, #fff); text-shadow: 0 0 20px var(--kpi-purple-glow, transparent); }
 
+/* ── 보조 텍스트 ── */
+.sub {
+  font-size: 0.72rem;
+  color: rgba(255,255,255,0.65);
+  margin-top: 2px;
+  position: relative;
+  z-index: 3;
+}
+
 /* ── 배경 대형 방향 아이콘 (은은한 워터마크) ── */
 .bgIcon {
   position: absolute;

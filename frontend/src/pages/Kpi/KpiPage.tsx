@@ -1,49 +1,45 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { createColumnHelper } from '@tanstack/react-table';
 import { useKpiPageViewModel } from '@/hooks/viewmodels/useKpiPageViewModel';
 import { ChartCard, BarChart, DataTable, CopyText } from '@/components/ui';
-import type { HideableColumn } from '@/components/ui/DataTable';
+import KpiRawTable from '@/components/features/KpiRawTable/KpiRawTable';
 import type { KpiRawRow } from '@/types/kpi.types';
 import type { KpiSummaryRow } from '@/hooks/viewmodels/useKpiPageViewModel';
 import styles from './KpiPage.module.css';
 
-// 취합 행 key — 모듈 스코프 (매 렌더 재생성 방지)
-const getRawRowKey = (row: KpiRawRow): string | undefined => {
-  const code = row['프로젝트코드'] ?? row['수행연도'] ?? row['파트명'];
-  return code != null && String(code).trim() !== '' ? String(code) : undefined;
-};
+// 신규:N건/기존:N건 패턴을 뱃지 2개로 분할 렌더링
+function CountCell({ value }: { value: string }) {
+  const m = value.match(/신규\s*:\s*(\d+)건[/／]기존\s*:\s*(\d+)건/);
+  if (m) return <span>신규:{m[1]}건 / 기존:{m[2]}건</span>;
+  const m2 = value.match(/신규\s*:\s*(\d+)건/);
+  if (m2) return <span>신규:{m2[1]}건</span>;
+  return <>{value}</>;
+}
 
-// KPI 집계 컬럼 — 모듈 스코프에서 한 번만 생성 (stable reference)
+// KPI 집계 컬럼 — 모듈 스코프 (stable)
 const sh = createColumnHelper<KpiSummaryRow>();
 const summaryColumns = [
-  sh.accessor('name',        { header: 'KPI 항목' }),
-  sh.accessor('agg',         { header: '집계' }),
-  sh.accessor('targetStr',   { header: '26년 목표', enableSorting: true }),
-  sh.accessor('actual',      { header: '26년 실적', enableSorting: true }),
-  sh.accessor('achieveRate', {
-    header: '달성률',
-    cell: i => {
-      const row = i.row.original;
-      return (
-        <span style={{
-          color: row.isGood ? 'var(--profit)' : 'var(--warn)',
-          fontWeight: row.isGood ? 600 : undefined,
-        }}>
-          {row.achieveRate}
-        </span>
-      );
-    },
+  sh.accessor('name',       { header: 'KPI 항목' }),
+  sh.accessor('agg',        { header: '집계방식' }),
+  sh.accessor('targetStr',  { header: '26년 목표', enableSorting: true,
+    cell: i => { const v = i.getValue() as string; return /신규/.test(v) ? <CountCell value={v} /> : <>{v}</>; },
+  }),
+  sh.accessor('actual',     { header: '26년 실적', enableSorting: true,
+    cell: i => { const v = i.getValue() as string; return /신규/.test(v) ? <CountCell value={v} /> : <>{v}</>; },
+  }),
+  sh.accessor('prevActual', { header: '25년 실적', enableSorting: true,
+    cell: i => { const v = i.getValue() as string; return /신규/.test(v) ? <CountCell value={v} /> : <>{v}</>; },
   }),
 ];
 
-// 취합 raw 컬럼 helper — 모듈 스코프 (stable)
+// flat 취합 컬럼 helper — 모듈 스코프
 const rh = createColumnHelper<KpiRawRow>();
 
 const KpiPage = () => {
   const vm = useKpiPageViewModel();
+  const [rawView, setRawView] = useState<'flat' | 'rowspan'>('flat');
 
-  // rawColumns: rawCols가 바뀔 때만 재생성 (useMemo로 안정적 reference 보장)
-  // 프로젝트코드 컬럼은 CopyText 적용 — 나머지는 기본 텍스트
+  // flat 뷰 컬럼 — rawCols 변경 시에만 재생성
   const rawColumns = useMemo(
     () => vm.rawCols.map(col =>
       rh.accessor(col as keyof KpiRawRow, {
@@ -53,21 +49,30 @@ const KpiPage = () => {
           if (v === null || v === undefined || v === 0 || v === '') return '-';
           if (col === '프로젝트코드' && typeof v === 'string' && v.trim())
             return <CopyText text={v} />;
-          if (typeof v === 'number') return v.toLocaleString();
-          return String(v);
+          return typeof v === 'number' ? v.toLocaleString() : String(v);
         },
       })
     ),
     [vm.rawCols],
   );
 
-  // 취합 숨김 가능 컬럼: PJ목표·PJ유사·비고 계열 (핵심 식별·실적 컬럼은 항상 표시)
-  const rawHideableCols = useMemo((): HideableColumn[] =>
-    vm.rawCols
-      .filter(col => /PJ목표|PJ유사|비고/.test(col))
-      .map(col => ({ id: col, label: col })),
-    [vm.rawCols],
-  );
+  // flat 뷰 숨김 가능 컬럼 — PJ유사·사업계획 계열은 기본 숨김
+  const rawHideableCols = useMemo(() => [
+    ...vm.rawCols
+      .filter(c => /PJ유사|사업계획/.test(c))
+      .map(c => ({ id: c, label: c })),
+    ...vm.rawCols
+      .filter(c => /처리일시|최종수정/.test(c))
+      .map(c => ({ id: c, label: c })),
+  ], [vm.rawCols]);
+
+  const rawInitialHidden = useMemo(() =>
+    Object.fromEntries(
+      vm.rawCols
+        .filter(c => /PJ유사|사업계획|처리일시|최종수정/.test(c))
+        .map(c => [c, false])
+    ),
+  [vm.rawCols]);
 
   if (!vm.available) {
     return (
@@ -85,7 +90,7 @@ const KpiPage = () => {
   return (
     <main className={styles.mainFull}>
 
-      {/* KPI 목표 vs 실적 차트 — ViewModel의 datasets 사용 */}
+      {/* KPI 목표 vs 실적 차트 */}
       <ChartCard>
         <ChartCard.Title>KPI 목표 vs 실적 (2026년)</ChartCard.Title>
         <ChartCard.Body>
@@ -103,75 +108,64 @@ const KpiPage = () => {
         </ChartCard.Body>
       </ChartCard>
 
-      {/* KPI 집계 — 8개 고정 항목이라 테이블 대신 카드 리스트 */}
-      <div className={styles.section}>
-        <h3 className={styles.sectionTitle}>KPI 집계 (26년 목표 고정 / 실적 = 취합 기준 계산)</h3>
-        <div className={styles.kpiList}>
-          {vm.summaryRows.map(row => {
-            const achievePct = row.achieveRate !== '-'
-              ? Math.min(parseFloat(row.achieveRate), 150)
-              : 0;
-            return (
-              <div key={row.name} className={styles.kpiRow}>
-                <div className={styles.kpiName}>
-                  <span className={styles.kpiBadge}>{row.agg}</span>
-                  {row.name}
-                </div>
-                <div className={styles.kpiMeta}>
-                  <div className={styles.kpiLabel}>목표</div>
-                  <div className={styles.kpiValue}>{row.targetStr}</div>
-                </div>
-                <div className={styles.kpiMeta}>
-                  <div className={styles.kpiLabel}>25년 실적</div>
-                  <div className={styles.kpiValue}>{row.prevActual}</div>
-                </div>
-                <div className={styles.kpiMeta}>
-                  <div className={styles.kpiLabel}>26년 실적</div>
-                  <div className={styles.kpiValue}>{row.actual}</div>
-                </div>
-                <div className={styles.kpiAchieve}>
-                  <div className={styles.kpiLabel}>달성률</div>
-                  <div className={`${styles.kpiValue} ${row.isGood ? styles.cellProfit : styles.cellWarn}`}>
-                    {row.achieveRate}
-                  </div>
-                  {row.achieveRate !== '-' && (
-                    <div className={styles.achieveBar}>
-                      <div
-                        className={`${styles.achieveFill} ${row.isGood ? styles.achieveGood : styles.achievePoor}`}
-                        style={{ width: `${achievePct}%` }}
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      {/* KPI 집계 — 검색·정렬 활성화 */}
+      <DataTable<KpiSummaryRow>
+        data={vm.summaryRows}
+        columns={summaryColumns as never}
+        getRowId={row => row.name}
+        title="KPI 집계"
+        searchable
+        searchPlaceholder="KPI 항목 검색…"
+        defaultPageSize={10}
+        pageSizeOptions={[10]}
+        storageKey="kpi-summary"
+      />
 
-      {/* KPI 취합 */}
-      {(vm.rawRows.length > 0 || vm.isLoading) && (
-        <div className={styles.section}>
-          <h3 className={styles.sectionTitle}>
-            KPI 취합 ({vm.infiniteLoadMore.total}건)
-          </h3>
+      {/* KPI 취합 — flat / rowspan 토글 (툴바에 통합) */}
+      {(() => {
+        const viewToggle = (
+          <div className={styles.viewToggle}>
+            <button
+              className={`${styles.toggleBtn} ${rawView === 'flat' ? styles.toggleActive : ''}`}
+              onClick={() => setRawView('flat')}
+            >목록</button>
+            <button
+              className={`${styles.toggleBtn} ${rawView === 'rowspan' ? styles.toggleActive : ''}`}
+              onClick={() => setRawView('rowspan')}
+            >KPI 상세</button>
+          </div>
+        );
+        return rawView === 'flat' ? (
           <DataTable<KpiRawRow>
             data={vm.rawRows}
             columns={rawColumns as never}
-            getRowId={(row) => getRawRowKey(row) ?? String(Math.random())}
+            getRowId={row => String(row['프로젝트코드'] ?? Math.random())}
+            title="KPI 취합"
             isLoading={vm.isLoading}
-            isFetching={vm.isFetchingNext}
-            serverSearch={{
-              value:    vm.searchValue,
-              onChange: vm.onSearchChange,
-            }}
+            isFetching={vm.isFetching}
+            serverPagination={vm.serverPagination}
+            serverSearch={vm.serverSearch}
             searchPlaceholder="프로젝트코드·파트명 검색…"
-            infiniteLoadMore={vm.infiniteLoadMore}
             hideableColumns={rawHideableCols}
-            emptyTitle="검색 결과가 없습니다."
+            initialColumnVisibility={rawInitialHidden}
+            emptyIcon="🔍"
+            emptyTitle="검색 결과 없음"
+            emptyDescription="다른 검색어나 필터 조건을 시도해보세요."
+            storageKey="kpi-raw-flat"
+            toolbarExtra={viewToggle}
           />
-        </div>
-      )}
+        ) : (
+          <KpiRawTable
+            data={vm.rawRows}
+            title="KPI 취합"
+            isLoading={vm.isLoading}
+            isFetching={vm.isFetching}
+            serverPagination={vm.serverPagination}
+            serverSearch={vm.serverSearch}
+            toolbarExtra={viewToggle}
+          />
+        );
+      })()}
 
     </main>
   );

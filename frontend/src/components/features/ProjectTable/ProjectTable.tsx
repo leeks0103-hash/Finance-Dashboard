@@ -7,8 +7,8 @@ const HIDEABLE: { id: string; label: string }[] = [
   { id: 'direct_cost', label: '직접원가' },
   { id: 'labor_cost',  label: '인건비'   },
   { id: 'overhead',    label: '공통원가' },
-  { id: 'note',        label: '비고'     },
-  { id: 'filename',    label: '파일명'   },
+  { id: 'note',        label: '노트'     },
+  { id: 'filename',    label: '원본파일명' },
 ];
 
 const ProjectTable = () => {
@@ -42,7 +42,6 @@ const ProjectTable = () => {
       isLoading={vm.isLoading}
       isFetching={vm.isFetching}
       hideableColumns={HIDEABLE}
-      initialColumnVisibility={{ filename: false }}
       // footer={vm.rows.length ? footer : undefined}  // 서버사이드 페이지네이션으로 전체 합계와 불일치 — 상단 KPI 카드로 대체
       getRowVariant={vm.getRowVariant}
       serverPagination={vm.serverPagination}
@@ -50,6 +49,8 @@ const ProjectTable = () => {
       emptyIcon="🔍"
       emptyTitle="검색 결과 없음"
       emptyDescription="다른 검색어나 필터 조건을 시도해보세요."
+      initialColumnVisibility={{ filename: false }}
+      storageKey="finance-project"
     />
   );
 };

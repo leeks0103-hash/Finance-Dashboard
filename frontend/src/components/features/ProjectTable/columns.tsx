@@ -27,7 +27,7 @@ export const columns = [
     cell: i => <NegCell v={i.getValue()} text={formatRate(i.getValue())} />,
   }),
   h.accessor('note', {
-    header: '비고',
+    header: '노트',
     cell: i => {
       const note = i.getValue() as string;
       const variant = getNoteVariant(note);
@@ -35,5 +35,5 @@ export const columns = [
       return <Badge label={note} variant={variant} />;
     },
   }),
-  h.accessor('filename', { header: '파일명' }),
+  h.accessor('filename', { header: '원본파일명' }),
 ];

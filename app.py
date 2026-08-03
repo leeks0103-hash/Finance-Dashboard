@@ -112,6 +112,79 @@ def _extract_part(filename: str) -> str:
     return "기타"
 
 
+def _read_excel_via_com(path: str, sheet_name: str) -> "pd.DataFrame | None":
+    """AIP 암호화 Excel을 win32com으로 열어 DataFrame으로 반환."""
+    try:
+        import pythoncom
+        import win32com.client
+    except ImportError:
+        logger.error("win32com 없음 — pip install pywin32 필요")
+        return None
+
+    xl_app = None
+    wb_com = None
+    try:
+        pythoncom.CoInitialize()
+        xl_app = win32com.client.DispatchEx("Excel.Application")
+        xl_app.Visible = False
+        xl_app.DisplayAlerts = False
+
+        abs_path = os.path.abspath(path)
+        wb_com = xl_app.Workbooks.Open(
+            abs_path,
+            UpdateLinks=False,
+            ReadOnly=True,
+            IgnoreReadOnlyRecommended=True,
+        )
+
+        ws = None
+        for i in range(1, wb_com.Sheets.Count + 1):
+            if wb_com.Sheets(i).Name == sheet_name:
+                ws = wb_com.Sheets(i)
+                break
+        if ws is None:
+            logger.error("시트 없음: %s", sheet_name)
+            return None
+
+        used = ws.UsedRange
+        n_rows = used.Rows.Count
+        n_cols = used.Columns.Count
+
+        # COM Value2: 전체 셀 값을 한 번에 가져옴 (tuple of tuples)
+        values = used.Value2
+        if not values:
+            return None
+
+        # 단일 행/열인 경우 tuple이 아닌 단일 값이 올 수 있음
+        if not isinstance(values[0], tuple):
+            values = [values]
+
+        headers = [str(v) if v is not None else "" for v in values[0]]
+        rows    = [list(r) for r in values[1:]]
+        df = pd.DataFrame(rows, columns=headers)
+        logger.info("win32com Excel 읽기 완료: %d행 %d열", len(df), len(df.columns))
+        return df
+
+    except Exception as e:
+        logger.error("_read_excel_via_com 실패: %s", e)
+        return None
+    finally:
+        try:
+            if wb_com is not None:
+                wb_com.Close(False)
+        except Exception:
+            pass
+        try:
+            if xl_app is not None:
+                xl_app.Quit()
+        except Exception:
+            pass
+        try:
+            pythoncom.CoUninitialize()
+        except Exception:
+            pass
+
+
 def load_excel():
     """_cache_lock 을 보유한 상태에서만 호출할 것 (C-1)."""
     global _cached_df, _last_loaded, _last_correction_count
@@ -121,9 +194,21 @@ def load_excel():
         _last_loaded = None
         return _cached_df
 
-    # 실제 엑셀: 15컬럼 (year·part 포함)
-    # usecols 없이 전체 로드 후 컬럼 수 검증 — 구형 13컬럼 파일 감지
-    df_all = pd.read_excel(EXCEL_PATH, sheet_name="취합", header=0)
+    # AIP 암호화 파일 감지 (OLE2 시그니처) → win32com 으로 열기 시도
+    with open(EXCEL_PATH, "rb") as _fh:
+        _sig = _fh.read(8)
+    _is_ole2 = _sig[:8] == b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"
+
+    if _is_ole2:
+        logger.warning("EXCEL_PATH 가 AIP/OLE2 형식 — win32com 으로 읽기 시도: %s", EXCEL_PATH)
+        df_all = _read_excel_via_com(EXCEL_PATH, sheet_name="취합")
+        if df_all is None:
+            logger.error("win32com 읽기 실패 — 빈 데이터 반환")
+            _cached_df = _empty_df()
+            return _cached_df
+    else:
+        # 실제 엑셀: 15컬럼 (year·part 포함)
+        df_all = pd.read_excel(EXCEL_PATH, sheet_name="취합", header=0, engine="openpyxl")
     actual_cols = df_all.shape[1]
 
     if actual_cols < len(EXCEL_COLS):
@@ -857,6 +942,7 @@ def load_perf_excel():
     # 남은 NaN → None (JSON 직렬화 시 null로 처리, NaN은 유효하지 않은 JSON)
     df = df.where(df.notna(), other=None)
 
+    df["filename"] = os.path.basename(PERF_EXCEL_PATH)
     _perf_cached_df = df
     _perf_last_loaded = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     logger.info("실적 엑셀 로드 완료: %d행 (매출 %d, 원가 %d)",
@@ -1033,6 +1119,16 @@ def load_kpi_excel():
 
     if "취합" in sheet_names:
         _kpi_raw_df = wb.parse("취합", header=0)
+        # 프로젝트코드 컬럼 찾아 유효 코드(영문자+숫자)만 유지
+        code_col = next((c for c in _kpi_raw_df.columns if "프로젝트코드" in str(c)), None)
+        if code_col:
+            before = len(_kpi_raw_df)
+            _kpi_raw_df = _kpi_raw_df[
+                _kpi_raw_df[code_col].astype(str).str.fullmatch(r"[A-Za-z][A-Za-z0-9]{5,}")
+            ].reset_index(drop=True)
+            dropped = before - len(_kpi_raw_df)
+            if dropped:
+                logger.warning("KPI 취합: 유효하지 않은 코드 %d행 제거 (미발급·미확인 등)", dropped)
         _kpi_raw_df = _kpi_raw_df.fillna(0)
         logger.info("KPI 취합 로드: %d행", len(_kpi_raw_df))
     else:
@@ -1078,8 +1174,10 @@ def _load_kpi_items_from_cache() -> list:
         logger.warning("_load_kpi_items: '구분' 컬럼 없음. 헤더: %s", cols)
         return []
 
-    # 목표 컬럼: '26년 목표' 계열 중 숫자 또는 문자열 값이 있는 컬럼
-    target_col_candidates = [c for c in cols if "목표" in str(c)]
+    # 목표 컬럼: '프로젝트' 목표(E열) 우선 — 사업계획(D열)과 구분
+    target_col_candidates = [c for c in cols if "목표" in str(c) and "프로젝트" in str(c)]
+    if not target_col_candidates:
+        target_col_candidates = [c for c in cols if "목표" in str(c)]
     target_col = None
     for c in target_col_candidates:
         if _kpi_agg_df[c].notna().any():
@@ -1141,6 +1239,26 @@ def _aggregate_kpi_col(kpi_items: list, col_keyword: str) -> list:
             result.append(0.0)
             continue
 
+        # 신규/기존 건수 타입 판별 — target이 "신규:N건/기존:N건" 문자열이면 해당
+        is_count_type = isinstance(kpi.get("target", 0), str) and "신규" in str(kpi.get("target", ""))
+
+        if is_count_type:
+            new_total = 0
+            old_total = 0
+            for raw_val in _kpi_raw_df[col]:
+                if raw_val is None:
+                    continue
+                val_str = str(raw_val).strip()
+                if "신규" in val_str:
+                    m_new = re.search(r"신규\s*:\s*(\d+)건", val_str)
+                    m_old = re.search(r"기존\s*:\s*(\d+)건", val_str)
+                    if m_new:
+                        new_total += int(m_new.group(1))
+                    if m_old:
+                        old_total += int(m_old.group(1))
+            result.append(f"신규:{new_total}건/기존:{old_total}건")
+            continue
+
         values = []
         for raw_val in _kpi_raw_df[col]:
             if raw_val is None:
@@ -1148,13 +1266,13 @@ def _aggregate_kpi_col(kpi_items: list, col_keyword: str) -> list:
             val_str = str(raw_val).strip()
             if not val_str or val_str in ("0", "0.0", "nan"):
                 continue
-            if "신규" in val_str:
-                m = re.search(r"신규\s*:\s*(\d+)건", val_str)
-                if m:
-                    values.append(float(m.group(1)))
+            if val_str in ("N", "TBD", "-", "n/a", "N/A"):
                 continue
             try:
-                f = float(val_str.replace(",", ""))
+                cleaned = re.sub(r"[^\d.\-]", "", val_str.replace(",", ""))
+                if not cleaned:
+                    continue
+                f = float(cleaned)
                 if np.isfinite(f) and f != 0:
                     values.append(f)
             except (ValueError, TypeError):
