@@ -125,8 +125,10 @@ export const useKpiPageViewModel = (): KpiPageViewModel => {
 
     serverSearch: {
       value:    search.inputValue,
-      onChange: (val) =>
-        search.handleChange({ target: { value: val } } as React.ChangeEvent<HTMLInputElement>),
+      onChange: (val) => {
+        search.handleChange({ target: { value: val } } as React.ChangeEvent<HTMLInputElement>);
+        setPage(1);
+      },
     },
   };
 };
