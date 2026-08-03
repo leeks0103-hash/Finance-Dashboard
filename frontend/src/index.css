@@ -88,25 +88,25 @@
   --glow:    0 0 14px rgba(0,200,255,0.22), 0 0 40px rgba(0,200,255,0.06);
   --glow-sm: 0 0 8px rgba(0,200,255,0.18);
 
-  /* ── KPI 카드 & 페이지네이션 그라디언트 토큰 (다크) ── */
-  --kpi-brand-start:#1a3a7a; --kpi-brand-mid:#0d2255; --kpi-brand-end:#040d1a;
-  --kpi-profit-start:#0d3d1c;--kpi-profit-mid:#072414;--kpi-profit-end:#020d06;
-  --kpi-loss-start:  #4a0e0e;--kpi-loss-mid:  #2a0808;--kpi-loss-end:  #160404;
-  --kpi-warn-start:  #3a200a;--kpi-warn-mid:  #1e1005;--kpi-warn-end:  #0f0803;
-  --kpi-purple-start:#2a1060;--kpi-purple-mid:#160830;--kpi-purple-end:#0a0420;
-  --kpi-brand-shadow: rgba(0,60,200,0.35);
-  --kpi-profit-shadow:rgba(0,150,60,0.30);
-  --kpi-loss-shadow:  rgba(200,30,30,0.28);
-  --kpi-warn-shadow:  rgba(180,120,0,0.28);
-  --kpi-purple-shadow:rgba(100,40,220,0.30);
-  --kpi-brand-value:  #6BB8FF; --kpi-brand-glow:  rgba(60,140,255,0.7);
-  --kpi-profit-value: #4ADE80; --kpi-profit-glow: rgba(40,220,100,0.7);
-  --kpi-loss-value:   #F87171; --kpi-loss-glow:   rgba(255,60,60,0.7);
-  --kpi-warn-value:   #FCD34D; --kpi-warn-glow:   rgba(255,180,0,0.7);
-  --kpi-purple-value: #C084FC; --kpi-purple-glow: rgba(170,80,255,0.7);
-  --kpi-label-color:  rgba(255,255,255,0.55);
-  --kpi-glass-line:   rgba(255,255,255,0.18);
-  --kpi-glass-fade:   rgba(255,255,255,0.06);
+  /* ── KPI 카드 & 페이지네이션 그라디언트 토큰 (다크 — 에메랄드 계열) ── */
+  --kpi-brand-start:#0e3460; --kpi-brand-mid:#071e40; --kpi-brand-end:#030e22;
+  --kpi-profit-start:#064e3b; --kpi-profit-mid:#022c22;--kpi-profit-end:#011710;
+  --kpi-loss-start:  #4c0519; --kpi-loss-mid:  #2d0310;--kpi-loss-end:  #160108;
+  --kpi-warn-start:  #3d2000; --kpi-warn-mid:  #221200;--kpi-warn-end:  #110900;
+  --kpi-purple-start:#2e1065; --kpi-purple-mid:#180835;--kpi-purple-end:#0c041a;
+  --kpi-brand-shadow: rgba(0,100,220,0.45);
+  --kpi-profit-shadow:rgba(16,185,129,0.40);
+  --kpi-loss-shadow:  rgba(220,38,38,0.35);
+  --kpi-warn-shadow:  rgba(217,119,6,0.38);
+  --kpi-purple-shadow:rgba(124,58,237,0.38);
+  --kpi-brand-value:  #60C8FF; --kpi-brand-glow:  rgba(0,180,255,0.75);
+  --kpi-profit-value: #34D399; --kpi-profit-glow: rgba(16,185,129,0.80);
+  --kpi-loss-value:   #FB7185; --kpi-loss-glow:   rgba(251,113,133,0.75);
+  --kpi-warn-value:   #FBBF24; --kpi-warn-glow:   rgba(251,191,36,0.75);
+  --kpi-purple-value: #C084FC; --kpi-purple-glow: rgba(192,132,252,0.75);
+  --kpi-label-color:  rgba(255,255,255,0.80);
+  --kpi-glass-line:   rgba(255,255,255,0.22);
+  --kpi-glass-fade:   rgba(255,255,255,0.08);
 }
 
 /* ─── 공통 토큰 ──────────────────────────────── */

@@ -64,8 +64,12 @@
   font-weight: 600;
   line-height: 1.2;
   text-align: center;
-  color: var(--text-secondary);
+  color: var(--text-sub, #334155);
   white-space: nowrap;
+}
+
+:global([data-theme="dark"]) .line {
+  color: rgba(180, 230, 255, 0.85);
 }
 
 .active .line {

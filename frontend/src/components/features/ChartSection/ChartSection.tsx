@@ -28,11 +28,12 @@ const ChartSection = () => {
       : (dark ? 'rgba(255,68,88,0.88)'  : 'rgba(220,38,38,0.75)')
   ), [vm.profitRate.isProfit, dark]);
 
-  const barBlue  = dark ? 'rgba(0,150,255,0.82)'  : 'rgba(54,132,235,0.78)';
-  const barGreen = dark ? 'rgba(0,230,118,0.82)'  : 'rgba(5,150,105,0.78)';
+  // 에메랄드 계열 — 다크모드에서 선명하게
+  const barBlue  = dark ? 'rgba(56,189,248,0.85)'  : 'rgba(54,132,235,0.78)';
+  const barGreen = dark ? 'rgba(52,211,153,0.88)'  : 'rgba(5,150,105,0.78)';
 
   const doughnutColors = useMemo(() => dark
-    ? ['rgba(240,224,64,0.88)', 'rgba(0,200,255,0.82)', 'rgba(180,126,255,0.88)']
+    ? ['rgba(251,191,36,0.90)', 'rgba(52,211,153,0.88)', 'rgba(192,132,252,0.88)']
     : ['rgba(255,159,64,0.85)', 'rgba(75,192,192,0.85)', 'rgba(153,102,255,0.85)']
   , [dark]);
 

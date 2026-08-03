@@ -67,8 +67,8 @@ export const useKpiPageViewModel = (): KpiPageViewModel => {
     return {
       labels, targets, actuals,
       datasets: [
-        { label: '26년 목표', data: targets, backgroundColor: 'rgba(59,130,246,0.65)', borderRadius: 4 },
-        { label: '26년 실적', data: actuals, backgroundColor: 'rgba(16,185,129,0.7)',  borderRadius: 4 },
+        { label: '26년 목표', data: targets, backgroundColor: 'rgba(56,189,248,0.75)', borderRadius: 4 },
+        { label: '26년 실적', data: actuals, backgroundColor: 'rgba(52,211,153,0.85)', borderRadius: 4 },
       ],
     };
   }, [items]);

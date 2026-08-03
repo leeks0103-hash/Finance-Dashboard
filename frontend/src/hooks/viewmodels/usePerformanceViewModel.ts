@@ -127,7 +127,7 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
   const chartLabels   = useMemo(() => monthly.map(m => m.month),   [monthly]);
   const chartDatasets = useMemo((): PerfChartDataset[] => [{
     label: '월별 실적', data: monthly.map(m => +(m.revenue / 100_000).toFixed(1)),
-    backgroundColor: 'rgba(59,130,246,0.65)', borderRadius: 4,
+    backgroundColor: 'rgba(52,211,153,0.82)', borderRadius: 4,
   }], [monthly]);
 
   // footerData — summary.total 기반 (전체 집계, 페이지네이션과 무관)
