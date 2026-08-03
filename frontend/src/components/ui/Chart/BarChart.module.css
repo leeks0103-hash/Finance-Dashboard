@@ -3,10 +3,9 @@
   height: 100%;
 }
 
-/* 다크모드 — 차트 바에 에메랄드/시안 빛 */
+/* 다크모드 글로우 — 필요 시 활성화
 :global([data-theme="dark"]) .wrap canvas {
   filter:
     drop-shadow(0 0 6px rgba(52, 211, 153, 0.45))
     drop-shadow(0 0 18px rgba(0, 200, 255, 0.20));
-  transition: filter 0.3s ease;
-}
+} */
