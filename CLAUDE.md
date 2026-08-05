@@ -112,5 +112,5 @@ dashboard/
 - AI 지시사항(CLAUDE.md, settings.json)은 GitHub에 공유
 
 ## Git
-- Remote: `https://github.com/ghtjd1358/Finance-Dashboard.git`
+- Remote: `https://github.com/leeks0103-hash/Finance-Dashboard.git`
 - Branch: `main`
