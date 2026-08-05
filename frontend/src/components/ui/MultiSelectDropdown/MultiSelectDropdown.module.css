@@ -1,0 +1,126 @@
+.wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.trigger {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1.5px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-main);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  white-space: nowrap;
+}
+
+.trigger:hover {
+  border-color: var(--brand-mid);
+  color: var(--brand-mid);
+}
+
+.trigger.active {
+  border-color: var(--brand-mid);
+  background: color-mix(in srgb, var(--brand-mid) 12%, transparent);
+  color: var(--brand-mid);
+}
+
+.triggerLabel {
+  font-weight: 600;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: var(--brand-mid);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.arrow {
+  font-size: 0.7rem;
+  opacity: 0.6;
+  transition: transform 0.15s;
+  display: inline-block;
+}
+
+.arrowOpen {
+  transform: rotate(180deg);
+}
+
+.dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 9999;
+  min-width: 140px;
+  max-height: 260px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  padding: 4px 0;
+}
+
+:global([data-theme="dark"]) .dropdown {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  color: #1e293b;
+  transition: background 0.1s;
+}
+
+.item:hover {
+  background: #f1f5f9;
+}
+
+:global([data-theme="dark"]) .item {
+  color: #f1f5f9;
+}
+
+:global([data-theme="dark"]) .item:hover {
+  background: #475569;
+}
+
+.checkbox {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--brand-mid);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.itemLabel {
+  white-space: nowrap;
+}
+
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 2px 8px;
+}
+
+/* 다크모드 그림자 */
+:global([data-theme="dark"]) .dropdown {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}

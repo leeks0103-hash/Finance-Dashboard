@@ -2,11 +2,7 @@
   display: flex;
   gap: 2px;
   padding: 0 24px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: var(--navbar-height, 56px);
-  z-index: 89;
+  background: transparent;
 }
 
 .tab {
@@ -14,7 +10,7 @@
   padding: 14px 20px;
   font-size: 14px;
   font-weight: 500;
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.6);
   background: none;
   border: none;
   cursor: pointer;
@@ -23,21 +19,21 @@
 }
 
 .tab:hover {
-  color: var(--text);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .tab.active {
-  color: var(--accent);
+  color: #fff;
   font-weight: 600;
 }
 
 .tab.active::after {
   content: '';
   position: absolute;
-  bottom: -1px;
+  bottom: 0;
   left: 0;
   right: 0;
   height: 2px;
-  background: var(--accent);
+  background: #fff;
   border-radius: 2px 2px 0 0;
 }

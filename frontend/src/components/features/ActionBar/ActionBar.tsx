@@ -11,9 +11,10 @@ const ActionBar = () => {
   return (
     <>
       <div style={{ display:'flex', alignItems:'center', gap:'6px', flexShrink:0 }}>
-        {hasActiveFilters && (
-          <Button variant="danger" size="sm" onClick={resetFilters}>✕ 초기화</Button>
-        )}
+        <Button variant="danger" size="sm" onClick={resetFilters}
+          style={{ visibility: hasActiveFilters ? 'visible' : 'hidden' }}>
+          ✕ 초기화
+        </Button>
         <Button variant="success" size="sm" onClick={exportCsv}>↓ CSV</Button>
         <Button variant="danger"  size="sm" onClick={exportPdf} loading={isExportingPdf} disabled={isExportingPdf}>
           {isExportingPdf ? '생성 중…' : '↓ PDF'}

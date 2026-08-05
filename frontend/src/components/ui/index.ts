@@ -17,3 +17,4 @@ export * from './ScrollTop';
 export * from './CopyText';
 export * from './TabNav';
 export * from './DataTable';
+export * from './MultiSelectDropdown';

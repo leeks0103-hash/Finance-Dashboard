@@ -1,10 +1,10 @@
 import { lazy, Suspense, useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { FilterBar } from '@/layouts/FilterBar';
-import { PerformanceFilterBar } from '@/layouts/PerformanceFilterBar';
-import { TabNav } from '@/components/ui';
 import { useChartTheme } from '@/hooks';
 import { useBackgroundPrefetch } from '@/hooks/useBackgroundPrefetch';
+import FilterPanel from '@/components/features/FilterPanel';
+import ActionBar   from '@/components/features/ActionBar';
+import PerfFilter  from '@/layouts/PerformanceFilterBar/PerformanceFilterBar';
 import styles from './TabLayout.module.css';
 
 const FinancePage     = lazy(() => import('@/pages/Finance'));
@@ -19,11 +19,6 @@ function pathToTab(pathname: string): Tab {
   return 'finance';
 }
 
-/**
- * Keep-mounted 탭 레이아웃
- * - URL(HashRouter) 기반으로 탭 상태 관리 → 새로고침해도 탭 유지
- * - 한 번 방문한 탭은 display:none으로만 숨김 → 재방문 시 리렌더링 없음
- */
 const TabLayout = () => {
   useChartTheme();
   useBackgroundPrefetch();
@@ -31,10 +26,11 @@ const TabLayout = () => {
   const location = useLocation();
   const navigate  = useNavigate();
 
-  const activeTab = useMemo(() => pathToTab(location.pathname), [location.pathname]);
-  const setTab    = (tab: Tab) => navigate(`/${tab}`);
+  const activeTab    = useMemo(() => pathToTab(location.pathname), [location.pathname]);
+  const setTab       = (tab: Tab) => navigate(`/${tab}`);
+  const isFinance    = activeTab === 'finance';
+  const isPerformance = activeTab === 'performance';
 
-  // 방문한 탭 추적 — 한 번이라도 방문하면 DOM에서 제거하지 않음
   const [mounted, setMounted] = useState<Set<Tab>>(() => new Set([pathToTab(location.pathname)]));
   useEffect(() => {
     setMounted(prev => {
@@ -48,11 +44,11 @@ const TabLayout = () => {
 
   return (
     <>
-      <TabNav active={activeTab} onChange={setTab} />
-
-      {/* FilterBar — 활성 탭에만 표시 */}
-      {activeTab === 'finance'     && <FilterBar />}
-      {activeTab === 'performance' && <PerformanceFilterBar />}
+      {/* filterGroup — 항상 렌더해서 높이 고정, 탭별 내용만 조건부 */}
+      <div className={styles.filterGroup}>
+        {isFinance && <><FilterPanel /><ActionBar /></>}
+        {isPerformance && <PerfFilter />}
+      </div>
 
       {/* ── 재무 데이터 — 항상 마운트 ── */}
       <div className={styles.pageContent} style={show('finance')}>

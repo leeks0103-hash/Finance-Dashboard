@@ -522,6 +522,37 @@ def extract_rows_from_table(table, source_file, source_mtime):
     return extracted
 
 
+def is_aip_encrypted(ppt_path):
+    """OLE2 시그니처(AIP 암호화) 여부 확인."""
+    try:
+        with open(ppt_path, "rb") as f:
+            return f.read(8) == b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"
+    except Exception:
+        return False
+
+
+def save_as_unprotected(ppt_app, ppt_path):
+    """AIP 암호화 파일을 win32com으로 열어 보호 없는 임시 .pptx로 저장 후 경로 반환.
+    실패 시 None 반환."""
+    tmp_path = ppt_path + "__tmp_unprotected.pptx"
+    prs = None
+    try:
+        prs = ppt_app.Presentations.Open(ppt_path, True, False, False)
+        # FileFormat 24 = ppSaveAsOpenXMLPresentation (.pptx)
+        prs.SaveAs(tmp_path, 24)
+        log(f"  [AIP] 임시 파일 생성: {os.path.basename(tmp_path)}")
+        return tmp_path
+    except Exception as e:
+        log(f"  [AIP] 임시 파일 저장 실패: {e}")
+        return None
+    finally:
+        if prs is not None:
+            try:
+                prs.Close()
+            except Exception:
+                pass
+
+
 def open_presentation_with_retry(ppt_app, ppt_path, max_retries=2, wait_seconds=1):
     last_error = None
     for attempt in range(1, max_retries + 1):
@@ -539,10 +570,22 @@ def open_presentation_with_retry(ppt_app, ppt_path, max_retries=2, wait_seconds=
 def extract_financial_rows_from_ppt(ppt_app, ppt_path):
     rows_all = []
     presentation = None
+    tmp_path = None
 
     try:
-        presentation = open_presentation_with_retry(ppt_app, ppt_path)
-        src_mtime = file_mtime_str(ppt_path)
+        # AIP 암호화 파일은 보호 없는 임시 파일로 변환 후 처리
+        if is_aip_encrypted(ppt_path):
+            log(f"  [AIP] 암호화 감지 -> 임시 파일로 변환: {os.path.basename(ppt_path)}")
+            tmp_path = save_as_unprotected(ppt_app, ppt_path)
+            if tmp_path is None:
+                log(f"  [AIP] 변환 실패 -> 건너뜀: {ppt_path}")
+                return []
+            actual_path = tmp_path
+        else:
+            actual_path = ppt_path
+
+        presentation = open_presentation_with_retry(ppt_app, actual_path)
+        src_mtime = file_mtime_str(ppt_path)  # 원본 파일 기준 mtime 유지
 
         for slide_idx in range(1, presentation.Slides.Count + 1):
             slide = presentation.Slides(slide_idx)
@@ -565,6 +608,11 @@ def extract_financial_rows_from_ppt(ppt_app, ppt_path):
         if presentation is not None:
             try:
                 presentation.Close()
+            except Exception:
+                pass
+        if tmp_path and os.path.exists(tmp_path):
+            try:
+                os.remove(tmp_path)
             except Exception:
                 pass
 

@@ -1,16 +1,29 @@
 import { useState, useRef, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Toggle, Button } from '@/components/ui';
+import TabNav from '@/components/ui/TabNav/TabNav';
 import { useTheme } from '@/hooks';
 import { useUiStore } from '@/store';
 import styles from './Navbar.module.css';
+
+type Tab = 'finance' | 'kpi' | 'performance';
+function pathToTab(p: string): Tab {
+  if (p.startsWith('/kpi'))         return 'kpi';
+  if (p.startsWith('/performance')) return 'performance';
+  return 'finance';
+}
 
 const Navbar = () => {
   const { theme, toggle: toggleTheme } = useTheme();
   const { showChartLabels, toggleChartLabels, showLogScale, toggleLogScale, showYearChart, toggleYearChart } = useUiStore();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const activeTab = pathToTab(pathname);
+  const setTab = (tab: Tab) => navigate(`/${tab}`);
 
-  // 외부 클릭 시 닫기
+
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
@@ -20,9 +33,15 @@ const Navbar = () => {
   }, [open]);
 
   return (
-    <nav className={styles.nav}>
-      <span className={styles.brand}>프로젝트 재무 대시보드</span>
+    <header className={styles.header}>
+      <div className={styles.left}>
+        <nav className={styles.nav}>
+          <span className={styles.brand}>프로젝트 재무 대시보드</span>
+        </nav>
+        <TabNav active={activeTab} onChange={setTab} />
+      </div>
 
+      {/* 우측 — 팀명 + 설정 */}
       <div className={styles.right}>
         <span className={styles.team}>기술교육사업기획팀</span>
 
@@ -74,7 +93,7 @@ const Navbar = () => {
           )}
         </div>
       </div>
-    </nav>
+    </header>
   );
 };
 

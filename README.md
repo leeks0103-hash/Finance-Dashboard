@@ -229,15 +229,21 @@ python scripts/extract_kpi_ppt.py
 
 ### 1. 최초 실행 시 (처음 세팅할 때만)
 
+**1) 의존성 설치**
 ```powershell
-# 1) 의존성 설치
 pip install -r requirements.txt
+```
+```powershell
 cd frontend && npm install && cd ..
+```
 
-# 2) KPI 데이터 추출 (data/ 폴더에 Excel이 없으면 KPI 탭이 빈 화면)
+**2) KPI 데이터 추출** (data/ 폴더에 Excel이 없으면 KPI 탭이 빈 화면)
+```powershell
 python scripts/extract_kpi_ppt.py
+```
 
-# 3) 재무 데이터 추출 (data/ 폴더에 Excel이 없으면 재무 탭이 빈 화면)
+**3) 재무 데이터 추출** (data/ 폴더에 Excel이 없으면 재무 탭이 빈 화면)
+```powershell
 python scripts/extract_financial_ppt.py
 ```
 

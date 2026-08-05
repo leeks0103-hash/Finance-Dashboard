@@ -10,7 +10,7 @@ const getUnique = (all: { year: string; part: string; stage: string }[], key: ke
 export const useFilterOptions = () => {
   const { data } = useQuery({
     queryKey: ['projects-all'],
-    queryFn: () => getProjects({ year: '', parts: [], stages: [] }, ALL_PAGE),
+    queryFn: () => getProjects({ years: [], parts: [], stages: [] }, ALL_PAGE),
     select:   (raw) => raw.data,
     staleTime: Infinity,
     structuralSharing: true,

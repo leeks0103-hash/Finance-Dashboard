@@ -39,7 +39,10 @@ const DraggableTh = ({ header, isDraggable }: DraggableThProps) => {
     <th
       ref={setNodeRef}
       onClick={!isDragging ? header.column.getToggleSortingHandler() : undefined}
-      className={header.column.getCanSort() ? styles.sortable : ''}
+      className={[
+        header.column.getCanSort() ? styles.sortable : '',
+        header.column.id === '__index' ? styles.indexCell : '',
+      ].join(' ')}
       style={{
         transform: CSS.Transform.toString(transform),
         transition,
@@ -181,6 +184,29 @@ const DataTable = <T extends object>({
 
   const dndSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
+  // ── 인덱스 컬럼 (항상 맨 앞, DnD·숨김 제외) ─────────────────
+  const indexCol: ColumnDef<T> = useMemo(() => ({
+    id: '__index',
+    header: 'NO.',
+    enableSorting: false,
+    enableResizing: false,
+    size: 52,
+    cell: ({ row, table: t }) => {
+      if (isServerMode) {
+        const offset = (serverPagination!.page - 1) * serverPagination!.pageSize;
+        return offset + row.index + 1;
+      }
+      const { pageIndex, pageSize } = t.getState().pagination;
+      const posInPage = t.getRowModel().rows.indexOf(row);
+      return pageIndex * pageSize + (posInPage >= 0 ? posInPage : row.index) + 1;
+    },
+  }), [isServerMode, serverPagination]);
+
+  const columnsWithIndex = useMemo<ColumnDef<T>[]>(
+    () => [indexCol, ...columns],
+    [indexCol, columns],
+  );
+
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
@@ -211,7 +237,7 @@ const DataTable = <T extends object>({
 
   const table = useReactTable({
     data,
-    columns,
+    columns: columnsWithIndex,
     state: {
       globalFilter: isServerMode ? undefined : globalFilter,
       columnVisibility,
@@ -279,7 +305,7 @@ const DataTable = <T extends object>({
         if (popupText) { closePopup(); return; }
         if (isServerMode) {
           serverSearch?.onChange('');
-        } else if (searchInput) {
+        } else {
           setSearchInput(''); setGlobalFilter('');
         }
       }
@@ -421,11 +447,13 @@ const DataTable = <T extends object>({
                   onDragEnd={handleDragEnd}
                 >
                   <SortableContext
-                    items={hg.headers.map(h => h.id)}
+                    items={hg.headers.filter(h => h.id !== '__index').map(h => h.id)}
                     strategy={horizontalListSortingStrategy}
                   >
                     <tr>
-                      {hg.headers.map(h => <DraggableTh key={h.id} header={h} isDraggable={!!storageKey} />)}
+                      {hg.headers.map(h => (
+                        <DraggableTh key={h.id} header={h} isDraggable={!!storageKey && h.id !== '__index'} />
+                      ))}
                     </tr>
                   </SortableContext>
                 </DndContext>
@@ -456,7 +484,10 @@ const DataTable = <T extends object>({
                           key={cell.id}
                           title={text || undefined}
                           onClick={isLong ? () => openPopup(text) : undefined}
-                          className={isLong ? styles.clickable : undefined}
+                          className={[
+                            isLong ? styles.clickable : '',
+                            cell.column.id === '__index' ? styles.indexCell : '',
+                          ].join(' ') || undefined}
                         >
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </td>

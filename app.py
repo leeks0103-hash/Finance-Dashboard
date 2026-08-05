@@ -313,11 +313,11 @@ def get_df() -> pd.DataFrame:
 
 
 def apply_filters(df: pd.DataFrame) -> pd.DataFrame:
-    year = request.args.get("year", "")
+    years = request.args.getlist("year")
     parts = request.args.getlist("part")
     stages = request.args.getlist("stage")
-    if year:
-        df = df[df["year"] == year]
+    if years:
+        df = df[df["year"].isin(years)]
     if parts:
         df = df[df["part"].isin(parts)]
     if stages:
@@ -664,12 +664,12 @@ def api_export_pdf():
     elements = []
 
     # 제목 — 필터가 있을 때만 괄호에 조건 표시
-    _year   = request.args.get("year", "")
+    _years  = request.args.getlist("year")
     _parts  = request.args.getlist("part")
     _stages = request.args.getlist("stage")
     _filter_labels = []
-    if _year:
-        _filter_labels.append(f"{_year}년")
+    if _years:
+        _filter_labels.append(", ".join(f"{y}년" for y in _years))
     if _parts:
         _filter_labels.append(", ".join(_parts))
     if _stages:

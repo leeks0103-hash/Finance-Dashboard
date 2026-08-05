@@ -110,6 +110,7 @@ dashboard/
 - 커밋 메시지는 한국어로 작성
 - 세션 완료 시 `docs/session-log.md` 업데이트
 - AI 지시사항(CLAUDE.md, settings.json)은 GitHub에 공유
+- 품질 감사 보고서(`data/quality_report.xlsx`) 생성 시 최신 템플릿(`[내부용①] 재무관점 필수 데이터` 키워드) 미반영 파일은 제외 — 담당자 요청 기준
 
 ## Git
 - Remote: `https://github.com/leeks0103-hash/Finance-Dashboard.git`

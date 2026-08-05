@@ -49,7 +49,7 @@ const KpiPage = () => {
           if (v === null || v === undefined || v === 0 || v === '') return '-';
           if (col === '프로젝트코드' && typeof v === 'string' && v.trim())
             return <CopyText text={v} />;
-          return typeof v === 'number' ? v.toLocaleString() : String(v);
+          return typeof v === 'number' ? String(v) : String(v);
         },
       })
     ),

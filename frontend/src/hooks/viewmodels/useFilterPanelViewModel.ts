@@ -19,8 +19,7 @@ export interface FilterPanelViewModel {
   stages:           string[];
   hasActiveFilters: boolean;
   activeCount:      number;
-  setYear:          (year: string) => void;
-  toggleYear:       (year: string) => void;   // chip 단일 선택용 (재클릭 시 해제)
+  toggleYear:       (year: string) => void;
   togglePart:       (part: string) => void;
   toggleStage:      (stage: string) => void;
   resetFilters:     () => void;
@@ -30,13 +29,13 @@ export interface FilterPanelViewModel {
 }
 
 export const useFilterPanelViewModel = (): FilterPanelViewModel => {
-  const { filters, setYear, togglePart, toggleStage, reset } = useFilters();
-  const { years, parts, stages }                             = useFilterOptions();
-  const { prefetch }                                         = usePrefetch();
+  const { filters, toggleYear, togglePart, toggleStage, reset } = useFilters();
+  const { years, parts, stages }                                 = useFilterOptions();
+  const { prefetch }                                             = usePrefetch();
 
-  const hasActiveFilters = Boolean(filters.year || filters.parts.length || filters.stages.length);
+  const hasActiveFilters = Boolean(filters.years.length || filters.parts.length || filters.stages.length);
   const activeCount      =
-    (filters.year ? 1 : 0) + (filters.parts.length > 0 ? 1 : 0) + (filters.stages.length > 0 ? 1 : 0);
+    (filters.years.length > 0 ? 1 : 0) + (filters.parts.length > 0 ? 1 : 0) + (filters.stages.length > 0 ? 1 : 0);
 
   return {
     filters,
@@ -45,12 +44,11 @@ export const useFilterPanelViewModel = (): FilterPanelViewModel => {
     stages: sortStages(stages),
     hasActiveFilters,
     activeCount,
-    setYear,
-    toggleYear:    (year) => setYear(filters.year === year ? '' : year),
+    toggleYear,
     togglePart,
     toggleStage,
     resetFilters:  reset,
-    prefetchYear:  (year) => prefetch({ ...filters, year }),
+    prefetchYear:  (year)  => prefetch({ ...filters, years:  toggle(filters.years,  year) }),
     prefetchPart:  (part)  => prefetch({ ...filters, parts:  toggle(filters.parts,  part) }),
     prefetchStage: (stage) => prefetch({ ...filters, stages: toggle(filters.stages, stage) }),
   };

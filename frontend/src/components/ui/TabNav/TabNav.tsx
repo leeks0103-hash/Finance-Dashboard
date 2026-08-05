@@ -30,6 +30,7 @@ const TabNav = ({ active, onChange }: Props) => (
         {tab.label}
       </button>
     ))}
+
   </nav>
 );
 

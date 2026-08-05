@@ -17,7 +17,7 @@
 .resizing { background: var(--accent) !important; opacity: 0.8; }
 
 .wrapper {
-  height: 560px;               /* 고정 높이 — 마지막 페이지 데이터 부족해도 크기 유지 */
+  height: 960px;               /* 고정 높이 — 마지막 페이지 데이터 부족해도 크기 유지 */
   display: flex;
   flex-direction: column;
   background: var(--surface);
@@ -407,4 +407,10 @@
 .compact {
   height: auto;
   border-radius: 0;
+}
+
+/* NO. 인덱스 컬럼 가운데 정렬 — :first-child 규칙보다 명시도 높게 */
+.table td.indexCell,
+.table th.indexCell {
+  text-align: center;
 }

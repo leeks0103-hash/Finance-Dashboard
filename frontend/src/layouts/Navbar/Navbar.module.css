@@ -1,6 +1,7 @@
 :global(:root) { --navbar-height: 50px; }
 
-.nav {
+/* 바깥 래퍼 — sticky, flex, space-between */
+.header {
   background: var(--nav-bg);
   border-bottom: 1px solid rgba(255,255,255,0.06);
   height: var(--navbar-height);
@@ -12,6 +13,27 @@
   top: 0;
   z-index: 100;
   box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  overflow: visible;
+}
+
+/* 좌측 그룹 — 브랜드 + 탭네브 */
+.left {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+/* nav — 브랜드 텍스트만 */
+.nav {
+  display: flex;
+  align-items: center;
+}
+
+/* filterGroup — nav의 형제, 드롭다운 + 다운로드 버튼 묶음 */
+.filterGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .brand {

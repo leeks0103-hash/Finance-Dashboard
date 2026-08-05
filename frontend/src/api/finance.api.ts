@@ -3,7 +3,7 @@ import type { Filters, Summary, Insights, Project, ReloadResponse, PagedResponse
 
 const toParams = (f: Filters): URLSearchParams => {
   const p = new URLSearchParams();
-  if (f.year) p.set('year', f.year);
+  f.years.forEach(v => p.append('year', v));
   f.parts.forEach(v => p.append('part', v));
   f.stages.forEach(v => p.append('stage', v));
   return p;
