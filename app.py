@@ -8,9 +8,12 @@ from urllib.parse import quote
 
 import numpy as np
 import pandas as pd
+from dotenv import load_dotenv
 from flask import Flask, render_template, jsonify, request, make_response
 from flask.json.provider import DefaultJSONProvider
 from markupsafe import escape as html_escape
+
+load_dotenv()  # .env 파일이 있으면 환경변수로 로드 (없으면 무시)
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -884,12 +887,14 @@ def load_perf_excel():
         return _perf_cached_df
 
     col_indices = sorted(_PERF_COL_MAP.keys())
+    _perf_engine = "pyxlsb" if PERF_EXCEL_PATH.endswith(".xlsb") else "openpyxl"
     df = pd.read_excel(
         PERF_EXCEL_PATH,
         sheet_name=PERF_SHEET,
         header=None,
         skiprows=12,        # 데이터는 13행(1-based)부터
         usecols=col_indices,
+        engine=_perf_engine,
     )
     df.columns = [_PERF_COL_MAP[i] for i in col_indices]
 
@@ -1114,7 +1119,30 @@ def load_kpi_excel():
         _kpi_last_loaded = None
         return
 
-    wb = pd.ExcelFile(KPI_EXCEL_PATH)
+    with open(KPI_EXCEL_PATH, "rb") as _fh:
+        _sig = _fh.read(8)
+    if _sig[:8] == b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1":
+        logger.warning("KPI_EXCEL_PATH 가 AIP/OLE2 형식 — win32com 으로 읽기 시도: %s", KPI_EXCEL_PATH)
+        import tempfile, shutil
+        tmp = tempfile.mktemp(suffix=".xlsx")
+        try:
+            import pythoncom, win32com.client as win32
+            pythoncom.CoInitialize()
+            xl = win32.Dispatch("Excel.Application")
+            xl.Visible = False
+            xl.DisplayAlerts = False
+            wb_com = xl.Workbooks.Open(os.path.abspath(KPI_EXCEL_PATH))
+            wb_com.SaveAs(tmp, FileFormat=51)
+            wb_com.Close(False)
+            xl.Quit()
+        except Exception as e:
+            logger.error("KPI win32com 변환 실패: %s", e)
+            _kpi_raw_df = pd.DataFrame()
+            _kpi_agg_df = pd.DataFrame()
+            return
+        wb = pd.ExcelFile(tmp)
+    else:
+        wb = pd.ExcelFile(KPI_EXCEL_PATH)
     sheet_names = wb.sheet_names
 
     if "취합" in sheet_names:

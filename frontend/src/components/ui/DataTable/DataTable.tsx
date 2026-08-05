@@ -350,17 +350,19 @@ const DataTable = <T extends object>({
           {title && <span className={styles.title}>{title}</span>}
           <span className={styles.count}>{countLabel}</span>
 
-          <select
-            className={styles.pageSizeSelect}
-            value={pageSize}
-            onChange={e => {
-              const n = Number(e.target.value);
-              if (isServerMode) serverPagination!.onPageSizeChange(n);
-              else { table.setPageSize(n); table.setPageIndex(0); }
-            }}
-          >
-            {pageSizeOptions.map(n => <option key={n} value={n}>{n}행</option>)}
-          </select>
+          {pageSizeOptions.length > 1 && (
+            <select
+              className={styles.pageSizeSelect}
+              value={pageSize}
+              onChange={e => {
+                const n = Number(e.target.value);
+                if (isServerMode) serverPagination!.onPageSizeChange(n);
+                else { table.setPageSize(n); table.setPageIndex(0); }
+              }}
+            >
+              {pageSizeOptions.map(n => <option key={n} value={n}>{n}행</option>)}
+            </select>
+          )}
 
           {hideableColumns && hideableColumns.length > 0 && (
             <div className={styles.colToggleWrap} ref={colMenuRef}>

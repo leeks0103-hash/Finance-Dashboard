@@ -114,8 +114,7 @@ const KpiPage = () => {
         columns={summaryColumns as never}
         getRowId={row => row.name}
         title="KPI 집계"
-        searchable
-        searchPlaceholder="KPI 항목 검색…"
+        compact
         defaultPageSize={10}
         pageSizeOptions={[10]}
         storageKey="kpi-summary"
