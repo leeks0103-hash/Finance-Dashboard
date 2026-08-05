@@ -81,13 +81,9 @@ def _empty_df() -> pd.DataFrame:
 
 
 def _is_valid_code(code: str) -> bool:
-    """임시·미정·숫자만 코드 제외 — 프론트엔드와 동일 로직을 백엔드에서 처리."""
+    """빈 코드·"0"만 제외 — 나머지는 모두 허용."""
     c = code.strip()
     if not c or c == "0":
-        return False
-    if re.fullmatch(r"\d+", c):
-        return False
-    if re.search(r"예정|미정|생성|추진|신규", c):
         return False
     return True
 
