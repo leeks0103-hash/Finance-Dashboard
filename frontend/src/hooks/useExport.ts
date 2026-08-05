@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { reloadData, getPdfUrl, getProjects } from '@/api';
+import { reloadKpiData } from '@/api/kpi.api';
+import { reloadPerfData } from '@/api/performance.api';
 import { useFilters } from './useFilters';
 import { useUiStore } from '@/store';
 
@@ -94,16 +96,22 @@ export const useExport = () => {
   };
 
   const reloadMutation = useMutation({
-    mutationFn: reloadData,
+    mutationFn: async () => {
+      // 재무·KPI·실적 세 캐시 동시 갱신
+      const [finance] = await Promise.all([
+        reloadData(),
+        reloadKpiData().catch(() => null),
+        reloadPerfData().catch(() => null),
+      ]);
+      return finance;
+    },
     onSuccess: (data) => {
-      // 전체 캐시 무효화 — 재무·실적·KPI 모든 탭 즉시 재요청
+      // 전체 TanStack Query 캐시 무효화 → 모든 탭 즉시 재요청
       qc.invalidateQueries();
       if (data.ok) {
-        // MM-DD HH:mm 형식으로 단축 표시 (예: "07-24 09:32")
         const ts = data.loaded_at ?? '';
         const shortTs = ts.length >= 16 ? ts.slice(5, 16).replace('T', ' ') : ts;
         setLastLoaded(shortTs || null);
-        // corrected_rows는 서버가 제공할 때만 (현재는 미지원, 향후 확장 대비)
         const cr = (data as any).corrected_rows;
         setCorrectedRows(typeof cr === 'number' ? cr : 0);
       }
