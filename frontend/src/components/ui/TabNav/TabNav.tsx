@@ -1,5 +1,6 @@
-import type { TabId } from '@/store/tab.store';
 import styles from './TabNav.module.css';
+
+export type TabId = 'finance' | 'kpi' | 'performance';
 
 interface Tab {
   id: TabId;
@@ -30,7 +31,6 @@ const TabNav = ({ active, onChange }: Props) => (
         {tab.label}
       </button>
     ))}
-
   </nav>
 );
 

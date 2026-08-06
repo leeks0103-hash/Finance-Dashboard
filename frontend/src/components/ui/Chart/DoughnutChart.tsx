@@ -1,7 +1,7 @@
 import { Doughnut } from 'react-chartjs-2';
 import { Chart, ArcElement, Tooltip, Legend } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
-import styles from './BarChart.module.css';
+import styles from './BarChart.module.css'; // wrap 클래스 공유
 
 Chart.register(ArcElement, Tooltip, Legend, ChartDataLabels);
 

@@ -4,14 +4,8 @@ import { Toggle, Button } from '@/components/ui';
 import TabNav from '@/components/ui/TabNav/TabNav';
 import { useTheme } from '@/hooks';
 import { useUiStore } from '@/store';
+import { pathToTab } from '@/utils/routing';
 import styles from './Navbar.module.css';
-
-type Tab = 'finance' | 'kpi' | 'performance';
-function pathToTab(p: string): Tab {
-  if (p.startsWith('/kpi'))         return 'kpi';
-  if (p.startsWith('/performance')) return 'performance';
-  return 'finance';
-}
 
 const Navbar = () => {
   const { theme, toggle: toggleTheme } = useTheme();

@@ -1,4 +1,4 @@
-import { useMemo, useCallback } from 'react';
+import { useMemo } from 'react';
 import { useChartViewModel } from '@/hooks/viewmodels';
 import { useTheme } from '@/hooks';
 import { useFilterStore, useUiStore } from '@/store';
@@ -12,9 +12,7 @@ const ChartSection = () => {
   const togglePart    = useFilterStore(s => s.togglePart);
   const showYearChart = useUiStore(s => s.showYearChart);
 
-  const handlePartClick = useCallback((part: string) => {
-    togglePart(part);
-  }, [togglePart]);
+  const handlePartClick = togglePart;
 
   // 팔레트 — 오렌지/웜 브랜드에 맞춤
   const labelColor = dark ? 'rgba(212,212,216,0.90)' : '#3F3F46';   // zinc-300 / zinc-700
@@ -87,9 +85,8 @@ const ChartSection = () => {
   );
 
   return (
-    <>
-      {/* tk: 테마 전환 시 차트 완전 리마운트 → 색상 보장 업데이트 + 입장 애니메이션 */}
-      <div className={styles.grid} key={dark ? 'dark' : 'light'}>
+    /* 테마 전환 시 key로 완전 리마운트 → 색상 보장 */
+    <div className={styles.grid} key={dark ? 'dark' : 'light'}>
         <ChartCard>
           <ChartCard.Title>파트별 이익율(%)</ChartCard.Title>
           <ChartCard.Body>
@@ -163,8 +160,7 @@ const ChartSection = () => {
           </ChartCard>
         )}
 
-      </div>
-    </>
+    </div>
   );
 };
 
