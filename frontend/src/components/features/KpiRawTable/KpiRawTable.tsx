@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef, type ReactNode } from 'react';
+import { useState, useCallback, useRef, type ReactNode } from 'react';
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
   type DragEndEvent,
@@ -7,7 +7,7 @@ import {
   SortableContext, horizontalListSortingStrategy, useSortable, arrayMove,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { CopyText, Button } from '@/components/ui';
+import { CopyText, Button, Pagination } from '@/components/ui';
 import styles from './KpiRawTable.module.css';
 
 export const KPI_METRICS = [
@@ -166,12 +166,7 @@ const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, serverP
 
   // ── 페이지네이션 ──────────────────────────────────────────
   const pageCount  = serverPagination ? Math.ceil(serverPagination.total / serverPagination.pageSize) : 1;
-  const pageIndex  = serverPagination ? serverPagination.page - 1 : 0;
   const totalLabel = serverPagination ? `${serverPagination.total}건` : `${data.length}건`;
-  const pagerNums  = useMemo(() => {
-    const half = 2, start = Math.max(0, Math.min(pageIndex - half, pageCount - 5));
-    return Array.from({ length: Math.min(5, pageCount) }, (_, i) => start + i);
-  }, [pageIndex, pageCount]);
 
   return (
     <div className={styles.wrapper}>
@@ -256,25 +251,12 @@ const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, serverP
       </div>
 
       {/* 페이지네이션 */}
-      {serverPagination && pageCount > 1 && (
-        <div className={styles.paginationBar}>
-          <span style={{ minWidth: 40 }} />
-          <nav className={styles.pagination}>
-            <Button variant="ghost" size="sm" className={styles.pgItem}
-              disabled={serverPagination.page <= 1}
-              onClick={() => serverPagination.onPageChange(serverPagination.page - 1)}>이전</Button>
-            {pagerNums.map(idx => (
-              <Button key={idx}
-                variant={idx === pageIndex ? 'primary' : 'ghost'} size="sm"
-                className={`${styles.pgItem} ${idx === pageIndex ? styles.pgActive : ''}`}
-                onClick={() => serverPagination.onPageChange(idx + 1)}>{idx + 1}</Button>
-            ))}
-            <Button variant="ghost" size="sm" className={styles.pgItem}
-              disabled={serverPagination.page >= pageCount}
-              onClick={() => serverPagination.onPageChange(serverPagination.page + 1)}>다음</Button>
-          </nav>
-          <span className={styles.pageLabel}>{serverPagination.page} / {pageCount}</span>
-        </div>
+      {serverPagination && (
+        <Pagination
+          page={serverPagination.page}
+          pageCount={pageCount}
+          onPageChange={serverPagination.onPageChange}
+        />
       )}
     </div>
   );

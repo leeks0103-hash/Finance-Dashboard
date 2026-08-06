@@ -24,6 +24,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Button } from '@/components/ui/Button';
+import { Pagination } from '@/components/ui/Pagination';
 import styles from './DataTable.module.css';
 
 // ── 드래그 가능 th — 모듈 스코프에서 정의해야 React가 컴포넌트 정체성 유지 ──
@@ -536,27 +537,12 @@ const DataTable = <T extends object>({
       )}
 
       {/* 일반 / 서버 페이지 네비게이션 */}
-      {!isInfiniteMode && showPager && (
-        <div className={styles.paginationBar}>
-          <span style={{ minWidth: 40 }} />
-          <nav className={styles.pagination}>
-            <Button variant="ghost" size="sm" className={styles.pgItem}
-              onClick={() => goToPage(pageIndex - 1)} disabled={!canPrev}>이전</Button>
-            {pagerNums.map(idx => (
-              <Button key={idx}
-                variant={idx === pageIndex ? 'primary' : 'ghost'} size="sm"
-                className={`${styles.pgItem} ${idx === pageIndex ? styles.pgActive : ''}`}
-                onClick={() => goToPage(idx)}>
-                {idx + 1}
-              </Button>
-            ))}
-            <Button variant="ghost" size="sm" className={styles.pgItem}
-              onClick={() => goToPage(pageIndex + 1)} disabled={!canNext}>다음</Button>
-          </nav>
-          <span className={styles.pageLabel}>
-            {pageIndex + 1} / {pageCount}
-          </span>
-        </div>
+      {!isInfiniteMode && (
+        <Pagination
+          page={pageIndex + 1}
+          pageCount={pageCount}
+          onPageChange={p => goToPage(p - 1)}
+        />
       )}
 
       {popupText && createPortal(

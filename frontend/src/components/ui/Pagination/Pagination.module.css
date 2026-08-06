@@ -1,0 +1,40 @@
+.bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.spacer { min-width: 40px; }
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 auto;
+}
+
+.item {
+  min-width: 34px;
+  height: 34px;
+  padding: 0 10px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  border-radius: 8px;
+}
+
+.active {
+  background: var(--brand-mid) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+  font-weight: 700 !important;
+}
+
+.label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  min-width: 40px;
+  text-align: center;
+}
