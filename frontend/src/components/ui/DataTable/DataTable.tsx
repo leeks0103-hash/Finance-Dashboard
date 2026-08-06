@@ -338,16 +338,6 @@ const DataTable = <T extends object>({
     else table.setPageIndex(idx);
   }, [isServerMode, serverPagination, table]);
 
-  const canPrev = isServerMode ? serverPagination!.page > 1 : table.getCanPreviousPage();
-  const canNext = isServerMode ? serverPagination!.page < pageCount : table.getCanNextPage();
-
-  const pagerNums = useMemo(() => {
-    const half = 2, start = Math.max(0, Math.min(pageIndex - half, pageCount - 5));
-    return Array.from({ length: Math.min(5, pageCount) }, (_, i) => start + i);
-  }, [pageIndex, pageCount]);
-
-  const showPager = pageCount > 1;
-
   // 건수 표시
   const countLabel = useMemo(() => {
     if (isServerMode)   return `${serverPagination!.total}건`;
