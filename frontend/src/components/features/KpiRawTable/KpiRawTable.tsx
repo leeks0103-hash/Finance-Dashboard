@@ -205,11 +205,11 @@ const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, serverP
             {[...Array(8)].map((_, i) => <div key={i} className={styles.skeletonRow} />)}
           </div>
         ) : (
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <table className={styles.table} style={{ tableLayout: 'fixed', width: orderedCols.reduce((s, c) => s + (colSizes[c.id] ?? c.defaultWidth), 0) }}>
             <colgroup>
               {orderedCols.map(c => <col key={c.id} style={{ width: colSizes[c.id] ?? c.defaultWidth }} />)}
             </colgroup>
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
               <SortableContext items={orderedCols.map(c => c.id)} strategy={horizontalListSortingStrategy}>
                 <thead>
                   <tr>
@@ -224,7 +224,6 @@ const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, serverP
                   </tr>
                 </thead>
               </SortableContext>
-            </DndContext>
             <tbody>
               {data.length === 0 ? (
                 <tr><td colSpan={orderedCols.length} className={styles.empty}>데이터가 없습니다.</td></tr>
@@ -252,6 +251,7 @@ const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, serverP
               })}
             </tbody>
           </table>
+          </DndContext>
         )}
       </div>
 
