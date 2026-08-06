@@ -1,24 +1,27 @@
 .grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
-  min-height: 112px;
+  gap: 12px;
+  min-height: 128px;
 }
+
 @media (max-width: 900px) {
-  .grid { grid-template-columns: repeat(2, 1fr); min-height: 224px; }
+  .grid { grid-template-columns: repeat(2, 1fr); min-height: 256px; }
 }
 @media (max-width: 480px) {
   .grid { grid-template-columns: 1fr 1fr; gap: 10px; }
 }
+
 .skeleton {
   background: var(--bg-subtle);
-  border-radius: var(--radius);
+  border-radius: 8px;
   border: 1px solid var(--border);
-  min-height: 112px;
+  min-height: 128px;
   animation: pulse 1.4s ease infinite;
 }
-/* 데이터 없음 안전장치 */
+
 .dimmed { opacity: 0.35; animation: none; }
+
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.45; }

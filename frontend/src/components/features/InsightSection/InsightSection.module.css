@@ -2,7 +2,7 @@
 .section {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   height: 360px;
   display: flex;
@@ -11,8 +11,8 @@
   transition: box-shadow 0.2s ease;
 }
 :global([data-theme="dark"]) .section {
-  border-color: rgba(0,200,255,0.18);
-  box-shadow: var(--glow-sm);
+  border-color: var(--border);
+  box-shadow: var(--shadow-sm);
 }
 
 .header {
@@ -98,7 +98,7 @@
 /* 스켈레톤 */
 .skeleton {
   background: var(--bg-subtle);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   border: 1px solid var(--border);
   height: 360px;
   animation: pulse 1.4s ease infinite;

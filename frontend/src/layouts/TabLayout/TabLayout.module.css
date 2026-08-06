@@ -19,10 +19,10 @@
   max-width: 1900px;
   margin: 0 auto;
   width: 100%;
-  padding: 24px;
+  padding: 28px 28px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 20px;
   box-sizing: border-box;
 }
 

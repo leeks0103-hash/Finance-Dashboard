@@ -54,6 +54,7 @@ export interface Summary {
   count: number;
   by_part: Record<string, PartStats>;
   by_year?: Record<string, YearStats>;
+  by_stage?: Record<string, PartStats>;
   cost_breakdown: CostBreakdown;
 }
 

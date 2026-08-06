@@ -41,7 +41,7 @@
 }
 
 :global([data-theme="dark"]) .rawSection {
-  border-color: rgba(0,200,255,0.18);
+  border-color: var(--border);
 }
 
 .rawHeader {

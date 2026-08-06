@@ -224,8 +224,8 @@ def load_excel():
         raise ValueError(f"엑셀 컬럼 수 불일치: 기대 {len(EXCEL_COLS)}, 실제 {df.shape[1]}")
 
     df.columns = EXCEL_COLS
+    # 완전히 빈 행만 제거 — 불량 코드도 포함해서 전체 오픈
     df = df[df["project_code"].notna() & (df["project_code"].astype(str).str.strip() != "")]
-    df = df[df["project_code"].astype(str).apply(_is_valid_code)]
 
     # year: 엑셀 값 우선, 없으면 파일명에서 파생
     df["year"] = df["year"].astype(str).str.strip()
@@ -422,8 +422,7 @@ def api_summary():
     if df.empty:
         return jsonify({
             "total_revenue": 0, "total_expenditure": 0, "total_profit": 0,
-            "avg_profit_rate": 0, "count": 0, "by_part": {}, "by_year": {},
-            # H-5: 빈 필터에도 항상 모든 키 포함
+            "avg_profit_rate": 0, "count": 0, "by_part": {}, "by_year": {}, "by_stage": {},
             "cost_breakdown": {"direct_cost": 0, "labor_cost": 0, "overhead": 0},
         })
 
@@ -452,6 +451,22 @@ def api_summary():
         .to_dict(orient="index")
     )
 
+    STAGE_ORDER = ["완료", "중간", "착수", "제안", "사업계획", "검토"]
+    by_stage_raw = (
+        df.groupby("stage")
+        .agg(
+            revenue=("revenue", "sum"),
+            expenditure=("expenditure", "sum"),
+            profit=("operating_profit", "sum"),
+            count=("project_code", "count"),
+        )
+        .to_dict(orient="index")
+    )
+    # 단계 순서 정렬 (정의된 순서 우선, 나머지 알파벳)
+    known   = [s for s in STAGE_ORDER if s in by_stage_raw]
+    unknown = sorted(k for k in by_stage_raw if k not in STAGE_ORDER)
+    by_stage = {s: by_stage_raw[s] for s in known + unknown}
+
     return jsonify({
         "total_revenue": df["revenue"].sum(),
         "total_expenditure": df["expenditure"].sum(),
@@ -460,6 +475,7 @@ def api_summary():
         "count": len(df),
         "by_part": by_part,
         "by_year": by_year,
+        "by_stage": by_stage,
         "cost_breakdown": {
             "direct_cost": df["direct_cost"].sum(),
             "labor_cost": df["labor_cost"].sum(),

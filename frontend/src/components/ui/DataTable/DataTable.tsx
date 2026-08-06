@@ -174,7 +174,13 @@ const DataTable = <T extends object>({
 
   const [colOrder, setColOrder] = useState<string[]>(() => {
     if (!lsKey) return [];
-    try { return JSON.parse(localStorage.getItem(lsKey) ?? '[]'); } catch { return []; }
+    try {
+      const saved: string[] = JSON.parse(localStorage.getItem(lsKey) ?? '[]');
+      if (saved.length === 0) return saved;
+      // __index가 없거나 첫 번째가 아니면 맨 앞에 강제 삽입
+      if (saved[0] === '__index') return saved;
+      return ['__index', ...saved.filter(c => c !== '__index')];
+    } catch { return []; }
   });
 
   const [colSizing, setColSizing] = useState<Record<string, number>>(() => {
@@ -213,8 +219,10 @@ const DataTable = <T extends object>({
     setColOrder(prev => {
       const ids = prev.length ? prev : table.getAllLeafColumns().map(c => c.id);
       const next = arrayMove(ids, ids.indexOf(String(active.id)), ids.indexOf(String(over.id)));
-      if (lsKey) localStorage.setItem(lsKey, JSON.stringify(next));
-      return next;
+      // __index는 항상 첫 번째 고정
+      const fixed = ['__index', ...next.filter(c => c !== '__index')];
+      if (lsKey) localStorage.setItem(lsKey, JSON.stringify(fixed));
+      return fixed;
     });
   }, [lsKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -437,16 +445,17 @@ const DataTable = <T extends object>({
         </div>
       ) : (
         <div className={`${styles.scroll} ${isFetching ? styles.fetching : ''}`}>
+          {/* DndContext를 table 바깥으로 — thead 안에 div 자식이 생기는 HTML 오류 방지 */}
+          <DndContext
+            sensors={dndSensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
           <table className={`${styles.table} ${stickyFirstCol ? styles.stickyFirst : ''}`}>
             <thead>
               {table.getHeaderGroups().map(hg => (
-                <DndContext
-                  key={hg.id}
-                  sensors={dndSensors}
-                  collisionDetection={closestCenter}
-                  onDragEnd={handleDragEnd}
-                >
                   <SortableContext
+                    key={hg.id}
                     items={hg.headers.filter(h => h.id !== '__index').map(h => h.id)}
                     strategy={horizontalListSortingStrategy}
                   >
@@ -456,7 +465,6 @@ const DataTable = <T extends object>({
                       ))}
                     </tr>
                   </SortableContext>
-                </DndContext>
               ))}
             </thead>
 
@@ -508,6 +516,7 @@ const DataTable = <T extends object>({
               </tfoot>
             )}
           </table>
+          </DndContext>
         </div>
       )}
 

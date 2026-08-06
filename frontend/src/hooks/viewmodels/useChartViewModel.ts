@@ -39,17 +39,23 @@ export interface ChartViewModel {
   profitRate: {
     labels:   string[];
     rates:    number[];
-    isProfit: boolean[];   // true = 흑자, false = 적자
+    isProfit: boolean[];
     options:  ChartOptions<'bar'>;
   };
   yearTrend: {
-    labels:   string[];   // e.g. ['2024', '2025', '2026']
+    labels:   string[];
     revenues: number[];
     profits:  number[];
     rates:    number[];
     options:  ChartOptions<'bar'>;
   };
-  labelColor: string;  // 테마별 레이블 색 — ChartSection이 차트에 직접 전달
+  stageChart: {
+    labels:   string[];
+    revenues: number[];
+    counts:   number[];
+    options:  ChartOptions<'bar'>;
+  };
+  labelColor: string;
 }
 
 export const useChartViewModel = (labelColor: string): ChartViewModel => {
@@ -104,10 +110,10 @@ export const useChartViewModel = (labelColor: string): ChartViewModel => {
     if (!data || isLoading) return null;
     const parts   = Object.keys(data.by_part);
     const cb      = data.cost_breakdown;
-
-    // by_year: 연도 오름차순 정렬
-    const byYear = data.by_year ?? {};
-    const years  = Object.keys(byYear).sort();
+    const byYear  = data.by_year ?? {};
+    const years   = Object.keys(byYear).sort();
+    const byStage = data.by_stage ?? {};
+    const stages  = Object.keys(byStage);
 
     return {
       isEmpty: parts.length === 0,
@@ -137,10 +143,16 @@ export const useChartViewModel = (labelColor: string): ChartViewModel => {
           return rev === 0 ? 0 : +(byYear[y].profit / rev * 100).toFixed(1);
         }),
       },
+      stageChart: {
+        labels:   stages,
+        revenues: stages.map(s => +(byStage[s].revenue / 1e8).toFixed(1)),
+        counts:   stages.map(s => byStage[s].count),
+      },
     };
   }, [data, isLoading]);
 
-  const emptyYearTrend = { labels: [], revenues: [], profits: [], rates: [], options: yearTrendOptions };
+  const emptyYearTrend  = { labels: [], revenues: [], profits: [], rates: [], options: yearTrendOptions };
+  const emptyStageChart = { labels: [], revenues: [], counts: [], options: revExpOptions };
 
   if (!chartData || isLoading) {
     return {
@@ -149,6 +161,7 @@ export const useChartViewModel = (labelColor: string): ChartViewModel => {
       costBreakdown: { labels: [], values: [] },
       profitRate:    { labels: [], rates: [], isProfit: [], options: profitRateOptions },
       yearTrend:     emptyYearTrend,
+      stageChart:    emptyStageChart,
     };
   }
 
@@ -162,5 +175,6 @@ export const useChartViewModel = (labelColor: string): ChartViewModel => {
     costBreakdown:   chartData.costBreakdown,
     profitRate:    { ...chartData.profitRate,   options: profitRateOptions },
     yearTrend:     { ...chartData.yearTrend,    options: yearTrendOptions },
+    stageChart:    { ...chartData.stageChart,   options: revExpOptions },
   };
 };

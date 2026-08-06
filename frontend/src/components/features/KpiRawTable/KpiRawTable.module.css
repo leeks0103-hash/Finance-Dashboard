@@ -3,14 +3,14 @@
   flex-direction: column;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   overflow: hidden;
 }
 
 :global([data-theme="dark"]) .wrapper {
-  border-color: rgba(0,200,255,0.18);
-  box-shadow: var(--glow-sm);
+  border-color: var(--border);
+  box-shadow: var(--shadow-sm);
 }
 
 /* ── 툴바 ─────────────────────────────── */

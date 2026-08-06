@@ -24,7 +24,7 @@
 
 .tab.active {
   color: #fff;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .tab.active::after {
@@ -33,7 +33,7 @@
   bottom: 0;
   left: 0;
   right: 0;
-  height: 2px;
-  background: #fff;
+  height: 2.5px;
+  background: var(--brand-mid);
   border-radius: 2px 2px 0 0;
 }

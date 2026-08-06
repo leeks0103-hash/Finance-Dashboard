@@ -28,7 +28,7 @@
 :global([data-theme="dark"]) .risk,
 :global([data-theme="dark"]) .card {
   background: var(--bg-subtle);
-  border-color: rgba(0,200,255,0.15);
+  border-color: var(--border);
 }
 
 .title {

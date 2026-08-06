@@ -533,8 +533,11 @@ def is_aip_encrypted(ppt_path):
 
 def save_as_unprotected(ppt_app, ppt_path):
     """AIP 암호화 파일을 win32com으로 열어 보호 없는 임시 .pptx로 저장 후 경로 반환.
-    실패 시 None 반환."""
-    tmp_path = ppt_path + "__tmp_unprotected.pptx"
+    임시 파일은 NAS가 아닌 로컬 temp 폴더에 생성. 실패 시 None 반환."""
+    import tempfile
+    tmp_fd, tmp_path = tempfile.mkstemp(suffix=".pptx", prefix="fin_aip_")
+    os.close(tmp_fd)
+    os.unlink(tmp_path)  # SaveAs가 직접 생성하므로 미리 삭제
     prs = None
     try:
         prs = ppt_app.Presentations.Open(ppt_path, True, False, False)

@@ -109,7 +109,8 @@ const KpiCard = ({ label, value, accent, sub, trend, trendUp = false }: Props) =
       </div>
       <div className={styles.value}>{value}</div>
       {sub && <div className={styles.sub}>{sub}</div>}
-      <div className={styles.sparkWrap}>
+      {/* 스파크라인 — flat 카드에서 은은한 배경 그래프 */}
+      <div className={styles.sparkWrap} style={{ color: 'currentColor' }}>
         <Sparkline up={trendUp} gradId={gradId} />
       </div>
     </div>

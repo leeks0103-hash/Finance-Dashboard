@@ -22,7 +22,7 @@
   flex-direction: column;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   overflow: hidden;
   transition: box-shadow 0.2s ease;
@@ -36,8 +36,8 @@
 }
 
 :global([data-theme="dark"]) .wrapper {
-  border-color: rgba(0,200,255,0.18);
-  box-shadow: var(--glow-sm);
+  border-color: var(--border);
+  box-shadow: var(--shadow-sm);
 }
 
 /* ── 툴바 ─────────────────────────────── */
@@ -320,12 +320,11 @@
 .pgItem:disabled { opacity: 0.35; cursor: not-allowed; }
 
 .pgActive {
-  background: linear-gradient(135deg, var(--kpi-brand-start, #3b82f6) 0%, var(--kpi-brand-mid, #6366f1) 60%, var(--kpi-brand-end, #8b5cf6) 100%);
+  background: var(--brand-mid);
   border-color: transparent;
   color: #fff;
   font-weight: 700;
   cursor: default;
-  box-shadow: 0 3px 10px var(--kpi-brand-shadow, rgba(99,102,241,.35));
 }
 
 [data-theme="dark"] .pgItem {
@@ -360,7 +359,7 @@
 .popupBox {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
   max-width: 560px;
   width: 100%;

@@ -4,15 +4,15 @@
   flex-direction: column;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   padding: 16px 20px 0;    /* 하단 패딩은 pagination이 담당 */
   overflow: hidden;
   transition: box-shadow 0.2s ease;
 }
 :global([data-theme="dark"]) .wrapper {
-  border-color: rgba(0,200,255,0.18);
-  box-shadow: var(--glow-sm);
+  border-color: var(--border);
+  box-shadow: var(--shadow-sm);
 }
 
 .header {
