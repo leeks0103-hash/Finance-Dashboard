@@ -76,12 +76,30 @@ const ChartSection = () => {
 
   if (vm.isLoading) return (
     <div className={styles.grid}>
-      {[0, 1, 2, ...(showYearChart ? [3] : [])].map(i => <div key={i} className={styles.skeleton} />)}
+      {[0, 1, 2, 3].map(i => <div key={i} className={styles.skeleton} />)}
+    </div>
+  );
+
+  if (vm.isError) return (
+    <div className={styles.grid}>
+      {[0, 1, 2, 3].map(i => (
+        <div key={i} className={styles.errorCard}>
+          <span className={styles.errorIcon}>⚠</span>
+          <span>데이터를 불러올 수 없습니다</span>
+        </div>
+      ))}
     </div>
   );
 
   if (vm.isEmpty) return (
-    <EmptyState icon="📊" title="차트 데이터 없음" description="필터 조건에 해당하는 데이터가 없습니다." />
+    <div className={styles.grid}>
+      {[0, 1, 2, 3].map(i => (
+        <div key={i} className={styles.emptyCard}>
+          <span className={styles.emptyIcon}>📊</span>
+          <span>데이터 없음</span>
+        </div>
+      ))}
+    </div>
   );
 
   return (

@@ -23,6 +23,7 @@ const makeBarOptions = (
 
 export interface ChartViewModel {
   isLoading:    boolean;
+  isError:      boolean;
   isEmpty:      boolean;
   showLabels:   boolean;
   showLogScale: boolean;
@@ -59,7 +60,7 @@ export interface ChartViewModel {
 }
 
 export const useChartViewModel = (labelColor: string): ChartViewModel => {
-  const { data, isLoading } = useSummary();
+  const { data, isLoading, isError } = useSummary();
   const showLabels   = useUiStore(s => s.showChartLabels);
   const showLogScale = useUiStore(s => s.showLogScale);
 
@@ -156,7 +157,7 @@ export const useChartViewModel = (labelColor: string): ChartViewModel => {
 
   if (!chartData || isLoading) {
     return {
-      isLoading, isEmpty: false, showLabels, showLogScale, labelColor,
+      isLoading, isError, isEmpty: false, showLabels, showLogScale, labelColor,
       revExp:        { labels: [], revenues: [], profits: [], options: revExpOptions },
       costBreakdown: { labels: [], values: [] },
       profitRate:    { labels: [], rates: [], isProfit: [], options: profitRateOptions },
@@ -167,6 +168,7 @@ export const useChartViewModel = (labelColor: string): ChartViewModel => {
 
   return {
     isLoading,
+    isError,
     isEmpty:      chartData.isEmpty,
     showLabels,
     showLogScale,

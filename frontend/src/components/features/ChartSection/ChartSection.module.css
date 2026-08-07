@@ -27,6 +27,25 @@
   animation: pulse 1.4s ease infinite;
 }
 
+.errorCard,
+.emptyCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.errorCard { border-color: var(--loss-bg, #fecaca); }
+.errorIcon { font-size: 1.4rem; }
+.emptyIcon { font-size: 1.4rem; opacity: 0.5; }
+
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.45; }
