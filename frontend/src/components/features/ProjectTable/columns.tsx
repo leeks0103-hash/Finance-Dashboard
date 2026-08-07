@@ -35,5 +35,8 @@ export const columns = [
       return <Badge label={note} variant={variant} />;
     },
   }),
-  h.accessor('filename', { header: '원본파일명' }),
+  h.accessor('filename', {
+    header: '원본파일명',
+    cell: i => <CopyText text={i.getValue() ?? ''} />,
+  }),
 ];

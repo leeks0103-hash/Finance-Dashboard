@@ -118,9 +118,15 @@ interface Props {
 
 const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, serverPagination, serverSearch }: Props) => {
   // ── 컬럼 순서 ─────────────────────────────────────────────
-  const [colOrder, setColOrder] = useState<string[]>(() =>
-    loadFromLS(LS_ORDER, COLS.map(c => c.id))
-  );
+  const [colOrder, setColOrder] = useState<string[]>(() => {
+    const saved  = loadFromLS<string[]>(LS_ORDER, []);
+    const allIds = COLS.map(c => c.id);
+    if (!saved.length) return allIds;
+    // 저장된 순서 유지 + 새로 추가된 컬럼은 끝에 추가 + 삭제된 컬럼 제거
+    const valid  = saved.filter(id => allIds.includes(id));
+    const added  = allIds.filter(id => !saved.includes(id));
+    return [...valid, ...added];
+  });
   const orderedCols = useMemo(
     () => colOrder.map(id => COLS.find(c => c.id === id)!).filter(Boolean),
     [colOrder],
@@ -229,9 +235,10 @@ const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, serverP
               {data.length === 0 ? (
                 <tr><td colSpan={orderedCols.length} className={styles.empty}>데이터가 없습니다.</td></tr>
               ) : data.map(row => {
-                const code = String(row['프로젝트코드'] ?? '');
+                const code  = String(row['프로젝트코드'] ?? '');
+                const stage = String(row['보고단계'] ?? '');
                 return KPI_METRICS.map((m, mi) => (
-                  <tr key={`${code}-${mi}`} className={mi % 2 === 0 ? styles.even : ''}>
+                  <tr key={`${code}-${stage}-${mi}`} className={mi % 2 === 0 ? styles.even : ''}>
                     {orderedCols.map(col => {
                       // rowspan 컬럼은 첫 번째 KPI 행에만 출력
                       if (col.rowspan && mi > 0) return null;

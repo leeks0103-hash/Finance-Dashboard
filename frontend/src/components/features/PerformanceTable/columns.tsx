@@ -90,7 +90,7 @@ export const perfColumns = [
   // 기타
   h.accessor('change_note', { header: '변동 검토의견' }),
   h.accessor('note',        { header: '비고' }),
-  h.accessor('filename',    { header: '원본파일명' }),
+  h.accessor('filename',    { header: '원본파일명', cell: i => <CopyText text={i.getValue() ?? ''} /> }),
 ];
 
 /**

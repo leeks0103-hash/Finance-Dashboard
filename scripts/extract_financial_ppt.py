@@ -133,11 +133,26 @@ def clean_cell_value(value):
     return text
 
 
+_NOTE_INVALID_PATTERNS = [
+    "[내부용①]", "재무관점 필수 데이터", "※ 세부 항목",
+    "직접 인건비", "공통 원가 / 관리비", "경상 이익",
+]
+
 def clean_note_value(value):
-    """비고 셀용 — 줄바꿈만 공백으로 변환, 하이픈·빈값은 빈 문자열 유지."""
+    """비고 셀용 — 슬라이드 본문·세부항목이 잘못 들어온 경우 제거."""
     text = normalize_text(value)
     text = text.replace("\r", "").replace("\x0b", " ").replace("\n", " ").strip()
+    if text in ("", "-"):
+        return ""
+    # 슬라이드 헤더·세부항목 패턴이 섞이면 비고가 아님
+    if any(p in text for p in _NOTE_INVALID_PATTERNS):
+        return ""
+    # 300자 초과는 실제 비고가 아닐 가능성이 높음
+    if len(text) > 300:
+        return ""
     return text
+
+
 
 
 def normalize_numeric_text(value):
@@ -466,6 +481,29 @@ def extract_first_table_from_slide(slide):
     return best
 
 
+def _read_header_row(table):
+    """헤더 행(1행) 텍스트를 0-based 인덱스 dict로 반환."""
+    headers = {}
+    try:
+        for c in range(1, table.Columns.Count + 1):
+            try:
+                txt = normalize_text(table.Cell(1, c).Shape.TextFrame.TextRange.Text)
+                headers[c - 1] = txt
+            except Exception:
+                headers[c - 1] = ""
+    except Exception:
+        pass
+    return headers
+
+
+def _find_col(headers, keywords):
+    """헤더 dict에서 keyword 중 하나를 포함하는 첫 번째 0-based 인덱스 반환. 없으면 -1."""
+    for idx, txt in headers.items():
+        if any(kw in txt for kw in keywords):
+            return idx
+    return -1
+
+
 def extract_rows_from_table(table, source_file, source_mtime):
     extracted = []
 
@@ -475,15 +513,30 @@ def extract_rows_from_table(table, source_file, source_mtime):
     if col_count < 10:
         raise ValueError(f"표 컬럼 수가 10개 미만입니다. 현재 컬럼 수: {col_count}")
 
-    # 재경비 컬럼 감지: 11열 이상이면 col 8 위치에 재경비 존재로 판단
-    # 구 템플릿(10열): 프로젝트코드|구분|총매출|지출합계|직접원가|인건비|공통원가|경상이익|이익율|비고
-    # 신 템플릿(11열): 프로젝트코드|구분|총매출|지출합계|직접원가|인건비|공통원가|재경비|경상이익|이익율|비고
+    read_cols = min(col_count, 15)
+
+    # 헤더 행에서 각 컬럼 위치 탐색
+    headers = _read_header_row(table)
+    idx_profit    = _find_col(headers, ["경상이익", "영업이익", "경상 이익", "영업 이익"])
+    idx_rate      = _find_col(headers, ["이익율", "이익률"])
+    idx_note      = _find_col(headers, ["비고"])
+
+    # fallback: 컬럼 수 기반 추정 (구 10열 / 신 11열+)
     has_jaegyungbi = col_count >= 11
-    read_cols = min(col_count, 13)  # 최대 13열까지 읽기
+    offset = 1 if has_jaegyungbi else 0
+    if idx_profit < 0: idx_profit = 7 + offset
+    if idx_rate   < 0: idx_rate   = 8 + offset
+    if idx_note   < 0: idx_note   = 9 + offset
 
     source_filename = os.path.basename(source_file)
     extracted_year = extract_year_from_filename(source_filename)
     extracted_part = extract_part_from_path(source_file)  # 폴더명 우선, 파일명 차선
+
+    log(
+        f"[헤더 감지] 파일={source_filename} / col_count={col_count} / "
+        f"경상이익idx={idx_profit} / 이익율idx={idx_rate} / 비고idx={idx_note} / "
+        f"headers={dict(list(headers.items())[:12])}"
+    )
 
     for r in range(2, row_count + 1):
         raw_values = []
@@ -496,34 +549,33 @@ def extract_rows_from_table(table, source_file, source_mtime):
                 cell_text = ""
             raw_values.append(cell_text)
 
-        # 재경비 컬럼이 있으면 index 7(0-based)을 건너뛰어 뒤 컬럼 인덱스 조정
-        offset = 1 if has_jaegyungbi else 0
+        def _get(idx):
+            return raw_values[idx] if 0 <= idx < len(raw_values) else ""
 
         row_data = []
 
-        row_data.append(safe_str(raw_values[0]))              # 1열: 프로젝트 코드
-        row_data.append(extracted_year)                        # 2열: 연도
-        row_data.append(extracted_part)                        # 3열: 파트명
-        row_data.append(safe_str(raw_values[1]))              # 4열: 구분
-        row_data.append(to_number(raw_values[2]))             # 5열: 총매출
-        row_data.append(to_number(raw_values[3]))             # 6열: 지출합계
-        row_data.append(to_number(raw_values[4]))             # 7열: 직접원가
-        row_data.append(to_number(raw_values[5]))             # 8열: 직접 인건비
-        row_data.append(to_number(raw_values[6]))             # 9열: 공통원가/관리비
-        # raw_values[7] = 재경비 (신 템플릿) → skip
-        row_data.append(to_number(raw_values[7 + offset]))    # 10열: 경상 이익
+        row_data.append(safe_str(_get(0)))              # 1열: 프로젝트 코드
+        row_data.append(extracted_year)                  # 2열: 연도
+        row_data.append(extracted_part)                  # 3열: 파트명
+        row_data.append(safe_str(_get(1)))              # 4열: 구분
+        row_data.append(to_number(_get(2)))             # 5열: 총매출
+        row_data.append(to_number(_get(3)))             # 6열: 지출합계
+        row_data.append(to_number(_get(4)))             # 7열: 직접원가
+        row_data.append(to_number(_get(5)))             # 8열: 직접 인건비
+        row_data.append(to_number(_get(6)))             # 9열: 공통원가/관리비
+        row_data.append(to_number(_get(idx_profit)))    # 10열: 경상 이익
 
-        raw_col11 = raw_values[8 + offset]                    # 11열: 이익율
-        converted_col11 = to_float(raw_col11)
+        raw_rate = _get(idx_rate)
+        converted_rate = to_float(raw_rate)
+        row_data.append(converted_rate)                  # 11열: 이익율
+
+        raw_note = _get(idx_note)
+        note_text = clean_note_value(raw_note)
         log(
-            f"[11열 이익율 확인] 파일={source_filename} / 행={r} / "
-            f"연도={extracted_year} / 파트명={extracted_part} / "
-            f"재경비컬럼={'있음' if has_jaegyungbi else '없음'} / "
-            f"원본={repr(raw_col11)} / 변환={converted_col11}"
+            f"[비고 확인] 파일={source_filename} / 행={r} / "
+            f"비고idx={idx_note} / 원본={repr(raw_note)} / 변환={repr(note_text)}"
         )
-        row_data.append(converted_col11)                      # 11열: 이익율
-
-        row_data.append(clean_note_value(raw_values[9 + offset]))  # 12열: 비고
+        row_data.append(note_text)
 
         key_project = normalize_text(row_data[0])
         key_gubun = normalize_text(row_data[3])

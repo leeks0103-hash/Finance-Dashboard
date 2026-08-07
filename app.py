@@ -1,4 +1,5 @@
 import io
+import json
 import logging
 import os
 import re
@@ -413,8 +414,9 @@ def api_data():
 
     start  = (page - 1) * page_size
     paged  = df.iloc[start:start + page_size].copy()
-    paged["_row_num"] = range(start, start + len(paged))   # 전역 행 번호 (페이지 통틀어 유일)
-    return jsonify({"data": paged.to_dict(orient="records"), "total": total})
+    paged["_row_num"] = range(start, start + len(paged))
+    records = json.loads(paged.to_json(orient="records", force_ascii=False))
+    return jsonify({"data": records, "total": total})
 
 
 @app.route("/api/summary")
