@@ -18,7 +18,9 @@ BASE_DIR = os.environ.get(
     "EXTRACT_BASE_DIR",
     r"C:\Users\aaa\Desktop\기술교육실_프로젝트 보고서 수집",
 )
-if len(sys.argv) > 1 and os.path.isdir(sys.argv[1]):
+# --retry 플래그: AIP 실패 목록만 재처리
+RETRY_MODE = "--retry" in sys.argv
+if not RETRY_MODE and len(sys.argv) > 1 and os.path.isdir(sys.argv[1]):
     BASE_DIR = sys.argv[1]
 
 # 출력 엑셀: 프로젝트 data/ 폴더로 저장
@@ -26,12 +28,13 @@ _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 _DATA_DIR   = os.path.join(os.path.dirname(_SCRIPT_DIR), "data")
 os.makedirs(_DATA_DIR, exist_ok=True)
 
-TARGET_EXCEL = os.path.join(_DATA_DIR, "재무관점 필수 데이터 추출.xlsx")
-TARGET_SHEET = "취합"
+TARGET_EXCEL  = os.path.join(_DATA_DIR, "재무관점 필수 데이터 추출.xlsx")
+TARGET_SHEET  = "취합"
 HISTORY_SHEET = "처리이력"
 TITLE_KEYWORD = "[내부용①] 재무관점 필수 데이터"
 SUPPORTED_EXTENSIONS = {".ppt", ".pptx"}
-LOG_FILE = os.path.join(_DATA_DIR, "extract_financial_ppt.log")
+LOG_FILE       = os.path.join(_DATA_DIR, "extract_financial_ppt.log")
+AIP_FAILED_FILE = os.path.join(_DATA_DIR, "aip_failed.txt")  # AIP 실패 기록
 
 EXCLUDE_FILENAMES = {
     "테스트 입니다.pptx",
@@ -439,14 +442,20 @@ def get_slide_title_text(slide):
 
 
 def extract_first_table_from_slide(slide):
+    """슬라이드에서 컬럼이 가장 많은 표를 반환 (재무 표는 항상 열이 많음)."""
+    best = None
+    best_cols = 0
     for i in range(1, slide.Shapes.Count + 1):
         shp = slide.Shapes(i)
         try:
             if shp.HasTable:
-                return shp.Table
+                t = shp.Table
+                if t.Columns.Count > best_cols:
+                    best_cols = t.Columns.Count
+                    best = t
         except Exception:
             continue
-    return None
+    return best
 
 
 def extract_rows_from_table(table, source_file, source_mtime):
@@ -532,21 +541,47 @@ def is_aip_encrypted(ppt_path):
 
 
 def save_as_unprotected(ppt_app, ppt_path):
-    """AIP 암호화 파일을 win32com으로 열어 보호 없는 임시 .pptx로 저장 후 경로 반환.
-    임시 파일은 NAS가 아닌 로컬 temp 폴더에 생성. 실패 시 None 반환."""
+    """AIP 암호화 파일을 win32com으로 열어 보호 없는 임시 .pptx로 저장.
+    SaveAs 실패 시 슬라이드 복붙 방식으로 fallback.
+    임시 파일은 로컬 temp 폴더에 생성. 실패 시 None 반환."""
     import tempfile
     tmp_fd, tmp_path = tempfile.mkstemp(suffix=".pptx", prefix="fin_aip_")
     os.close(tmp_fd)
-    os.unlink(tmp_path)  # SaveAs가 직접 생성하므로 미리 삭제
+    os.unlink(tmp_path)
     prs = None
     try:
         prs = ppt_app.Presentations.Open(ppt_path, True, False, False)
-        # FileFormat 24 = ppSaveAsOpenXMLPresentation (.pptx)
-        prs.SaveAs(tmp_path, 24)
-        log(f"  [AIP] 임시 파일 생성: {os.path.basename(tmp_path)}")
-        return tmp_path
+        # 1차: SaveAs 시도
+        try:
+            prs.SaveAs(tmp_path, 24)
+            log(f"  [AIP] SaveAs 성공: {os.path.basename(tmp_path)}")
+            return tmp_path
+        except Exception:
+            pass
+
+        # 2차: 빈 프레젠테이션에 슬라이드 복붙
+        log(f"  [AIP] SaveAs 실패 -> 슬라이드 복붙 방식 시도")
+        new_prs = ppt_app.Presentations.Add(WithWindow=False)
+        try:
+            for i in range(1, prs.Slides.Count + 1):
+                prs.Slides(i).Copy()
+                new_prs.Slides.Paste()
+            new_prs.SaveAs(tmp_path, 24)
+            log(f"  [AIP] 복붙 방식 성공: {os.path.basename(tmp_path)}")
+            return tmp_path
+        except Exception as e2:
+            log(f"  [AIP] 복붙 방식도 실패: {e2}")
+            # 실패 목록 기록 — --retry 로 재처리 가능
+            with open(AIP_FAILED_FILE, "a", encoding="utf-8") as f:
+                f.write(ppt_path + "\n")
+            log(f"  [AIP] 실패 목록에 기록됨: {AIP_FAILED_FILE}")
+            return None
+        finally:
+            try: new_prs.Close()
+            except: pass
+
     except Exception as e:
-        log(f"  [AIP] 임시 파일 저장 실패: {e}")
+        log(f"  [AIP] 파일 열기 실패: {e}")
         return None
     finally:
         if prs is not None:
@@ -694,7 +729,19 @@ def main():
     apply_sheet_layout(data_ws)
 
     processed_signatures = load_processed_signatures(history_ws)
-    target_files = find_target_ppt_files(BASE_DIR, processed_signatures)
+
+    # --retry: aip_failed.txt에 기록된 파일만 재처리
+    if RETRY_MODE:
+        if not os.path.exists(AIP_FAILED_FILE):
+            log("[retry] 실패 목록 파일이 없습니다. 먼저 일반 실행으로 추출하세요.")
+            return
+        with open(AIP_FAILED_FILE, encoding="utf-8") as f:
+            target_files = [p.strip() for p in f if p.strip() and os.path.exists(p.strip())]
+        log(f"[retry] AIP 실패 목록 {len(target_files)}개 재처리 시작")
+        # 재처리 성공 시 목록에서 제거하기 위해 초기화
+        open(AIP_FAILED_FILE, "w").close()
+    else:
+        target_files = find_target_ppt_files(BASE_DIR, processed_signatures)
 
     if not target_files:
         apply_number_formats(data_ws)

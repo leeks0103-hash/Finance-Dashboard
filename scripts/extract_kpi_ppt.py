@@ -25,16 +25,18 @@ except ImportError:
 # 환경변수 EXTRACT_KPI_ROOT_DIR 우선 사용 — compare_and_update.py가 자동 주입
 # CLI 인수로도 덮어쓰기 가능: python extract_kpi_ppt.py "C:\새폴더경로"
 import sys as _sys
+RETRY_MODE = "--retry" in _sys.argv
 ROOT_DIR = Path(os.environ.get(
     "EXTRACT_KPI_ROOT_DIR",
     r"C:\Users\aaa\Desktop\기술교육실_프로젝트 보고서 수집",
 ))
-if len(_sys.argv) > 1 and Path(_sys.argv[1]).is_dir():
+if not RETRY_MODE and len(_sys.argv) > 1 and Path(_sys.argv[1]).is_dir():
     ROOT_DIR = Path(_sys.argv[1])
 
 # 출력 엑셀: 프로젝트 data/ 폴더로 저장
 _DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 _DATA_DIR.mkdir(exist_ok=True)
+AIP_FAILED_FILE = _DATA_DIR / "kpi_aip_failed.txt"  # AIP 실패 기록
 
 TARGET_EXCEL_NAME = "KPI 지표 데이터 추출.xlsx"
 DATA_SHEET_NAME = "취합"
@@ -1100,10 +1102,32 @@ def main():
     ensure_history_sheet_if_empty(history_ws)
     ensure_summary_sheet_layout(summary_ws)
 
-    all_target_files = get_all_target_files(
-        ROOT_DIR,
-        exclude_names=[TARGET_EXCEL_NAME]
-    )
+    # --retry: kpi_aip_failed.txt에 기록된 파일만 재처리
+    if RETRY_MODE:
+        if not AIP_FAILED_FILE.exists():
+            logger.info("[retry] 실패 목록 파일이 없습니다. 먼저 일반 실행으로 추출하세요.")
+            print("[retry] kpi_aip_failed.txt 없음. 일반 실행 먼저 하세요.")
+            return
+        failed_paths = [p.strip() for p in AIP_FAILED_FILE.read_text(encoding="utf-8").splitlines() if p.strip()]
+        all_target_files = [
+            (Path(p), {
+                '파트명': '',
+                '보고단계': '',
+                '전체경로': p,
+                '파일명': Path(p).name,
+                '수정일시': '',
+                '파일크기': '',
+                '해시': '',
+            })
+            for p in failed_paths if Path(p).exists()
+        ]
+        logger.info(f"[retry] AIP 실패 목록 {len(all_target_files)}개 재처리 시작")
+        AIP_FAILED_FILE.write_text("", encoding="utf-8")  # 성공 시 초기화
+    else:
+        all_target_files = get_all_target_files(
+            ROOT_DIR,
+            exclude_names=[TARGET_EXCEL_NAME]
+        )
 
     logger.info(f"전체 대상 파일 수: {len(all_target_files)}")
 
@@ -1138,6 +1162,11 @@ def main():
             total_success += 1
         else:
             total_fail += 1
+            # AIP 관련 실패 시 retry 목록에 기록
+            if any(kw in message for kw in ["AIP", "암호화", "PackageNotFound", "win32"]):
+                with open(AIP_FAILED_FILE, "a", encoding="utf-8") as _f:
+                    _f.write(str(ppt_path) + "\n")
+                logger.info(f"[retry 대상 기록] {ppt_path.name}")
 
         wb.save(excel_path)
 

@@ -4,8 +4,10 @@ import { getProjects } from '@/api';
 
 const ALL_PAGE = { page: 1, pageSize: 9999, search: '' };
 
+const SKIP = new Set(['', '-', 'nan', 'None', 'null']);
+
 const getUnique = (all: { year: string; part: string; stage: string }[], key: keyof typeof all[0]) =>
-  [...new Set(all.map(r => r[key]).filter((v): v is string => v !== null && v !== ''))].sort();
+  [...new Set(all.map(r => r[key]).filter((v): v is string => v !== null && !SKIP.has(v)))].sort();
 
 export const useFilterOptions = () => {
   const { data } = useQuery({

@@ -3,10 +3,10 @@ import { Button } from '@/components/ui/Button';
 import styles from './Pagination.module.css';
 
 interface Props {
-  page:           number;   // 1-based 현재 페이지
-  pageCount:      number;   // 전체 페이지 수
+  page:           number;
+  pageCount:      number;
   onPageChange:   (page: number) => void;
-  windowSize?:    number;   // 표시할 페이지 번호 수 (기본 5)
+  windowSize?:    number;
 }
 
 const Pagination = ({ page, pageCount, onPageChange, windowSize = 5 }: Props) => {

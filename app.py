@@ -228,7 +228,8 @@ def load_excel():
     df = df[df["project_code"].notna() & (df["project_code"].astype(str).str.strip() != "")]
 
     # year: 엑셀 값 우선, 없으면 파일명에서 파생
-    df["year"] = df["year"].astype(str).str.strip()
+    # float → int 변환 후 str ("2025.0" → "2025")
+    df["year"] = df["year"].astype(str).str.replace(r'\.0$', '', regex=True).str.strip()
     mask_no_year = df["year"].isin(["", "nan", "None"])
     if mask_no_year.any():
         df.loc[mask_no_year, "year"] = df.loc[mask_no_year].apply(
@@ -1159,16 +1160,12 @@ def load_kpi_excel():
 
     if "취합" in sheet_names:
         _kpi_raw_df = wb.parse("취합", header=0)
-        # 프로젝트코드 컬럼 찾아 유효 코드(영문자+숫자)만 유지
+        # 프로젝트코드 빈 행만 제거 — 불량 코드도 전체 오픈
         code_col = next((c for c in _kpi_raw_df.columns if "프로젝트코드" in str(c)), None)
         if code_col:
-            before = len(_kpi_raw_df)
             _kpi_raw_df = _kpi_raw_df[
-                _kpi_raw_df[code_col].astype(str).str.fullmatch(r"[A-Za-z][A-Za-z0-9]{5,}")
+                _kpi_raw_df[code_col].notna() & (_kpi_raw_df[code_col].astype(str).str.strip() != "")
             ].reset_index(drop=True)
-            dropped = before - len(_kpi_raw_df)
-            if dropped:
-                logger.warning("KPI 취합: 유효하지 않은 코드 %d행 제거 (미발급·미확인 등)", dropped)
         _kpi_raw_df = _kpi_raw_df.fillna(0)
         logger.info("KPI 취합 로드: %d행", len(_kpi_raw_df))
     else:
