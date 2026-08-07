@@ -738,8 +738,8 @@ def main():
         with open(AIP_FAILED_FILE, encoding="utf-8") as f:
             target_files = [p.strip() for p in f if p.strip() and os.path.exists(p.strip())]
         log(f"[retry] AIP 실패 목록 {len(target_files)}개 재처리 시작")
-        # 재처리 성공 시 목록에서 제거하기 위해 초기화
-        open(AIP_FAILED_FILE, "w").close()
+        # 성공한 파일만 제거 — 재실패 파일은 목록에 남김
+        _retry_remaining = list(target_files)
     else:
         target_files = find_target_ppt_files(BASE_DIR, processed_signatures)
 
@@ -809,6 +809,23 @@ def main():
                 append_history(history_ws, signature, ppt_path, "FAIL", err_msg)
                 log(f"  └ 오류: {err_msg}")
                 log(traceback.format_exc())
+                # retry 모드: 재실패 파일은 목록에 유지
+                if RETRY_MODE and ppt_path in _retry_remaining:
+                    pass  # 목록에 그대로 남김
+            else:
+                # 성공 시 retry 목록에서 제거
+                if RETRY_MODE:
+                    _retry_remaining = [p for p in _retry_remaining if p != ppt_path]
+
+        # retry 모드: 최종 실패 파일 목록 다시 저장
+        if RETRY_MODE:
+            with open(AIP_FAILED_FILE, "w", encoding="utf-8") as f:
+                for p in _retry_remaining:
+                    f.write(p + "\n")
+            if _retry_remaining:
+                log(f"[retry] 재실패 {len(_retry_remaining)}개 → {AIP_FAILED_FILE} 에 유지")
+            else:
+                log("[retry] 모든 파일 처리 완료 — 실패 목록 초기화")
 
         apply_number_formats(data_ws)
         apply_sheet_layout(data_ws)

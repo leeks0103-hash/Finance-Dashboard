@@ -1122,7 +1122,8 @@ def main():
             for p in failed_paths if Path(p).exists()
         ]
         logger.info(f"[retry] AIP 실패 목록 {len(all_target_files)}개 재처리 시작")
-        AIP_FAILED_FILE.write_text("", encoding="utf-8")  # 성공 시 초기화
+        _retry_remaining = [str(p) for p, _ in all_target_files]
+        # 목록은 성공 시에만 제거 — 재실패 파일은 유지
     else:
         all_target_files = get_all_target_files(
             ROOT_DIR,
@@ -1160,10 +1161,12 @@ def main():
 
         if success:
             total_success += 1
+            if RETRY_MODE:
+                _retry_remaining = [p for p in _retry_remaining if p != str(ppt_path)]
         else:
             total_fail += 1
-            # AIP 관련 실패 시 retry 목록에 기록
-            if any(kw in message for kw in ["AIP", "암호화", "PackageNotFound", "win32"]):
+            # AIP 관련 실패 시 retry 목록에 기록 (일반 모드)
+            if not RETRY_MODE and any(kw in message for kw in ["AIP", "암호화", "PackageNotFound", "win32"]):
                 with open(AIP_FAILED_FILE, "a", encoding="utf-8") as _f:
                     _f.write(str(ppt_path) + "\n")
                 logger.info(f"[retry 대상 기록] {ppt_path.name}")
@@ -1177,6 +1180,14 @@ def main():
     update_summary_sheet(summary_ws, data_ws)
 
     wb.save(excel_path)
+
+    # retry 모드: 최종 실패 파일 목록 다시 저장
+    if RETRY_MODE:
+        AIP_FAILED_FILE.write_text("\n".join(_retry_remaining) + ("\n" if _retry_remaining else ""), encoding="utf-8")
+        if _retry_remaining:
+            logger.info(f"[retry] 재실패 {len(_retry_remaining)}개 → {AIP_FAILED_FILE} 에 유지")
+        else:
+            logger.info("[retry] 모든 파일 처리 완료 — 실패 목록 초기화")
 
     logger.info(f"전체 처리 결과: 성공 {total_success}건 / 실패 {total_fail}건")
     logger.info(f"총 데이터 건수: {len(all_records)}건")
