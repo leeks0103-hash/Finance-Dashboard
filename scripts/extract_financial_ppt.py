@@ -125,10 +125,18 @@ def normalize_text(value):
 
 
 def clean_cell_value(value):
+    """숫자 셀용 — 빈 값과 하이픈을 0으로 변환."""
     text = normalize_text(value)
     text = text.replace("\r", "").replace("\x0b", "\n").replace("\n", " ").strip()
     if text in ("", "-"):
         return "0"
+    return text
+
+
+def clean_note_value(value):
+    """비고 셀용 — 줄바꿈만 공백으로 변환, 하이픈·빈값은 빈 문자열 유지."""
+    text = normalize_text(value)
+    text = text.replace("\r", "").replace("\x0b", " ").replace("\n", " ").strip()
     return text
 
 
@@ -515,7 +523,7 @@ def extract_rows_from_table(table, source_file, source_mtime):
         )
         row_data.append(converted_col11)                      # 11열: 이익율
 
-        row_data.append(safe_str(raw_values[9 + offset]))    # 12열: 비고
+        row_data.append(clean_note_value(raw_values[9 + offset]))  # 12열: 비고
 
         key_project = normalize_text(row_data[0])
         key_gubun = normalize_text(row_data[3])
