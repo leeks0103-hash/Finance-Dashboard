@@ -27,7 +27,7 @@ export const columns = [
     cell: i => <NegCell v={i.getValue()} text={formatRate(i.getValue())} />,
   }),
   h.accessor('note', {
-    header: '노트',
+    header: '비고',
     cell: i => {
       const note = i.getValue() as string;
       const variant = getNoteVariant(note);

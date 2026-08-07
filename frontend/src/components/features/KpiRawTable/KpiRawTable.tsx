@@ -41,7 +41,11 @@ const COLS: ColDef[] = [
   { id: 'plan',        header: "'26년 목표\n(사업계획)", rowspan: false, defaultWidth: 90, getValue: (r, k) => cellVal(r[`${k}_사업계획`]) },
   { id: 'target',      header: "'26년 목표\n(프로젝트)", rowspan: false, defaultWidth: 90, getValue: (r, k) => cellVal(r[`${k}_PJ목표`]) },
   { id: 'actual',      header: "'26년 실적\n(프로젝트)", rowspan: false, defaultWidth: 90, getValue: (r, k) => cellVal(r[`${k}_PJ실적`]) },
-  { id: 'similar',     header: "'25년 실적\n(유사)",    rowspan: false, defaultWidth: 90, getValue: (r, k) => cellVal(r[`${k}_PJ유사`]) },
+  { id: 'similar',     header: "'25년 실적\n(유사)",    rowspan: false, defaultWidth: 90,  getValue: (r, k) => cellVal(r[`${k}_PJ유사`]) },
+  { id: 'note',        header: '비고',                 rowspan: false, defaultWidth: 200, getValue: (r, k) => {
+    const v = r[`${k}_비고`];
+    return (v === null || v === undefined || v === '' || v === 0) ? '' : String(v);
+  }},
   { id: 'processedAt', header: '처리일시',             rowspan: true,  defaultWidth: 150, getValue: r => String(r['처리일시'] ?? '') },
   { id: 'modifiedAt',  header: '최종수정일시',         rowspan: true,  defaultWidth: 150, getValue: r => String(r['최종수정일시'] ?? '') },
   { id: 'filename',    header: '파일명',               rowspan: true,  defaultWidth: 200, getValue: r => String(r['파일명'] ?? '') },
@@ -55,8 +59,10 @@ function loadFromLS<T>(key: string, fallback: T): T {
 }
 
 function cellVal(v: unknown): string {
-  if (v === null || v === undefined || v === 0 || v === '' || v === '0') return 'N';
-  return String(v);
+  if (v === null || v === undefined || v === '' || v === 0 || v === '0') return '-';  // 미입력
+  const s = String(v).trim();
+  if (s === 'N' || s === 'n') return 'N';  // 명시적 해당없음
+  return s;
 }
 
 // ── DnD 가능한 th ────────────────────────────────────────────

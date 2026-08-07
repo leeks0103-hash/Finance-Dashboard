@@ -7,7 +7,7 @@ const HIDEABLE: { id: string; label: string }[] = [
   { id: 'direct_cost', label: '직접원가' },
   { id: 'labor_cost',  label: '인건비'   },
   { id: 'overhead',    label: '공통원가' },
-  { id: 'note',        label: '노트'     },
+  { id: 'note',        label: '비고'     },
   { id: 'filename',    label: '원본파일명' },
 ];
 

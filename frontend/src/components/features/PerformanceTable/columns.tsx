@@ -89,7 +89,7 @@ export const perfColumns = [
   h.accessor('sa_overhead_cost',   { header: '제경비',      cell: i => num(i.getValue()) }),
   // 기타
   h.accessor('change_note', { header: '변동 검토의견' }),
-  h.accessor('note',        { header: '노트' }),
+  h.accessor('note',        { header: '비고' }),
   h.accessor('filename',    { header: '원본파일명' }),
 ];
 
@@ -148,6 +148,6 @@ export const PERF_HIDEABLE_COLS: HideableColumn[] = [
   { id: 'sa_regular',       label: '정규직' },
   { id: 'sa_overhead_cost', label: '제경비' },
   { id: 'change_note',      label: '변동 검토의견' },
-  { id: 'note',             label: '노트' },
+  { id: 'note',             label: '비고' },
   { id: 'filename',         label: '원본파일명' },
 ];

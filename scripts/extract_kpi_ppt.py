@@ -394,11 +394,13 @@ def append_history(ws, file_meta: Dict[str, str], status: str, message: str):
     logger.info(f"처리 이력 기록: 상태={status}, 메시지={message}")
 
 
-def find_existing_data_row(ws, key1: str, key2: str) -> Optional[int]:
+def find_existing_data_row(ws, key1: str, key2: str, key4: str) -> Optional[int]:
+    """프로젝트코드 + 수행연도 + 보고단계 3중 키로 중복 판별 (착수/중간/완료 구분)."""
     for row_idx in range(2, ws.max_row + 1):
         v1 = normalize_text(ws.cell(row=row_idx, column=1).value)
         v2 = normalize_text(ws.cell(row=row_idx, column=2).value)
-        if v1 == key1 and v2 == key2:
+        v4 = normalize_text(ws.cell(row=row_idx, column=4).value)
+        if v1 == key1 and v2 == key2 and v4 == key4:
             return row_idx
     return None
 
@@ -414,22 +416,19 @@ def upsert_data_rows(ws, rows: List[List]) -> Tuple[int, int]:
     updated = 0
 
     for row_data in rows:
-        key1 = normalize_text(row_data[0])
-        key2 = normalize_text(row_data[1])
-        existing_row = find_existing_data_row(ws, key1, key2)
+        key1 = normalize_text(row_data[0])   # 프로젝트코드
+        key2 = normalize_text(row_data[1])   # 수행연도
+        key4 = normalize_text(row_data[3])   # 보고단계 (착수/중간/완료 구분)
+        existing_row = find_existing_data_row(ws, key1, key2, key4)
 
         if existing_row is not None:
             target_row = existing_row
             updated += 1
-            logger.info(
-                f"기존 데이터 덮어쓰기: 행={target_row}, 프로젝트 코드={key1}, 수행연도={key2}"
-            )
+            logger.info(f"기존 데이터 덮어쓰기: 행={target_row}, 코드={key1}, 연도={key2}, 단계={key4}")
         else:
             target_row = max(ws.max_row + 1, 2)
             inserted += 1
-            logger.info(
-                f"신규 데이터 추가: 행={target_row}, 프로젝트 코드={key1}, 수행연도={key2}"
-            )
+            logger.info(f"신규 데이터 추가: 행={target_row}, 코드={key1}, 연도={key2}, 단계={key4}")
 
         for col_idx, value in enumerate(row_data, start=1):
             ws.cell(row=target_row, column=col_idx, value=safe_cell_value(value))
