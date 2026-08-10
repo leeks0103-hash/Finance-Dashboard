@@ -40,6 +40,17 @@ EXCLUDE_FILENAMES = {
     "테스트 입니다.pptx",
 }
 
+# 프로젝트 코드가 이 값이면 "미배정" 상태로 간주 — 서로 다른 프로젝트가 같은 값을
+# 공유해도 충돌(덮어쓰기)하지 않도록 upsert 키에 파일명을 추가로 사용
+PLACEHOLDER_CODES = {"", "0", "생성예정", "미정", "tbd", "(생성 필요)", "선정 시 생성 예정"}
+
+_STAGE_SUFFIXES = ["사전검토", "착수", "중간", "완료", "제안"]
+
+
+class AipDecryptError(Exception):
+    """AIP 암호화 해제 실패 — 실제 처리 실패로 집계되어야 함."""
+    pass
+
 # 기존 데이터 보존 + 증분 업데이트 (새 폴더 추가 시 기존 데이터 유지)
 FORCE_REPROCESS = False
 RESET_OUTPUT_ON_START = False
@@ -92,7 +103,11 @@ HISTORY_HEADERS = [
 def log(message):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     line = f"[{timestamp}] {message}"
-    print(line)
+    try:
+        print(line)
+    except UnicodeEncodeError:
+        enc = sys.stdout.encoding or "utf-8"
+        print(line.encode(enc, errors="replace").decode(enc, errors="replace"))
     try:
         with open(LOG_FILE, "a", encoding="utf-8") as f:
             f.write(line + "\n")
@@ -394,15 +409,37 @@ def append_history(history_ws, signature, path, status, message=""):
 # =========================
 # 취합 시트 인덱스 관리
 # =========================
+def strip_stage_suffix(filename):
+    """파일명에서 착수/완료/제안 등 단계 표시를 제거해 '같은 프로젝트의 다른 단계 파일'인지
+    비교할 수 있는 기준 이름을 만든다. (완전한 판별은 아니고 충돌 경고용 휴리스틱)"""
+    name = os.path.splitext(normalize_text(filename))[0]
+    for suf in _STAGE_SUFFIXES:
+        name = re.sub(rf"[_\[\(]?{re.escape(suf)}[\]\)]?(_수정|_최종)?$", "", name).strip()
+    return name
+
+
+def make_row_key(code, year, part, gubun, filename):
+    """프로젝트 코드가 미배정 상태(생성예정/0/미정 등)면 서로 다른 프로젝트가
+    같은 값을 쓰더라도 절대 같은 키로 취급하지 않도록 파일명을 키에 포함시킨다."""
+    key_code = normalize_text(code)
+    key_year = normalize_text(year)
+    key_part = normalize_text(part)
+    key_gubun = normalize_text(gubun)
+    if key_code in PLACEHOLDER_CODES:
+        return (key_code, key_year, key_part, key_gubun, strip_stage_suffix(filename))
+    return (key_code, key_year, key_part, key_gubun)
+
+
 def build_data_index(data_ws):
     index_map = {}
     for row_num in range(2, data_ws.max_row + 1):
-        key_project = normalize_text(data_ws.cell(row=row_num, column=1).value)
-        key_year = normalize_text(data_ws.cell(row=row_num, column=2).value)
-        key_part = normalize_text(data_ws.cell(row=row_num, column=3).value)
-        key_gubun = normalize_text(data_ws.cell(row=row_num, column=4).value)
-        if key_project or key_gubun:
-            index_map[(key_project, key_year, key_part, key_gubun)] = row_num
+        code = data_ws.cell(row=row_num, column=1).value
+        year = data_ws.cell(row=row_num, column=2).value
+        part = data_ws.cell(row=row_num, column=3).value
+        gubun = data_ws.cell(row=row_num, column=4).value
+        filename = data_ws.cell(row=row_num, column=13).value
+        if normalize_text(code) or normalize_text(gubun):
+            index_map[make_row_key(code, year, part, gubun, filename)] = row_num
     return index_map
 
 
@@ -412,15 +449,29 @@ def upsert_rows(data_ws, rows):
     updated = 0
 
     for row_data in rows:
-        key = (
-            normalize_text(row_data[0]),
-            normalize_text(row_data[1]),
-            normalize_text(row_data[2]),
-            normalize_text(row_data[3]),
-        )
+        key = make_row_key(row_data[0], row_data[1], row_data[2], row_data[3], row_data[12])
 
         if key in index_map:
             row_num = index_map[key]
+
+            existing_filename = normalize_text(data_ws.cell(row=row_num, column=13).value)
+            new_filename = normalize_text(row_data[12])
+            if existing_filename and new_filename and \
+               strip_stage_suffix(existing_filename) != strip_stage_suffix(new_filename):
+                log(
+                    f"[경고] 코드 충돌 의심 - 서로 다른 파일이 같은 (코드/연도/파트/구분) 키를 공유함: "
+                    f"기존='{existing_filename}' 신규='{new_filename}' 키={key[:4]}"
+                )
+
+            # 비고(12열)는 새 값이 비어있고 기존 값이 있으면 유지 — 완료본이 착수본보다
+            # 먼저 처리되어 비고를 채워둔 뒤, 착수본(비고 공백)이 나중에 덮어써 유실되는 것을 방지
+            existing_note = normalize_text(data_ws.cell(row=row_num, column=12).value)
+            new_note = normalize_text(row_data[11])
+            if existing_note and not new_note:
+                log(f"[경고] 비고 유지 - 기존='{existing_note}' 신규='' (파일={new_filename})")
+                row_data = list(row_data)
+                row_data[11] = existing_note
+
             for col_idx, value in enumerate(row_data, start=1):
                 data_ws.cell(row=row_num, column=col_idx, value=value)
             data_ws.cell(row=row_num, column=11).number_format = "0.00"
@@ -642,6 +693,8 @@ def save_as_unprotected(ppt_app, ppt_path):
 
     except Exception as e:
         log(f"  [AIP] 파일 열기 실패: {e}")
+        with open(AIP_FAILED_FILE, "a", encoding="utf-8") as f:
+            f.write(ppt_path + "\n")
         return None
     finally:
         if prs is not None:
@@ -677,7 +730,7 @@ def extract_financial_rows_from_ppt(ppt_app, ppt_path):
             tmp_path = save_as_unprotected(ppt_app, ppt_path)
             if tmp_path is None:
                 log(f"  [AIP] 변환 실패 -> 건너뜀: {ppt_path}")
-                return []
+                raise AipDecryptError(f"AIP 복호화 실패: {os.path.basename(ppt_path)}")
             actual_path = tmp_path
         else:
             actual_path = ppt_path
