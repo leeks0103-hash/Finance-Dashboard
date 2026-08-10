@@ -49,7 +49,7 @@ const ProjectTable = () => {
       emptyIcon="🔍"
       emptyTitle="검색 결과 없음"
       emptyDescription="다른 검색어나 필터 조건을 시도해보세요."
-      initialColumnVisibility={{ filename: false }}
+      initialColumnVisibility={{ filename: true }}
       storageKey="finance-project"
     />
   );

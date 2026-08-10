@@ -9,8 +9,7 @@ interface Props {
 const CopyText = ({ text, className }: Props) => {
   const [copied, setCopied] = useState(false);
 
-  const copy = useCallback(async (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const copy = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(text);
     } catch {
@@ -29,10 +28,10 @@ const CopyText = ({ text, className }: Props) => {
     <span
       className={`${styles.root} ${copied ? styles.copied : ''} ${className ?? ''}`}
       onClick={copy}
-      title={copied ? '복사됨!' : '클릭해서 복사'}
+      title={copied ? '복사됨!' : text}
       role="button"
       tabIndex={0}
-      onKeyDown={e => e.key === 'Enter' && copy(e as any)}
+      onKeyDown={e => e.key === 'Enter' && copy()}
     >
       {text}
       {/* 복사 후: 텍스트 체크마크 / 복사 전: CSS로만 만든 아이콘 */}
