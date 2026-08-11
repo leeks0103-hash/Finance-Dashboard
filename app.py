@@ -44,9 +44,9 @@ EXCEL_PATH = os.environ.get(
 
 PERF_EXCEL_PATH = os.environ.get(
     "PERF_EXCEL_PATH",
-    os.path.join(_DATA_DIR, "26년 사업계획 통합관리 파일_ver7.7_260709_6월 실적 집계.xlsx"),
+    os.path.join(_DATA_DIR, "26년 사업계획 통합관리 파일_ver7.11_260805_실적 추정 요청_종합1.xlsx"),
 )
-PERF_SHEET = "2026년 (6월 집계)"
+PERF_SHEET = "2026년 (7월 추정)"
 
 KPI_EXCEL_PATH = os.environ.get(
     "KPI_EXCEL_PATH",
@@ -796,7 +796,11 @@ def api_export_pdf():
 # ──────────────────────────────────────────────────────────────
 
 # 열 인덱스(0-based) → 내부 필드명 (헤더는 12행, 데이터는 13행~)
-_PERF_COL_MAP = {
+# ⚠️ 매달 새 시트가 추가될 때마다 컬럼 배치가 통째로 바뀔 수 있음(고정 스키마 아님).
+#    새 달 추가 시 scripts/check_perf_headers.py로 헤더를 먼저 확인한 뒤,
+#    아래 _PERF_COL_MAPS에 "시트명": {...} 형태로 그 달 전용 맵을 별도로 추가할 것.
+#    (지난달 맵을 덮어쓰지 말 것 — 과거 시트를 다시 봐야 할 때 깨짐)
+_PERF_COL_MAP_JUN = {
     # ── 식별
     1:  "tech_category",      # 미래기술 분류
     2:  "team",               # 팀
@@ -891,6 +895,22 @@ _PERF_COL_MAP = {
     97: "note",               # 비고
 }
 
+# 2026년 (7월 추정) 시트: 6월 집계(=_PERF_COL_MAP_JUN 기준) 대비 컬럼이 두 군데서 밀림
+# (scripts/check_perf_headers.py + 6월 집계 시트 직접 대조로 확인함):
+#   - 40번 컬럼 "앞"에 "7월 결산 기준 실적 집계 현황" 재무/원가율 2컬럼 신규 삽입 → 40번부터 +2
+#   - 41번 컬럼(당월 추정 대비 실적) "앞"에 "전월 대비 실적" 1컬럼 추가 삽입 → 41번부터 추가 +1 (누적 +3)
+# 새로 끼어든 3개 컬럼(40,41=7월 결산 재무/원가율, 43=전월 대비 실적)은 기존 필드와 대응이 없어 미매핑.
+_PERF_COL_MAP_JUL = {
+    (idx + 3 if idx >= 41 else idx + 2 if idx == 40 else idx): name
+    for idx, name in _PERF_COL_MAP_JUN.items()
+}
+
+# 시트명 → 그 시트 전용 컬럼맵. 새 달 추가 시 지난 달 항목은 그대로 두고 새 항목만 추가할 것.
+_PERF_COL_MAPS = {
+    "2026년 (6월 집계)": _PERF_COL_MAP_JUN,
+    "2026년 (7월 추정)": _PERF_COL_MAP_JUL,
+}
+
 
 def load_perf_excel():
     """_perf_cache_lock 보유 상태에서만 호출."""
@@ -901,7 +921,13 @@ def load_perf_excel():
         _perf_last_loaded = None
         return _perf_cached_df
 
-    col_indices = sorted(_PERF_COL_MAP.keys())
+    if PERF_SHEET not in _PERF_COL_MAPS:
+        raise ValueError(
+            f"PERF_SHEET='{PERF_SHEET}'에 대한 컬럼맵이 없습니다. "
+            f"scripts/check_perf_headers.py로 헤더를 확인하고 _PERF_COL_MAPS에 추가하세요."
+        )
+    col_map = _PERF_COL_MAPS[PERF_SHEET]
+    col_indices = sorted(col_map.keys())
     _perf_engine = "pyxlsb" if PERF_EXCEL_PATH.endswith(".xlsb") else "openpyxl"
     df = pd.read_excel(
         PERF_EXCEL_PATH,
@@ -911,7 +937,7 @@ def load_perf_excel():
         usecols=col_indices,
         engine=_perf_engine,
     )
-    df.columns = [_PERF_COL_MAP[i] for i in col_indices]
+    df.columns = [col_map[i] for i in col_indices]
 
     # 유효 행: project_code가 있고 category가 매출/원가, 사용여부=사용
     df = df[df["project_code"].notna()]
