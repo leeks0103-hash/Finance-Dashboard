@@ -66,19 +66,30 @@ COLUMNS = EXCEL_COLS
 
 _cached_df: pd.DataFrame = pd.DataFrame()
 _last_loaded = None
+_cached_mtime = None  # 파일 mtime — 바뀌면 자동 재로드
 _cache_lock = threading.Lock()  # C-1: 스레드 안전성
 _last_correction_count = 0
 
 _perf_cached_df: pd.DataFrame = pd.DataFrame()
 _perf_last_loaded = None
+_perf_cached_mtime = None
 _perf_cache_lock = threading.Lock()
 
 _kpi_cache_lock = threading.Lock()
+_kpi_cached_mtime = None
 
 
 def _empty_df() -> pd.DataFrame:
     """엑셀 파일 없거나 로드 실패 시 반환할 빈 DataFrame"""
     return pd.DataFrame(columns=COLUMNS)
+
+
+def _safe_mtime(path):
+    """파일 수정시각 조회 — 없으면 None. 캐시 자동 갱신 판단에 사용."""
+    try:
+        return os.path.getmtime(path)
+    except OSError:
+        return None
 
 
 def _is_valid_code(code: str) -> bool:
@@ -187,11 +198,12 @@ def _read_excel_via_com(path: str, sheet_name: str) -> "pd.DataFrame | None":
 
 def load_excel():
     """_cache_lock 을 보유한 상태에서만 호출할 것 (C-1)."""
-    global _cached_df, _last_loaded, _last_correction_count
+    global _cached_df, _last_loaded, _cached_mtime, _last_correction_count
     if not os.path.exists(EXCEL_PATH):
         logger.error("EXCEL_PATH 없음: %s", EXCEL_PATH)
         _cached_df = _empty_df()
         _last_loaded = None
+        _cached_mtime = None
         return _cached_df
 
     # AIP 암호화 파일 감지 (OLE2 시그니처) → win32com 으로 열기 시도
@@ -290,23 +302,28 @@ def load_excel():
 
     _cached_df = df
     _last_loaded = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    _cached_mtime = _safe_mtime(EXCEL_PATH)
     logger.info("엑셀 로드 완료: %d행", len(df))
     return df
 
 
 def get_df() -> pd.DataFrame:
-    """C-1: 이중 체크 잠금 패턴으로 스레드 안전하게 캐시 반환."""
-    global _cached_df, _last_loaded
-    if not _cached_df.empty:  # 빠른 경로 — 대부분의 요청은 여기서 반환
+    """C-1: 이중 체크 잠금 패턴으로 스레드 안전하게 캐시 반환.
+    파일 mtime이 바뀌면(=재추출 스크립트가 새로 씀) 자동으로 다시 읽는다."""
+    global _cached_df, _last_loaded, _cached_mtime
+    current_mtime = _safe_mtime(EXCEL_PATH)
+    if not _cached_df.empty and current_mtime == _cached_mtime:  # 빠른 경로
         return _cached_df
     with _cache_lock:
-        if _cached_df.empty:  # 잠금 후 재확인 (TOCTOU 방지)
+        current_mtime = _safe_mtime(EXCEL_PATH)  # 잠금 후 재확인 (TOCTOU 방지)
+        if _cached_df.empty or current_mtime != _cached_mtime:
             try:
                 load_excel()
             except Exception as e:
                 logger.error("load_excel() 실패, 빈 데이터 반환: %s", e)
                 _cached_df = _empty_df()
                 _last_loaded = None
+                _cached_mtime = current_mtime
         return _cached_df
 
 
@@ -914,11 +931,12 @@ _PERF_COL_MAPS = {
 
 def load_perf_excel():
     """_perf_cache_lock 보유 상태에서만 호출."""
-    global _perf_cached_df, _perf_last_loaded
+    global _perf_cached_df, _perf_last_loaded, _perf_cached_mtime
     if not os.path.exists(PERF_EXCEL_PATH):
         logger.warning("PERF_EXCEL_PATH 없음: %s", PERF_EXCEL_PATH)
         _perf_cached_df = pd.DataFrame()
         _perf_last_loaded = None
+        _perf_cached_mtime = None
         return _perf_cached_df
 
     if PERF_SHEET not in _PERF_COL_MAPS:
@@ -991,6 +1009,7 @@ def load_perf_excel():
     df["filename"] = os.path.basename(PERF_EXCEL_PATH)
     _perf_cached_df = df
     _perf_last_loaded = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    _perf_cached_mtime = _safe_mtime(PERF_EXCEL_PATH)
     logger.info("실적 엑셀 로드 완료: %d행 (매출 %d, 원가 %d)",
                 len(df),
                 int((df["category"] == "매출").sum()),
@@ -999,24 +1018,33 @@ def load_perf_excel():
 
 
 def get_perf_df() -> pd.DataFrame:
-    global _perf_cached_df
-    if not _perf_cached_df.empty:
+    """파일 mtime이 바뀌면 자동으로 다시 읽는다."""
+    global _perf_cached_df, _perf_cached_mtime
+    current_mtime = _safe_mtime(PERF_EXCEL_PATH)
+    if not _perf_cached_df.empty and current_mtime == _perf_cached_mtime:
         return _perf_cached_df
     with _perf_cache_lock:
-        if _perf_cached_df.empty:
+        current_mtime = _safe_mtime(PERF_EXCEL_PATH)
+        if _perf_cached_df.empty or current_mtime != _perf_cached_mtime:
             try:
                 load_perf_excel()
             except Exception as e:
                 logger.error("load_perf_excel() 실패: %s", e)
                 _perf_cached_df = pd.DataFrame()
+                _perf_cached_mtime = current_mtime
     return _perf_cached_df
+
+
+_PART_PREFIX_RE = re.compile(r"^[①-⑦]\s*")
 
 
 def apply_perf_filters(df: pd.DataFrame) -> pd.DataFrame:
     parts = request.args.getlist("part")
     team  = request.args.get("team", "")
     if parts:
-        df = df[df["part"].isin(parts)]
+        # 프론트는 "①~⑦" 접두어를 뗀 값을 보냄 — 원본 part 값도 같은 방식으로 벗겨서 비교
+        stripped_part = df["part"].astype(str).apply(lambda p: _PART_PREFIX_RE.sub("", p))
+        df = df[stripped_part.isin(parts)]
     if team:
         df = df[df["team"] == team]
     return df
@@ -1152,12 +1180,13 @@ def _safe_num(v) -> float:
 
 def load_kpi_excel():
     """_kpi_cache_lock 보유 상태에서만 호출."""
-    global _kpi_raw_df, _kpi_agg_df, _kpi_last_loaded
+    global _kpi_raw_df, _kpi_agg_df, _kpi_last_loaded, _kpi_cached_mtime
     if not os.path.exists(KPI_EXCEL_PATH):
         logger.warning("KPI_EXCEL_PATH 없음 — 추출 스크립트 실행 필요: %s", KPI_EXCEL_PATH)
         _kpi_raw_df  = pd.DataFrame()
         _kpi_agg_df  = pd.DataFrame()
         _kpi_last_loaded = None
+        _kpi_cached_mtime = None
         return
 
     with open(KPI_EXCEL_PATH, "rb") as _fh:
@@ -1206,18 +1235,23 @@ def load_kpi_excel():
         _kpi_agg_df = pd.DataFrame()
 
     _kpi_last_loaded = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    _kpi_cached_mtime = _safe_mtime(KPI_EXCEL_PATH)
 
 
 def get_kpi_df() -> pd.DataFrame:
-    global _kpi_raw_df
-    if not _kpi_raw_df.empty:
+    """파일 mtime이 바뀌면 자동으로 다시 읽는다."""
+    global _kpi_raw_df, _kpi_cached_mtime
+    current_mtime = _safe_mtime(KPI_EXCEL_PATH)
+    if not _kpi_raw_df.empty and current_mtime == _kpi_cached_mtime:
         return _kpi_raw_df
     with _kpi_cache_lock:
-        if _kpi_raw_df.empty:
+        current_mtime = _safe_mtime(KPI_EXCEL_PATH)
+        if _kpi_raw_df.empty or current_mtime != _kpi_cached_mtime:
             try:
                 load_kpi_excel()
             except Exception as e:
                 logger.error("load_kpi_excel() 실패: %s", e)
+                _kpi_cached_mtime = current_mtime
     return _kpi_raw_df
 
 
@@ -1363,11 +1397,39 @@ def _calc_kpi_prev_from_cache(kpi_items: list) -> list:
     return _aggregate_kpi_col(kpi_items, "PJ유사")
 
 
+def apply_kpi_filters(df: pd.DataFrame) -> pd.DataFrame:
+    years  = request.args.getlist("year")
+    parts  = request.args.getlist("part")
+    stages = request.args.getlist("stage")
+    if years:
+        df = df[df["수행연도"].isin(years)]
+    if parts:
+        df = df[df["파트명"].isin(parts)]
+    if stages:
+        df = df[df["보고단계"].isin(stages)]
+    return df
+
+
+@app.route("/api/kpi/options")
+def api_kpi_options():
+    """필터 옵션 반환."""
+    df = get_kpi_df()
+    if df.empty:
+        return jsonify({"years": [], "parts": [], "stages": []})
+    return jsonify({
+        "years":  sorted(df["수행연도"].dropna().unique().tolist()),
+        "parts":  sorted(df["파트명"].dropna().unique().tolist()),
+        "stages": sorted(df["보고단계"].dropna().unique().tolist()),
+    })
+
+
 @app.route("/api/kpi/data")
 def api_kpi_data():
     df = get_kpi_df()
     if df.empty:
         return jsonify({"data": [], "total": 0})
+
+    df = apply_kpi_filters(df)
 
     search = request.args.get("search", "").strip()
     if search:
@@ -1386,7 +1448,8 @@ def api_kpi_data():
         page, page_size = 1, 30
 
     start  = (page - 1) * page_size
-    paged  = df.iloc[start:start + page_size].replace({float("nan"): None})
+    paged  = df.iloc[start:start + page_size].copy().replace({float("nan"): None})
+    paged["_row_num"] = range(start, start + len(paged))
     return jsonify({"data": paged.to_dict(orient="records"), "total": total})
 
 
