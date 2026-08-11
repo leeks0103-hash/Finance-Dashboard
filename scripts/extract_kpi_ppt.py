@@ -394,14 +394,39 @@ def append_history(ws, file_meta: Dict[str, str], status: str, message: str):
     logger.info(f"처리 이력 기록: 상태={status}, 메시지={message}")
 
 
-def find_existing_data_row(ws, key1: str, key2: str, key4: str) -> Optional[int]:
-    """프로젝트코드 + 수행연도 + 보고단계 3중 키로 중복 판별 (착수/중간/완료 구분)."""
+# 프로젝트 코드가 이 값이면 "미배정" 상태로 간주 — 서로 다른 프로젝트가 같은 값을
+# 공유해도 충돌(덮어쓰기)하지 않도록 중복 판별 키에 파일명을 추가로 사용
+PLACEHOLDER_CODES = {"", "0", "생성예정", "미정", "tbd", "(생성 필요)", "선정 시 생성 예정"}
+_STAGE_SUFFIXES = ["사전검토", "착수", "중간", "완료", "제안"]
+FILENAME_COL = 45  # '취합' 시트 파일명 컬럼(1-based)
+
+
+def strip_stage_suffix(filename: str) -> str:
+    """파일명에서 착수/완료/제안 등 단계 표시를 제거 — 같은 프로젝트의 다른 단계 파일인지
+    비교하기 위한 휴리스틱 (완전한 판별은 아니고 충돌 경고용)."""
+    name = os.path.splitext(normalize_text(filename))[0]
+    for suf in _STAGE_SUFFIXES:
+        name = re.sub(rf"[_\[\(]?{re.escape(suf)}[\]\)]?(_수정|_최종)?$", "", name).strip()
+    return name
+
+
+def find_existing_data_row(ws, key1: str, key2: str, key4: str, filename: str = "") -> Optional[int]:
+    """프로젝트코드 + 수행연도 + 보고단계 3중 키로 중복 판별 (착수/중간/완료 구분).
+    코드가 미배정 플레이스홀더(생성예정 등)면 서로 다른 프로젝트가 같은 값을 공유해도
+    충돌하지 않도록 파일명(단계 제거 기준명)도 같이 비교한다."""
+    is_placeholder = key1 in PLACEHOLDER_CODES
+    file_base = strip_stage_suffix(filename) if is_placeholder else ""
     for row_idx in range(2, ws.max_row + 1):
         v1 = normalize_text(ws.cell(row=row_idx, column=1).value)
         v2 = normalize_text(ws.cell(row=row_idx, column=2).value)
         v4 = normalize_text(ws.cell(row=row_idx, column=4).value)
-        if v1 == key1 and v2 == key2 and v4 == key4:
-            return row_idx
+        if v1 != key1 or v2 != key2 or v4 != key4:
+            continue
+        if is_placeholder:
+            existing_filename = normalize_text(ws.cell(row=row_idx, column=FILENAME_COL).value)
+            if strip_stage_suffix(existing_filename) != file_base:
+                continue
+        return row_idx
     return None
 
 
@@ -419,9 +444,17 @@ def upsert_data_rows(ws, rows: List[List]) -> Tuple[int, int]:
         key1 = normalize_text(row_data[0])   # 프로젝트코드
         key2 = normalize_text(row_data[1])   # 수행연도
         key4 = normalize_text(row_data[3])   # 보고단계 (착수/중간/완료 구분)
-        existing_row = find_existing_data_row(ws, key1, key2, key4)
+        new_filename = normalize_text(row_data[44]) if len(row_data) > 44 else ""
+        existing_row = find_existing_data_row(ws, key1, key2, key4, new_filename)
 
         if existing_row is not None:
+            existing_filename = normalize_text(ws.cell(row=existing_row, column=FILENAME_COL).value)
+            if existing_filename and new_filename and \
+               strip_stage_suffix(existing_filename) != strip_stage_suffix(new_filename):
+                logger.warning(
+                    f"코드 충돌 의심 - 서로 다른 파일이 같은 (코드/연도/단계) 키를 공유함: "
+                    f"기존='{existing_filename}' 신규='{new_filename}' 코드={key1} 연도={key2} 단계={key4}"
+                )
             target_row = existing_row
             updated += 1
             logger.info(f"기존 데이터 덮어쓰기: 행={target_row}, 코드={key1}, 연도={key2}, 단계={key4}")
