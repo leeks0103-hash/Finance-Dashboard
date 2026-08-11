@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useKpiSummary, useKpiDataPaged } from '@/hooks/useKpiSummary';
 import { useDebouncedSearch } from '@/hooks/useDebouncedSearch';
+import { useKpiFilterStore } from '@/store/kpiFilter.store';
 import type { KpiRawRow } from '@/types/kpi.types';
 import type { ServerPagination, ServerSearch } from '@/components/ui/DataTable';
 
@@ -48,13 +49,19 @@ export const useKpiPageViewModel = (): KpiPageViewModel => {
   const [page,     setPage]     = useState(1);
   const [pageSize, setPageSize] = useState(30);
   const search = useDebouncedSearch(350);
+  const years  = useKpiFilterStore(s => s.years);
+  const parts  = useKpiFilterStore(s => s.parts);
+  const stages = useKpiFilterStore(s => s.stages);
 
   const { data: summary, isLoading: sumLoading } = useKpiSummary();
   const {
     data,
     isLoading: dataLoading,
     isFetching,
-  } = useKpiDataPaged({ page, pageSize, search: search.debouncedValue });
+  } = useKpiDataPaged(
+    { page, pageSize, search: search.debouncedValue },
+    { years, parts, stages },
+  );
 
   const isLoading = sumLoading || dataLoading;
   const items     = summary?.items ?? [];
@@ -102,7 +109,7 @@ export const useKpiPageViewModel = (): KpiPageViewModel => {
     const TAIL    = ['파일명', '처리일시', '최종수정일시'];
     const METRICS = ['NPS', '전략기술과정_건수', '전략기술과정_적절성', '특화교육체계_건수',
                      'AI교육_고객사건수', 'AI교육_적절성', '신사업_매출억', '신사업_신규기존건수'];
-    const all   = Object.keys(rawRows[0]).filter(c => !/비고/.test(c));
+    const all   = Object.keys(rawRows[0]).filter(c => !/비고/.test(c) && c !== '_row_num');
     const front = FRONT.filter(c => all.includes(c));
     const tail  = TAIL.filter(c => all.includes(c));
     const rest  = all.filter(c => !FRONT.includes(c) && !TAIL.includes(c));

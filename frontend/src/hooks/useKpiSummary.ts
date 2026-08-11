@@ -1,6 +1,8 @@
 import { useQuery, useInfiniteQuery, keepPreviousData } from '@tanstack/react-query';
 import { getKpiSummary, getKpiData } from '@/api/kpi.api';
-import type { PageParams } from '@/types/finance.types';
+import type { PageParams, Filters } from '@/types/finance.types';
+
+const EMPTY_FILTERS: Filters = { years: [], parts: [], stages: [] };
 
 const STALE_5MIN = 5 * 60_000;
 const GC_10MIN   = 10 * 60_000;
@@ -22,11 +24,11 @@ export const useKpiSummary = () =>
  * - select: 모든 페이지를 단일 rows 배열로 평탄화
  * - 기존 useKpiData(PageParams) 대신 사용
  */
-export const useKpiData = (search = '', pageSize = 30) =>
+export const useKpiData = (search = '', pageSize = 30, filters: Filters = EMPTY_FILTERS) =>
   useInfiniteQuery({
-    queryKey:   ['kpi-data', { search, pageSize }],
+    queryKey:   ['kpi-data', { search, pageSize }, filters],
     queryFn:    ({ pageParam }) =>
-      getKpiData({ page: pageParam as number, pageSize, search }),
+      getKpiData(filters, { page: pageParam as number, pageSize, search }),
     initialPageParam: 1,
     getNextPageParam: (lastPage, allPages) => {
       const fetched = allPages.reduce((sum, p) => sum + p.data.length, 0);
@@ -45,10 +47,10 @@ export const useKpiData = (search = '', pageSize = 30) =>
   });
 
 /** 기존 페이지 방식 유지 (하위 호환) */
-export const useKpiDataPaged = (page: PageParams) =>
+export const useKpiDataPaged = (page: PageParams, filters: Filters = EMPTY_FILTERS) =>
   useQuery({
-    queryKey:          ['kpi-data-paged', page],
-    queryFn:           () => getKpiData(page),
+    queryKey:          ['kpi-data-paged', page, filters],
+    queryFn:           () => getKpiData(filters, page),
     select:            (raw) => ({ rows: raw.data, total: raw.total }),
     placeholderData:   keepPreviousData,
     structuralSharing: true,
