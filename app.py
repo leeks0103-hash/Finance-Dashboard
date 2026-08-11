@@ -44,7 +44,7 @@ EXCEL_PATH = os.environ.get(
 
 PERF_EXCEL_PATH = os.environ.get(
     "PERF_EXCEL_PATH",
-    os.path.join(_DATA_DIR, "26년 사업계획 통합관리 파일_ver7.11_260805_실적 추정 요청_종합1.xlsx"),
+    os.path.join(_DATA_DIR, "26년 사업계획 통합관리 파일_ver7.11_260805_실적 추정 요청_종합1_피드백_20260811.xlsx"),
 )
 PERF_SHEET = "2026년 (7월 추정)"
 
