@@ -37,6 +37,5 @@ export const columns = [
   }),
   h.accessor('filename', {
     header: '원본파일명',
-    cell: i => <CopyText text={i.getValue() ?? ''} />,
   }),
 ];

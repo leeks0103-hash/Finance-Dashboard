@@ -380,6 +380,24 @@
   word-break: break-all;
 }
 
+.popupBodyCopyable {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  transition: background 0.14s ease;
+}
+.popupBodyCopyable:hover { background: var(--brand-bg); }
+.popupBodyCopied { background: var(--profit-bg) !important; }
+
+.popupCopyHint {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
 /* 컴팩트 모드 — 고정 행 수 테이블 (파트별 실적 등), height auto + 모서리 제거 */
 .compact {
   height: auto;

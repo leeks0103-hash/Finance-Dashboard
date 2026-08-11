@@ -5,6 +5,7 @@ import type { PerfPartRow } from '@/hooks/viewmodels/usePerformanceViewModel';
 import { ChartCard, BarChart, DataTable, KpiCard } from '@/components/ui';
 import { perfColumns, PERF_HIDEABLE_COLS } from '@/components/features/PerformanceTable/columns';
 import type { PerfProject } from '@/types/performance.types';
+import { PERF_YEAR, PERF_MONTH } from '@/utils';
 import styles from './PerformancePage.module.css';
 
 // 파트별 실적 컬럼 — 모듈 스코프에서 한 번만 생성 (stable reference)
@@ -15,10 +16,10 @@ const byPartColumns = [
     cell: i => i.getValue().replace(/^[①-⑦]\s*/, ''),
   }),
   hp.accessor('planInitial',   { header: '매출 계획',    enableSorting: true }),
-  hp.accessor('junActual',     { header: '6월 실적',     enableSorting: true }),
-  hp.accessor('junCost',       { header: '6월 원가' }),
+  hp.accessor('junActual',     { header: `${PERF_MONTH} 실적`,     enableSorting: true }),
+  hp.accessor('junCost',       { header: `${PERF_MONTH} 원가` }),
   hp.accessor('costRateStr',   { header: '원가율' }),
-  hp.accessor('junCheckTotal', { header: '6월 점검 연간' }),
+  hp.accessor('junCheckTotal', { header: `${PERF_MONTH} 점검 연간` }),
   hp.accessor('operatingProfit', {
     header: '경상손익',
     cell: i => {
@@ -72,7 +73,7 @@ const PerformancePage = () => {
 
       {/* 월별 실적 차트 */}
       <ChartCard>
-        <ChartCard.Title>월별 실적 현황 (6월 점검 기준, 억원)</ChartCard.Title>
+        <ChartCard.Title>월별 실적 현황 ({PERF_MONTH} 점검 기준, 억원)</ChartCard.Title>
         <ChartCard.Body>
           <div className={styles.chartWrap}>
             <BarChart
@@ -89,7 +90,7 @@ const PerformancePage = () => {
 
       {/* 파트별 실적 — PerfPartRow 타입으로 DataTable<PerfPartRow> */}
       <div className={styles.section}>
-        <h3 className={styles.sectionTitle}>파트별 실적 (2026년 6월 기준, 억원)</h3>
+        <h3 className={styles.sectionTitle}>파트별 실적 ({PERF_YEAR} {PERF_MONTH} 기준, 억원)</h3>
         <DataTable<PerfPartRow>
           data={vm.byPart}
           columns={byPartColumns as never}
@@ -123,6 +124,7 @@ const PerformancePage = () => {
         emptyTitle="검색 결과 없음"
         emptyDescription="다른 검색어나 필터 조건을 시도해보세요."
         storageKey="performance-project"
+        copyableColumns={['filename']}
       />
 
     </main>

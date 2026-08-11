@@ -138,7 +138,7 @@ const KpiPage = () => {
           <DataTable<KpiRawRow>
             data={vm.rawRows}
             columns={rawColumns as never}
-            getRowId={row => String(row['프로젝트코드'] ?? Math.random())}
+            getRowId={row => String(row['_row_num'])}
             title="KPI 취합"
             isLoading={vm.isLoading}
             isFetching={vm.isFetching}
@@ -152,6 +152,7 @@ const KpiPage = () => {
             emptyDescription="다른 검색어나 필터 조건을 시도해보세요."
             storageKey="kpi-raw-flat"
             toolbarExtra={viewToggle}
+            copyableColumns={['파일명']}
           />
         ) : (
           <KpiRawTable

@@ -2,7 +2,7 @@ import { createColumnHelper } from '@tanstack/react-table';
 import { CopyText } from '@/components/ui';
 import type { HideableColumn } from '@/components/ui/DataTable';
 import type { PerfProject } from '@/types/performance.types';
-import { formatEok, formatPctRaw, formatNum } from '@/utils';
+import { formatEok, formatPctRaw, formatNum, PERF_MONTH } from '@/utils';
 
 const h = createColumnHelper<PerfProject>();
 
@@ -37,11 +37,11 @@ export const perfColumns = [
   h.accessor('course_count',      { header: '과정',         cell: i => num(i.getValue()) }),
   h.accessor('session_count',     { header: '차수',         cell: i => num(i.getValue()) }),
   h.accessor('participant_count', { header: '인원',         cell: i => num(i.getValue()) }),
-  // 6월 집계
-  h.accessor('jun_est',        { header: '6월 추정',    cell: i => eok(i.getValue()) }),
-  h.accessor('jun_est_rate',   { header: '6월 추정율',  cell: i => pct(i.getValue()) }),
-  h.accessor('jun_actual',     { header: '6월 실적',    enableSorting: true, cell: i => eok(i.getValue()) }),
-  h.accessor('jun_cost_rate',  { header: '6월 원가율',  cell: i => pct(i.getValue()) }),
+  // N월 집계 (PERF_MONTH — 매달 utils/perfPeriod.ts 갱신)
+  h.accessor('jun_est',        { header: `${PERF_MONTH} 추정`,    cell: i => eok(i.getValue()) }),
+  h.accessor('jun_est_rate',   { header: `${PERF_MONTH} 추정율`,  cell: i => pct(i.getValue()) }),
+  h.accessor('jun_actual',     { header: `${PERF_MONTH} 실적`,    enableSorting: true, cell: i => eok(i.getValue()) }),
+  h.accessor('jun_cost_rate',  { header: `${PERF_MONTH} 원가율`,  cell: i => pct(i.getValue()) }),
   h.accessor('cost_rate_diff', { header: '원가율 차이', cell: i => i.getValue() ? `${((i.getValue() as number) * 100).toFixed(1)}%p` : '-' }),
   h.accessor('est_vs_actual',  { header: '추정 대비',   cell: i => eok(i.getValue()) }),
   h.accessor('cost_rate_reason',{ header: '원가율 사유' }),
@@ -57,8 +57,8 @@ export const perfColumns = [
   h.accessor('cost_mgmt',         { header: '관리비',    cell: i => eok(i.getValue()) }),
   h.accessor('operating_profit',  { header: '경상손익',  enableSorting: true, cell: i => eok(i.getValue()) }),
   h.accessor('profit_rate',       { header: '손익률',    enableSorting: true, cell: i => i.getValue() ? `${(Math.round((i.getValue() as number) * 100) / 100).toFixed(2)}%` : '-' }),
-  // 6월 점검 — 월별 상세는 차트에서 표시하므로 연간합계만
-  h.accessor('jun_check_total', { header: '6월 점검 연간', cell: i => eok(i.getValue()) }),
+  // N월 점검 — 월별 상세는 차트에서 표시하므로 연간합계만
+  h.accessor('jun_check_total', { header: `${PERF_MONTH} 점검 연간`, cell: i => eok(i.getValue()) }),
   h.accessor('chk_cost_rate',   { header: '점검원가율', cell: i => pct(i.getValue()) }),
   h.accessor('chk_course',      { header: '점검과정',   cell: i => num(i.getValue()) }),
   h.accessor('chk_session',     { header: '점검차수',   cell: i => num(i.getValue()) }),
@@ -90,7 +90,7 @@ export const perfColumns = [
   // 기타
   h.accessor('change_note', { header: '변동 검토의견' }),
   h.accessor('note',        { header: '비고' }),
-  h.accessor('filename',    { header: '원본파일명', cell: i => <CopyText text={i.getValue() ?? ''} /> }),
+  h.accessor('filename',    { header: '원본파일명' }),
 ];
 
 /**
@@ -106,8 +106,8 @@ export const PERF_HIDEABLE_COLS: HideableColumn[] = [
   { id: 'biz_type2',        label: '사업유형' },
   { id: 'budget_code',      label: '예산코드' },
   // 추정·차이분석
-  { id: 'jun_est',          label: '6월 추정' },
-  { id: 'jun_est_rate',     label: '6월 추정율' },
+  { id: 'jun_est',          label: `${PERF_MONTH} 추정` },
+  { id: 'jun_est_rate',     label: `${PERF_MONTH} 추정율` },
   { id: 'cost_rate_diff',   label: '원가율 차이' },
   { id: 'est_vs_actual',    label: '추정 대비' },
   { id: 'cost_rate_reason', label: '원가율 사유' },

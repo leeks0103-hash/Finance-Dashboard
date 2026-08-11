@@ -134,6 +134,8 @@ interface Props<T> {
   storageKey?: string;
   /** 툴바 우측에 추가 렌더링할 요소 (뷰 전환 토글 등) */
   toolbarExtra?: ReactNode;
+  /** 셀 내용 팝업에서 클릭 시 복사 가능하게 할 컬럼 id 목록 (예: 원본파일명) */
+  copyableColumns?: string[];
 }
 
 const DEFAULT_PAGE_SIZES = [10, 20, 30, 50, 100];
@@ -165,6 +167,7 @@ const DataTable = <T extends object>({
   initialColumnVisibility = {},
   storageKey,
   toolbarExtra,
+  copyableColumns,
 }: Props<T>) => {
   const isServerMode   = !!serverPagination;
   const isInfiniteMode = !!infiniteLoadMore;
@@ -232,11 +235,31 @@ const DataTable = <T extends object>({
   const [globalFilter,     setGlobalFilter]     = useState('');
   const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(initialColumnVisibility);
   const [showColMenu,      setShowColMenu]      = useState(false);
-  const [popupText,        setPopupText]        = useState<string | null>(null);
+  const [popup,            setPopup]            = useState<{ text: string; copyable: boolean } | null>(null);
+  const [popupCopied,      setPopupCopied]      = useState(false);
   const colMenuRef = useRef<HTMLDivElement>(null);
 
-  const openPopup  = useCallback((text: string) => setPopupText(text), []);
-  const closePopup = useCallback(() => setPopupText(null), []);
+  const openPopup  = useCallback((text: string, columnId?: string) => {
+    setPopup({ text, copyable: !!columnId && !!copyableColumns?.includes(columnId) });
+    setPopupCopied(false);
+  }, [copyableColumns]);
+  const closePopup = useCallback(() => setPopup(null), []);
+
+  const copyPopupText = useCallback(async () => {
+    if (!popup) return;
+    try {
+      await navigator.clipboard.writeText(popup.text);
+    } catch {
+      const el = document.createElement('textarea');
+      el.value = popup.text;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+    }
+    setPopupCopied(true);
+    setTimeout(() => setPopupCopied(false), 1500);
+  }, [popup]);
 
   useEffect(() => {
     if (isServerMode) return;
@@ -311,7 +334,7 @@ const DataTable = <T extends object>({
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (popupText) { closePopup(); return; }
+        if (popup) { closePopup(); return; }
         if (isServerMode) {
           serverSearch?.onChange('');
         } else {
@@ -321,7 +344,7 @@ const DataTable = <T extends object>({
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [searchInput, popupText, closePopup, isServerMode, serverSearch]);
+  }, [searchInput, popup, closePopup, isServerMode, serverSearch]);
 
   const rows     = table.getRowModel().rows;
   const filtered = isServerMode ? null : table.getFilteredRowModel().rows;
@@ -482,7 +505,7 @@ const DataTable = <T extends object>({
                         <td
                           key={cell.id}
                           title={text || undefined}
-                          onClick={isLong ? () => openPopup(text) : undefined}
+                          onClick={isLong ? () => openPopup(text, cell.column.id) : undefined}
                           className={[
                             isLong ? styles.clickable : '',
                             cell.column.id === '__index' ? styles.indexCell : '',
@@ -535,14 +558,27 @@ const DataTable = <T extends object>({
         />
       )}
 
-      {popupText && createPortal(
+      {popup && createPortal(
         <div className={styles.popupOverlay} onClick={closePopup}>
           <div className={styles.popupBox} onClick={e => e.stopPropagation()}>
             <div className={styles.popupHeader}>
               <span>셀 내용</span>
               <button className={styles.popupClose} onClick={closePopup} aria-label="닫기">✕</button>
             </div>
-            <div className={styles.popupBody}>{popupText}</div>
+            {popup.copyable ? (
+              <div
+                className={`${styles.popupBody} ${styles.popupBodyCopyable} ${popupCopied ? styles.popupBodyCopied : ''}`}
+                onClick={copyPopupText}
+                role="button"
+                tabIndex={0}
+                onKeyDown={e => e.key === 'Enter' && copyPopupText()}
+              >
+                <span>{popup.text}</span>
+                <span className={styles.popupCopyHint}>{popupCopied ? '✓ 복사됨' : '클릭해서 복사'}</span>
+              </div>
+            ) : (
+              <div className={styles.popupBody}>{popup.text}</div>
+            )}
           </div>
         </div>,
         document.body,
