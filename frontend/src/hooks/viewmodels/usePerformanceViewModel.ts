@@ -4,7 +4,7 @@ import { usePerformanceData, usePerformanceOptions } from '@/hooks/usePerformanc
 import { useDebouncedSearch } from '@/hooks/useDebouncedSearch';
 import { useCountUp } from '@/hooks/useCountUp';
 import { usePerfStore } from '@/store/perf.store';
-import { formatEok } from '@/utils';
+import { formatEok, PERF_MONTH } from '@/utils';
 import type { PerfProject } from '@/types/performance.types';
 import type { ServerPagination, ServerSearch } from '@/components/ui/DataTable';
 
@@ -95,8 +95,8 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
     const achieveRate = planRaw > 0 ? ((junActualRaw / planRaw) * 100).toFixed(1) : '-';
     return [
       { label: '매출 계획 (최초)', value: `${animPlan.toFixed(1)}억원`, sub: `${total.count}개 프로젝트`, accent: 'brand', trendUp: true },
-      { label: '6월 실적 집계',   value: `${animJun.toFixed(1)}억원`,  sub: `달성률 ${achieveRate}%`, accent: junActualRaw >= planRaw ? 'profit' : 'warn', trendUp: junActualRaw >= planRaw },
-      { label: '6월 점검 연간합계', value: `${animCheck.toFixed(1)}억원`, sub: `원가 ${formatEok(total.jun_cost)}`, accent: 'purple', trendUp: true },
+      { label: `${PERF_MONTH} 실적 집계`,   value: `${animJun.toFixed(1)}억원`,  sub: `달성률 ${achieveRate}%`, accent: junActualRaw >= planRaw ? 'profit' : 'warn', trendUp: junActualRaw >= planRaw },
+      { label: `${PERF_MONTH} 점검 연간합계`, value: `${animCheck.toFixed(1)}억원`, sub: `원가 ${formatEok(total.jun_cost)}`, accent: 'purple', trendUp: true },
       { label: '경상손익', value: `${animProfit.toFixed(1)}억원`, sub: `손익률 ${animRate.toFixed(1)}%`, accent: profitRaw >= 0 ? 'profit' : 'loss', trendUp: profitRaw >= 0 },
     ];
   }, [total, animPlan, animJun, animCheck, animProfit, animRate, planRaw, junActualRaw, junCheckRaw, profitRaw]);

@@ -2,20 +2,22 @@ import client from './client';
 import type { PerfSummary, PerfProject, PerfOptions } from '@/types/performance.types';
 import type { PagedResponse, PageParams } from '@/types/finance.types';
 
-const toParams = (parts: string[]): URLSearchParams => {
+const toParams = (parts: string[], team = ''): URLSearchParams => {
   const p = new URLSearchParams();
   parts.forEach(v => p.append('part', v));
+  if (team) p.set('team', team);
   return p;
 };
 
-export const getPerfSummary = (parts: string[]): Promise<PerfSummary> =>
-  client.get<PerfSummary>('/performance/summary', { params: toParams(parts) }).then(r => r.data);
+export const getPerfSummary = (parts: string[], team = ''): Promise<PerfSummary> =>
+  client.get<PerfSummary>('/performance/summary', { params: toParams(parts, team) }).then(r => r.data);
 
 export const getPerfData = (
   parts: string[],
   page: PageParams,
+  team = '',
 ): Promise<PagedResponse<PerfProject>> => {
-  const params = toParams(parts);
+  const params = toParams(parts, team);
   params.set('page',      String(page.page));
   params.set('page_size', String(page.pageSize));
   if (page.search) params.set('search', page.search);
