@@ -100,7 +100,7 @@ const KpiPage = () => {
               datasets={vm.chart.datasets}
               options={{
                 indexAxis: 'y',
-                plugins: { datalabels: { display: false } },
+                ...vm.chart.options,
                 scales: { x: { ticks: { callback: v => Number(v).toLocaleString() } } },
               }}
             />
@@ -114,6 +114,7 @@ const KpiPage = () => {
         columns={summaryColumns as never}
         getRowId={row => row.name}
         title="KPI 집계"
+        hideCount
         compact
         defaultPageSize={10}
         pageSizeOptions={[10]}

@@ -127,6 +127,8 @@ interface Props<T> {
   stickyFirstCol?:    boolean;
   compact?:           boolean;
   hideToolbar?:       boolean;
+  /** 건수 배지 숨김 — 고정 행 수 등 "건수"가 의미 없는 테이블용 */
+  hideCount?:         boolean;
   emptyIcon?:         string;
   emptyTitle?:        string;
   emptyDescription?:  string;
@@ -166,6 +168,7 @@ const DataTable = <T extends object>({
   stickyFirstCol    = false,
   compact           = false,
   hideToolbar       = false,
+  hideCount         = false,
   emptyIcon         = '🔍',
   emptyTitle        = '데이터가 없습니다.',
   emptyDescription  = '다른 검색어나 필터 조건을 시도해보세요.',
@@ -389,7 +392,7 @@ const DataTable = <T extends object>({
       {!hideToolbar && (
         <div className={styles.toolbar}>
           {title && <span className={styles.title}>{title}</span>}
-          <span className={styles.count}>{countLabel}</span>
+          {!hideCount && <span className={styles.count}>{countLabel}</span>}
 
           {pageSizeOptions.length > 1 && (
             <select
