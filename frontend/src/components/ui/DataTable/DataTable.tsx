@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useCallback, type ReactNode } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback, type ReactNode, type MouseEvent as ReactMouseEvent } from 'react';
 import { createPortal } from 'react-dom';
 import {
   useReactTable,
@@ -25,24 +25,33 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { Button } from '@/components/ui/Button';
 import { Pagination } from '@/components/ui/Pagination';
+import { useColumnHighlight } from '@/hooks/useColumnHighlight';
+import { useClipboardPopup } from '@/hooks/useClipboardPopup';
 import styles from './DataTable.module.css';
 
 // ── 드래그 가능 th — 모듈 스코프에서 정의해야 React가 컴포넌트 정체성 유지 ──
 interface DraggableThProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  header:      Header<any, unknown>;
-  isDraggable: boolean;
+  header:        Header<any, unknown>;
+  isDraggable:   boolean;
+  isHighlighted: boolean;
+  onHeaderClick: (columnId: string) => void;
 }
-const DraggableTh = ({ header, isDraggable }: DraggableThProps) => {
+const DraggableTh = ({ header, isDraggable, isHighlighted, onHeaderClick }: DraggableThProps) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: header.id });
+  const toggleSort = header.column.getToggleSortingHandler();
   return (
     <th
       ref={setNodeRef}
-      onClick={!isDragging ? header.column.getToggleSortingHandler() : undefined}
+      onClick={!isDragging ? (e: ReactMouseEvent<HTMLTableCellElement>) => {
+        toggleSort?.(e);
+        onHeaderClick(header.column.id);
+      } : undefined}
       className={[
         header.column.getCanSort() ? styles.sortable : '',
         header.column.id === '__index' ? styles.indexCell : '',
+        isHighlighted ? styles.thHighlighted : '',
       ].join(' ')}
       style={{
         transform: CSS.Transform.toString(transform),
@@ -235,31 +244,14 @@ const DataTable = <T extends object>({
   const [globalFilter,     setGlobalFilter]     = useState('');
   const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(initialColumnVisibility);
   const [showColMenu,      setShowColMenu]      = useState(false);
-  const [popup,            setPopup]            = useState<{ text: string; copyable: boolean } | null>(null);
-  const [popupCopied,      setPopupCopied]      = useState(false);
   const colMenuRef = useRef<HTMLDivElement>(null);
 
-  const openPopup  = useCallback((text: string, columnId?: string) => {
-    setPopup({ text, copyable: !!columnId && !!copyableColumns?.includes(columnId) });
-    setPopupCopied(false);
-  }, [copyableColumns]);
-  const closePopup = useCallback(() => setPopup(null), []);
+  const { highlightedCol, toggleHighlight, clearHighlight } = useColumnHighlight();
+  const { popup, copied: popupCopied, openPopup: openPopupRaw, closePopup, copyPopupText } = useClipboardPopup();
 
-  const copyPopupText = useCallback(async () => {
-    if (!popup) return;
-    try {
-      await navigator.clipboard.writeText(popup.text);
-    } catch {
-      const el = document.createElement('textarea');
-      el.value = popup.text;
-      document.body.appendChild(el);
-      el.select();
-      document.execCommand('copy');
-      document.body.removeChild(el);
-    }
-    setPopupCopied(true);
-    setTimeout(() => setPopupCopied(false), 1500);
-  }, [popup]);
+  const openPopup = useCallback((text: string, columnId?: string) => {
+    openPopupRaw(text, !!columnId && !!copyableColumns?.includes(columnId));
+  }, [copyableColumns, openPopupRaw]);
 
   useEffect(() => {
     if (isServerMode) return;
@@ -335,6 +327,7 @@ const DataTable = <T extends object>({
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (popup) { closePopup(); return; }
+        if (highlightedCol) { clearHighlight(); return; }
         if (isServerMode) {
           serverSearch?.onChange('');
         } else {
@@ -344,7 +337,7 @@ const DataTable = <T extends object>({
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [searchInput, popup, closePopup, isServerMode, serverSearch]);
+  }, [searchInput, popup, closePopup, isServerMode, serverSearch, highlightedCol, clearHighlight]);
 
   const rows     = table.getRowModel().rows;
   const filtered = isServerMode ? null : table.getFilteredRowModel().rows;
@@ -475,7 +468,13 @@ const DataTable = <T extends object>({
                   >
                     <tr>
                       {hg.headers.map(h => (
-                        <DraggableTh key={h.id} header={h} isDraggable={!!storageKey && h.id !== '__index'} />
+                        <DraggableTh
+                          key={h.id}
+                          header={h}
+                          isDraggable={!!storageKey && h.id !== '__index'}
+                          isHighlighted={highlightedCol === h.column.id}
+                          onHeaderClick={toggleHighlight}
+                        />
                       ))}
                     </tr>
                   </SortableContext>
@@ -509,6 +508,7 @@ const DataTable = <T extends object>({
                           className={[
                             isLong ? styles.clickable : '',
                             cell.column.id === '__index' ? styles.indexCell : '',
+                            highlightedCol === cell.column.id ? styles.tdHighlighted : '',
                           ].join(' ') || undefined}
                         >
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -563,7 +563,7 @@ const DataTable = <T extends object>({
           <div className={styles.popupBox} onClick={e => e.stopPropagation()}>
             <div className={styles.popupHeader}>
               <span>셀 내용</span>
-              <button className={styles.popupClose} onClick={closePopup} aria-label="닫기">✕</button>
+              <Button variant="ghost" size="sm" className={styles.popupClose} onClick={closePopup} aria-label="닫기">✕</Button>
             </div>
             {popup.copyable ? (
               <div

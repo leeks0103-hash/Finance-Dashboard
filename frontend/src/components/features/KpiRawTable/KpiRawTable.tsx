@@ -1,4 +1,5 @@
-import { useState, useMemo, useCallback, useRef, type ReactNode } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
   type DragEndEvent,
@@ -8,6 +9,8 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { CopyText, Button, Pagination } from '@/components/ui';
+import { useColumnHighlight } from '@/hooks/useColumnHighlight';
+import { useClipboardPopup } from '@/hooks/useClipboardPopup';
 import styles from './KpiRawTable.module.css';
 
 export const KPI_METRICS = [
@@ -70,14 +73,18 @@ interface DraggableThProps {
   col:    ColDef;
   width:  number;
   onResizeStart: (colId: string, startX: number, startW: number) => void;
+  isHighlighted: boolean;
+  onHeaderClick: (colId: string) => void;
 }
-function DraggableTh({ col, width, onResizeStart }: DraggableThProps) {
+function DraggableTh({ col, width, onResizeStart, isHighlighted, onHeaderClick }: DraggableThProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: col.id });
 
   return (
     <th
       ref={setNodeRef}
+      onClick={isDragging ? undefined : () => onHeaderClick(col.id)}
+      className={isHighlighted ? styles.thHighlighted : ''}
       style={{
         width,
         minWidth: width,
@@ -137,6 +144,24 @@ const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, serverP
   const [colSizes, setColSizes] = useState<Record<string, number>>(() =>
     loadFromLS(LS_SIZES, defaultSizes)
   );
+
+  // ── 컬럼 하이라이트 ───────────────────────────────────────
+  const { highlightedCol, toggleHighlight, clearHighlight } = useColumnHighlight();
+
+  // ── 파일명 복사 팝업 ──────────────────────────────────────
+  const { popup, copied: popupCopied, openPopup, closePopup, copyPopupText } = useClipboardPopup();
+
+  // Esc — 팝업 닫기 > 하이라이트 해제 > 검색 초기화 (DataTable과 동일한 우선순위)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (popup) { closePopup(); return; }
+      if (highlightedCol) { clearHighlight(); return; }
+      if (serverSearch?.value) serverSearch.onChange('');
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [popup, closePopup, highlightedCol, clearHighlight, serverSearch]);
 
   // ── 리사이즈 ──────────────────────────────────────────────
   const resizeRef = useRef<{ id: string; startX: number; startW: number } | null>(null);
@@ -226,6 +251,8 @@ const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, serverP
                         col={c}
                         width={colSizes[c.id] ?? c.defaultWidth}
                         onResizeStart={handleResizeStart}
+                        isHighlighted={highlightedCol === c.id}
+                        onHeaderClick={toggleHighlight}
                       />
                     ))}
                   </tr>
@@ -247,8 +274,14 @@ const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, serverP
                         <td
                           key={col.id}
                           rowSpan={col.rowspan ? KPI_METRICS.length : 1}
-                          className={`${col.rowspan ? styles.spanCell : ''} ${col.id === 'label' ? styles.labelCell : col.rowspan ? styles.metaCell : styles.numCell}`}
+                          className={[
+                            col.rowspan ? styles.spanCell : '',
+                            col.id === 'label' ? styles.labelCell : col.rowspan ? styles.metaCell : styles.numCell,
+                            col.id === 'filename' && val ? styles.clickable : '',
+                            highlightedCol === col.id ? styles.tdHighlighted : '',
+                          ].join(' ')}
                           title={val}
+                          onClick={col.id === 'filename' && val ? () => openPopup(val, true) : undefined}
                         >
                           {col.id === 'code' ? <CopyText text={val} /> : val || 'N'}
                         </td>
@@ -270,6 +303,28 @@ const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, serverP
           pageCount={pageCount}
           onPageChange={serverPagination.onPageChange}
         />
+      )}
+
+      {popup && createPortal(
+        <div className={styles.popupOverlay} onClick={closePopup}>
+          <div className={styles.popupBox} onClick={e => e.stopPropagation()}>
+            <div className={styles.popupHeader}>
+              <span>파일명</span>
+              <Button variant="ghost" size="sm" className={styles.popupClose} onClick={closePopup} aria-label="닫기">✕</Button>
+            </div>
+            <div
+              className={`${styles.popupBody} ${popupCopied ? styles.popupBodyCopied : ''}`}
+              onClick={copyPopupText}
+              role="button"
+              tabIndex={0}
+              onKeyDown={e => e.key === 'Enter' && copyPopupText()}
+            >
+              <span>{popup.text}</span>
+              <span className={styles.popupCopyHint}>{popupCopied ? '✓ 복사됨' : '클릭해서 복사'}</span>
+            </div>
+          </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
