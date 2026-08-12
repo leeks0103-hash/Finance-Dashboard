@@ -16,7 +16,7 @@ from openpyxl import Workbook, load_workbook
 # CLI 인수로도 덮어쓰기 가능: python extract_financial_ppt.py "C:\새폴더경로"
 BASE_DIR = os.environ.get(
     "EXTRACT_BASE_DIR",
-    r"C:\Users\aaa\Desktop\기술교육실_프로젝트 보고서 수집",
+    r"D:\24.기술교육사업기획팀\23. 표준 템플릿 데이터 추출 프로젝트\(기술교육실)프로젝트 보고서 수집",
 )
 # --retry 플래그: AIP 실패 목록만 재처리
 RETRY_MODE = "--retry" in sys.argv

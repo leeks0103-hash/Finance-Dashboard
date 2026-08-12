@@ -28,7 +28,7 @@ import sys as _sys
 RETRY_MODE = "--retry" in _sys.argv
 ROOT_DIR = Path(os.environ.get(
     "EXTRACT_KPI_ROOT_DIR",
-    r"C:\Users\aaa\Desktop\기술교육실_프로젝트 보고서 수집",
+    r"D:\24.기술교육사업기획팀\23. 표준 템플릿 데이터 추출 프로젝트\(기술교육실)프로젝트 보고서 수집",
 ))
 if not RETRY_MODE and len(_sys.argv) > 1 and Path(_sys.argv[1]).is_dir():
     ROOT_DIR = Path(_sys.argv[1])
