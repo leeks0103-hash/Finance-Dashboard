@@ -2,9 +2,11 @@ import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { getPerfSummary, getPerfData } from '@/api/performance.api';
 import { getKpiSummary, getKpiData } from '@/api/kpi.api';
+import type { Filters } from '@/types/finance.types';
 
 const STALE_5MIN  = 5 * 60_000;
 const DEFAULT_PAGE = { page: 1, pageSize: 30, search: '' };
+const EMPTY_FILTERS: Filters = { years: [], parts: [], stages: [] };
 const DELAY_MS    = 2_000; // 메인 탭 로드 완료 후 2초 뒤 백그라운드 프리패치
 
 /**
@@ -40,9 +42,9 @@ export const useBackgroundPrefetch = () => {
         staleTime: STALE_5MIN,
       });
       qc.prefetchInfiniteQuery({
-        queryKey:         ['kpi-data', { search: '', pageSize: 30 }],
+        queryKey:         ['kpi-data', { search: '', pageSize: 30 }, EMPTY_FILTERS],
         queryFn:          ({ pageParam }) =>
-          getKpiData({ page: pageParam as number, pageSize: 30, search: '' }),
+          getKpiData(EMPTY_FILTERS, { page: pageParam as number, pageSize: 30, search: '' }),
         initialPageParam: 1,
         staleTime:        STALE_5MIN,
       });

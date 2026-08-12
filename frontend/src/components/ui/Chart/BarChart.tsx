@@ -27,7 +27,7 @@ const BarChart = ({ labels, datasets, horizontal = false, options, onClick }: Pr
       datalabels:  { display: false },  // 각 차트에서 options.plugins.datalabels로 override
       ...options?.plugins,
     },
-    onClick: (event: ChartEvent, elements: ActiveElement[], chart: Chart) => {
+    onClick: (_event: ChartEvent, elements: ActiveElement[], chart: Chart) => {
       if (elements.length > 0 && onClick) {
         const label = chart.data.labels?.[elements[0].index];
         if (label != null) onClick(String(label));
