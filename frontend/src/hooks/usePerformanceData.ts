@@ -3,9 +3,7 @@ import { getPerfData, getPerfOptions } from '@/api/performance.api';
 import { usePerfStore } from '@/store/perf.store';
 import type { PageParams, PagedResponse } from '@/types/finance.types';
 import type { PerfProject } from '@/types/performance.types';
-
-const STALE_5MIN = 5 * 60_000;
-const GC_10MIN   = 10 * 60_000;
+import { STALE_5MIN, GC_10MIN } from './queryClient';
 
 /** select: rows/total로 정규화 — ViewModel 변환 불필요 */
 const selectPerfPage = (raw: PagedResponse<PerfProject>) => ({

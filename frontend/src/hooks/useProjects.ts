@@ -2,8 +2,7 @@ import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-quer
 import { getProjects } from '@/api';
 import { useFilters } from './useFilters';
 import type { PageParams, PagedResponse, Project } from '@/types/finance.types';
-
-const STALE_5MIN = 5 * 60_000;
+import { STALE_5MIN } from './queryClient';
 
 /** select: 응답 형태를 rows/total로 정규화 — ViewModel에서 별도 변환 불필요 */
 const selectProjects = (raw: PagedResponse<Project>) => ({

@@ -1,8 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { getKpiOptions } from '@/api/kpi.api';
-
-const STALE_5MIN = 5 * 60_000;
-const GC_10MIN   = 10 * 60_000;
+import { STALE_5MIN, GC_10MIN } from './queryClient';
 
 export const useKpiFilterOptions = () =>
   useQuery({

@@ -3,8 +3,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { getPerfSummary, getPerfData } from '@/api/performance.api';
 import { getKpiSummary, getKpiData } from '@/api/kpi.api';
 import type { Filters } from '@/types/finance.types';
+import { STALE_5MIN } from './queryClient';
 
-const STALE_5MIN  = 5 * 60_000;
 const DEFAULT_PAGE = { page: 1, pageSize: 30, search: '' };
 const EMPTY_FILTERS: Filters = { years: [], parts: [], stages: [] };
 const DELAY_MS    = 2_000; // 메인 탭 로드 완료 후 2초 뒤 백그라운드 프리패치
