@@ -77,11 +77,11 @@ const Navbar = () => {
                 <span className={styles.sectionLabel}>차트 옵션</span>
                 <div className={styles.row}>
                   <span className={styles.rowText}>로그 스케일</span>
-                  <Toggle checked={showLogScale} onChange={toggleLogScale} />
+                  <Toggle checked={showLogScale} onChange={toggleLogScale} disabled />
                 </div>
                 <div className={styles.row}>
                   <span className={styles.rowText}>연도 추이</span>
-                  <Toggle checked={showYearChart} onChange={toggleYearChart} />
+                  <Toggle checked={showYearChart} onChange={toggleYearChart} disabled />
                 </div>
               </div>
             </div>

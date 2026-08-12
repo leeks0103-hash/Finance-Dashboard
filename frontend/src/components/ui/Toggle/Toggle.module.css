@@ -15,6 +15,7 @@
 }
 :global([data-theme="dark"]) .track { background: rgba(255,255,255,0.18); }
 .track:focus-visible { box-shadow: 0 0 0 3px var(--brand-bg); }
+.disabled { opacity: 0.4; cursor: not-allowed; }
 /* 다크 네브바 안의 토글 — 사이트 시안 고정 */
 .on { background: var(--brand-mid) !important; }
 
