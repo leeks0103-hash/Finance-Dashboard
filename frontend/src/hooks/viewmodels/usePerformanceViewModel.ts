@@ -51,8 +51,6 @@ export interface PerformanceViewModel {
   chartLabels:   string[];
   chartDatasets: PerfChartDataset[];
   projects:      PerfProject[];
-  /** 전체 집계 기반 합계 — 페이지네이션과 무관 */
-  footerData:    { planInitial: string; junActual: string; opProfit: string; isLoss: boolean } | undefined;
   parts:         string[];
   selectedParts: string[];
   togglePart:    (part: string) => void;
@@ -130,19 +128,11 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
     backgroundColor: 'rgba(52,211,153,0.82)', borderRadius: 4,
   }], [monthly]);
 
-  // footerData — summary.total 기반 (전체 집계, 페이지네이션과 무관)
-  const footerData = total ? {
-    planInitial: formatEok(total.plan_initial),
-    junActual:   formatEok(total.jun_actual),
-    opProfit:    formatEok(total.operating_profit),
-    isLoss:      total.operating_profit < 0,
-  } : undefined;
-
   return {
     isLoading, isFetching: isFetching ?? false,
     isEmpty: !isLoading && !total,
     kpiCards, byPart, chartLabels, chartDatasets,
-    projects, footerData,
+    projects,
     parts: options?.parts ?? [], selectedParts, togglePart, resetFilters: reset,
 
     serverPagination: {

@@ -18,13 +18,7 @@ const UP_POINTS   = "0,34 8,28 14,31 22,22 28,26 36,14 42,19 50,10 56,15 64,6 70
 const DOWN_POINTS = "0,2  8,8  14,5  22,14 28,10 36,22 42,17 50,26 56,21 64,30 70,25 78,33 86,29 90,34";
 
 const Sparkline = ({ up, gradId }: { up: boolean; gradId: string }) => {
-  const pts  = up ? UP_POINTS : DOWN_POINTS;
-  // fill path = polyline → bottom-right → bottom-left → close
-  const last = up ? "90,2" : "90,34";
-  const fillD = `M ${pts.replace(/,/g, ' ').replace(/ /g, ' ')} L 90,36 L 0,36 Z`.replace(
-    /M (\S+) (\S+)/,
-    `M $1,$2`
-  );
+  const pts = up ? UP_POINTS : DOWN_POINTS;
 
   return (
     <svg

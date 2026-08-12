@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState, useEffect, useMemo } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { useChartTheme } from '@/hooks';
 import { pathToTab } from '@/utils/routing';
 import { useBackgroundPrefetch } from '@/hooks/useBackgroundPrefetch';
@@ -20,10 +20,8 @@ const TabLayout = () => {
   useBackgroundPrefetch();
 
   const location = useLocation();
-  const navigate  = useNavigate();
 
   const activeTab    = useMemo(() => pathToTab(location.pathname), [location.pathname]);
-  const setTab       = (tab: TabId) => navigate(`/${tab}`);
   const isFinance    = activeTab === 'finance';
   const isKpi        = activeTab === 'kpi';
   const isPerformance = activeTab === 'performance';
