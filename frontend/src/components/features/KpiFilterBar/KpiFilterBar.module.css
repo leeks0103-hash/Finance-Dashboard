@@ -1,7 +1,16 @@
 /* nowrap 필수 — wrap이면 FilterBar 높이 변해 페이지 점프 */
 .panel { display: flex; align-items: center; gap: 10px; flex-wrap: nowrap; }
 
-.group { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border-radius: var(--radius-pill, 999px);
+  background: var(--bg-subtle, rgba(255,255,255,0.03));
+  border: 1px solid var(--border);
+}
 
 .label {
   font-size: 0.65rem;
@@ -16,15 +25,12 @@
 /* 다크: 더 선명한 cyan 계열로 */
 :global([data-theme="dark"]) .label {
   color: var(--brand-mid);
-  opacity: 0.7;
+  opacity: 0.85;
   font-size: 0.6rem;
 }
 
 .divider {
-  width: 1px;
-  height: 20px;
-  background: var(--border);
-  flex-shrink: 0;
+  display: none;
 }
 
 .chips { display: flex; flex-wrap: nowrap; gap: 5px; }

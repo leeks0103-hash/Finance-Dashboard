@@ -1,5 +1,5 @@
 import { useKpiFilterPanelViewModel } from '@/hooks/viewmodels';
-import { MultiSelectDropdown } from '@/components/ui';
+import { FilterChip } from '@/components/ui';
 import styles from './KpiFilterBar.module.css';
 
 const KpiFilterBar = () => {
@@ -7,27 +7,39 @@ const KpiFilterBar = () => {
 
   return (
     <div className={styles.panel}>
-      <MultiSelectDropdown
-        label="연도"
-        options={vm.years}
-        selected={vm.filters.years}
-        onToggle={vm.toggleYear}
-        onReset={() => vm.filters.years.forEach(vm.toggleYear)}
-      />
-      <MultiSelectDropdown
-        label="파트"
-        options={vm.parts}
-        selected={vm.filters.parts}
-        onToggle={vm.togglePart}
-        onReset={() => vm.filters.parts.forEach(vm.togglePart)}
-      />
-      <MultiSelectDropdown
-        label="보고단계"
-        options={vm.stages}
-        selected={vm.filters.stages}
-        onToggle={vm.toggleStage}
-        onReset={() => vm.filters.stages.forEach(vm.toggleStage)}
-      />
+      <div className={styles.group}>
+        <span className={styles.label}>연도</span>
+        <div className={styles.chips}>
+          {vm.years.map(y => (
+            <FilterChip key={y} label={y} checked={vm.filters.years.includes(y)}
+              onChange={() => vm.toggleYear(y)} />
+          ))}
+        </div>
+      </div>
+
+      <div className={styles.divider} />
+
+      <div className={styles.group}>
+        <span className={styles.label}>파트</span>
+        <div className={styles.chips}>
+          {vm.parts.map(p => (
+            <FilterChip key={p} label={p} checked={vm.filters.parts.includes(p)}
+              onChange={() => vm.togglePart(p)} />
+          ))}
+        </div>
+      </div>
+
+      <div className={styles.divider} />
+
+      <div className={styles.group}>
+        <span className={styles.label}>보고단계</span>
+        <div className={styles.chips}>
+          {vm.stages.map(s => (
+            <FilterChip key={s} label={s} checked={vm.filters.stages.includes(s)}
+              onChange={() => vm.toggleStage(s)} />
+          ))}
+        </div>
+      </div>
     </div>
   );
 };

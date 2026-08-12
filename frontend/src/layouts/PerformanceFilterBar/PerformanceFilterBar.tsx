@@ -1,6 +1,6 @@
 import { usePerformanceOptions } from '@/hooks/usePerformanceData';
 import { usePerfStore } from '@/store/perf.store';
-import { MultiSelectDropdown } from '@/components/ui';
+import { FilterChip } from '@/components/ui';
 import styles from './PerformanceFilterBar.module.css';
 
 const PerformanceFilterBar = () => {
@@ -9,20 +9,21 @@ const PerformanceFilterBar = () => {
   const togglePart    = usePerfStore(s => s.togglePart);
   const selectedTeam  = usePerfStore(s => s.selectedTeam);
   const setTeam       = usePerfStore(s => s.setTeam);
-  const reset         = usePerfStore(s => s.reset);
 
   const parts = (options?.parts ?? []).map((p: string) => p.replace(/^[①-⑦]\s*/, ''));
   const teams = options?.teams ?? [];
 
   return (
     <div className={styles.panel}>
-      <MultiSelectDropdown
-        label="파트"
-        options={parts}
-        selected={selectedParts}
-        onToggle={togglePart}
-        onReset={reset}
-      />
+      <div className={styles.group}>
+        <span className={styles.label}>파트</span>
+        <div className={styles.chips}>
+          {parts.map(p => (
+            <FilterChip key={p} label={p} checked={selectedParts.includes(p)}
+              onChange={() => togglePart(p)} />
+          ))}
+        </div>
+      </div>
       <div className={styles.teamWrap}>
         <select
           className={`${styles.teamSelect} ${selectedTeam ? styles.active : ''}`}

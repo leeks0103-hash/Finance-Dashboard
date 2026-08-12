@@ -13,16 +13,33 @@
   gap: 10px;
 }
 
+/* 재무/KPI 필터 그룹과 동일한 룩앤필 — 파트 칩만 박스로 묶어 시각적으로 구분 */
+.group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 1;
+  min-width: 0;
+  padding: 6px 12px;
+  border-radius: var(--radius-pill, 999px);
+  background: var(--bg-subtle, rgba(255,255,255,0.03));
+  border: 1px solid var(--border);
+}
+
 .label {
-  font-size: 0.75rem;
+  font-size: 0.65rem;
   font-weight: 700;
-  color: var(--text-sub);
-  white-space: nowrap;
+  color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  padding-right: 4px;
-  border-right: 1px solid var(--border);
-  margin-right: 4px;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+:global([data-theme="dark"]) .label {
+  color: var(--brand-mid);
+  opacity: 0.85;
+  font-size: 0.6rem;
 }
 
 .chips {
