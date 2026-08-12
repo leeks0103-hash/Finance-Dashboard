@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useChartViewModel } from '@/hooks/viewmodels';
 import { useTheme } from '@/hooks';
 import { useFilterStore, useUiStore } from '@/store';
-import { ChartCard, BarChart, DoughnutChart, EmptyState } from '@/components/ui';
+import { ChartCard, BarChart, DoughnutChart } from '@/components/ui';
 import styles from './ChartSection.module.css';
 
 const ChartSection = () => {

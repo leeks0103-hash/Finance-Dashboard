@@ -112,6 +112,10 @@
   text-overflow: ellipsis;
 }
 
+/* 헤더 클릭 컬럼 하이라이트 */
+.thHighlighted { background: var(--brand-mid) !important; color: #fff !important; }
+.table td.tdHighlighted { background: var(--brand-bg, rgba(99,102,241,0.08)) !important; }
+
 /* 리사이즈 핸들 */
 .resizeHandle {
   position: absolute;
@@ -239,4 +243,79 @@
   color: var(--text-secondary);
   min-width: 50px;
   text-align: right;
+}
+
+/* ── 셀 내용 팝업 (파일명 복사) ─────────── */
+.clickable { cursor: pointer; }
+
+.popupOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.popupBox {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  max-width: 560px;
+  width: 100%;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.popupHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-sub);
+}
+
+.popupClose {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-muted);
+  padding: 2px 6px;
+  border-radius: 4px;
+  line-height: 1;
+}
+.popupClose:hover { background: var(--bg-subtle); color: var(--text-primary); }
+
+.popupBody {
+  padding: 16px;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  line-height: 1.7;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  transition: background 0.14s ease;
+}
+.popupBody:hover { background: var(--brand-bg); }
+.popupBodyCopied { background: var(--profit-bg) !important; }
+
+.popupCopyHint {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  white-space: nowrap;
 }

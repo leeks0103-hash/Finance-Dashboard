@@ -205,6 +205,12 @@
 .sortIdle   { margin-left: 4px; font-size: 11px; opacity: 0.35; }
 .sortActive { margin-left: 4px; font-size: 11px; color: var(--accent); }
 
+/* 헤더 클릭 컬럼 하이라이트 */
+.thHighlighted { background: var(--brand-mid) !important; color: #fff !important; }
+.thHighlighted .sortIdle,
+.thHighlighted .sortActive { color: #fff; opacity: 0.85; }
+.tdHighlighted { background: var(--brand-bg); }
+
 /* 행 변형 */
 .loss { box-shadow: inset 3px 0 0 var(--loss) !important; }
 .loss:hover { background: var(--loss-bg, rgba(239,68,68,.08)) !important; }

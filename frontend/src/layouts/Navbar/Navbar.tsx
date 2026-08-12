@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Toggle, Button } from '@/components/ui';
 import TabNav from '@/components/ui/TabNav/TabNav';
+import type { TabId } from '@/components/ui/TabNav/TabNav';
 import { useTheme } from '@/hooks';
 import { useUiStore } from '@/store';
 import { pathToTab } from '@/utils/routing';
@@ -15,7 +16,7 @@ const Navbar = () => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const activeTab = pathToTab(pathname);
-  const setTab = (tab: Tab) => navigate(`/${tab}`);
+  const setTab = (tab: TabId) => navigate(`/${tab}`);
 
 
   useEffect(() => {

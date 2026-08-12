@@ -1,4 +1,5 @@
 import client from './client';
+import { appendPageParams } from './queryParams';
 import type { PerfSummary, PerfProject, PerfOptions } from '@/types/performance.types';
 import type { PagedResponse, PageParams } from '@/types/finance.types';
 
@@ -18,9 +19,7 @@ export const getPerfData = (
   team = '',
 ): Promise<PagedResponse<PerfProject>> => {
   const params = toParams(parts, team);
-  params.set('page',      String(page.page));
-  params.set('page_size', String(page.pageSize));
-  if (page.search) params.set('search', page.search);
+  appendPageParams(params, page);
   return client.get<PagedResponse<PerfProject>>('/performance/data', { params }).then(r => r.data);
 };
 

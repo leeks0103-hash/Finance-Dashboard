@@ -1,7 +1,6 @@
 import { useProjectTableViewModel } from '@/hooks/viewmodels';
 import { DataTable } from '@/components/ui';
 import { columns } from './columns.tsx';
-import styles from './ProjectTable.module.css';
 
 const HIDEABLE: { id: string; label: string }[] = [
   { id: 'direct_cost', label: '직접원가' },
@@ -13,24 +12,6 @@ const HIDEABLE: { id: string; label: string }[] = [
 
 const ProjectTable = () => {
   const vm = useProjectTableViewModel();
-
-  const footer = {
-    project_code:     <span className={styles.summaryLabel}>합계</span>,
-    revenue:          vm.summary.revenue,
-    expenditure:      vm.summary.expenditure,
-    direct_cost:      vm.summary.directCost,
-    labor_cost:       vm.summary.laborCost,
-    overhead:         vm.summary.overhead,
-    operating_profit: (
-      <span style={{
-        color: (vm.summary.operatingProfit ?? '').startsWith('-')
-          ? 'var(--loss)' : undefined,
-      }}>
-        {vm.summary.operatingProfit}
-      </span>
-    ),
-    profit_rate: vm.summary.avgProfitRate,
-  };
 
   return (
     <DataTable

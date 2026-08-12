@@ -1,11 +1,9 @@
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import type { Filters } from '@/types';
 import { useFilters } from './useFilters';
+import { STALE_5MIN, GC_10MIN } from './queryClient';
 
 type QueryFn<T> = (filters: Filters) => Promise<T>;
-
-const STALE_5MIN = 5 * 60_000;
-const GC_10MIN   = 10 * 60_000;
 
 /**
  * 필터 기반 단순 조회 훅 팩토리.

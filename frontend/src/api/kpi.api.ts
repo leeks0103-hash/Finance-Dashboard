@@ -1,4 +1,5 @@
 import client from './client';
+import { buildFilterParams, appendPageParams } from './queryParams';
 import type { KpiSummary, KpiRawRow } from '@/types/kpi.types';
 import type { PagedResponse, PageParams, Filters } from '@/types/finance.types';
 
@@ -18,13 +19,8 @@ export const getKpiData = (
   filters: Filters,
   page: PageParams,
 ): Promise<PagedResponse<KpiRawRow>> => {
-  const params = new URLSearchParams();
-  filters.years.forEach(v  => params.append('year',  v));
-  filters.parts.forEach(v  => params.append('part',  v));
-  filters.stages.forEach(v => params.append('stage', v));
-  params.set('page',      String(page.page));
-  params.set('page_size', String(page.pageSize));
-  if (page.search) params.set('search', page.search);
+  const params = buildFilterParams(filters);
+  appendPageParams(params, page);
   return client.get<PagedResponse<KpiRawRow>>('/kpi/data', { params }).then(r => r.data);
 };
 

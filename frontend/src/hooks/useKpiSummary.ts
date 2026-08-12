@@ -1,11 +1,9 @@
 import { useQuery, useInfiniteQuery, keepPreviousData } from '@tanstack/react-query';
 import { getKpiSummary, getKpiData } from '@/api/kpi.api';
 import type { PageParams, Filters } from '@/types/finance.types';
+import { STALE_5MIN, GC_10MIN } from './queryClient';
 
 const EMPTY_FILTERS: Filters = { years: [], parts: [], stages: [] };
-
-const STALE_5MIN = 5 * 60_000;
-const GC_10MIN   = 10 * 60_000;
 
 export const useKpiSummary = () =>
   useQuery({
