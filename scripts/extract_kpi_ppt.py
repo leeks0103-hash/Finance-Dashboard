@@ -702,17 +702,20 @@ def slide_contains_keyword(slide, keyword: str) -> bool:
     return False
 
 
-def get_first_table(slide):
+def get_all_tables(slide):
+    """슬라이드 내 모든 표를 반환 — 한 슬라이드에 여러 프로젝트 표가 나란히 있는 경우 대응."""
+    tables = []
     for idx, shape in enumerate(slide.shapes, start=1):
         try:
             if shape.has_table:
-                logger.info(f"첫 번째 표 발견: shape index={idx}")
-                return shape.table
+                tables.append(shape.table)
+                logger.info(f"표 발견: shape index={idx}")
         except Exception:
             continue
 
-    logger.warning("슬라이드에서 표를 찾지 못했습니다.")
-    return None
+    if not tables:
+        logger.warning("슬라이드에서 표를 찾지 못했습니다.")
+    return tables
 
 
 def get_table_text(table, row_1based: int, col_1based: int) -> str:
@@ -888,58 +891,58 @@ def extract_records_from_ppt_via_com(ppt_path: Path, file_meta: Dict[str, str]) 
 
             logger.info(f"COM: 대상 슬라이드 발견 — {s_idx}")
 
-            # 첫 번째 표 찾기
-            table_com = None
+            # 슬라이드 내 모든 표 찾기 — 한 슬라이드에 여러 프로젝트 표가 나란히 있는 경우 대응
+            tables_com = []
             for i in range(1, slide.Shapes.Count + 1):
                 shp = slide.Shapes(i)
                 try:
                     if shp.HasTable:
-                        table_com = shp.Table
-                        break
+                        tables_com.append(shp.Table)
                 except Exception:
                     continue
 
-            if table_com is None:
+            if not tables_com:
                 logger.warning(f"COM: 슬라이드 {s_idx} 표 없음")
                 continue
 
-            rows_n = table_com.Rows.Count
-            cols_n = table_com.Columns.Count
-            if rows_n < END_ROW or cols_n < max(DATA_COLS):
-                logger.warning(f"COM: 표 구조 부족 rows={rows_n} cols={cols_n}")
-                continue
+            for table_com in tables_com:
+                rows_n = table_com.Rows.Count
+                cols_n = table_com.Columns.Count
+                if rows_n < END_ROW or cols_n < max(DATA_COLS):
+                    logger.warning(f"COM: 표 구조 부족 rows={rows_n} cols={cols_n}")
+                    continue
 
-            key1 = _com_cell_text(table_com, 2, KEY_COL_1)
-            key2 = _com_cell_text(table_com, 2, KEY_COL_2)
-            if not key1 or not key2:
-                continue
+                key1 = _com_cell_text(table_com, 2, KEY_COL_1)
+                key2 = _com_cell_text(table_com, 2, KEY_COL_2)
+                if not key1 or not key2:
+                    continue
 
-            row_values = [key1, key2,
-                          sanitize_excel_string(file_meta["파트명"]),
-                          sanitize_excel_string(file_meta["보고단계"])]
+                row_values = [key1, key2,
+                              sanitize_excel_string(file_meta["파트명"]),
+                              sanitize_excel_string(file_meta["보고단계"])]
 
-            for col in DATA_COLS:
+                for col in DATA_COLS:
+                    for row in range(START_ROW, END_ROW + 1):
+                        val = _com_cell_text(table_com, row, col)
+                        if row in FLOAT_ROWS:
+                            row_values.append(normalize_float_value(val))
+                        else:
+                            row_values.append(normalize_int_value(val))
+
+                # col 4: '26년 목표(사업계획)
                 for row in range(START_ROW, END_ROW + 1):
-                    val = _com_cell_text(table_com, row, col)
+                    val = _com_cell_text(table_com, row, 4)
                     if row in FLOAT_ROWS:
                         row_values.append(normalize_float_value(val))
                     else:
                         row_values.append(normalize_int_value(val))
 
-            # col 4: '26년 목표(사업계획)
-            for row in range(START_ROW, END_ROW + 1):
-                val = _com_cell_text(table_com, row, 4)
-                if row in FLOAT_ROWS:
-                    row_values.append(normalize_float_value(val))
-                else:
-                    row_values.append(normalize_int_value(val))
+                row_values.append(sanitize_excel_string(file_meta["파일명"]))
+                row_values.append(file_meta["최종수정일시"])
+                row_values.append(now_str())
 
-            row_values.append(sanitize_excel_string(file_meta["파일명"]))
-            row_values.append(file_meta["최종수정일시"])
-            row_values.append(now_str())
-
-            extracted.append(row_values)
-            logger.info(f"COM: 데이터 1건 추출 완료")
+                extracted.append(row_values)
+                logger.info(f"COM: 데이터 1건 추출 완료")
 
         logger.info(f"COM 추출 총 {len(extracted)}건: {ppt_path.name}")
         return extracted
@@ -1011,24 +1014,25 @@ def extract_records_from_ppt(ppt_path: Path, file_meta: Dict[str, str]) -> List[
 
             logger.info(f"대상 슬라이드 발견: {slide_idx}")
 
-            table = get_first_table(slide)
-            if table is None:
-                logger.warning(f"슬라이드 {slide_idx}: 첫 번째 표를 찾지 못했습니다.")
+            tables = get_all_tables(slide)
+            if not tables:
+                logger.warning(f"슬라이드 {slide_idx}: 표를 찾지 못했습니다.")
                 continue
 
-            record = extract_record_from_table(
-                table=table,
-                source_file_name=file_meta["파일명"],
-                source_modified=file_meta["최종수정일시"],
-                part_name=file_meta["파트명"],
-                report_stage=file_meta["보고단계"]
-            )
+            for table_idx, table in enumerate(tables, start=1):
+                record = extract_record_from_table(
+                    table=table,
+                    source_file_name=file_meta["파일명"],
+                    source_modified=file_meta["최종수정일시"],
+                    part_name=file_meta["파트명"],
+                    report_stage=file_meta["보고단계"]
+                )
 
-            if record:
-                extracted.append(record)
-                logger.info(f"슬라이드 {slide_idx}: 데이터 1건 추출")
-            else:
-                logger.warning(f"슬라이드 {slide_idx}: 표 구조 또는 키값 부족으로 건너뜀")
+                if record:
+                    extracted.append(record)
+                    logger.info(f"슬라이드 {slide_idx} 표 {table_idx}: 데이터 1건 추출")
+                else:
+                    logger.warning(f"슬라이드 {slide_idx} 표 {table_idx}: 표 구조 또는 키값 부족으로 건너뜀")
 
         logger.info(f"총 추출 건수: {len(extracted)}")
         return extracted
@@ -1036,42 +1040,6 @@ def extract_records_from_ppt(ppt_path: Path, file_meta: Dict[str, str]) -> List[
     finally:
         if converted_tmp and converted_tmp.exists():
             converted_tmp.unlink(missing_ok=True)
-    extracted = []
-
-    logger.info(f"PowerPoint 열기: {ppt_path}")
-    logger.info(f"슬라이드 수: {len(prs.slides)}")
-
-    for slide_idx, slide in enumerate(prs.slides, start=1):
-        title_text = get_slide_title(slide)
-        logger.info(f"슬라이드 {slide_idx} 제목: {title_text}")
-
-        if not slide_contains_keyword(slide, TITLE_KEYWORD):
-            logger.info(f"슬라이드 {slide_idx}: KPI 키워드 불일치")
-            continue
-
-        logger.info(f"대상 슬라이드 발견: {slide_idx}")
-
-        table = get_first_table(slide)
-        if table is None:
-            logger.warning(f"슬라이드 {slide_idx}: 첫 번째 표를 찾지 못했습니다.")
-            continue
-
-        record = extract_record_from_table(
-            table=table,
-            source_file_name=file_meta["파일명"],
-            source_modified=file_meta["최종수정일시"],
-            part_name=file_meta["파트명"],
-            report_stage=file_meta["보고단계"]
-        )
-
-        if record:
-            extracted.append(record)
-            logger.info(f"슬라이드 {slide_idx}: 데이터 1건 추출")
-        else:
-            logger.warning(f"슬라이드 {slide_idx}: 표 구조 또는 키값 부족으로 건너뜀")
-
-    logger.info(f"총 추출 건수: {len(extracted)}")
-    return extracted
 
 
 # =========================================

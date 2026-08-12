@@ -159,8 +159,14 @@ def clean_note_value(value):
     text = text.replace("\r", "").replace("\x0b", " ").replace("\n", " ").strip()
     if text in ("", "-"):
         return ""
-    # 슬라이드 헤더·세부항목 패턴이 섞이면 비고가 아님
-    if any(p in text for p in _NOTE_INVALID_PATTERNS):
+    # 슬라이드 헤더·세부항목이 통째로 새어들어온 경우만 제거 —
+    # "경상 이익" 등은 실제 비고 문장에도 자연스럽게 등장하므로 단순 포함 여부로는 판단하지 않고,
+    # 패턴을 제거했을 때 남는 내용이 거의 없는(=텍스트 대부분이 헤더 라벨인) 경우만 걸러낸다.
+    stripped = text
+    for p in _NOTE_INVALID_PATTERNS:
+        stripped = stripped.replace(p, "")
+    stripped = stripped.strip(" /·-")
+    if len(text) < 80 and len(stripped) < len(text) * 0.3:
         return ""
     # 300자 초과는 실제 비고가 아닐 가능성이 높음
     if len(text) > 300:
