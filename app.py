@@ -435,7 +435,8 @@ def api_data():
             df["project_code"].str.lower().str.contains(s, na=False) |
             df["part"].str.lower().str.contains(s, na=False) |
             df["stage"].str.lower().str.contains(s, na=False) |
-            df["note"].str.lower().str.contains(s, na=False)
+            df["note"].str.lower().str.contains(s, na=False) |
+            df["filename"].str.lower().str.contains(s, na=False)
         )
         df = df[mask]
 

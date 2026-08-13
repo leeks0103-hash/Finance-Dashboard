@@ -23,7 +23,7 @@ export const useDebouncedSearch = (delay = 350): DebouncedSearch => {
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setInputValue(e.target.value);
-    debouncedSet(e.target.value);
+    debouncedSet(e.target.value.trim());
   }, [debouncedSet]);
 
   const reset = useCallback(() => {
@@ -37,7 +37,7 @@ export const useDebouncedSearch = (delay = 350): DebouncedSearch => {
     const next = typeof action === 'function' ? action(inputRef.current) : action;
     debouncedSet.cancel();
     setInputValue(next);
-    setDebouncedValue(next);
+    setDebouncedValue(next.trim());
   }, [debouncedSet]);
 
   return { inputValue, debouncedValue, handleChange, reset, setFilter };

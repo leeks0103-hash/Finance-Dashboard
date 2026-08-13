@@ -70,7 +70,7 @@
   background: var(--bg-subtle);
   color: var(--text-primary);
   font-size: 0.82rem;
-  width: 220px;
+  width: 320px;
   outline: none;
   transition: border-color var(--transition);
 }
