@@ -90,7 +90,8 @@ export const useKpiPageViewModel = (): KpiPageViewModel => {
   }), [showLabels, labelColor]);
 
   const chart = useMemo((): KpiChartData => {
-    const labels  = items.map(it => it.name.replace(/\s*\([^)]+\)\s*/g, ' ').trim());
+    // 괄호 안 세부 구분(과정 건수/구성 적절성 등)까지 유지 — 지우면 같은 항목명이 중복돼 헷갈림
+    const labels  = items.map(it => it.name.trim());
     const targets = items.map(it => typeof it.target_2026 === 'number' ? it.target_2026 : 0);
     const actuals = items.map(it => typeof it.actual_2026 === 'number' ? it.actual_2026 : 0);
     return {
