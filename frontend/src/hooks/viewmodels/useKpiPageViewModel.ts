@@ -5,6 +5,7 @@ import { useKpiFilterStore } from '@/store/kpiFilter.store';
 import { useUiStore } from '@/store';
 import { useTheme } from '@/hooks/useTheme';
 import { makeBarOptions } from '@/utils/chartOptions';
+import { getChartPalette } from '@/utils/chartColors';
 import type { KpiRawRow } from '@/types/kpi.types';
 import type { ServerPagination, ServerSearch } from '@/components/ui/DataTable';
 import type { ChartOptions } from 'chart.js';
@@ -73,8 +74,10 @@ export const useKpiPageViewModel = (): KpiPageViewModel => {
   const rawRows: KpiRawRow[] = data?.rows ?? [];
 
   const { theme } = useTheme();
+  const dark = theme === 'dark';
   const showLabels = useUiStore(s => s.showChartLabels);
-  const labelColor = theme === 'dark' ? 'rgba(212,212,216,0.90)' : '#3F3F46';
+  const labelColor = dark ? 'rgba(212,212,216,0.90)' : '#3F3F46';
+  const palette = useMemo(() => getChartPalette(dark), [dark]);
 
   const chartOptions = useMemo(() => makeBarOptions(showLabels, labelColor, {
     plugins: {
@@ -93,11 +96,11 @@ export const useKpiPageViewModel = (): KpiPageViewModel => {
     return {
       labels, targets, actuals, options: chartOptions,
       datasets: [
-        { label: '26년 목표', data: targets, backgroundColor: 'rgba(56,189,248,0.75)', borderRadius: 4 },
-        { label: '26년 실적', data: actuals, backgroundColor: 'rgba(52,211,153,0.85)', borderRadius: 4 },
+        { label: '26년 목표', data: targets, backgroundColor: palette.target,  borderRadius: 4 },
+        { label: '26년 실적', data: actuals, backgroundColor: palette.revenue, borderRadius: 4 },
       ],
     };
-  }, [items, chartOptions]);
+  }, [items, chartOptions, palette]);
 
   const summaryRows = useMemo((): KpiSummaryRow[] =>
     items.map(it => {
