@@ -100,6 +100,23 @@ def _is_valid_code(code: str) -> bool:
     return True
 
 
+_PLACEHOLDER_CODE_RE = re.compile(r"예정|미정|생성|추진|신규")
+
+
+def _is_ranked_valid_code(code: str) -> bool:
+    """이익율 상위/저수익 랭킹 전용 — 임시·미배정 코드 제외.
+    (프론트 useInsightViewModel.ts의 isValid()와 동일 기준 — 랭킹/자르기 전에 걸러야
+    top-N 개수가 임시 코드 혼입 여부에 따라 들쭉날쭉해지지 않는다.)"""
+    c = str(code).strip()
+    if not c or c == "0":
+        return False
+    if c.isdigit():
+        return False
+    if _PLACEHOLDER_CODE_RE.search(c):
+        return False
+    return True
+
+
 def _extract_year(filename: str, reflected_at) -> str:
     """파일명 '26년' 패턴 → '2026'. 없으면 반영일시 연도 사용."""
     m = re.search(r"(\d{2})년", str(filename))
@@ -472,8 +489,9 @@ def api_summary():
     )
 
     STAGE_ORDER = ["완료", "중간", "착수", "제안", "사업계획", "검토"]
+    # 보고단계별 매출 현황 차트는 필터(연도/파트/보고단계)와 무관하게 항상 전체 데이터 기준
     by_stage_raw = (
-        df.groupby("stage")
+        get_df().groupby("stage")
         .agg(
             revenue=("revenue", "sum"),
             expenditure=("expenditure", "sum"),
@@ -512,12 +530,13 @@ def api_insights():
     if valid.empty:
         return jsonify({"top": [], "risk": [], "comments": []})
 
-    # 유효하지 않은 임시 코드 제외 (미정·숫자만·예정 등)
-    valid_coded = valid[valid["project_code"].apply(_is_valid_code)]
+    # 유효하지 않은 임시 코드 제외 (미정·숫자만·예정 등) — 랭킹/자르기 전에 걸러야
+    # top-N 개수가 임시 코드 혼입 여부에 따라 들쭉날쭉해지지 않는다.
+    valid_coded = valid[valid["project_code"].apply(_is_ranked_valid_code)]
 
     top5 = (
         valid_coded[valid_coded["profit_rate"] > 0]
-        .nlargest(5, "profit_rate")
+        .nlargest(10, "profit_rate")
         [["project_code", "part", "stage", "revenue", "operating_profit", "profit_rate"]]
         .to_dict(orient="records")
     )
@@ -526,7 +545,7 @@ def api_insights():
     risk = (
         _risk_pool
         .sort_values(["_is_loss", "profit_rate"], ascending=[False, True])
-        .head(5)
+        .head(10)
         .drop(columns=["_is_loss"])  # 임시 정렬 컬럼 제거
         [["project_code", "part", "stage", "revenue", "operating_profit", "profit_rate"]]
         .to_dict(orient="records")
@@ -1140,7 +1159,11 @@ def api_perf_summary():
         ("chk_m10","10월"),("chk_m11","11월"),("chk_m12","12월"),
     ]
     monthly = [
-        {"month": label, "revenue": float(rev[col].sum())}
+        {
+            "month":   label,
+            "revenue": float(rev[col].sum()),
+            "cost":    float(cost[col].sum()) if col in cost.columns else 0.0,
+        }
         for col, label in MONTH_COLS
         if col in rev.columns
     ]

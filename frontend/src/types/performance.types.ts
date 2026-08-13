@@ -115,6 +115,7 @@ export interface PerfTotal {
 export interface PerfMonthly {
   month:   string;
   revenue: number;
+  cost:    number;
 }
 
 export interface PerfSummary {

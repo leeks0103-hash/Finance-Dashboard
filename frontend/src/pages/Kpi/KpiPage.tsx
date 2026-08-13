@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { createColumnHelper } from '@tanstack/react-table';
 import { useKpiPageViewModel } from '@/hooks/viewmodels/useKpiPageViewModel';
-import { ChartCard, BarChart, DataTable, CopyText } from '@/components/ui';
+import { ChartCard, BarChart, DataTable, CopyText, HighlightText, Button } from '@/components/ui';
 import KpiRawTable from '@/components/features/KpiRawTable/KpiRawTable';
 import type { KpiRawRow } from '@/types/kpi.types';
 import type { KpiSummaryRow } from '@/hooks/viewmodels/useKpiPageViewModel';
@@ -47,9 +47,10 @@ const KpiPage = () => {
         cell: i => {
           const v = i.getValue();
           if (v === null || v === undefined || v === 0 || v === '') return '-';
+          const query = i.table.options.meta?.searchQuery;
           if (col === '프로젝트코드' && typeof v === 'string' && v.trim())
-            return <CopyText text={v} />;
-          return typeof v === 'number' ? String(v) : String(v);
+            return <CopyText text={v} highlight={query} />;
+          return <HighlightText text={String(v)} query={query} />;
         },
       })
     ),
@@ -100,7 +101,7 @@ const KpiPage = () => {
               datasets={vm.chart.datasets}
               options={{
                 indexAxis: 'y',
-                plugins: { datalabels: { display: false } },
+                ...vm.chart.options,
                 scales: { x: { ticks: { callback: v => Number(v).toLocaleString() } } },
               }}
             />
@@ -114,6 +115,7 @@ const KpiPage = () => {
         columns={summaryColumns as never}
         getRowId={row => row.name}
         title="KPI 집계"
+        hideCount
         compact
         defaultPageSize={10}
         pageSizeOptions={[10]}
@@ -124,14 +126,14 @@ const KpiPage = () => {
       {(() => {
         const viewToggle = (
           <div className={styles.viewToggle}>
-            <button
+            <Button variant="ghost" size="sm"
               className={`${styles.toggleBtn} ${rawView === 'flat' ? styles.toggleActive : ''}`}
               onClick={() => setRawView('flat')}
-            >목록</button>
-            <button
+            >목록</Button>
+            <Button variant="ghost" size="sm"
               className={`${styles.toggleBtn} ${rawView === 'rowspan' ? styles.toggleActive : ''}`}
               onClick={() => setRawView('rowspan')}
-            >KPI 상세</button>
+            >KPI 상세</Button>
           </div>
         );
         return rawView === 'flat' ? (

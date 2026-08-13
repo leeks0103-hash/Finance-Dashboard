@@ -1,16 +1,19 @@
 import { createColumnHelper } from '@tanstack/react-table';
 import type { Project } from '@/types';
 import { formatBillion, formatRate, getNoteVariant } from '@/utils';
-import { Badge, NegCell, CopyText } from '@/components/ui';
+import { Badge, NegCell, CopyText, HighlightText } from '@/components/ui';
 
 const h = createColumnHelper<Project>();
 
 export const columns = [
   h.accessor('project_code', {
     header: '프로젝트코드',
-    cell: i => <CopyText text={i.getValue()} />,
+    cell: i => <CopyText text={i.getValue()} highlight={i.table.options.meta?.searchQuery} />,
   }),
-  h.accessor('year',         { header: '연도' }),
+  h.accessor('year', {
+    header: '연도',
+    cell: i => <HighlightText text={i.getValue()} query={i.table.options.meta?.searchQuery} />,
+  }),
   h.accessor('part',  { header: '파트',  cell: i => <Badge label={i.getValue()} variant="part"  /> }),
   h.accessor('stage', { header: '단계',  cell: i => <Badge label={i.getValue()} variant="stage" /> }),
   h.accessor('revenue',      { header: '매출',     cell: i => formatBillion(i.getValue()) }),
@@ -37,5 +40,6 @@ export const columns = [
   }),
   h.accessor('filename', {
     header: '원본파일명',
+    cell: i => <HighlightText text={i.getValue()} query={i.table.options.meta?.searchQuery} />,
   }),
 ];

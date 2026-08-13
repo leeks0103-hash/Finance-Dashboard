@@ -63,8 +63,8 @@ const PerformancePage = () => {
               labels={vm.chartLabels}
               datasets={vm.chartDatasets}
               options={{
-                plugins: { datalabels: { display: false } },
-                scales:  { y: { ticks: { callback: v => v + '억' } } },
+                ...vm.chartOptions,
+                scales: { y: { ticks: { callback: v => v + '억' } } },
               }}
             />
           </div>

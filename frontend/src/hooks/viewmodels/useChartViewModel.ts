@@ -1,25 +1,8 @@
 import { useMemo } from 'react';
 import { useSummary } from '@/hooks/useSummary';
 import { useUiStore } from '@/store';
+import { makeBarOptions } from '@/utils/chartOptions';
 import type { ChartOptions } from 'chart.js';
-
-const makeBarOptions = (
-  display: boolean,
-  labelColor: string,
-  extra?: Partial<ChartOptions<'bar'>>,
-): ChartOptions<'bar'> => ({
-  animation: { duration: 700, easing: 'easeInOutQuart' },
-  layout: extra?.layout,
-  plugins: {
-    datalabels: {
-      display,
-      color:  labelColor,
-      font:   { size: 12, weight: 'bold' },
-      ...((extra?.plugins as any)?.datalabels ?? {}),
-    },
-  },
-  scales: extra?.scales,
-} as ChartOptions<'bar'>);
 
 export interface ChartViewModel {
   isLoading:    boolean;
@@ -28,10 +11,11 @@ export interface ChartViewModel {
   showLabels:   boolean;
   showLogScale: boolean;
   revExp: {
-    labels:   string[];
-    revenues: number[];
-    profits:  number[];
-    options:  ChartOptions<'bar'>;
+    labels:       string[];
+    revenues:     number[];
+    expenditures: number[];
+    profits:      number[];
+    options:      ChartOptions<'bar'>;
   };
   costBreakdown: {
     labels: string[];
@@ -51,10 +35,11 @@ export interface ChartViewModel {
     options:  ChartOptions<'bar'>;
   };
   stageChart: {
-    labels:   string[];
-    revenues: number[];
-    counts:   number[];
-    options:  ChartOptions<'bar'>;
+    labels:       string[];
+    revenues:     number[];
+    expenditures: number[];
+    counts:       number[];
+    options:      ChartOptions<'bar'>;
   };
   labelColor: string;
 }
@@ -119,9 +104,10 @@ export const useChartViewModel = (labelColor: string): ChartViewModel => {
     return {
       isEmpty: parts.length === 0,
       revExp: {
-        labels:   parts,
-        revenues: parts.map(p => +(data.by_part[p].revenue / 1e8).toFixed(1)),
-        profits:  parts.map(p => +(data.by_part[p].profit  / 1e8).toFixed(1)),
+        labels:       parts,
+        revenues:     parts.map(p => +(data.by_part[p].revenue     / 1e8).toFixed(1)),
+        expenditures: parts.map(p => +(data.by_part[p].expenditure / 1e8).toFixed(1)),
+        profits:      parts.map(p => +(data.by_part[p].profit      / 1e8).toFixed(1)),
       },
       costBreakdown: {
         labels: ['직접원가', '직접인건비', '공통원가/관리비'],
@@ -145,20 +131,21 @@ export const useChartViewModel = (labelColor: string): ChartViewModel => {
         }),
       },
       stageChart: {
-        labels:   stages,
-        revenues: stages.map(s => +(byStage[s].revenue / 1e8).toFixed(1)),
-        counts:   stages.map(s => byStage[s].count),
+        labels:       stages,
+        revenues:     stages.map(s => +(byStage[s].revenue     / 1e8).toFixed(1)),
+        expenditures: stages.map(s => +(byStage[s].expenditure / 1e8).toFixed(1)),
+        counts:       stages.map(s => byStage[s].count),
       },
     };
   }, [data, isLoading]);
 
   const emptyYearTrend  = { labels: [], revenues: [], profits: [], rates: [], options: yearTrendOptions };
-  const emptyStageChart = { labels: [], revenues: [], counts: [], options: revExpOptions };
+  const emptyStageChart = { labels: [], revenues: [], expenditures: [], counts: [], options: revExpOptions };
 
   if (!chartData || isLoading) {
     return {
       isLoading, isError, isEmpty: false, showLabels, showLogScale, labelColor,
-      revExp:        { labels: [], revenues: [], profits: [], options: revExpOptions },
+      revExp:        { labels: [], revenues: [], expenditures: [], profits: [], options: revExpOptions },
       costBreakdown: { labels: [], values: [] },
       profitRate:    { labels: [], rates: [], isProfit: [], options: profitRateOptions },
       yearTrend:     emptyYearTrend,

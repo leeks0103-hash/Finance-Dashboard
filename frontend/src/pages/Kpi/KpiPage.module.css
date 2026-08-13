@@ -70,7 +70,8 @@
   background: rgba(255,255,255,0.06);
 }
 
-.toggleBtn {
+/* .viewToggle과 묶어 우선순위를 높임 — Button 컴포넌트(ghost variant)의 기본 border/padding을 덮어써야 함 */
+.viewToggle .toggleBtn {
   padding: 4px 14px;
   font-size: 0.78rem;
   font-weight: 500;
@@ -82,14 +83,14 @@
   transition: background 0.15s, color 0.15s;
 }
 
-.toggleActive {
+.viewToggle .toggleActive {
   background: var(--surface);
   color: var(--text-primary);
   box-shadow: 0 1px 3px rgba(0,0,0,0.12);
   font-weight: 600;
 }
 
-:global([data-theme="dark"]) .toggleActive {
+:global([data-theme="dark"]) .viewToggle .toggleActive {
   background: rgba(255,255,255,0.12);
 }
 

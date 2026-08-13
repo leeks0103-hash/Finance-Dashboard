@@ -21,6 +21,10 @@
 }
 
 .title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   font-size: 0.70rem;
   font-weight: 700;
   color: var(--text-muted);

@@ -1,0 +1,6 @@
+.mark {
+  background: color-mix(in srgb, var(--brand-mid) 35%, transparent);
+  color: inherit;
+  border-radius: 3px;
+  padding: 0 1px;
+}

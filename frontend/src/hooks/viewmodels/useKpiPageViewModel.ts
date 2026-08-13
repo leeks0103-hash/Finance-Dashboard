@@ -2,8 +2,12 @@ import { useState, useMemo } from 'react';
 import { useKpiSummary, useKpiDataPaged } from '@/hooks/useKpiSummary';
 import { useDebouncedSearch } from '@/hooks/useDebouncedSearch';
 import { useKpiFilterStore } from '@/store/kpiFilter.store';
+import { useUiStore } from '@/store';
+import { useTheme } from '@/hooks/useTheme';
+import { makeBarOptions } from '@/utils/chartOptions';
 import type { KpiRawRow } from '@/types/kpi.types';
 import type { ServerPagination, ServerSearch } from '@/components/ui/DataTable';
+import type { ChartOptions } from 'chart.js';
 
 export interface KpiChartDataset {
   label:           string;
@@ -17,6 +21,7 @@ export interface KpiChartData {
   targets:  number[];
   actuals:  number[];
   datasets: KpiChartDataset[];
+  options:  ChartOptions<'bar'>;
 }
 
 export interface KpiSummaryRow {
@@ -67,18 +72,32 @@ export const useKpiPageViewModel = (): KpiPageViewModel => {
   const items     = summary?.items ?? [];
   const rawRows: KpiRawRow[] = data?.rows ?? [];
 
+  const { theme } = useTheme();
+  const showLabels = useUiStore(s => s.showChartLabels);
+  const labelColor = theme === 'dark' ? 'rgba(212,212,216,0.90)' : '#3F3F46';
+
+  const chartOptions = useMemo(() => makeBarOptions(showLabels, labelColor, {
+    plugins: {
+      datalabels: {
+        anchor: 'end',
+        align:  'end',
+        formatter: (v: number) => v.toLocaleString(),
+      },
+    },
+  }), [showLabels, labelColor]);
+
   const chart = useMemo((): KpiChartData => {
     const labels  = items.map(it => it.name.replace(/\s*\([^)]+\)\s*/g, ' ').trim());
     const targets = items.map(it => typeof it.target_2026 === 'number' ? it.target_2026 : 0);
     const actuals = items.map(it => typeof it.actual_2026 === 'number' ? it.actual_2026 : 0);
     return {
-      labels, targets, actuals,
+      labels, targets, actuals, options: chartOptions,
       datasets: [
         { label: '26년 목표', data: targets, backgroundColor: 'rgba(56,189,248,0.75)', borderRadius: 4 },
         { label: '26년 실적', data: actuals, backgroundColor: 'rgba(52,211,153,0.85)', borderRadius: 4 },
       ],
     };
-  }, [items]);
+  }, [items, chartOptions]);
 
   const summaryRows = useMemo((): KpiSummaryRow[] =>
     items.map(it => {

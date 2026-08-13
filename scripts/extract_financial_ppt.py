@@ -7,12 +7,15 @@ from datetime import datetime
 
 import pythoncom
 import win32com.client
+from dotenv import load_dotenv
 from openpyxl import Workbook, load_workbook
+
+load_dotenv()  # .env 파일이 있으면 환경변수로 로드 (없으면 무시)
 
 # =========================
 # 설정값
 # =========================
-# 환경변수 EXTRACT_BASE_DIR 우선 사용 — compare_and_update.py가 자동 주입
+# 환경변수 EXTRACT_BASE_DIR 우선 사용 (.env 또는 compare_and_update.py가 자동 주입)
 # CLI 인수로도 덮어쓰기 가능: python extract_financial_ppt.py "C:\새폴더경로"
 BASE_DIR = os.environ.get(
     "EXTRACT_BASE_DIR",

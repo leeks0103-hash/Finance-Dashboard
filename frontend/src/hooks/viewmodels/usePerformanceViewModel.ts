@@ -3,12 +3,20 @@ import { usePerformanceSummary } from '@/hooks/usePerformanceSummary';
 import { usePerformanceData, usePerformanceOptions } from '@/hooks/usePerformanceData';
 import { useDebouncedSearch } from '@/hooks/useDebouncedSearch';
 import { useCountUp } from '@/hooks/useCountUp';
+import { useTheme } from '@/hooks/useTheme';
 import { usePerfStore } from '@/store/perf.store';
+import { useUiStore } from '@/store';
 import { formatEok, PERF_MONTH } from '@/utils';
+import { makeBarOptions } from '@/utils/chartOptions';
 import type { PerfProject } from '@/types/performance.types';
 import type { ServerPagination, ServerSearch } from '@/components/ui/DataTable';
+import type { ChartOptions } from 'chart.js';
 
 const toEokNum = (v: number) => +(v / 100_000).toFixed(1);
+
+// PERF_MONTH("7월") 기준 — 이후 달은 아직 실적이 없는 추정 구간이므로 흐릿하게 표시
+const CURRENT_MONTH_NUM = parseInt(PERF_MONTH, 10);
+const isFutureMonth = (label: string) => parseInt(label, 10) > CURRENT_MONTH_NUM;
 
 export interface PerfKpiCard {
   label:   string;
@@ -38,7 +46,7 @@ export interface PerfPartRow {
 export interface PerfChartDataset {
   label:           string;
   data:            number[];
-  backgroundColor: string;
+  backgroundColor: string | string[];
   borderRadius:    number;
 }
 
@@ -50,6 +58,7 @@ export interface PerformanceViewModel {
   byPart:        PerfPartRow[];
   chartLabels:   string[];
   chartDatasets: PerfChartDataset[];
+  chartOptions:  ChartOptions<'bar'>;
   projects:      PerfProject[];
   parts:         string[];
   selectedParts: string[];
@@ -123,15 +132,37 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
 
   const monthly       = summary?.monthly ?? [];
   const chartLabels   = useMemo(() => monthly.map(m => m.month),   [monthly]);
-  const chartDatasets = useMemo((): PerfChartDataset[] => [{
-    label: '월별 실적', data: monthly.map(m => +(m.revenue / 100_000).toFixed(1)),
-    backgroundColor: 'rgba(52,211,153,0.82)', borderRadius: 4,
-  }], [monthly]);
+  const chartDatasets = useMemo((): PerfChartDataset[] => [
+    {
+      label: '매출', data: monthly.map(m => +(m.revenue / 100_000).toFixed(1)),
+      backgroundColor: monthly.map(m => isFutureMonth(m.month) ? 'rgba(52,211,153,0.25)' : 'rgba(52,211,153,0.82)'),
+      borderRadius: 4,
+    },
+    {
+      label: '원가', data: monthly.map(m => +(m.cost / 100_000).toFixed(1)),
+      backgroundColor: monthly.map(m => isFutureMonth(m.month) ? 'rgba(248,113,113,0.25)' : 'rgba(248,113,113,0.82)'),
+      borderRadius: 4,
+    },
+  ], [monthly]);
+
+  const { theme } = useTheme();
+  const showLabels = useUiStore(s => s.showChartLabels);
+  const labelColor = theme === 'dark' ? 'rgba(212,212,216,0.90)' : '#3F3F46';
+
+  const chartOptions = useMemo(() => makeBarOptions(showLabels, labelColor, {
+    plugins: {
+      datalabels: {
+        anchor: 'end',
+        align:  'end',
+        formatter: (v: number) => `${v}억`,
+      },
+    },
+  }), [showLabels, labelColor]);
 
   return {
     isLoading, isFetching: isFetching ?? false,
     isEmpty: !isLoading && !total,
-    kpiCards, byPart, chartLabels, chartDatasets,
+    kpiCards, byPart, chartLabels, chartDatasets, chartOptions,
     projects,
     parts: options?.parts ?? [], selectedParts, togglePart, resetFilters: reset,
 
