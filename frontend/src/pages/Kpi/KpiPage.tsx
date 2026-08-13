@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { createColumnHelper } from '@tanstack/react-table';
 import { useKpiPageViewModel } from '@/hooks/viewmodels/useKpiPageViewModel';
-import { ChartCard, BarChart, DataTable, CopyText, HighlightText } from '@/components/ui';
+import { ChartCard, BarChart, DataTable, CopyText, HighlightText, Button } from '@/components/ui';
 import KpiRawTable from '@/components/features/KpiRawTable/KpiRawTable';
 import type { KpiRawRow } from '@/types/kpi.types';
 import type { KpiSummaryRow } from '@/hooks/viewmodels/useKpiPageViewModel';
@@ -126,14 +126,14 @@ const KpiPage = () => {
       {(() => {
         const viewToggle = (
           <div className={styles.viewToggle}>
-            <button
+            <Button variant="ghost" size="sm"
               className={`${styles.toggleBtn} ${rawView === 'flat' ? styles.toggleActive : ''}`}
               onClick={() => setRawView('flat')}
-            >목록</button>
-            <button
+            >목록</Button>
+            <Button variant="ghost" size="sm"
               className={`${styles.toggleBtn} ${rawView === 'rowspan' ? styles.toggleActive : ''}`}
               onClick={() => setRawView('rowspan')}
-            >KPI 상세</button>
+            >KPI 상세</Button>
           </div>
         );
         return rawView === 'flat' ? (
