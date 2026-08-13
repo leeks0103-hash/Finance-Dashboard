@@ -18,7 +18,7 @@ interface UiStore {
 export const useUiStore = create<UiStore>()(
   persist(
     set => ({
-      showChartLabels: false,
+      showChartLabels: true,
       toggleChartLabels: () => set(s => ({ showChartLabels: !s.showChartLabels })),
 
       lastLoaded: null,
