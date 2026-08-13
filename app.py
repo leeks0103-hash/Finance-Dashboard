@@ -432,11 +432,11 @@ def api_data():
     if search:
         s = search.lower()
         mask = (
-            df["project_code"].str.lower().str.contains(s, na=False) |
-            df["part"].str.lower().str.contains(s, na=False) |
-            df["stage"].str.lower().str.contains(s, na=False) |
-            df["note"].str.lower().str.contains(s, na=False) |
-            df["filename"].str.lower().str.contains(s, na=False)
+            df["project_code"].str.lower().str.contains(s, regex=False, na=False) |
+            df["part"].str.lower().str.contains(s, regex=False, na=False) |
+            df["stage"].str.lower().str.contains(s, regex=False, na=False) |
+            df["note"].str.lower().str.contains(s, regex=False, na=False) |
+            df["filename"].str.lower().str.contains(s, regex=False, na=False)
         )
         df = df[mask]
 
@@ -1097,7 +1097,7 @@ def api_perf_data():
         mask = pd.Series([False] * len(rev), index=rev.index)
         for col in str_cols:
             if col in rev.columns:
-                mask |= rev[col].astype(str).str.lower().str.contains(s, na=False)
+                mask |= rev[col].astype(str).str.lower().str.contains(s, regex=False, na=False)
         rev = rev[mask]
 
     total = len(rev)
