@@ -68,6 +68,17 @@ function cellVal(v: unknown): string {
   return s;
 }
 
+// "_적절성" 지표는 0~5 내외 척도인데, PPT 원본에 인원수 등 엉뚱한 값이 잘못 들어가면
+// 수십~수만대 값이 찍히는 경우가 있음 (known-issues.md 기록된 패턴) — 행 배경으로 경고 표시
+const IMPLAUSIBLE_SCORE_THRESHOLD = 10;
+function isImplausibleScoreRow(row: KpiRawRow, metricKey: string): boolean {
+  if (!metricKey.endsWith('_적절성')) return false;
+  return ['사업계획', 'PJ목표', 'PJ실적', 'PJ유사'].some(field => {
+    const n = Number(row[`${metricKey}_${field}`]);
+    return Number.isFinite(n) && n > IMPLAUSIBLE_SCORE_THRESHOLD;
+  });
+}
+
 // ── DnD 가능한 th ────────────────────────────────────────────
 interface DraggableThProps {
   col:    ColDef;
@@ -265,7 +276,12 @@ const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, serverP
                 const code  = String(row['프로젝트코드'] ?? '');
                 const stage = String(row['보고단계'] ?? '');
                 return KPI_METRICS.map((m, mi) => (
-                  <tr key={`${code}-${stage}-${mi}`} className={mi % 2 === 0 ? styles.even : ''}>
+                  <tr key={`${code}-${stage}-${mi}`}
+                    className={[
+                      mi % 2 === 0 ? styles.even : '',
+                      isImplausibleScoreRow(row, m.key) ? styles.suspicious : '',
+                    ].join(' ')}
+                  >
                     {orderedCols.map(col => {
                       // rowspan 컬럼은 첫 번째 KPI 행에만 출력
                       if (col.rowspan && mi > 0) return null;

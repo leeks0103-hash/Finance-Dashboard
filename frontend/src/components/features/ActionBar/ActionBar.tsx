@@ -1,20 +1,14 @@
 import { useExport } from '@/hooks/useExport';
-import { useFilterPanelViewModel } from '@/hooks/viewmodels';
 import { useUiStore } from '@/store';
 import { Button, DownloadModal } from '@/components/ui';
 
 const ActionBar = () => {
   const { exportCsv, exportPdf, isExportingPdf, showPdfModal, reload, isReloading, correctedRows } = useExport();
-  const { hasActiveFilters, resetFilters } = useFilterPanelViewModel();
   const lastLoaded = useUiStore(s => s.lastLoaded);
 
   return (
     <>
       <div style={{ display:'flex', alignItems:'center', gap:'6px', flexShrink:0 }}>
-        <Button variant="danger" size="sm" onClick={resetFilters}
-          style={{ visibility: hasActiveFilters ? 'visible' : 'hidden' }}>
-          ✕ 초기화
-        </Button>
         <Button variant="success" size="sm" onClick={exportCsv}>↓ CSV</Button>
         <Button variant="danger"  size="sm" onClick={exportPdf} loading={isExportingPdf} disabled={isExportingPdf}>
           {isExportingPdf ? '생성 중…' : '↓ PDF'}

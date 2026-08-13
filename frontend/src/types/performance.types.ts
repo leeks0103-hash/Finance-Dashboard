@@ -128,3 +128,32 @@ export interface PerfOptions {
   parts: string[];
   teams: string[];
 }
+
+export interface PerfWorstRow {
+  project_code:  string;
+  part:          string;
+  project_name:  string;
+  plan_initial:  number;
+  jun_actual:    number;
+  achieve_rate:  number;
+}
+
+export interface PerfRiskRow {
+  project_code:      string;
+  part:              string;
+  project_name:      string;
+  operating_profit:  number;
+  profit_rate:       number;
+}
+
+export interface PerfComment {
+  type: 'positive' | 'info' | 'neutral' | 'warning';
+  icon: string;
+  text: string;
+}
+
+export interface PerfInsights {
+  worst:    PerfWorstRow[];
+  risk:     PerfRiskRow[];
+  comments: PerfComment[];
+}

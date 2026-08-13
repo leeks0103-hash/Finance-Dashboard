@@ -260,7 +260,7 @@ const DataTable = <T extends object>({
 
   useEffect(() => {
     if (isServerMode) return;
-    const timer = setTimeout(() => setGlobalFilter(searchInput), searchDebounceMs);
+    const timer = setTimeout(() => setGlobalFilter(searchInput.trim()), searchDebounceMs);
     return () => clearTimeout(timer);
   }, [searchInput, searchDebounceMs, isServerMode]);
 
