@@ -2,6 +2,8 @@ import { createColumnHelper } from '@tanstack/react-table';
 import { usePerformanceViewModel } from '@/hooks/viewmodels/usePerformanceViewModel';
 import type { PerfPartRow } from '@/hooks/viewmodels/usePerformanceViewModel';
 import { ChartCard, BarChart, DataTable, KpiCard } from '@/components/ui';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import PerformanceInsightSection from '@/components/features/PerformanceInsightSection';
 import { perfColumns, PERF_HIDEABLE_COLS } from '@/components/features/PerformanceTable/columns';
 import type { PerfProject } from '@/types/performance.types';
 import { PERF_YEAR, PERF_MONTH } from '@/utils';
@@ -85,6 +87,9 @@ const PerformancePage = () => {
           hideToolbar
         />
       </div>
+
+      {/* 실적 인사이트 — 목표 대비 부진/손실 자동 분석 */}
+      <ErrorBoundary><PerformanceInsightSection /></ErrorBoundary>
 
       {/* 프로젝트 상세 — title을 DataTable 내부로 이동해 재무 상세와 동일한 구도 */}
       <DataTable<PerfProject>

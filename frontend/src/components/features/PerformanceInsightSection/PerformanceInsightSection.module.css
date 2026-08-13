@@ -1,0 +1,103 @@
+/* 섹션 전체 높이 고정 — 데이터 양에 무관 */
+.section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  height: 360px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: box-shadow 0.2s ease;
+}
+:global([data-theme="dark"]) .section {
+  border-color: var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+.header {
+  font-weight: 700;
+  font-size: 0.92rem;
+  padding: 14px 20px 10px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sub {
+  font-weight: 400;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* 콘텐츠 영역 — 남은 높이 모두 사용, overflow 처리 */
+.body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  flex: 1;
+  min-height: 0; /* flex child overflow 동작에 필수 */
+}
+
+@media (max-width: 768px) {
+  .body { grid-template-columns: 1fr; }
+  .section { height: auto; min-height: 300px; }
+}
+
+/* 코멘트 패널 — 스크롤 */
+.commentsPane {
+  border-right: 1px solid var(--border);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+}
+
+.paneTitle {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-sub);
+  flex-shrink: 0;
+}
+
+.commentScroll {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  /* 스크롤바 공간을 항상 예약 → hover 시 레이아웃 점프 방지 */
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.commentScroll::-webkit-scrollbar { width: 4px; }
+.commentScroll::-webkit-scrollbar-track { background: transparent; }
+.commentScroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* 리스트 패널 — 좌우 배치 */
+.listsPane {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  min-height: 0;
+}
+
+/* 스켈레톤 */
+.skeleton {
+  background: var(--bg-subtle);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  height: 360px;
+  animation: pulse 1.4s ease infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.45; }
+}

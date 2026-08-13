@@ -83,3 +83,30 @@
 ```json
 { "ok": true, "loaded_at": "2024-07-20 10:00:00", "count": 42 }
 ```
+
+### `GET /api/performance/insights`
+실적현황 인사이트 반환 (목표 대비 부진 프로젝트, 손실/저수익 경고, 코멘트).
+
+**쿼리 파라미터**
+| 파라미터 | 타입 | 설명 |
+|----------|------|------|
+| `part` | string[] | 파트 필터 (복수 선택 가능) |
+| `team` | string | 팀 필터 |
+
+**응답 예시**
+```json
+{
+  "worst": [
+    { "project_code": "E123...", "part": "① AI・DS", "project_name": "...",
+      "plan_initial": 50000, "jun_actual": 0, "achieve_rate": 0.0 }
+  ],
+  "risk": [
+    { "project_code": "E456...", "part": "⑤ 신사업", "project_name": "...",
+      "operating_profit": -47841.4, "profit_rate": -23.5 }
+  ],
+  "comments": [
+    { "type": "warning", "icon": "", "text": "<b>...</b> 손실 -0.3억원 — 확인 필요" }
+  ]
+}
+```
+`plan_initial`/`jun_actual`/`operating_profit`는 천원 단위 (실적현황 데이터 전체 공통).

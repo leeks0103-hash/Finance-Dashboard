@@ -1172,6 +1172,97 @@ def api_perf_summary():
     return jsonify({"total": total, "by_part": by_part, "monthly": monthly})
 
 
+def _bil_perf(v) -> str:
+    """실적현황 데이터는 천원 단위 저장 — 억원 단위 문자열로 변환. -0.0 방지 포함."""
+    return f"{v / 100_000:.1f}".replace("-0.0", "0.0") + "억원"
+
+
+@app.route("/api/performance/insights")
+def api_perf_insights():
+    """실적현황 인사이트: 목표 대비 부진 프로젝트, 손실/저수익 경고, 코멘트."""
+    df = apply_perf_filters(get_perf_df())
+    if df.empty:
+        return jsonify({"worst": [], "risk": [], "comments": []})
+
+    rev = df[df["category"] == "매출"].copy()
+    if rev.empty:
+        return jsonify({"worst": [], "risk": [], "comments": []})
+
+    rev["achieve_rate"] = np.where(
+        rev["plan_initial"] > 0,
+        (rev["jun_actual"] / rev["plan_initial"] * 100).round(1),
+        np.nan,
+    )
+    # 랭킹/코멘트 전용 — 미배정 임시 코드는 걸러서 순위표가 의미 없는 값으로 채워지지 않게 함
+    rev_coded = rev[rev["project_code"].apply(_is_ranked_valid_code)]
+    valid_achieve = rev_coded.dropna(subset=["achieve_rate"])
+
+    worst = (
+        valid_achieve[valid_achieve["achieve_rate"] < 100]
+        .nsmallest(10, "achieve_rate")
+        [["project_code", "part", "project_name", "plan_initial", "jun_actual", "achieve_rate"]]
+        .to_dict(orient="records")
+    )
+
+    risk_pool = rev_coded[(rev_coded["operating_profit"] < 0) | (rev_coded["profit_rate"] < 5)].copy()
+    risk_pool["_is_loss"] = (risk_pool["operating_profit"] < 0).astype(int)
+    risk = (
+        risk_pool
+        .sort_values(["_is_loss", "profit_rate"], ascending=[False, True])
+        .head(10)
+        .drop(columns=["_is_loss"])
+        [["project_code", "part", "project_name", "operating_profit", "profit_rate"]]
+        .to_dict(orient="records")
+    )
+
+    comments = []
+
+    # 손실 프로젝트 — 가장 먼저, 가장 중요
+    loss_rows = rev_coded[rev_coded["operating_profit"] < 0].nsmallest(3, "operating_profit")
+    for _, lrow in loss_rows.iterrows():
+        comments.append({
+            "type": "warning", "icon": "",
+            "text": f"<b>{html_escape(str(lrow['project_code']))}</b> 손실 {_bil_perf(lrow['operating_profit'])} — 확인 필요",
+        })
+
+    # 목표 대비 심각 부진 (달성률 70% 미만)
+    worst_rows = valid_achieve[valid_achieve["achieve_rate"] < 70].nsmallest(2, "achieve_rate")
+    for _, wrow in worst_rows.iterrows():
+        comments.append({
+            "type": "warning", "icon": "",
+            "text": f"<b>{html_escape(str(wrow['project_code']))}</b> ({html_escape(str(wrow['part']))}) 달성률 {wrow['achieve_rate']}% — 목표 대비 부진",
+        })
+
+    # 파트 간 달성률 격차
+    part_stats = (
+        valid_achieve.groupby("part")
+        .agg(avg_achieve=("achieve_rate", "mean"))
+        .reset_index()
+    )
+    if len(part_stats) > 1:
+        best_row  = part_stats.loc[part_stats["avg_achieve"].idxmax()]
+        worst_row = part_stats.loc[part_stats["avg_achieve"].idxmin()]
+        if best_row["part"] != worst_row["part"]:
+            gap = round(best_row["avg_achieve"] - worst_row["avg_achieve"], 1)
+            comments.append({
+                "type": "warning", "icon": "",
+                "text": f"<b>{html_escape(str(worst_row['part']))}</b> 평균 달성률 {round(worst_row['avg_achieve'], 1)}% — "
+                        f"{html_escape(str(best_row['part']))} 대비 -{gap}%p",
+            })
+
+    # 전체 달성률 요약
+    total_plan   = rev["plan_initial"].sum()
+    total_actual = rev["jun_actual"].sum()
+    if total_plan > 0:
+        total_achieve = round(total_actual / total_plan * 100, 1)
+        comments.append({
+            "type": "info", "icon": "",
+            "text": f"전체 달성률 {total_achieve}% (계획 대비, 필터 기준)",
+        })
+
+    return jsonify({"worst": worst, "risk": risk, "comments": comments})
+
+
 @app.route("/api/performance/reload", methods=["POST"])
 def api_perf_reload():
     try:

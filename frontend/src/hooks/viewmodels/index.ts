@@ -5,4 +5,5 @@ export { useProjectTableViewModel } from './useProjectTableViewModel';
 export { useFilterPanelViewModel }  from './useFilterPanelViewModel';
 export { useKpiFilterPanelViewModel } from './useKpiFilterPanelViewModel';
 export { usePerformanceViewModel }  from './usePerformanceViewModel';
+export { usePerformanceInsightViewModel } from './usePerformanceInsightViewModel';
 export { useKpiPageViewModel }      from './useKpiPageViewModel';

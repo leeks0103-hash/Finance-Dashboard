@@ -1,6 +1,6 @@
 import client from './client';
 import { appendPageParams } from './queryParams';
-import type { PerfSummary, PerfProject, PerfOptions } from '@/types/performance.types';
+import type { PerfSummary, PerfProject, PerfOptions, PerfInsights } from '@/types/performance.types';
 import type { PagedResponse, PageParams } from '@/types/finance.types';
 
 const toParams = (parts: string[], team = ''): URLSearchParams => {
@@ -12,6 +12,9 @@ const toParams = (parts: string[], team = ''): URLSearchParams => {
 
 export const getPerfSummary = (parts: string[], team = ''): Promise<PerfSummary> =>
   client.get<PerfSummary>('/performance/summary', { params: toParams(parts, team) }).then(r => r.data);
+
+export const getPerfInsights = (parts: string[], team = ''): Promise<PerfInsights> =>
+  client.get<PerfInsights>('/performance/insights', { params: toParams(parts, team) }).then(r => r.data);
 
 export const getPerfData = (
   parts: string[],
