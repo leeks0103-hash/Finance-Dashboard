@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useKpiFilterStore } from '@/store/kpiFilter.store';
 import { useKpiFilterOptions } from '@/hooks/useKpiFilterOptions';
 import { sortStages } from '@/utils/stageOrder';
@@ -24,8 +25,18 @@ export const useKpiFilterPanelViewModel = (): KpiFilterPanelViewModel => {
   const togglePart  = useKpiFilterStore(s => s.togglePart);
   const toggleStage = useKpiFilterStore(s => s.toggleStage);
   const reset       = useKpiFilterStore(s => s.reset);
+  const initialized         = useKpiFilterStore(s => s.initialized);
+  const initializeDefaults  = useKpiFilterStore(s => s.initializeDefaults);
 
   const { data: options } = useKpiFilterOptions();
+
+  // 최초 방문 시 한 번만 — 연도=올해, 파트/보고단계=전체 선택 상태로 시작
+  useEffect(() => {
+    const opts = options;
+    if (!initialized && opts?.years.length && opts?.parts.length && opts?.stages.length) {
+      initializeDefaults(opts.years, opts.parts, opts.stages);
+    }
+  }, [initialized, options, initializeDefaults]);
 
   const hasActiveFilters = Boolean(years.length || parts.length || stages.length);
   const activeCount =
