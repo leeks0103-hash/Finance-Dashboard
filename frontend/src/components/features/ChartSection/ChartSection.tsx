@@ -199,7 +199,7 @@ const ChartSection = () => {
           <BarChart
             labels={vm.profitRate.labels}
             datasets={[showProfitAmount
-              ? { label: '이익액(억)', data: vm.revExp.profits,  backgroundColor: profitColors }
+              ? { label: '이익액(억)', data: vm.revExp.profits,  backgroundColor: barRed }
               : { label: '이익율(%)',  data: vm.profitRate.rates, backgroundColor: profitColors }
             ]}
             options={showProfitAmount ? profitAmountOptions : profitRateOptions}
