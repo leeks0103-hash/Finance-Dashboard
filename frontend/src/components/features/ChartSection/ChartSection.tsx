@@ -11,6 +11,7 @@ import { useChartViewModel } from '@/hooks/viewmodels';
 import { useTheme, useFilterOptions } from '@/hooks';
 import { useFilterStore, useUiStore } from '@/store';
 import { makeBarOptions } from '@/utils/chartOptions';
+import { getChartPalette } from '@/utils/chartColors';
 import { isAllSelected } from '@/utils/array';
 import { ChartCard, BarChart, DoughnutChart, Toggle } from '@/components/ui';
 import styles from './ChartSection.module.css';
@@ -88,23 +89,16 @@ const ChartSection = () => {
     });
   }, []);
 
-  // 이익율 바: 흑자=인디고, 적자=레드
+  // 재무·KPI·실적현황 3탭 공통 팔레트 — 매출=인디고, 지출/원가=레드, 이익=그린, 이익율=퍼플(KpiCard "평균 이익율"와 동일 계열)
+  const palette = useMemo(() => getChartPalette(dark), [dark]);
+
+  // 이익율 바: 흑자=퍼플(비율 지표 고유색), 적자=레드
   const profitColors = useMemo(() => vm.profitRate.isProfit.map(ok =>
-    ok
-      ? (dark ? 'rgba(129,140,248,0.85)' : 'rgba(79,70,229,0.80)')   // indigo
-      : (dark ? 'rgba(248,113,113,0.85)' : 'rgba(220,38,38,0.75)')   // red
-  ), [vm.profitRate.isProfit, dark]);
+    ok ? palette.rate : palette.cost
+  ), [vm.profitRate.isProfit, palette]);
 
-  // 매출=인디고, 지출=레드, 이익=에메랄드 — 가독성 최우선
-  const barOrange = dark ? 'rgba(129,140,248,0.82)' : 'rgba(79,70,229,0.80)';   // indigo
-  const barGreen  = dark ? 'rgba(52,211,153,0.80)'  : 'rgba(5,150,105,0.78)';   // emerald
-  const barRed    = dark ? 'rgba(248,113,113,0.82)' : 'rgba(220,38,38,0.75)';   // red
-
-  // 도넛: 인디고 + 에메랄드 + 앰버
-  const doughnutColors = useMemo(() => dark
-    ? ['rgba(129,140,248,0.85)', 'rgba(52,211,153,0.82)', 'rgba(251,191,36,0.82)']
-    : ['rgba(79,70,229,0.82)',   'rgba(5,150,105,0.80)',  'rgba(217,119,6,0.78)']
-  , [dark]);
+  // 도넛: 원가구성 세부 — 전부 "원가"이므로 레드 계열 톤 변주로 한 가족임을 드러냄
+  const doughnutColors = useMemo(() => [palette.costDirect, palette.costLabor, palette.costOverhead], [palette]);
 
   // 차트 옵션에 grid/tick 색상 직접 주입 — Chart.defaults 의존 없이 React prop만으로 업데이트
   const scaleOverride = useMemo(() => ({
@@ -201,7 +195,7 @@ const ChartSection = () => {
           <BarChart
             labels={vm.profitRate.labels}
             datasets={[showProfitAmount
-              ? { label: '이익액(억)', data: vm.revExp.profits,  backgroundColor: barRed }
+              ? { label: '이익액(억)', data: vm.revExp.profits,  backgroundColor: palette.cost }
               : { label: '이익율(%)',  data: vm.profitRate.rates, backgroundColor: profitColors }
             ]}
             options={showProfitAmount ? profitAmountOptions : profitRateOptions}
@@ -218,8 +212,8 @@ const ChartSection = () => {
             horizontal
             labels={vm.revExp.labels}
             datasets={[
-              { label: '매출(억)', data: vm.revExp.revenues,     backgroundColor: barOrange },
-              { label: '지출(억)', data: vm.revExp.expenditures, backgroundColor: barRed    },
+              { label: '매출(억)', data: vm.revExp.revenues,     backgroundColor: palette.revenue },
+              { label: '지출(억)', data: vm.revExp.expenditures, backgroundColor: palette.cost    },
             ]}
             options={revExpOptions}
             onClick={handlePartClick}
@@ -252,8 +246,8 @@ const ChartSection = () => {
             horizontal
             labels={vm.stageChart.labels}
             datasets={[
-              { label: '매출(억)', data: vm.stageChart.revenues,     backgroundColor: barOrange },
-              { label: '지출(억)', data: vm.stageChart.expenditures, backgroundColor: barRed    },
+              { label: '매출(억)', data: vm.stageChart.revenues,     backgroundColor: palette.revenue },
+              { label: '지출(억)', data: vm.stageChart.expenditures, backgroundColor: palette.cost    },
             ]}
             options={stageChartOptions}
           />
@@ -282,8 +276,8 @@ const ChartSection = () => {
                 <BarChart
                   labels={vm.yearTrend.labels}
                   datasets={[
-                    { label: '매출(억)', data: vm.yearTrend.revenues, backgroundColor: barOrange },
-                    { label: '이익(억)', data: vm.yearTrend.profits,  backgroundColor: barGreen  },
+                    { label: '매출(억)', data: vm.yearTrend.revenues, backgroundColor: palette.revenue },
+                    { label: '이익(억)', data: vm.yearTrend.profits,  backgroundColor: palette.profit  },
                   ]}
                   options={yearTrendOptions}
                 />

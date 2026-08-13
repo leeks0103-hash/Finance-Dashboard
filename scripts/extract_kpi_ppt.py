@@ -68,7 +68,7 @@ KPI_METRIC_NAMES = [
 ]
 
 PART_KEYWORDS = ["신사업", "PM", "전차", "미모", "AI", "SW", "K뉴딜TF"]
-REPORT_STAGE_KEYWORDS = ["사업계획", "제안", "착수", "중간", "완료"]
+REPORT_STAGE_KEYWORDS = ["사전검토", "사업계획", "제안", "착수", "중간", "완료", "검토"]
 
 # 폴더명 → 파트명 매핑 (파일명에 키워드 없는 경우 상위 폴더명으로 판단)
 FOLDER_PART_MAP = {

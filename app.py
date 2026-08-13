@@ -399,7 +399,7 @@ def _register_pdf_font() -> str:
 _PDF_FONT = _register_pdf_font()
 
 
-_STAGE_PRIORITY = ["최종", "완료", "확정", "중간", "착수", "제안", "사전검토", "사업계획", "검토"]
+_STAGE_PRIORITY = ["검토", "사업계획", "사전검토", "제안", "착수", "중간", "완료"]
 
 
 def _sort_stages(stage_list):
@@ -488,7 +488,7 @@ def api_summary():
         .to_dict(orient="index")
     )
 
-    STAGE_ORDER = ["완료", "중간", "착수", "제안", "사업계획", "검토"]
+    STAGE_ORDER = _STAGE_PRIORITY
     # 보고단계별 매출 현황 차트는 필터(연도/파트/보고단계)와 무관하게 항상 전체 데이터 기준
     by_stage_raw = (
         get_df().groupby("stage")
@@ -1332,6 +1332,17 @@ def _load_kpi_items_from_cache() -> list:
     return items
 
 
+def _parse_new_old_count(value) -> tuple:
+    """'신규:N건/기존:M건' 형식 문자열에서 (신규, 기존) 정수 쌍 추출. 매치 없으면 0."""
+    s = str(value)
+    m_new = re.search(r"신규\s*:\s*(\d+)건", s)
+    m_old = re.search(r"기존\s*:\s*(\d+)건", s)
+    return (
+        int(m_new.group(1)) if m_new else 0,
+        int(m_old.group(1)) if m_old else 0,
+    )
+
+
 def _aggregate_kpi_col(kpi_items: list, col_keyword: str) -> list:
     """취합 시트에서 col_keyword 포함 컬럼들을 KPI 항목 순서대로 집계.
     - 'PJ실적' → 26년 실적, 'PJ유사' → 25년 실적(비교년도)
@@ -1496,6 +1507,26 @@ def api_kpi_summary():
             target   = kpi["target"]
             actual   = actuals[i] if i < len(actuals) else 0.0
             prev     = prevs[i]   if i < len(prevs)   else 0.0
+
+            # 신규/기존 건수 통합 항목 — 그래프·표에서 구분 안 되던 문제 수정: 숫자 2개 항목으로 분리
+            if isinstance(target, str) and "신규" in target:
+                target_new, target_old = _parse_new_old_count(target)
+                actual_new, actual_old = _parse_new_old_count(actual)
+                prev_new,   prev_old   = _parse_new_old_count(prev)
+
+                for suffix, t, a, p in (
+                    ("신규", target_new, actual_new, prev_new),
+                    ("기존", target_old, actual_old, prev_old),
+                ):
+                    result.append({
+                        "name":          kpi["name"].replace("신규/기존", suffix),
+                        "agg":           kpi["agg"],
+                        "target_2026":   t,
+                        "actual_2026":   a,
+                        "prev_actual":   p,
+                        "achieve_rate":  round(a / t * 100, 1) if t else 0.0,
+                    })
+                continue
 
             if isinstance(target, str):
                 achieve    = None

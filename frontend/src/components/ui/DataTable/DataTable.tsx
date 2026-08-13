@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useCallback, type ReactNode, type MouseEvent as ReactMouseEvent } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback, type CSSProperties, type ReactNode, type MouseEvent as ReactMouseEvent } from 'react';
 import { createPortal } from 'react-dom';
 import {
   useReactTable,
@@ -150,6 +150,8 @@ interface Props<T> {
 }
 
 const DEFAULT_PAGE_SIZES = [10, 20, 30, 50, 100];
+// 검색·필터로 행이 줄어도 최소 이 정도 높이는 유지 — 결과 1건일 때도 빈 상태처럼 휑해 보이지 않게
+const MIN_TABLE_ROWS = 5;
 
 const DataTable = <T extends object>({
   data,
@@ -351,6 +353,8 @@ const DataTable = <T extends object>({
   // 페이지 상태 — 서버/클라이언트 통합
   const pageIndex   = isServerMode ? serverPagination!.page - 1 : table.getState().pagination.pageIndex;
   const pageSize    = isServerMode ? serverPagination!.pageSize : table.getState().pagination.pageSize;
+  // 실제 보여지는 행 수 기준 — pageSize를 다 못 채워도(검색 결과 적음) 그만큼만 여백 확보
+  const dtRows      = Math.max(MIN_TABLE_ROWS, Math.min(pageSize, rows.length));
   const pageCount   = isServerMode
     ? Math.ceil(serverPagination!.total / serverPagination!.pageSize)
     : table.getPageCount();
@@ -390,7 +394,10 @@ const DataTable = <T extends object>({
   const showSearch = searchable || !!serverSearch;
 
   return (
-    <div className={`${styles.wrapper} ${compact ? styles.compact : ''}`}>
+    <div
+      className={`${styles.wrapper} ${compact ? styles.compact : ''}`}
+      style={{ '--dt-rows': dtRows } as CSSProperties}
+    >
 
       {!hideToolbar && (
         <div className={styles.toolbar}>

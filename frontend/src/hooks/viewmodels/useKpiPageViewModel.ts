@@ -5,6 +5,7 @@ import { useKpiFilterStore } from '@/store/kpiFilter.store';
 import { useUiStore } from '@/store';
 import { useTheme } from '@/hooks/useTheme';
 import { makeBarOptions } from '@/utils/chartOptions';
+import { getChartPalette } from '@/utils/chartColors';
 import type { KpiRawRow } from '@/types/kpi.types';
 import type { ServerPagination, ServerSearch } from '@/components/ui/DataTable';
 import type { ChartOptions } from 'chart.js';
@@ -73,8 +74,10 @@ export const useKpiPageViewModel = (): KpiPageViewModel => {
   const rawRows: KpiRawRow[] = data?.rows ?? [];
 
   const { theme } = useTheme();
+  const dark = theme === 'dark';
   const showLabels = useUiStore(s => s.showChartLabels);
-  const labelColor = theme === 'dark' ? 'rgba(212,212,216,0.90)' : '#3F3F46';
+  const labelColor = dark ? 'rgba(212,212,216,0.90)' : '#3F3F46';
+  const palette = useMemo(() => getChartPalette(dark), [dark]);
 
   const chartOptions = useMemo(() => makeBarOptions(showLabels, labelColor, {
     plugins: {
@@ -87,17 +90,18 @@ export const useKpiPageViewModel = (): KpiPageViewModel => {
   }), [showLabels, labelColor]);
 
   const chart = useMemo((): KpiChartData => {
-    const labels  = items.map(it => it.name.replace(/\s*\([^)]+\)\s*/g, ' ').trim());
+    // 괄호 안 세부 구분(과정 건수/구성 적절성 등)까지 유지 — 지우면 같은 항목명이 중복돼 헷갈림
+    const labels  = items.map(it => it.name.trim());
     const targets = items.map(it => typeof it.target_2026 === 'number' ? it.target_2026 : 0);
     const actuals = items.map(it => typeof it.actual_2026 === 'number' ? it.actual_2026 : 0);
     return {
       labels, targets, actuals, options: chartOptions,
       datasets: [
-        { label: '26년 목표', data: targets, backgroundColor: 'rgba(56,189,248,0.75)', borderRadius: 4 },
-        { label: '26년 실적', data: actuals, backgroundColor: 'rgba(52,211,153,0.85)', borderRadius: 4 },
+        { label: '26년 목표', data: targets, backgroundColor: palette.target,  borderRadius: 4 },
+        { label: '26년 실적', data: actuals, backgroundColor: palette.revenue, borderRadius: 4 },
       ],
     };
-  }, [items, chartOptions]);
+  }, [items, chartOptions, palette]);
 
   const summaryRows = useMemo((): KpiSummaryRow[] =>
     items.map(it => {
