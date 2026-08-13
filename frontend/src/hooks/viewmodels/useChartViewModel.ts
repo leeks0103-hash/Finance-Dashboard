@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useSummary } from '@/hooks/useSummary';
 import { useUiStore } from '@/store';
 import { makeBarOptions } from '@/utils/chartOptions';
+import { sortStages } from '@/utils/stageOrder';
 import type { ChartOptions } from 'chart.js';
 
 export interface ChartViewModel {
@@ -99,7 +100,7 @@ export const useChartViewModel = (labelColor: string): ChartViewModel => {
     const byYear  = data.by_year ?? {};
     const years   = Object.keys(byYear).sort();
     const byStage = data.by_stage ?? {};
-    const stages  = Object.keys(byStage);
+    const stages  = sortStages(Object.keys(byStage));
 
     return {
       isEmpty: parts.length === 0,
