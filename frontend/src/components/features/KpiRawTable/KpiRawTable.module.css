@@ -141,21 +141,23 @@
 /* rowspan 구조에서 중간 행의 :last-child가 잘못 판단되므로
    border-right는 전부 유지하고 wrapper overflow:hidden으로 클리핑 */
 
-/* 같은 프로젝트 내 짝수 KPI 행 배경 */
-.even td:not([rowspan]) {
+/* 같은 프로젝트 내 짝수 KPI 행 배경
+   주의: rowSpan={1}도 React가 rowspan="1" 속성을 그대로 렌더링하므로
+   :not([rowspan])는 아무 것도 매칭 안 됨 — spanCell 클래스로 구분해야 함 */
+.even td:not(.spanCell) {
   background: var(--surface-alt, rgba(0,0,0,0.02));
 }
 
-:global([data-theme="dark"]) .even td:not([rowspan]) {
+:global([data-theme="dark"]) .even td:not(.spanCell) {
   background: rgba(255,255,255,0.03);
 }
 
 /* 적절성 지표 등 소규모 척도인데 값이 비정상적으로 큰 행 — 원본 오입력 의심 경고 */
-.suspicious td:not([rowspan]) {
+.suspicious td:not(.spanCell) {
   background: rgba(220,38,38,0.16) !important;
 }
 
-:global([data-theme="dark"]) .suspicious td:not([rowspan]) {
+:global([data-theme="dark"]) .suspicious td:not(.spanCell) {
   background: rgba(248,113,113,0.20) !important;
 }
 
