@@ -1,6 +1,6 @@
 import { usePerformanceOptions } from '@/hooks/usePerformanceData';
 import { usePerfStore } from '@/store/perf.store';
-import { FilterChip } from '@/components/ui';
+import { FilterChip, MultiSelectDropdown } from '@/components/ui';
 import { isAllSelected } from '@/utils/array';
 import styles from './PerformanceFilterBar.module.css';
 
@@ -22,7 +22,7 @@ const PerformanceFilterBar = () => {
 
   return (
     <div className={styles.panel}>
-      <div className={styles.group}>
+      <div className={`${styles.group} ${styles.chipsOnly}`}>
         <span className={styles.label}>파트</span>
         <div className={styles.chips}>
           <FilterChip label="전체" checked={allPartsSelected} onChange={toggleAllParts} />
@@ -31,6 +31,10 @@ const PerformanceFilterBar = () => {
               onChange={() => togglePart(p)} />
           ))}
         </div>
+      </div>
+      <div className={styles.dropdownOnly}>
+        <MultiSelectDropdown label="파트" options={parts} selected={selectedParts}
+          onToggle={togglePart} onReset={() => selectedParts.forEach(togglePart)} />
       </div>
       <div className={styles.teamWrap}>
         <select

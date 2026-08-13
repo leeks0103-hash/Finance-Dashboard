@@ -8,9 +8,10 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useChartViewModel } from '@/hooks/viewmodels';
-import { useTheme } from '@/hooks';
+import { useTheme, useFilterOptions } from '@/hooks';
 import { useFilterStore, useUiStore } from '@/store';
 import { makeBarOptions } from '@/utils/chartOptions';
+import { isAllSelected } from '@/utils/array';
 import { ChartCard, BarChart, DoughnutChart, Toggle } from '@/components/ui';
 import styles from './ChartSection.module.css';
 
@@ -50,9 +51,10 @@ const ChartSection = () => {
   const togglePart    = useFilterStore(s => s.togglePart);
   const stages        = useFilterStore(s => s.stages);
   const showYearChart = useUiStore(s => s.showYearChart);
+  const { stages: allStages } = useFilterOptions();
 
   const handlePartClick = togglePart;
-  const stageLabel = stages.length > 0 ? stages.join('·') : '전체';
+  const stageLabel = stages.length > 0 && !isAllSelected(stages, allStages) ? stages.join('·') : '전체';
 
   // 파트별 이익율 카드 — 토글 켜면 이익율(%) 대신 이익액(억원) 표시
   const [showProfitAmount, setShowProfitAmount] = useState(false);
