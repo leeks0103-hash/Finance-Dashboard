@@ -7,6 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional, List, Dict, Tuple
 
+from dotenv import load_dotenv
 from pptx import Presentation
 from pptx.exc import PackageNotFoundError as PptxPackageNotFoundError
 from openpyxl import load_workbook, Workbook
@@ -18,11 +19,12 @@ try:
 except ImportError:
     WIN32_AVAILABLE = False
 
+load_dotenv()  # .env 파일이 있으면 환경변수로 로드 (없으면 무시)
 
 # =========================================
 # 사용자 설정
 # =========================================
-# 환경변수 EXTRACT_KPI_ROOT_DIR 우선 사용 — compare_and_update.py가 자동 주입
+# 환경변수 EXTRACT_KPI_ROOT_DIR 우선 사용 (.env 또는 compare_and_update.py가 자동 주입)
 # CLI 인수로도 덮어쓰기 가능: python extract_kpi_ppt.py "C:\새폴더경로"
 import sys as _sys
 RETRY_MODE = "--retry" in _sys.argv
