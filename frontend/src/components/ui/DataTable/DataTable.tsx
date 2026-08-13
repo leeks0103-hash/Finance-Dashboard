@@ -262,9 +262,12 @@ const DataTable = <T extends object>({
     return () => clearTimeout(timer);
   }, [searchInput, searchDebounceMs, isServerMode]);
 
+  const searchQuery = isServerMode ? (serverSearch?.value ?? '') : globalFilter;
+
   const table = useReactTable({
     data,
     columns: columnsWithIndex,
+    meta: { searchQuery },
     state: {
       globalFilter: isServerMode ? undefined : globalFilter,
       columnVisibility,

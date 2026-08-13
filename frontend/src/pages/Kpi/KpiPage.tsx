@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { createColumnHelper } from '@tanstack/react-table';
 import { useKpiPageViewModel } from '@/hooks/viewmodels/useKpiPageViewModel';
-import { ChartCard, BarChart, DataTable, CopyText } from '@/components/ui';
+import { ChartCard, BarChart, DataTable, CopyText, HighlightText } from '@/components/ui';
 import KpiRawTable from '@/components/features/KpiRawTable/KpiRawTable';
 import type { KpiRawRow } from '@/types/kpi.types';
 import type { KpiSummaryRow } from '@/hooks/viewmodels/useKpiPageViewModel';
@@ -47,9 +47,10 @@ const KpiPage = () => {
         cell: i => {
           const v = i.getValue();
           if (v === null || v === undefined || v === 0 || v === '') return '-';
+          const query = i.table.options.meta?.searchQuery;
           if (col === '프로젝트코드' && typeof v === 'string' && v.trim())
-            return <CopyText text={v} />;
-          return typeof v === 'number' ? String(v) : String(v);
+            return <CopyText text={v} highlight={query} />;
+          return <HighlightText text={String(v)} query={query} />;
         },
       })
     ),

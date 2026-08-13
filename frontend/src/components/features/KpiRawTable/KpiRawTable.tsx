@@ -8,7 +8,7 @@ import {
   SortableContext, horizontalListSortingStrategy, useSortable, arrayMove,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { CopyText, Button, Pagination } from '@/components/ui';
+import { CopyText, Button, Pagination, HighlightText } from '@/components/ui';
 import { useColumnHighlight } from '@/hooks/useColumnHighlight';
 import { useClipboardPopup } from '@/hooks/useClipboardPopup';
 import styles from './KpiRawTable.module.css';
@@ -283,7 +283,9 @@ const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, serverP
                           title={val}
                           onClick={col.id === 'filename' && val ? () => openPopup(val, true) : undefined}
                         >
-                          {col.id === 'code' ? <CopyText text={val} /> : val || 'N'}
+                          {col.id === 'code'
+                            ? <CopyText text={val} highlight={serverSearch?.value} />
+                            : val ? <HighlightText text={val} query={serverSearch?.value} /> : 'N'}
                         </td>
                       );
                     })}

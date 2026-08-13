@@ -1,5 +1,5 @@
 import { createColumnHelper } from '@tanstack/react-table';
-import { CopyText } from '@/components/ui';
+import { CopyText, HighlightText } from '@/components/ui';
 import type { HideableColumn } from '@/components/ui/DataTable';
 import type { PerfProject } from '@/types/performance.types';
 import { formatEok, formatPctRaw, formatNum, PERF_MONTH } from '@/utils';
@@ -10,26 +10,29 @@ const h = createColumnHelper<PerfProject>();
 const eok = (v: number) => formatEok(v);
 const pct = (v: number) => formatPctRaw(v);
 const num = (v: number) => formatNum(v);
+// 텍스트 컬럼 — 검색 매치 하이라이트
+const txt = (i: { getValue: () => unknown; table: { options: { meta?: { searchQuery?: string } } } }) =>
+  <HighlightText text={String(i.getValue() ?? '')} query={i.table.options.meta?.searchQuery} />;
 
 export const perfColumns = [
   // 식별 — 프로젝트코드 제일 앞 (sticky 첫 번째 컬럼)
   h.accessor('project_code', {
     header: '프로젝트코드',
     enableSorting: true,
-    cell: i => <CopyText text={i.getValue()} />,
+    cell: i => <CopyText text={i.getValue()} highlight={i.table.options.meta?.searchQuery} />,
   }),
-  h.accessor('part',         { header: '파트' }),
-  h.accessor('team',         { header: '팀' }),
-  h.accessor('project_name', { header: '프로젝트명' }),
-  h.accessor('manager',      { header: '담당자' }),
-  h.accessor('tech_category',{ header: '미래기술분류' }),
-  h.accessor('biz_type',     { header: '사업구분' }),
-  h.accessor('customer_type',{ header: '고객구분' }),
-  h.accessor('biz_plan',     { header: '사업계획' }),
-  h.accessor('progress',     { header: '진행' }),
-  h.accessor('edu_type',     { header: '교육형태' }),
-  h.accessor('biz_type2',    { header: '사업유형' }),
-  h.accessor('budget_code',  { header: '예산코드' }),
+  h.accessor('part',         { header: '파트',       cell: txt }),
+  h.accessor('team',         { header: '팀',         cell: txt }),
+  h.accessor('project_name', { header: '프로젝트명', cell: txt }),
+  h.accessor('manager',      { header: '담당자',     cell: txt }),
+  h.accessor('tech_category',{ header: '미래기술분류', cell: txt }),
+  h.accessor('biz_type',     { header: '사업구분',   cell: txt }),
+  h.accessor('customer_type',{ header: '고객구분',   cell: txt }),
+  h.accessor('biz_plan',     { header: '사업계획',   cell: txt }),
+  h.accessor('progress',     { header: '진행',       cell: txt }),
+  h.accessor('edu_type',     { header: '교육형태',   cell: txt }),
+  h.accessor('biz_type2',    { header: '사업유형',   cell: txt }),
+  h.accessor('budget_code',  { header: '예산코드',   cell: txt }),
   // 재무
   h.accessor('actual_2025',       { header: '25년 실적',    enableSorting: true, cell: i => eok(i.getValue()) }),
   h.accessor('plan_initial',      { header: '최초계획',     enableSorting: true, cell: i => eok(i.getValue()) }),
@@ -44,11 +47,11 @@ export const perfColumns = [
   h.accessor('jun_cost_rate',  { header: `${PERF_MONTH} 원가율`,  cell: i => pct(i.getValue()) }),
   h.accessor('cost_rate_diff', { header: '원가율 차이', cell: i => i.getValue() ? `${((i.getValue() as number) * 100).toFixed(1)}%p` : '-' }),
   h.accessor('est_vs_actual',  { header: '추정 대비',   cell: i => eok(i.getValue()) }),
-  h.accessor('cost_rate_reason',{ header: '원가율 사유' }),
+  h.accessor('cost_rate_reason',{ header: '원가율 사유', cell: txt }),
   // 차이분석
   h.accessor('plan_diff_amount', { header: '차이금액', cell: i => eok(i.getValue()) }),
   h.accessor('plan_diff_rate',   { header: '증감율',   cell: i => i.getValue() ? `${((i.getValue() as number)*100).toFixed(1)}%` : '-' }),
-  h.accessor('plan_diff_reason', { header: '사유' }),
+  h.accessor('plan_diff_reason', { header: '사유', cell: txt }),
   // 손익 점검
   h.accessor('profit_gross',      { header: '매출이익',  cell: i => eok(i.getValue()) }),
   h.accessor('cost_direct',       { header: '직접원가',  cell: i => eok(i.getValue()) }),
@@ -66,8 +69,8 @@ export const perfColumns = [
   // 대차·참조
   h.accessor('balance_amount', { header: '대차금액', cell: i => eok(i.getValue()) }),
   h.accessor('balance_rate',   { header: '대차비율', cell: i => i.getValue() ? `${((i.getValue() as number)*100).toFixed(1)}%` : '-' }),
-  h.accessor('dup_check',      { header: '중복점검' }),
-  h.accessor('ref_code',       { header: '참조코드' }),
+  h.accessor('dup_check',      { header: '중복점검', cell: txt }),
+  h.accessor('ref_code',       { header: '참조코드', cell: txt }),
   // 신사업 직접원가
   h.accessor('sa_direct_total',    { header: '직접원가 소계', cell: i => num(i.getValue()) }),
   h.accessor('sa_instructor',      { header: '강사비',        cell: i => num(i.getValue()) }),
@@ -88,9 +91,9 @@ export const perfColumns = [
   h.accessor('sa_regular',         { header: '정규직',      cell: i => num(i.getValue()) }),
   h.accessor('sa_overhead_cost',   { header: '제경비',      cell: i => num(i.getValue()) }),
   // 기타
-  h.accessor('change_note', { header: '변동 검토의견' }),
-  h.accessor('note',        { header: '비고' }),
-  h.accessor('filename',    { header: '원본파일명' }),
+  h.accessor('change_note', { header: '변동 검토의견', cell: txt }),
+  h.accessor('note',        { header: '비고',          cell: txt }),
+  h.accessor('filename',    { header: '원본파일명',    cell: txt }),
 ];
 
 /**
