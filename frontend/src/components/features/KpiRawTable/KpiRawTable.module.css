@@ -58,7 +58,7 @@
   border-radius: 6px;
   background: var(--surface);
   color: var(--text);
-  width: 220px;
+  width: 320px;
   outline: none;
 }
 
@@ -148,6 +148,15 @@
 
 :global([data-theme="dark"]) .even td:not([rowspan]) {
   background: rgba(255,255,255,0.03);
+}
+
+/* 적절성 지표 등 소규모 척도인데 값이 비정상적으로 큰 행 — 원본 오입력 의심 경고 */
+.suspicious td:not([rowspan]) {
+  background: rgba(220,38,38,0.16) !important;
+}
+
+:global([data-theme="dark"]) .suspicious td:not([rowspan]) {
+  background: rgba(248,113,113,0.20) !important;
 }
 
 /* 프로젝트 구분 — rowspan 셀 배경 (항상 기본색) */
