@@ -160,10 +160,13 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
       datalabels: {
         anchor: 'end',
         align:  'end',
+        // 좁은 화면 — 12개월 x 2계열 막대가 촘촘해지면 숫자가 겹쳐 안 보이므로 숨김
+        display: (ctx: { chart: { width: number } }) =>
+          showLabels && ctx.chart.width / (monthly.length * 2) > 20,
         formatter: (v: number) => `${v}억`,
       },
     },
-  }), [showLabels, labelColor]);
+  }), [showLabels, labelColor, monthly.length]);
 
   return {
     isLoading, isFetching: isFetching ?? false,

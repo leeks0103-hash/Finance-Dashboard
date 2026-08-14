@@ -93,6 +93,12 @@
   flex-direction: row;
   gap: 12px;
   min-height: 0;
+  min-width: 0; /* grid item 기본값(min-width:auto)이 내용 크기로 넘치는 것 방지 */
+}
+
+/* 좁은 화면 — 이익율 상위/저수익 리스트가 나란히 있으면 값(%)이 카드 밖으로 잘림 */
+@media (max-width: 560px) {
+  .listsPane { flex-direction: column; }
 }
 
 /* 스켈레톤 */

@@ -102,7 +102,18 @@ const KpiPage = () => {
               options={{
                 indexAxis: 'y',
                 ...vm.chart.options,
-                scales: { x: { ticks: { callback: v => Number(v).toLocaleString() } } },
+                scales: {
+                  x: { ticks: { callback: v => Number(v).toLocaleString() } },
+                  // 좁은 화면 — 캔버스 폭 기준으로 y축 라벨을 잘라 왼쪽 클리핑 대신 말줄임표로 표시
+                  // (y축 라벨 영역은 캔버스 전체 폭이 아니라 그 중 약 40%만 차지)
+                  y: { ticks: {
+                    callback: function (this: { chart: { width: number } }, _value: unknown, index: number) {
+                      const label = vm.chart.labels[index] ?? '';
+                      const maxChars = Math.max(6, Math.floor((this.chart.width * 0.4) / 13));
+                      return label.length > maxChars ? `…${label.slice(-(maxChars - 1))}` : label;
+                    },
+                  } },
+                },
               }}
             />
           </div>

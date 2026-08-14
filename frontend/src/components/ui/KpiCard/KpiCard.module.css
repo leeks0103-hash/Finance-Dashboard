@@ -52,6 +52,11 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   font-family: 'Geist', 'SF Pro Display', monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 /* 트렌드 배지 — muted pastel */
