@@ -95,7 +95,7 @@ const KpiPage = () => {
       <ChartCard>
         <ChartCard.Title>KPI 목표 vs 실적 (2026년)</ChartCard.Title>
         <ChartCard.Body>
-          <div className={styles.chartWrap} style={{ height: Math.max(320, vm.chart.labels.length * 55) }}>
+          <div className={styles.chartWrap} style={{ height: Math.max(320, vm.chart.labels.length * 40) }}>
             <BarChart
               labels={vm.chart.labels}
               datasets={vm.chart.datasets}
