@@ -471,6 +471,9 @@ def api_summary():
         .agg(
             revenue=("revenue", "sum"),
             expenditure=("expenditure", "sum"),
+            direct_cost=("direct_cost", "sum"),
+            labor_cost=("labor_cost", "sum"),
+            overhead=("overhead", "sum"),
             profit=("operating_profit", "sum"),
             count=("project_code", "count"),
         )

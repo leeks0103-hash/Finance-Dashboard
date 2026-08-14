@@ -30,6 +30,10 @@ export interface PartStats {
   expenditure: number;
   profit: number;
   count: number;
+  // by_part 전용 — by_stage는 채워지지 않음
+  direct_cost?: number;
+  labor_cost?: number;
+  overhead?: number;
 }
 
 export interface CostBreakdown {

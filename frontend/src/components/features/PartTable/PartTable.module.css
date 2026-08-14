@@ -1,0 +1,15 @@
+.section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.sectionTitle {
+  padding: 16px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, var(--text));
+  border-bottom: 1px solid var(--border);
+  margin: 0;
+}
