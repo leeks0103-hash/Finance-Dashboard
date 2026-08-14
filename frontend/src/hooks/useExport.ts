@@ -15,6 +15,23 @@ const csvField = (v: unknown): string => {
   return s;
 };
 
+/** 헤더+행 데이터로 CSV 파일을 생성해 즉시 다운로드 — 재무/KPI/실적 3탭 CSV 내보내기 공용 */
+export const downloadCsvFile = (filename: string, headers: string[], rows: unknown[][]): void => {
+  const lines = [
+    headers.map(csvField).join(','),
+    ...rows.map(r => r.map(csvField).join(',')),
+  ];
+  const blob = new Blob(['﻿' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
+
 export const useExport = () => {
   const { filters } = useFilters();
   const qc = useQueryClient();
@@ -28,24 +45,13 @@ export const useExport = () => {
     try {
       const { data: rows } = await getProjects(filters, { page: 1, pageSize: 9999, search: '' });
       const headers = ['프로젝트코드','연도','파트','단계','매출','지출','직접원가','인건비','공통원가','경상이익','이익율','노트'];
-      const lines = [
-        headers.map(csvField).join(','),
-        ...rows.map(r =>
-          [r.project_code, r.year, r.part, r.stage,
+      downloadCsvFile(
+        `재무현황_${new Date().toISOString().slice(0, 10)}.csv`,
+        headers,
+        rows.map(r => [r.project_code, r.year, r.part, r.stage,
            r.revenue, r.expenditure, r.direct_cost, r.labor_cost,
-           r.overhead, r.operating_profit, r.profit_rate, r.note]
-          .map(csvField).join(',')
-        ),
-      ];
-      const blob = new Blob(['﻿' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `재무현황_${new Date().toISOString().slice(0, 10)}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+           r.overhead, r.operating_profit, r.profit_rate, r.note]),
+      );
     } catch (err) {
       console.error('[CSV Export]', err);
       alert('CSV 내보내기 중 오류가 발생했습니다.');

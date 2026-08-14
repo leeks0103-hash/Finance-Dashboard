@@ -5,6 +5,8 @@ import { pathToTab } from '@/utils/routing';
 import { useBackgroundPrefetch } from '@/hooks/useBackgroundPrefetch';
 import FilterPanel  from '@/components/features/FilterPanel';
 import ActionBar    from '@/components/features/ActionBar';
+import KpiActionBar from '@/components/features/KpiActionBar';
+import PerformanceActionBar from '@/components/features/PerformanceActionBar';
 import PerfFilter   from '@/layouts/PerformanceFilterBar/PerformanceFilterBar';
 import KpiFilterBar from '@/components/features/KpiFilterBar/KpiFilterBar';
 import styles from './TabLayout.module.css';
@@ -42,8 +44,8 @@ const TabLayout = () => {
       {/* filterGroup — 항상 렌더해서 높이 고정, 탭별 내용만 조건부 */}
       <div className={styles.filterGroup}>
         {isFinance && <><FilterPanel /><ActionBar /></>}
-        {isKpi && <KpiFilterBar />}
-        {isPerformance && <PerfFilter />}
+        {isKpi && <><KpiFilterBar /><KpiActionBar /></>}
+        {isPerformance && <><PerfFilter /><PerformanceActionBar /></>}
       </div>
 
       {/* ── 재무 데이터 — 항상 마운트 ── */}
