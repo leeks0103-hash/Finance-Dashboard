@@ -260,7 +260,7 @@ python app.py
 cd frontend && npm run dev
 ```
 
-브라우저 `http://localhost:5173` 접속
+브라우저 `http://localhost:5188` 접속
 
 ### 3. 데이터 파일 경로 재정의 (경로가 다를 경우)
 
