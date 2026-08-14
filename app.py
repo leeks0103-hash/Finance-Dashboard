@@ -46,7 +46,7 @@ PERF_EXCEL_PATH = os.environ.get(
     "PERF_EXCEL_PATH",
     os.path.join(_DATA_DIR, "26년 사업계획 통합관리 파일_ver7.11_260805_실적 추정 요청_종합1_피드백_20260811.xlsx"),
 )
-PERF_SHEET = "2026년 (7월 추정)"
+_PERF_SHEET_RE = re.compile(r"^(\d{4})년 \((\d+)월 (추정|집계)\)$")
 
 KPI_EXCEL_PATH = os.environ.get(
     "KPI_EXCEL_PATH",
@@ -961,6 +961,25 @@ _PERF_COL_MAPS = {
 }
 
 
+def _resolve_perf_sheet(sheet_names):
+    """실적 엑셀 시트 목록 중 가장 최근 달의 시트를 자동 선택.
+    같은 달에 추정/집계가 둘 다 있으면 집계(확정치)를 우선한다."""
+    candidates = {}
+    for name in sheet_names:
+        m = _PERF_SHEET_RE.match(str(name).strip())
+        if not m:
+            continue
+        year, month, kind = int(m.group(1)), int(m.group(2)), m.group(3)
+        candidates.setdefault((year, month), {})[kind] = name
+    if not candidates:
+        raise ValueError(
+            f"실적 엑셀에서 'YYYY년 (N월 추정|집계)' 형식의 시트를 찾을 수 없습니다. "
+            f"시트 목록: {list(sheet_names)}"
+        )
+    latest = candidates[max(candidates.keys())]
+    return latest.get("집계") or latest.get("추정")
+
+
 def load_perf_excel():
     """_perf_cache_lock 보유 상태에서만 호출."""
     global _perf_cached_df, _perf_last_loaded, _perf_cached_mtime
@@ -971,17 +990,21 @@ def load_perf_excel():
         _perf_cached_mtime = None
         return _perf_cached_df
 
-    if PERF_SHEET not in _PERF_COL_MAPS:
+    _perf_engine = "pyxlsb" if PERF_EXCEL_PATH.endswith(".xlsb") else "openpyxl"
+    sheet_names = pd.ExcelFile(PERF_EXCEL_PATH, engine=_perf_engine).sheet_names
+    resolved_sheet = _resolve_perf_sheet(sheet_names)
+    logger.info("실적 시트 자동 선택: %s", resolved_sheet)
+
+    if resolved_sheet not in _PERF_COL_MAPS:
         raise ValueError(
-            f"PERF_SHEET='{PERF_SHEET}'에 대한 컬럼맵이 없습니다. "
+            f"자동 선택된 시트 '{resolved_sheet}'에 대한 컬럼맵이 없습니다. "
             f"scripts/check_perf_headers.py로 헤더를 확인하고 _PERF_COL_MAPS에 추가하세요."
         )
-    col_map = _PERF_COL_MAPS[PERF_SHEET]
+    col_map = _PERF_COL_MAPS[resolved_sheet]
     col_indices = sorted(col_map.keys())
-    _perf_engine = "pyxlsb" if PERF_EXCEL_PATH.endswith(".xlsb") else "openpyxl"
     df = pd.read_excel(
         PERF_EXCEL_PATH,
-        sheet_name=PERF_SHEET,
+        sheet_name=resolved_sheet,
         header=None,
         skiprows=12,        # 데이터는 13행(1-based)부터
         usecols=col_indices,
