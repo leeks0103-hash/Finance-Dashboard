@@ -61,7 +61,23 @@
   position: relative;
   display: flex;
   align-items: center;
+  gap: 6px;
 }
+
+.searchFieldSelect {
+  font-size: 0.78rem;
+  color: var(--text-sub);
+  border: 1.5px solid var(--border);
+  background: var(--bg-subtle);
+  cursor: pointer;
+  padding: 5px 6px;
+  border-radius: var(--radius-sm);
+  outline: none;
+  font-family: inherit;
+  flex-shrink: 0;
+  transition: border-color 0.15s ease;
+}
+.searchFieldSelect:hover { border-color: var(--brand-mid); }
 
 .search {
   padding: 5px 28px 5px 10px;

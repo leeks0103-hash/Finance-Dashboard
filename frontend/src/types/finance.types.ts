@@ -99,4 +99,6 @@ export interface PageParams {
   page:     number;
   pageSize: number;
   search:   string;
+  /** 검색 대상 컬럼 — 미지정("") 시 기존처럼 전체 컬럼 대상 검색 */
+  field?:   string;
 }

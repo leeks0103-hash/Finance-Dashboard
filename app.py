@@ -314,6 +314,10 @@ def load_excel():
     for col in plain_str_cols:
         df[col] = df[col].astype(str).str.strip().replace("nan", "")
 
+    # "코드(생성 예정)" / "코드 (생성 예정)" 등 PPT 원본 수기 입력 시 괄호 앞 공백이
+    # 제각각이라 재무/KPI 탭 검색 결과가 서로 달라지는 문제 방지 — 공백 하나로 통일
+    df["project_code"] = df["project_code"].str.replace(r"\s*\(", " (", regex=True)
+
     # 컬럼 순서를 COLUMNS 표준으로 맞춤
     df = df[COLUMNS]
 
@@ -429,15 +433,20 @@ def api_data():
     df = apply_filters(get_df())
 
     search = request.args.get("search", "").strip()
+    field  = request.args.get("field", "").strip()
+    _SEARCHABLE_COLS = {"project_code", "part", "stage", "note", "filename"}
     if search:
         s = search.lower()
-        mask = (
-            df["project_code"].str.lower().str.contains(s, regex=False, na=False) |
-            df["part"].str.lower().str.contains(s, regex=False, na=False) |
-            df["stage"].str.lower().str.contains(s, regex=False, na=False) |
-            df["note"].str.lower().str.contains(s, regex=False, na=False) |
-            df["filename"].str.lower().str.contains(s, regex=False, na=False)
-        )
+        if field in _SEARCHABLE_COLS:
+            mask = df[field].str.lower().str.contains(s, regex=False, na=False)
+        else:
+            mask = (
+                df["project_code"].str.lower().str.contains(s, regex=False, na=False) |
+                df["part"].str.lower().str.contains(s, regex=False, na=False) |
+                df["stage"].str.lower().str.contains(s, regex=False, na=False) |
+                df["note"].str.lower().str.contains(s, regex=False, na=False) |
+                df["filename"].str.lower().str.contains(s, regex=False, na=False)
+            )
         df = df[mask]
 
     total = len(df)
@@ -1094,13 +1103,17 @@ def api_perf_data():
     rev["_row_num"] = rev.index
 
     search = request.args.get("search", "").strip()
+    field  = request.args.get("field", "").strip()
+    str_cols = ["project_code", "project_name", "manager", "part", "team"]
     if search:
         s = search.lower()
-        str_cols = ["project_code", "project_name", "manager", "part", "team"]
-        mask = pd.Series([False] * len(rev), index=rev.index)
-        for col in str_cols:
-            if col in rev.columns:
-                mask |= rev[col].astype(str).str.lower().str.contains(s, regex=False, na=False)
+        if field in str_cols and field in rev.columns:
+            mask = rev[field].astype(str).str.lower().str.contains(s, regex=False, na=False)
+        else:
+            mask = pd.Series([False] * len(rev), index=rev.index)
+            for col in str_cols:
+                if col in rev.columns:
+                    mask |= rev[col].astype(str).str.lower().str.contains(s, regex=False, na=False)
         rev = rev[mask]
 
     total = len(rev)
@@ -1341,6 +1354,10 @@ def load_kpi_excel():
             _kpi_raw_df = _kpi_raw_df[
                 _kpi_raw_df[code_col].notna() & (_kpi_raw_df[code_col].astype(str).str.strip() != "")
             ].reset_index(drop=True)
+            # 재무 탭과 동일하게 "코드(생성 예정)" 괄호 앞 공백 표기를 통일 — 검색 결과 불일치 방지
+            _kpi_raw_df[code_col] = (
+                _kpi_raw_df[code_col].astype(str).str.strip().str.replace(r"\s*\(", " (", regex=True)
+            )
         _kpi_raw_df = _kpi_raw_df.fillna(0)
         logger.info("KPI 취합 로드: %d행", len(_kpi_raw_df))
     else:
@@ -1561,12 +1578,16 @@ def api_kpi_data():
     df = apply_kpi_filters(df)
 
     search = request.args.get("search", "").strip()
+    field  = request.args.get("field", "").strip()
     if search:
         s = search.lower()
-        mask = df.apply(
-            lambda row: any(s in str(v).lower() for v in row if v is not None),
-            axis=1,
-        )
+        if field and field in df.columns:
+            mask = df[field].astype(str).str.lower().str.contains(s, regex=False, na=False)
+        else:
+            mask = df.apply(
+                lambda row: any(s in str(v).lower() for v in row if v is not None),
+                axis=1,
+            )
         df = df[mask]
 
     total = len(df)

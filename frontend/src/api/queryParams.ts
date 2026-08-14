@@ -14,4 +14,5 @@ export const appendPageParams = (params: URLSearchParams, page: PageParams): voi
   params.set('page',      String(page.page));
   params.set('page_size', String(page.pageSize));
   if (page.search) params.set('search', page.search);
+  if (page.field)  params.set('field',  page.field);
 };

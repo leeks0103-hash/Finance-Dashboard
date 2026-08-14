@@ -34,15 +34,26 @@ const EMPTY_SUMMARY: TableSummary = {
   avgProfitRate: '-', count: 0,
 };
 
+const SEARCH_FIELD_OPTIONS = [
+  { value: '',            label: '전체' },
+  { value: 'project_code', label: '프로젝트코드' },
+  { value: 'part',         label: '파트' },
+  { value: 'stage',        label: '보고단계' },
+  { value: 'note',         label: '비고' },
+  { value: 'filename',     label: '파일명' },
+];
+
 export const useProjectTableViewModel = (): ProjectTableViewModel => {
   const [page,     setPage]     = useState(1);
   const [pageSize, setPageSize] = useState(30);
+  const [searchField, setSearchField] = useState('');
   const search = useDebouncedSearch(350);
 
   const { data: paged, isLoading, isFetching } = useProjects({
     page,
     pageSize,
     search: search.debouncedValue,
+    field:  searchField,
   });
 
   // 합계는 /api/summary (전체 필터 기준) — 페이지네이션 여부와 무관한 전체 집계값
@@ -86,6 +97,9 @@ export const useProjectTableViewModel = (): ProjectTableViewModel => {
         search.handleChange({ target: { value: val } } as React.ChangeEvent<HTMLInputElement>);
         setPage(1);
       },
+      field:        searchField,
+      onFieldChange: (f) => { setSearchField(f); setPage(1); },
+      fieldOptions:  SEARCH_FIELD_OPTIONS,
     },
   };
 };

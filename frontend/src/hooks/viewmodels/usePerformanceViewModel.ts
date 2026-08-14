@@ -72,14 +72,24 @@ export interface PerformanceViewModel {
   serverSearch:     ServerSearch;
 }
 
+const SEARCH_FIELD_OPTIONS = [
+  { value: '',             label: '전체' },
+  { value: 'project_code', label: '프로젝트코드' },
+  { value: 'project_name', label: '프로젝트명' },
+  { value: 'manager',      label: '담당자' },
+  { value: 'part',         label: '파트' },
+  { value: 'team',         label: '팀' },
+];
+
 export const usePerformanceViewModel = (): PerformanceViewModel => {
   const [page,     setPage]     = useState(1);
   const [pageSize, setPageSize] = useState(30);
+  const [searchField, setSearchField] = useState('');
   const search = useDebouncedSearch(350);
 
   const { data: summary,    isLoading: sumLoading } = usePerformanceSummary();
   const { data: paged,      isLoading: projLoading, isFetching } = usePerformanceData({
-    page, pageSize, search: search.debouncedValue,
+    page, pageSize, search: search.debouncedValue, field: searchField,
   });
   const { data: options } = usePerformanceOptions();
   const selectedParts = usePerfStore(s => s.selectedParts);
@@ -188,6 +198,9 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
         search.handleChange({ target: { value: val } } as React.ChangeEvent<HTMLInputElement>);
         setPage(1);
       },
+      field:        searchField,
+      onFieldChange: (f) => { setSearchField(f); setPage(1); },
+      fieldOptions:  SEARCH_FIELD_OPTIONS,
     },
   };
 };

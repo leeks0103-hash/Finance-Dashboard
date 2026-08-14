@@ -100,6 +100,10 @@ export interface ServerPagination {
 export interface ServerSearch {
   value:    string;
   onChange: (value: string) => void;
+  /** 검색 대상 컬럼 범위 — 3개 모두 제공 시 검색창 옆에 범위 선택 드롭다운 렌더 */
+  field?:         string;
+  onFieldChange?: (field: string) => void;
+  fieldOptions?:  { value: string; label: string }[];
 }
 
 /** 무한 로드 모드 (useInfiniteQuery 연동) */
@@ -447,6 +451,18 @@ const DataTable = <T extends object>({
 
           {showSearch && (
             <div className={styles.searchWrap}>
+              {serverSearch?.fieldOptions && (
+                <select
+                  className={styles.searchFieldSelect}
+                  value={serverSearch.field ?? ''}
+                  onChange={e => serverSearch.onFieldChange?.(e.target.value)}
+                  aria-label="검색 범위"
+                >
+                  {serverSearch.fieldOptions.map(o => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+              )}
               <input
                 className={styles.search}
                 placeholder={searchPlaceholder}

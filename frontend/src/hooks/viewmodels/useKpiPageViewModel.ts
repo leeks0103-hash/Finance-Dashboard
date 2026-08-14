@@ -52,9 +52,18 @@ export interface KpiPageViewModel {
 
 const fmtNum = (v: number) => v !== 0 ? v.toLocaleString() : '0';
 
+const SEARCH_FIELD_OPTIONS = [
+  { value: '',        label: '전체' },
+  { value: '프로젝트코드', label: '프로젝트코드' },
+  { value: '파트명',      label: '파트명' },
+  { value: '보고단계',    label: '보고단계' },
+  { value: '파일명',      label: '파일명' },
+];
+
 export const useKpiPageViewModel = (): KpiPageViewModel => {
   const [page,     setPage]     = useState(1);
   const [pageSize, setPageSize] = useState(30);
+  const [searchField, setSearchField] = useState('');
   const search = useDebouncedSearch(350);
   const years  = useKpiFilterStore(s => s.years);
   const parts  = useKpiFilterStore(s => s.parts);
@@ -66,7 +75,7 @@ export const useKpiPageViewModel = (): KpiPageViewModel => {
     isLoading: dataLoading,
     isFetching,
   } = useKpiDataPaged(
-    { page, pageSize, search: search.debouncedValue },
+    { page, pageSize, search: search.debouncedValue, field: searchField },
     { years, parts, stages },
   );
 
@@ -153,6 +162,9 @@ export const useKpiPageViewModel = (): KpiPageViewModel => {
         search.handleChange({ target: { value: val } } as React.ChangeEvent<HTMLInputElement>);
         setPage(1);
       },
+      field:        searchField,
+      onFieldChange: (f) => { setSearchField(f); setPage(1); },
+      fieldOptions:  SEARCH_FIELD_OPTIONS,
     },
   };
 };
