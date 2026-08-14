@@ -216,13 +216,17 @@ const DataTable = <T extends object>({
     enableResizing: false,
     size: 52,
     cell: ({ row, table: t }) => {
+      // row.index는 원본 data 배열 기준 고정값이라 정렬 후에는 화면 위치와 어긋남 —
+      // 반드시 현재 렌더링(정렬 반영)된 rows에서의 위치를 id로 다시 찾아야 함
+      // (indexOf는 참조 동일성에 의존해 getRowModel() 재호출 시 어긋날 수 있어 사용 안 함)
+      const posInPage = t.getRowModel().rows.findIndex(r => r.id === row.id);
+      const idx = posInPage >= 0 ? posInPage : row.index;
       if (isServerMode) {
         const offset = (serverPagination!.page - 1) * serverPagination!.pageSize;
-        return offset + row.index + 1;
+        return offset + idx + 1;
       }
       const { pageIndex, pageSize } = t.getState().pagination;
-      const posInPage = t.getRowModel().rows.indexOf(row);
-      return pageIndex * pageSize + (posInPage >= 0 ? posInPage : row.index) + 1;
+      return pageIndex * pageSize + idx + 1;
     },
   }), [isServerMode, serverPagination]);
 
