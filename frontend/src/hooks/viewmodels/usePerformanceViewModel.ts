@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { usePerformanceSummary } from '@/hooks/usePerformanceSummary';
 import { usePerformanceData, usePerformanceOptions } from '@/hooks/usePerformanceData';
 import { useDebouncedSearch } from '@/hooks/useDebouncedSearch';
@@ -6,6 +6,7 @@ import { useCountUp } from '@/hooks/useCountUp';
 import { useTheme } from '@/hooks/useTheme';
 import { usePerfStore } from '@/store/perf.store';
 import { useUiStore } from '@/store';
+import { useQuickSearchStore } from '@/store/quickSearch.store';
 import { formatEok, PERF_MONTH } from '@/utils';
 import { makeBarOptions } from '@/utils/chartOptions';
 import { getChartPalette } from '@/utils/chartColors';
@@ -28,6 +29,7 @@ export interface PerfKpiCard {
   sub:     string;
   accent:  'brand' | 'warn' | 'profit' | 'loss' | 'purple';
   trendUp: boolean;
+  trend?:  string;
 }
 
 export interface PerfPartRow {
@@ -87,6 +89,16 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
   const [searchField, setSearchField] = useState('');
   const search = useDebouncedSearch(350);
 
+  // 실적 인사이트 코드 클릭 → 검색창 자동 채우기
+  const perfQuick  = useQuickSearchStore(s => s.perf);
+  const clearPerfQ = useQuickSearchStore(s => s.setPerf);
+  useEffect(() => {
+    if (!perfQuick) return;
+    search.setFilter(perfQuick);
+    setPage(1);
+    clearPerfQ('');
+  }, [perfQuick]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const { data: summary,    isLoading: sumLoading } = usePerformanceSummary();
   const { data: paged,      isLoading: projLoading, isFetching } = usePerformanceData({
     page, pageSize, search: search.debouncedValue, field: searchField,
@@ -98,6 +110,7 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
 
   const isLoading = sumLoading || projLoading;
   const total     = summary?.total;
+  const monthly   = summary?.monthly ?? [];
 
   const junActualRaw = total?.jun_actual       ?? 0;
   const profitRaw    = total?.operating_profit ?? 0;
@@ -114,13 +127,31 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
   const kpiCards: PerfKpiCard[] = useMemo(() => {
     if (!total) return [];
     const achieveRate = planRaw > 0 ? ((junActualRaw / planRaw) * 100).toFixed(1) : '-';
+
+    // 전월 대비 계산 — monthly[]는 chk_m01~12 집계, 0-based 인덱스
+    const currIdx = CURRENT_MONTH_NUM - 1;
+    const curr = monthly[currIdx];
+    const prev = currIdx > 0 ? monthly[currIdx - 1] : null;
+
+    const momTag = (diffK: number | null): string | undefined => {
+      if (diffK === null || !prev) return undefined;
+      return `전월대비 ${Math.abs(diffK / 100_000).toFixed(1)}억`;
+    };
+
+    // 카드2: 이번달 점검 매출 vs 전월
+    const momRevK  = curr && prev ? curr.revenue - prev.revenue : null;
+    // 카드4: 이번달 (점검매출-원가) vs 전월
+    const momProfK = curr && prev
+      ? (curr.revenue - curr.cost) - (prev.revenue - prev.cost)
+      : null;
+
     return [
       { label: '매출 계획 (최초)', value: `${animPlan.toFixed(1)}억원`, sub: `${total.count}개 프로젝트`, accent: 'brand', trendUp: true },
-      { label: `${PERF_MONTH} 실적 집계`,   value: `${animJun.toFixed(1)}억원`,  sub: `달성률 ${achieveRate}%`, accent: junActualRaw >= planRaw ? 'profit' : 'warn', trendUp: junActualRaw >= planRaw },
-      { label: `${PERF_MONTH} 점검 연간합계`, value: `${animCheck.toFixed(1)}억원`, sub: `원가 ${formatEok(total.jun_cost)}`, accent: 'purple', trendUp: true },
-      { label: '경상손익', value: `${animProfit.toFixed(1)}억원`, sub: `손익률 ${animRate.toFixed(1)}%`, accent: profitRaw >= 0 ? 'profit' : 'loss', trendUp: profitRaw >= 0 },
+      { label: `${PERF_MONTH} 실적 집계`,    value: `${animJun.toFixed(1)}억원`,    sub: `달성률 ${achieveRate}%`,          accent: junActualRaw >= planRaw ? 'profit' : 'warn', trendUp: momRevK !== null ? momRevK >= 0 : junActualRaw >= planRaw,  trend: momTag(momRevK) },
+      { label: `${PERF_MONTH} 점검 연간합계`, value: `${animCheck.toFixed(1)}억원`,  sub: `원가 ${formatEok(total.jun_cost)}`, accent: 'purple', trendUp: true },
+      { label: '경상손익', value: `${animProfit.toFixed(1)}억원`, sub: `손익률 ${animRate.toFixed(1)}%`, accent: profitRaw >= 0 ? 'profit' : 'loss', trendUp: momProfK !== null ? momProfK >= 0 : profitRaw >= 0, trend: momTag(momProfK) },
     ];
-  }, [total, animPlan, animJun, animCheck, animProfit, animRate, planRaw, junActualRaw, junCheckRaw, profitRaw]);
+  }, [total, monthly, animPlan, animJun, animCheck, animProfit, animRate, planRaw, junActualRaw, junCheckRaw, profitRaw]);
 
   const byPart = useMemo((): PerfPartRow[] => {
     if (!summary?.by_part) return [];
@@ -148,9 +179,8 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
   const dark = theme === 'dark';
   const palette = useMemo(() => getChartPalette(dark), [dark]);
   const showLabels = useUiStore(s => s.showChartLabels);
-  const labelColor = dark ? 'rgba(212,212,216,0.90)' : '#3F3F46';
+  const labelColor = dark ? 'rgba(212,212,216,0.90)' : '#111111';
 
-  const monthly       = summary?.monthly ?? [];
   const chartLabels   = useMemo(() => monthly.map(m => m.month),   [monthly]);
   const chartDatasets = useMemo((): PerfChartDataset[] => [
     {

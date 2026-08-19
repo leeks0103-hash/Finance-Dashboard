@@ -1,9 +1,11 @@
 import { useInsightViewModel } from '@/hooks/viewmodels';
 import { InsightComment, InsightListCard, ProjectRankRow, EmptyState } from '@/components/ui';
+import { useQuickSearchStore } from '@/store/quickSearch.store';
 import styles from './InsightSection.module.css';
 
 const InsightSection = () => {
   const vm = useInsightViewModel();
+  const setFinanceSearch = useQuickSearchStore(s => s.setFinance);
 
   if (vm.isLoading) return <div className={styles.skeleton} />;
 
@@ -12,12 +14,13 @@ const InsightSection = () => {
   );
 
   return (
-    <div className={styles.section}>
+    <div className={styles.sectionGroup}>
       <div className={styles.header}>
         재무 인사이트
         <span className={styles.sub}>필터 기준 자동 분석</span>
       </div>
 
+      <div className={styles.section}>
       <div className={styles.body}>
         <div className={styles.commentsPane}>
           <div className={styles.paneTitle}>■ 주요 코멘트</div>
@@ -41,6 +44,7 @@ const InsightSection = () => {
                   value={r.value}
                   valueColor={r.valueColor}
                   subValue={r.subValue}
+                  onCodeSearch={setFinanceSearch}
                 />
               ))}
             </InsightListCard.Body>
@@ -58,11 +62,13 @@ const InsightSection = () => {
                   value={r.value}
                   valueColor={r.valueColor}
                   subValue={r.subValue}
+                  onCodeSearch={setFinanceSearch}
                 />
               ))}
             </InsightListCard.Body>
           </InsightListCard>
         </div>
+      </div>
       </div>
     </div>
   );

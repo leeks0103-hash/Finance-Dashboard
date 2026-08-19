@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { usePerformanceOptions } from '@/hooks/usePerformanceData';
 import { usePerfStore } from '@/store/perf.store';
+import { useUrlPartSync } from '@/hooks/useUrlFilterSync';
 import { FilterChip, MultiSelectDropdown } from '@/components/ui';
 import { isAllSelected } from '@/utils/array';
 import styles from './PerformanceFilterBar.module.css';
@@ -23,6 +24,12 @@ const PerformanceFilterBar = () => {
       initializeDefaults(parts);
     }
   }, [initialized, parts, initializeDefaults]);
+
+  // URL ↔ 스토어 동기화 (공유 링크)
+  useUrlPartSync(
+    selectedParts,
+    (p) => usePerfStore.setState({ selectedParts: p, initialized: true }),
+  );
 
   const allPartsSelected = isAllSelected(selectedParts, parts);
   const toggleAllParts = () => {

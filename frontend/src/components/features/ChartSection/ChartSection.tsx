@@ -49,21 +49,19 @@ const ChartSection = () => {
   const { theme } = useTheme();
   const dark = theme === 'dark';
 
-  const togglePart    = useFilterStore(s => s.togglePart);
   const stages        = useFilterStore(s => s.stages);
   const showYearChart = useUiStore(s => s.showYearChart);
   const { stages: allStages } = useFilterOptions();
 
-  const handlePartClick = togglePart;
   const stageLabel = stages.length > 0 && !isAllSelected(stages, allStages) ? stages.join('·') : '전체';
 
   // 파트별 이익율 카드 — 토글 켜면 이익율(%) 대신 이익액(억원) 표시
   const [showProfitAmount, setShowProfitAmount] = useState(false);
 
   // 팔레트 — 오렌지/웜 브랜드에 맞춤
-  const labelColor = dark ? 'rgba(212,212,216,0.90)' : '#3F3F46';   // zinc-300 / zinc-700
-  const gridColor  = dark ? 'rgba(63,63,70,0.60)'    : 'rgba(0,0,0,0.06)';
-  const tickColor  = dark ? 'rgba(161,161,170,0.90)' : '#71717A';   // zinc-400 / zinc-500
+  const labelColor = dark ? 'rgba(212,212,216,0.90)' : '#111111';
+  const gridColor  = dark ? 'rgba(63,63,70,0.60)'    : 'rgba(0,0,0,0.08)';
+  const tickColor  = dark ? 'rgba(161,161,170,0.90)' : '#1E1E1E';
 
   const vm = useChartViewModel(labelColor);
 
@@ -184,7 +182,7 @@ const ChartSection = () => {
   const chartRenderers: Record<string, () => ReactNode | null> = {
     profitRate: () => (
       <ChartCard>
-        <ChartCard.Title>
+        <ChartCard.Title compact>
           <span>파트별 이익율(%)</span>
           <span className={styles.toggleGroup}>
             <span className={styles.stageBadge}>{showProfitAmount ? '이익액' : '이익율'}</span>
@@ -199,14 +197,13 @@ const ChartSection = () => {
               : { label: '이익율(%)',  data: vm.profitRate.rates, backgroundColor: profitColors }
             ]}
             options={showProfitAmount ? profitAmountOptions : profitRateOptions}
-            onClick={handlePartClick}
           />
         </ChartCard.Body>
       </ChartCard>
     ),
     revExp: () => (
       <ChartCard>
-        <ChartCard.Title>파트별 매출 / 지출</ChartCard.Title>
+        <ChartCard.Title compact>파트별 매출 / 지출</ChartCard.Title>
         <ChartCard.Body>
           <BarChart
             horizontal
@@ -216,14 +213,13 @@ const ChartSection = () => {
               { label: '지출(억)', data: vm.revExp.expenditures, backgroundColor: palette.cost    },
             ]}
             options={revExpOptions}
-            onClick={handlePartClick}
           />
         </ChartCard.Body>
       </ChartCard>
     ),
     costBreakdown: () => (
       <ChartCard>
-        <ChartCard.Title>
+        <ChartCard.Title compact>
           <span>원가 구성</span>
           <span className={styles.stageBadge}>{stageLabel}</span>
         </ChartCard.Title>
@@ -240,7 +236,7 @@ const ChartSection = () => {
     ),
     stageChart: () => vm.stageChart.labels.length > 0 ? (
       <ChartCard>
-        <ChartCard.Title>보고단계별 매출/지출 현황</ChartCard.Title>
+        <ChartCard.Title compact>보고단계별 매출/지출 현황</ChartCard.Title>
         <ChartCard.Body>
           <BarChart
             horizontal

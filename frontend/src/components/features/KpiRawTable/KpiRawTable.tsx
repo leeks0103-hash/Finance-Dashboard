@@ -157,7 +157,7 @@ const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, serverP
   );
 
   // ── 컬럼 하이라이트 ───────────────────────────────────────
-  const { highlightedCol, toggleHighlight, clearHighlight } = useColumnHighlight();
+  const { highlightedCol, setHighlight, clearHighlight } = useColumnHighlight();
 
   // ── 파일명 복사 팝업 ──────────────────────────────────────
   const { popup, copied: popupCopied, openPopup, closePopup, copyPopupText } = useClipboardPopup();
@@ -215,19 +215,32 @@ const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, serverP
   // ── 페이지네이션 ──────────────────────────────────────────
   const pageCount  = serverPagination ? Math.ceil(serverPagination.total / serverPagination.pageSize) : 1;
   const totalLabel = serverPagination ? `${serverPagination.total}건` : `${data.length}건`;
+  // 표시 행 수 — 프로젝트 수 × KPI 항목 수 (최소 5줄 보장)
+  const visibleRows = Math.max(5, data.length * KPI_METRICS.length);
 
-  return (
-    <div className={styles.wrapper}>
-      {/* 툴바 */}
+  const wrapRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!highlightedCol) return;
+    const onMouseDown = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) clearHighlight();
+    };
+    document.addEventListener('mousedown', onMouseDown);
+    return () => document.removeEventListener('mousedown', onMouseDown);
+  }, [highlightedCol, clearHighlight]);
+
+  const card = (
+    <div ref={wrapRef} className={styles.wrapper} style={{ '--kpi-rows': visibleRows } as React.CSSProperties}>
+      {/* 툴바 — 행 수 조절 / 검색 / 뷰 토글만 (title·count는 outerTitle로 이동) */}
       <div className={styles.toolbar}>
-        {title && <span className={styles.title}>{title}</span>}
-        <span className={styles.count}>{totalLabel}</span>
-        {serverPagination && (
-          <select className={styles.pageSizeSelect} value={serverPagination.pageSize}
-            onChange={e => serverPagination.onPageSizeChange(Number(e.target.value))}>
-            {[10, 20, 30, 50].map(n => <option key={n} value={n}>{n}행</option>)}
-          </select>
-        )}
+        <div className={styles.toolbarLeft}>
+          {serverPagination && (
+            <select className={styles.pageSizeSelect} value={serverPagination.pageSize}
+              onChange={e => serverPagination.onPageSizeChange(Number(e.target.value))}>
+              {[10, 20, 30, 50].map(n => <option key={n} value={n}>{n}행</option>)}
+            </select>
+          )}
+          {toolbarExtra}
+        </div>
         {serverSearch && (
           <div className={styles.searchWrap}>
             <input className={styles.search} placeholder="프로젝트코드·파트명 검색…"
@@ -238,7 +251,6 @@ const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, serverP
             )}
           </div>
         )}
-        {toolbarExtra}
       </div>
 
       {/* 테이블 */}
@@ -249,7 +261,7 @@ const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, serverP
           </div>
         ) : (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <table className={styles.table} style={{ tableLayout: 'fixed', width: orderedCols.reduce((s, c) => s + (colSizes[c.id] ?? c.defaultWidth), 0) }}>
+          <table className={styles.table} style={{ tableLayout: 'fixed', minWidth: orderedCols.reduce((s, c) => s + (colSizes[c.id] ?? c.defaultWidth), 0) }}>
             <colgroup>
               {orderedCols.map(c => <col key={c.id} style={{ width: colSizes[c.id] ?? c.defaultWidth }} />)}
             </colgroup>
@@ -263,7 +275,7 @@ const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, serverP
                         width={colSizes[c.id] ?? c.defaultWidth}
                         onResizeStart={handleResizeStart}
                         isHighlighted={highlightedCol === c.id}
-                        onHeaderClick={toggleHighlight}
+                        onHeaderClick={setHighlight}
                       />
                     ))}
                   </tr>
@@ -344,6 +356,18 @@ const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, serverP
         </div>,
         document.body,
       )}
+    </div>
+  );
+
+  if (!title) return card;
+
+  return (
+    <div className={styles.outerGroup}>
+      <div className={styles.outerTitle}>
+        <span className={styles.title}>{title}</span>
+        <span className={styles.count}>{totalLabel}</span>
+      </div>
+      {card}
     </div>
   );
 };

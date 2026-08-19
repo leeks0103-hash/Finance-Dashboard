@@ -40,10 +40,15 @@
   box-shadow: var(--shadow-sm);
 }
 
+:global([data-theme="dark"]) .table th {
+  background: #2A2A30;
+}
+
 /* ── 툴바 ─────────────────────────────── */
 .toolbar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
   padding: 10px 16px;
   border-bottom: 1px solid var(--border);
@@ -51,10 +56,29 @@
   flex-wrap: wrap;
 }
 
+.toolbarLeft {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.outerGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.outerTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 2px;
+}
+
 .title {
-  font-size: 0.9rem;
+  font-size: 1rem;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--text);
 }
 
 .searchWrap {
@@ -141,6 +165,13 @@
   box-shadow: var(--shadow-md);
   padding: 6px 0;
   min-width: 120px;
+  max-height: min(60vh, 480px);
+  overflow-y: auto;
+}
+
+.colMenu.colMenuGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
 }
 
 .colMenuItem {
@@ -162,7 +193,7 @@
 .scroll {
   flex: 1;
   overflow: auto;
-  min-height: calc((var(--dt-rows, 10) + 1) * 36px);
+  min-height: calc(var(--dt-rows, 5) * 33px);
   transition: opacity 0.15s, min-height 0.2s ease;
   border-right: none;
   /* 가로스크롤 없어도 테이블 하단 border 보이도록 */
@@ -191,7 +222,7 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--text-sub);
-  background: var(--bg-subtle);
+  background: #DDD9D3;
   padding: 8px 10px;
   text-align: center;
   white-space: nowrap;
@@ -351,6 +382,13 @@
 }
 .clickable:hover {
   text-decoration: underline dotted var(--text-muted);
+}
+
+.dblClickable {
+  cursor: text;
+}
+.dblClickable:hover {
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
 }
 
 /* ── 셀 내용 팝업 모달 ─── */

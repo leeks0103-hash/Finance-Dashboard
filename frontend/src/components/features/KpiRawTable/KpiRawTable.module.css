@@ -1,33 +1,20 @@
-.wrapper {
+.outerGroup {
   display: flex;
   flex-direction: column;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
-  overflow: hidden;
+  gap: 8px;
 }
 
-:global([data-theme="dark"]) .wrapper {
-  border-color: var(--border);
-  box-shadow: var(--shadow-sm);
-}
-
-/* ── 툴바 ─────────────────────────────── */
-.toolbar {
+.outerTitle {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 16px;
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-  flex-wrap: wrap;
+  padding: 0 2px;
 }
 
 .title {
-  font-size: 0.9rem;
+  font-size: 1rem;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--text);
 }
 
 .count {
@@ -75,11 +62,44 @@
   padding: 2px 4px;
 }
 
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+:global([data-theme="dark"]) .wrapper {
+  border-color: var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+/* toolbar — DataTable과 동일한 레이아웃 */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.toolbarLeft {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 /* ── 스크롤 영역 ─────────────────────────── */
 .scroll {
   overflow: auto;
   flex: 1;
-  min-height: 400px;           /* 고정 최소 높이 */
+  min-height: calc(var(--kpi-rows, 8) * 33px);
   border-right: none;
   border-bottom: 1px solid var(--border);
 }

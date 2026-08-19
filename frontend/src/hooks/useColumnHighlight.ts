@@ -4,11 +4,9 @@ import { useCallback, useState } from 'react';
 export const useColumnHighlight = () => {
   const [highlightedCol, setHighlightedCol] = useState<string | null>(null);
 
-  const toggleHighlight = useCallback((columnId: string) => {
-    setHighlightedCol(prev => prev === columnId ? null : columnId);
-  }, []);
-
+  // 항상 해당 컬럼으로 설정 (정렬 전환 시 꺼지지 않음)
+  const setHighlight   = useCallback((columnId: string) => setHighlightedCol(columnId), []);
   const clearHighlight = useCallback(() => setHighlightedCol(null), []);
 
-  return { highlightedCol, toggleHighlight, clearHighlight };
+  return { highlightedCol, setHighlight, clearHighlight };
 };

@@ -8,7 +8,6 @@
   line-height: 1.5;
   transition: transform 0.14s ease;
 }
-.comment:hover { transform: translateX(2px); }
 
 /* 배경색만으로 구분 — border 제거 */
 .positive { background: var(--profit-bg); }

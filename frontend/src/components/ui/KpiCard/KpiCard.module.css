@@ -19,7 +19,6 @@
 /* ultra-subtle hover lift — no shadow by default */
 .card:hover {
   box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-  transform: translateY(-1px);
 }
 
 /* 상단 2px accent 바 */

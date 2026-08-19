@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { createColumnHelper } from '@tanstack/react-table';
 import { usePerformanceViewModel } from '@/hooks/viewmodels/usePerformanceViewModel';
 import type { PerfPartRow } from '@/hooks/viewmodels/usePerformanceViewModel';
 import { ChartCard, BarChart, DataTable, KpiCard } from '@/components/ui';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import PerformanceInsightSection from '@/components/features/PerformanceInsightSection';
+import PartAchievementBars from '@/components/features/PartAchievementBars/PartAchievementBars';
 import { perfColumns, PERF_HIDEABLE_COLS } from '@/components/features/PerformanceTable/columns';
 import type { PerfProject } from '@/types/performance.types';
 import { PERF_YEAR, PERF_MONTH } from '@/utils';
@@ -38,6 +40,7 @@ const byPartColumns = [
 
 const PerformancePage = () => {
   const vm = usePerformanceViewModel();
+  const [showAchieve, setShowAchieve] = useState(true);
 
   return (
     <main className={styles.main}>
@@ -52,6 +55,7 @@ const PerformancePage = () => {
             accent={card.accent}
             sub={card.sub}
             trendUp={card.trendUp}
+            trend={card.trend}
           />
         ))}
       </div>
@@ -73,9 +77,20 @@ const PerformancePage = () => {
         </ChartCard.Body>
       </ChartCard>
 
+      {/* 파트별 달성 현황 진행바 */}
+      {vm.byPart.length > 0 && (
+        <PartAchievementBars
+          rows={vm.byPart}
+          visible={showAchieve}
+          onToggle={() => setShowAchieve(v => !v)}
+          month={PERF_MONTH}
+        />
+      )}
+
       {/* 파트별 실적 — PerfPartRow 타입으로 DataTable<PerfPartRow> */}
-      <div className={styles.section}>
+      <div className={styles.sectionGroup}>
         <h3 className={styles.sectionTitle}>파트별 실적 ({PERF_YEAR} {PERF_MONTH} 기준, 억원)</h3>
+        <div className={styles.section}>
         <DataTable<PerfPartRow>
           data={vm.byPart}
           columns={byPartColumns as never}
@@ -86,6 +101,7 @@ const PerformancePage = () => {
           compact
           hideToolbar
         />
+        </div>
       </div>
 
       {/* 실적 인사이트 — 목표 대비 부진/손실 자동 분석 */}
@@ -112,6 +128,7 @@ const PerformancePage = () => {
         emptyDescription="다른 검색어나 필터 조건을 시도해보세요."
         storageKey="performance-project"
         copyableColumns={['filename']}
+        searchOnDblClick={['project_code']}
       />
 
     </main>

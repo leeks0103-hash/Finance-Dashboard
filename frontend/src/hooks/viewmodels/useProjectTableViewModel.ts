@@ -1,7 +1,8 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useProjects } from '@/hooks/useProjects';
 import { useSummary } from '@/hooks/useSummary';
 import { useDebouncedSearch } from '@/hooks/useDebouncedSearch';
+import { useQuickSearchStore } from '@/store/quickSearch.store';
 import { formatBillion, formatRate } from '@/utils';
 import type { Project } from '@/types';
 import type { ServerPagination, ServerSearch } from '@/components/ui/DataTable';
@@ -48,6 +49,16 @@ export const useProjectTableViewModel = (): ProjectTableViewModel => {
   const [pageSize, setPageSize] = useState(30);
   const [searchField, setSearchField] = useState('');
   const search = useDebouncedSearch(350);
+
+  // 인사이트 섹션 코드 클릭 → 검색창 자동 채우기
+  const financeQuick    = useQuickSearchStore(s => s.finance);
+  const clearFinanceQ   = useQuickSearchStore(s => s.setFinance);
+  useEffect(() => {
+    if (!financeQuick) return;
+    search.setFilter(financeQuick);
+    setPage(1);
+    clearFinanceQ('');
+  }, [financeQuick]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { data: paged, isLoading, isFetching } = useProjects({
     page,

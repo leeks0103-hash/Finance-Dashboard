@@ -86,7 +86,7 @@ export const useKpiPageViewModel = (): KpiPageViewModel => {
   const { theme } = useTheme();
   const dark = theme === 'dark';
   const showLabels = useUiStore(s => s.showChartLabels);
-  const labelColor = dark ? 'rgba(212,212,216,0.90)' : '#3F3F46';
+  const labelColor = dark ? 'rgba(212,212,216,0.90)' : '#111111';
   const palette = useMemo(() => getChartPalette(dark), [dark]);
 
   const chartOptions = useMemo(() => makeBarOptions(showLabels, labelColor, {

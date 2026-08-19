@@ -28,7 +28,6 @@
 }
 .primary:hover:not(:disabled) {
   background: var(--brand);
-  transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.32);
 }
 
@@ -39,7 +38,6 @@
 }
 .danger:hover:not(:disabled) {
   filter: brightness(1.1);
-  transform: translateY(-1px);
 }
 
 .success {
@@ -49,7 +47,6 @@
 }
 .success:hover:not(:disabled) {
   filter: brightness(1.08);
-  transform: translateY(-1px);
 }
 
 .ghost {

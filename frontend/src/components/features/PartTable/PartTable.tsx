@@ -32,19 +32,21 @@ const PartTable = () => {
   const vm = usePartTableViewModel();
 
   return (
-    <div className={styles.section}>
+    <div className={styles.sectionGroup}>
       <h3 className={styles.sectionTitle}>파트별 실적</h3>
-      <DataTable<PartTableRow>
-        data={vm.rows}
-        columns={columns as never}
-        getRowId={row => row.part}
-        getRowVariant={row => row.isLoss ? 'loss' : ''}
-        isLoading={vm.isLoading}
-        defaultPageSize={10}
-        pageSizeOptions={[10]}
-        compact
-        hideToolbar
-      />
+      <div className={styles.section}>
+        <DataTable<PartTableRow>
+          data={vm.rows}
+          columns={columns as never}
+          getRowId={row => row.part}
+          getRowVariant={row => row.isLoss ? 'loss' : ''}
+          isLoading={vm.isLoading}
+          defaultPageSize={10}
+          pageSizeOptions={[10]}
+          compact
+          hideToolbar
+        />
+      </div>
     </div>
   );
 };

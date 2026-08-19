@@ -143,7 +143,7 @@ export const PERF_HIDEABLE_COLS: HideableColumn[] = [
   { id: 'sa_other_direct',  label: '기타직접' },
   { id: 'sa_overhead_total',label: '공통원가 소계' },
   { id: 'sa_refreshment',   label: '다과비' },
-  { id: 'sa_edu_venue',     label: '교육장비' },
+  { id: 'sa_edu_venue',     label: '교육장' },
   { id: 'sa_parking',       label: '주차비' },
   { id: 'sa_sw_practice',   label: '실습비SW' },
   { id: 'sa_intern',        label: '인턴인건비' },

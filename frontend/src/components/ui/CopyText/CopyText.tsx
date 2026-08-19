@@ -6,9 +6,11 @@ interface Props {
   text: string;
   className?: string;
   highlight?: string;
+  /** 제공 시: 클릭→onSearch 호출, 더블클릭→복사. 미제공 시: 클릭→복사(기존 동작) */
+  onSearch?: (text: string) => void;
 }
 
-const CopyText = ({ text, className, highlight }: Props) => {
+const CopyText = ({ text, className, highlight, onSearch }: Props) => {
   const [copied, setCopied] = useState(false);
 
   const copy = useCallback(async () => {
@@ -26,11 +28,15 @@ const CopyText = ({ text, className, highlight }: Props) => {
     setTimeout(() => setCopied(false), 1500);
   }, [text]);
 
+  const handleClick    = copy;
+  const handleDblClick = onSearch ? () => onSearch(text) : undefined;
+
   return (
     <span
       className={`${styles.root} ${copied ? styles.copied : ''} ${className ?? ''}`}
-      onClick={copy}
-      title={copied ? '복사됨!' : text}
+      onClick={handleClick}
+      onDoubleClick={handleDblClick}
+      title={onSearch ? `클릭: 복사 / 더블클릭: 검색 — ${text}` : (copied ? '복사됨!' : text)}
       role="button"
       tabIndex={0}
       onKeyDown={e => e.key === 'Enter' && copy()}

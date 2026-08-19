@@ -1,15 +1,20 @@
+.sectionGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sectionTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+  padding: 0 2px;
+}
+
 .section {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 12px;
   overflow: hidden;
-}
-
-.sectionTitle {
-  padding: 16px 20px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary, var(--text));
-  border-bottom: 1px solid var(--border);
-  margin: 0;
 }

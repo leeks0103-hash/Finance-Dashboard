@@ -33,6 +33,7 @@ const ProjectTable = () => {
       initialColumnVisibility={{ filename: true }}
       storageKey="finance-project"
       copyableColumns={['filename']}
+      searchOnDblClick={['project_code']}
     />
   );
 };

@@ -151,6 +151,8 @@ interface Props<T> {
   toolbarExtra?: ReactNode;
   /** 셀 내용 팝업에서 클릭 시 복사 가능하게 할 컬럼 id 목록 (예: 원본파일명) */
   copyableColumns?: string[];
+  /** 더블클릭 시 검색바에 해당 셀 값을 자동 입력할 컬럼 id 목록 (예: project_code) */
+  searchOnDblClick?: string[];
 }
 
 const DEFAULT_PAGE_SIZES = [10, 20, 30, 50, 100];
@@ -186,6 +188,7 @@ const DataTable = <T extends object>({
   storageKey,
   toolbarExtra,
   copyableColumns,
+  searchOnDblClick,
 }: Props<T>) => {
   const isServerMode   = !!serverPagination;
   const isInfiniteMode = !!infiniteLoadMore;
@@ -259,7 +262,8 @@ const DataTable = <T extends object>({
   const [showColMenu,      setShowColMenu]      = useState(false);
   const colMenuRef = useRef<HTMLDivElement>(null);
 
-  const { highlightedCol, toggleHighlight, clearHighlight } = useColumnHighlight();
+  const tableWrapRef = useRef<HTMLDivElement>(null);
+  const { highlightedCol, setHighlight, clearHighlight } = useColumnHighlight();
   const { popup, copied: popupCopied, openPopup: openPopupRaw, closePopup, copyPopupText } = useClipboardPopup();
 
   const openPopup = useCallback((text: string, columnId?: string) => {
@@ -355,6 +359,18 @@ const DataTable = <T extends object>({
     return () => window.removeEventListener('keydown', onKey);
   }, [searchInput, popup, closePopup, isServerMode, serverSearch, highlightedCol, clearHighlight]);
 
+  // 테이블 외부 클릭 시 하이라이트 해제
+  useEffect(() => {
+    if (!highlightedCol) return;
+    const onMouseDown = (e: MouseEvent) => {
+      if (tableWrapRef.current && !tableWrapRef.current.contains(e.target as Node)) {
+        clearHighlight();
+      }
+    };
+    document.addEventListener('mousedown', onMouseDown);
+    return () => document.removeEventListener('mousedown', onMouseDown);
+  }, [highlightedCol, clearHighlight]);
+
   const rows     = table.getRowModel().rows;
   const filtered = isServerMode ? null : table.getFilteredRowModel().rows;
 
@@ -401,54 +417,56 @@ const DataTable = <T extends object>({
 
   const showSearch = searchable || !!serverSearch;
 
-  return (
+  const tableCard = (
     <div
+      ref={tableWrapRef}
       className={`${styles.wrapper} ${compact ? styles.compact : ''}`}
       style={{ '--dt-rows': dtRows } as CSSProperties}
     >
 
       {!hideToolbar && (
         <div className={styles.toolbar}>
-          {title && <span className={styles.title}>{title}</span>}
-          {!hideCount && <span className={styles.count}>{countLabel}</span>}
+          {/* 왼쪽: 행 수 조절 + 컬럼 토글 */}
+          <div className={styles.toolbarLeft}>
+            {pageSizeOptions.length > 1 && (
+              <select
+                className={styles.pageSizeSelect}
+                value={pageSize}
+                onChange={e => {
+                  const n = Number(e.target.value);
+                  if (isServerMode) serverPagination!.onPageSizeChange(n);
+                  else { table.setPageSize(n); table.setPageIndex(0); }
+                }}
+              >
+                {pageSizeOptions.map(n => <option key={n} value={n}>{n}행</option>)}
+              </select>
+            )}
 
-          {pageSizeOptions.length > 1 && (
-            <select
-              className={styles.pageSizeSelect}
-              value={pageSize}
-              onChange={e => {
-                const n = Number(e.target.value);
-                if (isServerMode) serverPagination!.onPageSizeChange(n);
-                else { table.setPageSize(n); table.setPageIndex(0); }
-              }}
-            >
-              {pageSizeOptions.map(n => <option key={n} value={n}>{n}행</option>)}
-            </select>
-          )}
+            {hideableColumns && hideableColumns.length > 0 && (
+              <div className={styles.colToggleWrap} ref={colMenuRef}>
+                <Button variant="ghost" size="sm" onClick={() => setShowColMenu(v => !v)}>
+                  컬럼 ▾
+                </Button>
+                {showColMenu && (
+                  <div className={`${styles.colMenu}${hideableColumns.length > 12 ? ` ${styles.colMenuGrid}` : ''}`}>
+                    {hideableColumns.map(({ id, label }) => {
+                      const col = table.getColumn(id);
+                      return col ? (
+                        <label key={id} className={styles.colMenuItem}>
+                          <input type="checkbox"
+                            checked={col.getIsVisible()}
+                            onChange={col.getToggleVisibilityHandler()} />
+                          {label}
+                        </label>
+                      ) : null;
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
-          {hideableColumns && hideableColumns.length > 0 && (
-            <div className={styles.colToggleWrap} ref={colMenuRef}>
-              <Button variant="ghost" size="sm" onClick={() => setShowColMenu(v => !v)}>
-                컬럼 ▾
-              </Button>
-              {showColMenu && (
-                <div className={styles.colMenu}>
-                  {hideableColumns.map(({ id, label }) => {
-                    const col = table.getColumn(id);
-                    return col ? (
-                      <label key={id} className={styles.colMenuItem}>
-                        <input type="checkbox"
-                          checked={col.getIsVisible()}
-                          onChange={col.getToggleVisibilityHandler()} />
-                        {label}
-                      </label>
-                    ) : null;
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-
+          {/* 오른쪽: 검색 + 툴바 추가 요소 */}
           {showSearch && (
             <div className={styles.searchWrap}>
               {serverSearch?.fieldOptions && (
@@ -506,7 +524,7 @@ const DataTable = <T extends object>({
                           header={h}
                           isDraggable={!!storageKey && h.id !== '__index'}
                           isHighlighted={highlightedCol === h.column.id}
-                          onHeaderClick={toggleHighlight}
+                          onHeaderClick={setHighlight}
                         />
                       ))}
                     </tr>
@@ -538,8 +556,15 @@ const DataTable = <T extends object>({
                           key={cell.id}
                           title={text || undefined}
                           onClick={isLong ? () => openPopup(text, cell.column.id) : undefined}
+                          onDoubleClick={searchOnDblClick?.includes(cell.column.id) && text
+                            ? () => {
+                                if (isServerMode) serverSearch?.onChange(text);
+                                else { setSearchInput(text); setGlobalFilter(text); }
+                              }
+                            : undefined}
                           className={[
                             isLong ? styles.clickable : '',
+                            searchOnDblClick?.includes(cell.column.id) ? styles.dblClickable : '',
                             cell.column.id === '__index' ? styles.indexCell : '',
                             highlightedCol === cell.column.id ? styles.tdHighlighted : '',
                           ].join(' ') || undefined}
@@ -617,6 +642,18 @@ const DataTable = <T extends object>({
         document.body,
       )}
 
+    </div>
+  );
+
+  if (!title) return tableCard;
+
+  return (
+    <div className={styles.outerGroup}>
+      <div className={styles.outerTitle}>
+        <span className={styles.title}>{title}</span>
+        {!hideCount && <span className={styles.count}>{countLabel}</span>}
+      </div>
+      {tableCard}
     </div>
   );
 };

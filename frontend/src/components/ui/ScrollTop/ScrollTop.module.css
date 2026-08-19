@@ -19,7 +19,7 @@
   z-index: 200;
   animation: pop 0.2s ease;
 }
-.btn:hover { background: var(--brand); transform: translateY(-2px); box-shadow: 0 6px 16px rgba(79,70,229,0.4); }
+.btn:hover { background: var(--brand); box-shadow: 0 6px 16px rgba(79,70,229,0.4); }
 
 @keyframes pop {
   from { opacity: 0; transform: scale(0.8); }

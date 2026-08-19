@@ -1,9 +1,11 @@
 import { usePerformanceInsightViewModel } from '@/hooks/viewmodels';
 import { InsightComment, InsightListCard, ProjectRankRow, EmptyState } from '@/components/ui';
+import { useQuickSearchStore } from '@/store/quickSearch.store';
 import styles from './PerformanceInsightSection.module.css';
 
 const PerformanceInsightSection = () => {
   const vm = usePerformanceInsightViewModel();
+  const setPerfSearch = useQuickSearchStore(s => s.setPerf);
 
   if (vm.isLoading) return <div className={styles.skeleton} />;
 
@@ -12,12 +14,13 @@ const PerformanceInsightSection = () => {
   );
 
   return (
-    <div className={styles.section}>
+    <div className={styles.sectionGroup}>
       <div className={styles.header}>
         실적 인사이트
         <span className={styles.sub}>필터 기준 자동 분석</span>
       </div>
 
+      <div className={styles.section}>
       <div className={styles.body}>
         <div className={styles.commentsPane}>
           <div className={styles.paneTitle}>■ 주요 코멘트</div>
@@ -41,6 +44,7 @@ const PerformanceInsightSection = () => {
                   value={r.value}
                   valueColor={r.valueColor}
                   subValue={r.subValue}
+                  onCodeSearch={setPerfSearch}
                 />
               ))}
             </InsightListCard.Body>
@@ -58,11 +62,13 @@ const PerformanceInsightSection = () => {
                   value={r.value}
                   valueColor={r.valueColor}
                   subValue={r.subValue}
+                  onCodeSearch={setPerfSearch}
                 />
               ))}
             </InsightListCard.Body>
           </InsightListCard>
         </div>
+      </div>
       </div>
     </div>
   );

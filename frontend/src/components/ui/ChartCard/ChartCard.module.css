@@ -1,19 +1,25 @@
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+}
+
 .root {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 24px 24px 16px;
-  height: 100%;
+  padding: 20px 24px 16px;
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  transition: box-shadow 0.2s cubic-bezier(0.16,1,0.3,1),
-              transform  0.2s cubic-bezier(0.16,1,0.3,1);
+  transition: box-shadow 0.2s cubic-bezier(0.16,1,0.3,1);
 }
 
 .root:hover {
   box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-  transform: translateY(-1px);
 }
 
 :global([data-theme="dark"]) .root:hover {
@@ -21,6 +27,19 @@
 }
 
 .title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  padding: 0 2px;
+  flex-shrink: 0;
+}
+
+/* 기존 카드 내부 라벨 스타일 — 파트별 이익율 등 4개 차트 전용 */
+.titleCompact {
   display: flex;
   align-items: center;
   justify-content: space-between;
