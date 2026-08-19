@@ -59,9 +59,9 @@ const ChartSection = () => {
   const [showProfitAmount, setShowProfitAmount] = useState(false);
 
   // 팔레트 — 오렌지/웜 브랜드에 맞춤
-  const labelColor = dark ? 'rgba(212,212,216,0.90)' : '#111111';
-  const gridColor  = dark ? 'rgba(63,63,70,0.60)'    : 'rgba(0,0,0,0.08)';
-  const tickColor  = dark ? 'rgba(161,161,170,0.90)' : '#1E1E1E';
+  const labelColor = dark ? 'rgba(255,255,255,0.95)' : '#111111';
+  const gridColor  = dark ? 'rgba(90,90,100,0.55)'   : 'rgba(0,0,0,0.08)';
+  const tickColor  = dark ? 'rgba(230,230,236,0.95)' : '#1E1E1E';
 
   const vm = useChartViewModel(labelColor);
 

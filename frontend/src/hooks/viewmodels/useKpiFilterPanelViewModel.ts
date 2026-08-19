@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { useKpiFilterStore } from '@/store/kpiFilter.store';
 import { useKpiFilterOptions } from '@/hooks/useKpiFilterOptions';
-import { useUrlFilterSync } from '@/hooks/useUrlFilterSync';
 import { sortStages } from '@/utils/stageOrder';
 import type { Filters } from '@/types';
 
@@ -34,12 +33,6 @@ export const useKpiFilterPanelViewModel = (): KpiFilterPanelViewModel => {
       initializeDefaults(opts.years, opts.parts, opts.stages);
     }
   }, [initialized, options, initializeDefaults]);
-
-  // URL ↔ 스토어 동기화 (공유 링크)
-  useUrlFilterSync(
-    years, parts, stages,
-    (y, p, s) => useKpiFilterStore.setState({ years: y, parts: p, stages: s, initialized: true }),
-  );
 
   return {
     filters: { years, parts, stages },

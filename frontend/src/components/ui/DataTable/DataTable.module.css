@@ -27,12 +27,12 @@
   transition: box-shadow 0.2s ease, height 0.2s ease;
 }
 
-/* compact 모드는 내용에 맞게 (KPI 집계 등 소형 테이블), 모서리도 제거 */
+/* compact 모드는 내용에 맞게 (KPI 집계 등 소형 테이블) */
 .compact {
   height: auto;
   min-height: 100px;
   max-height: 480px;
-  border-radius: 0;
+  border-radius: 12px;
 }
 
 :global([data-theme="dark"]) .wrapper {
@@ -71,8 +71,14 @@
 .outerTitle {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
   padding: 0 2px;
+}
+
+.outerTitleLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .title {

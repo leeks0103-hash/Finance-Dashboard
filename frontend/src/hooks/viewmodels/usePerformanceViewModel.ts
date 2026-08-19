@@ -179,7 +179,7 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
   const dark = theme === 'dark';
   const palette = useMemo(() => getChartPalette(dark), [dark]);
   const showLabels = useUiStore(s => s.showChartLabels);
-  const labelColor = dark ? 'rgba(212,212,216,0.90)' : '#111111';
+  const labelColor = dark ? 'rgba(255,255,255,0.95)' : '#111111';
 
   const chartLabels   = useMemo(() => monthly.map(m => m.month),   [monthly]);
   const chartDatasets = useMemo((): PerfChartDataset[] => [

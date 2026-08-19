@@ -7,8 +7,14 @@
 .outerTitle {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
   padding: 0 2px;
+}
+
+.outerTitleLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .title {
@@ -81,7 +87,6 @@
 .toolbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
   padding: 10px 16px;
   border-bottom: 1px solid var(--border);
@@ -93,6 +98,19 @@
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+/* 오른쪽 그룹: 행 수 조절 + 검색 */
+.toolbarRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 왼쪽 균형용 더미 — 너비만 차지하고 보이지 않음 */
+.toolbarPhantom {
+  flex: 1;
+  visibility: hidden;
 }
 
 /* ── 스크롤 영역 ─────────────────────────── */

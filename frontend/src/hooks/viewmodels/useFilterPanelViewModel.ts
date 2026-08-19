@@ -3,7 +3,6 @@ import { useFilters } from '@/hooks/useFilters';
 import { useFilterOptions } from '@/hooks/useFilterOptions';
 import { usePrefetch } from '@/hooks/usePrefetch';
 import { useFilterStore } from '@/store';
-import { useUrlFilterSync } from '@/hooks/useUrlFilterSync';
 import { toggle } from '@/utils/array';
 import { sortStages } from '@/utils/stageOrder';
 import type { Filters } from '@/types';
@@ -35,12 +34,6 @@ export const useFilterPanelViewModel = (): FilterPanelViewModel => {
       initializeDefaults(years, parts, stages);
     }
   }, [initialized, years, parts, stages, initializeDefaults]);
-
-  // URL ↔ 스토어 동기화 (공유 링크)
-  useUrlFilterSync(
-    filters.years, filters.parts, filters.stages,
-    (y, p, s) => useFilterStore.setState({ years: y, parts: p, stages: s, initialized: true }),
-  );
 
   return {
     filters,

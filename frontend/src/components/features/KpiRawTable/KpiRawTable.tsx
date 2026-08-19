@@ -230,27 +230,27 @@ const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, serverP
 
   const card = (
     <div ref={wrapRef} className={styles.wrapper} style={{ '--kpi-rows': visibleRows } as React.CSSProperties}>
-      {/* 툴바 — 행 수 조절 / 검색 / 뷰 토글만 (title·count는 outerTitle로 이동) */}
+      {/* 툴바 — 행 수 조절 + 검색 (왼쪽 정렬, 뷰 토글은 outerTitle로 이동) */}
       <div className={styles.toolbar}>
-        <div className={styles.toolbarLeft}>
+        <div aria-hidden className={styles.toolbarPhantom} />
+        <div className={styles.toolbarRight}>
           {serverPagination && (
             <select className={styles.pageSizeSelect} value={serverPagination.pageSize}
               onChange={e => serverPagination.onPageSizeChange(Number(e.target.value))}>
               {[10, 20, 30, 50].map(n => <option key={n} value={n}>{n}행</option>)}
             </select>
           )}
-          {toolbarExtra}
+          {serverSearch && (
+            <div className={styles.searchWrap}>
+              <input className={styles.search} placeholder="프로젝트코드·파트명 검색…"
+                value={serverSearch.value}
+                onChange={e => serverSearch.onChange(e.target.value)} />
+              {serverSearch.value && (
+                <Button variant="ghost" size="sm" className={styles.searchClear} onClick={() => serverSearch.onChange('')}>✕</Button>
+              )}
+            </div>
+          )}
         </div>
-        {serverSearch && (
-          <div className={styles.searchWrap}>
-            <input className={styles.search} placeholder="프로젝트코드·파트명 검색…"
-              value={serverSearch.value}
-              onChange={e => serverSearch.onChange(e.target.value)} />
-            {serverSearch.value && (
-              <Button variant="ghost" size="sm" className={styles.searchClear} onClick={() => serverSearch.onChange('')}>✕</Button>
-            )}
-          </div>
-        )}
       </div>
 
       {/* 테이블 */}
@@ -364,8 +364,11 @@ const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, serverP
   return (
     <div className={styles.outerGroup}>
       <div className={styles.outerTitle}>
-        <span className={styles.title}>{title}</span>
-        <span className={styles.count}>{totalLabel}</span>
+        <div className={styles.outerTitleLeft}>
+          <span className={styles.title}>{title}</span>
+          <span className={styles.count}>{totalLabel}</span>
+        </div>
+        {toolbarExtra && <div>{toolbarExtra}</div>}
       </div>
       {card}
     </div>

@@ -416,6 +416,9 @@ const DataTable = <T extends object>({
   }, [isServerMode, serverSearch]);
 
   const showSearch = searchable || !!serverSearch;
+  const hasToolbarContent = pageSizeOptions.length > 1 ||
+    (hideableColumns && hideableColumns.length > 0) ||
+    showSearch;
 
   const tableCard = (
     <div
@@ -424,7 +427,7 @@ const DataTable = <T extends object>({
       style={{ '--dt-rows': dtRows } as CSSProperties}
     >
 
-      {!hideToolbar && (
+      {!hideToolbar && hasToolbarContent && (
         <div className={styles.toolbar}>
           {/* 왼쪽: 행 수 조절 + 컬럼 토글 */}
           <div className={styles.toolbarLeft}>
@@ -493,7 +496,6 @@ const DataTable = <T extends object>({
               )}
             </div>
           )}
-          {toolbarExtra}
         </div>
       )}
 
@@ -650,8 +652,11 @@ const DataTable = <T extends object>({
   return (
     <div className={styles.outerGroup}>
       <div className={styles.outerTitle}>
-        <span className={styles.title}>{title}</span>
-        {!hideCount && <span className={styles.count}>{countLabel}</span>}
+        <div className={styles.outerTitleLeft}>
+          <span className={styles.title}>{title}</span>
+          {!hideCount && <span className={styles.count}>{countLabel}</span>}
+        </div>
+        {toolbarExtra && <div>{toolbarExtra}</div>}
       </div>
       {tableCard}
     </div>
