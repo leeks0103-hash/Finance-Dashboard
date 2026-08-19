@@ -16,7 +16,21 @@ interface Props {
   onClick?:    (label: string) => void;
 }
 
+// rgba(r,g,b,a) → rgba(r,g,b,1) — 호버 시 완전 불투명으로 밝게
+const toHoverColor = (c: string) => c.replace(/[\d.]+\)$/, '1)');
+
 const BarChart = ({ labels, datasets, horizontal = false, options, onClick }: Props) => {
+  const boosted = datasets.map(d => ({
+    ...d,
+    hoverBackgroundColor: typeof d.backgroundColor === 'string'
+      ? toHoverColor(d.backgroundColor)
+      : Array.isArray(d.backgroundColor)
+        ? (d.backgroundColor as string[]).map(toHoverColor)
+        : d.backgroundColor,
+    hoverBorderWidth: 2,
+    hoverBorderColor: 'rgba(0,0,0,0.18)',
+  }));
+
   const merged: ChartOptions<'bar'> = {
     responsive: true,
     maintainAspectRatio: false,
@@ -37,7 +51,7 @@ const BarChart = ({ labels, datasets, horizontal = false, options, onClick }: Pr
 
   return (
     <div className={styles.wrap}>
-      <Bar data={{ labels, datasets }} options={merged} />
+      <Bar data={{ labels, datasets: boosted }} options={merged} />
     </div>
   );
 };

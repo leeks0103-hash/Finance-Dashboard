@@ -42,7 +42,6 @@
 
 :global([data-theme="dark"]) .table th {
   background: var(--bg-header);
-  color: #93C5FD;   /* blue-300 — 딥블루 배경 위 가독성 */
 }
 
 /* ── 툴바 ─────────────────────────────── */
@@ -205,12 +204,7 @@
   border-right: none;
   /* 가로스크롤 없어도 테이블 하단 border 보이도록 */
   border-bottom: 1px solid var(--border);
-  scrollbar-color: var(--bg-header) transparent;
-  scrollbar-width: thin;
 }
-.scroll::-webkit-scrollbar-thumb { background: #93C5FD; border-radius: 3px; }
-.scroll::-webkit-scrollbar-thumb:hover { background: #60A5FA; }
-.scroll::-webkit-scrollbar-track { background: transparent; }
 
 /* compact 모드는 사실상 페이지네이션이 없는 고정형 소형 테이블 —
    pageSize 기준 여백 예약이 오히려 불필요한 빈 공간을 만들어서 내용 기준으로 되돌림 */

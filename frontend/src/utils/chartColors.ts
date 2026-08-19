@@ -24,17 +24,17 @@ export const getChartPalette = (dark: boolean): ChartPalette => dark ? {
   cost:         'rgba(248,113,113,0.82)',
   profit:       'rgba(52,211,153,0.82)',
   rate:         'rgba(192,132,252,0.85)',
-  target:       'rgba(251,146,60,0.82)',
+  target:       'rgba(34,211,238,0.82)',
   costDirect:   'rgba(248,113,113,0.85)',
-  costLabor:    'rgba(251,146,60,0.82)',
+  costLabor:    'rgba(34,211,238,0.82)',
   costOverhead: 'rgba(45,212,191,0.82)',
 } : {
   revenue:      'rgba(79,70,229,0.80)',
   cost:         'rgba(220,38,38,0.75)',
   profit:       'rgba(5,150,105,0.78)',
   rate:         'rgba(124,58,237,0.80)',
-  target:       'rgba(234,88,12,0.78)',
+  target:       'rgba(236,72,153,0.80)',   /* pink-500 */
   costDirect:   'rgba(220,38,38,0.82)',
-  costLabor:    'rgba(234,88,12,0.80)',
+  costLabor:    'rgba(6,182,212,0.80)',
   costOverhead: 'rgba(13,148,136,0.80)',
 };

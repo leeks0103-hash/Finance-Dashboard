@@ -136,7 +136,7 @@
   position: sticky;
   top: 0;
   z-index: 2;
-  background: var(--surface-raised, var(--surface));
+  background: var(--bg-header);
   padding: 8px 10px;
   text-align: center;
   font-weight: 600;

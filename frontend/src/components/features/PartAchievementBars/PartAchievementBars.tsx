@@ -13,7 +13,7 @@ const STRIP = /^[①-⑦⑧⑨⑩]\s*/;
 
 const barColor = (rate: number) => {
   if (rate >= 100) return 'var(--profit)';
-  if (rate >= 70)  return 'var(--warn)';
+  if (rate >= 70)  return '#A78BFA';   /* violet-400 */
   return 'var(--loss)';
 };
 
