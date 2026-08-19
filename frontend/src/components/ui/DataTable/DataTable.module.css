@@ -41,7 +41,7 @@
 }
 
 :global([data-theme="dark"]) .table th {
-  background: #2A2A30;
+  background: var(--bg-header);
 }
 
 /* ── 툴바 ─────────────────────────────── */
@@ -228,7 +228,7 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--text-sub);
-  background: #DDD9D3;
+  background: var(--bg-header);
   padding: 8px 10px;
   text-align: center;
   white-space: nowrap;
