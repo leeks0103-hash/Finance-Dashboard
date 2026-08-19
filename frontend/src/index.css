@@ -20,10 +20,11 @@
   --purple-bg:    rgba(124, 58, 237, 0.08);
 
   --surface:      #FFFFFF;
-  --bg:           #F7F6F3;   /* warm bone canvas */
-  --bg-subtle:    #F0EFEC;
-  --bg-header:    #DDD9D3;   /* 테이블 헤더 배경 */
-  --border:       #D8D8D5;   /* structural */
+  --bg:           #F8FAFC;   /* near-white cool */
+  --bg-subtle:    #F1F5F9;
+  --bg-header:    #DBEAFE;   /* 테이블 헤더 — 연한 하늘색 */
+  --border:       #BFDBFE;   /* blue-200 — 전체 통일 */
+  --border-table: #BFDBFE;   /* 테이블 셀 구분선 */
   --border-focus: #F97316;
 
   --text:         #111111;
@@ -65,9 +66,10 @@
   --surface:      #18181B;   /* zinc-900 */
   --bg:           #09090B;   /* zinc-950 */
   --bg-subtle:    #27272A;   /* zinc-800 */
-  --border:       #3F3F46;   /* zinc-700 */
+  --border:       #1E3A5F;   /* 다크 블루 계열 통일 */
+  --border-table: #1E3A5F;   /* 테이블 셀 구분선 */
   --border-focus: #818CF8;
-  --bg-header:    #2A2A30;   /* 테이블 헤더 배경 (다크) */
+  --bg-header:    #1E3A5F;   /* 테이블 헤더 배경 (다크 — 딥 블루) */
 
   --text:         #FAFAFA;
   --text-primary: #FAFAFA;

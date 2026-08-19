@@ -65,6 +65,7 @@ export interface PerformanceViewModel {
   chartLabels:   string[];
   chartDatasets: PerfChartDataset[];
   chartOptions:  ChartOptions<'bar'>;
+  chartTickColor: string;
   projects:      PerfProject[];
   parts:         string[];
   selectedParts: string[];
@@ -211,7 +212,7 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
   return {
     isLoading, isFetching: isFetching ?? false,
     isEmpty: !isLoading && !total,
-    kpiCards, byPart, chartLabels, chartDatasets, chartOptions,
+    kpiCards, byPart, chartLabels, chartDatasets, chartOptions, chartTickColor: labelColor,
     projects,
     parts: options?.parts ?? [], selectedParts, togglePart, resetFilters: reset,
 

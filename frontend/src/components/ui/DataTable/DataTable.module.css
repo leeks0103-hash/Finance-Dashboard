@@ -42,6 +42,7 @@
 
 :global([data-theme="dark"]) .table th {
   background: var(--bg-header);
+  color: #93C5FD;   /* blue-300 — 딥블루 배경 위 가독성 */
 }
 
 /* ── 툴바 ─────────────────────────────── */
@@ -204,7 +205,12 @@
   border-right: none;
   /* 가로스크롤 없어도 테이블 하단 border 보이도록 */
   border-bottom: 1px solid var(--border);
+  scrollbar-color: var(--bg-header) transparent;
+  scrollbar-width: thin;
 }
+.scroll::-webkit-scrollbar-thumb { background: #93C5FD; border-radius: 3px; }
+.scroll::-webkit-scrollbar-thumb:hover { background: #60A5FA; }
+.scroll::-webkit-scrollbar-track { background: transparent; }
 
 /* compact 모드는 사실상 페이지네이션이 없는 고정형 소형 테이블 —
    pageSize 기준 여백 예약이 오히려 불필요한 빈 공간을 만들어서 내용 기준으로 되돌림 */
@@ -232,8 +238,8 @@
   padding: 8px 10px;
   text-align: center;
   white-space: nowrap;
-  border-bottom: 2px solid var(--border);
-  border-right: 1px solid var(--border);
+  border-bottom: 2px solid var(--border-table);
+  border-right: 1px solid var(--border-table);
   position: sticky;
   top: 0;
   z-index: 1;
@@ -242,8 +248,8 @@
 
 .table td {
   padding: 7px 10px;
-  border-bottom: 1px solid var(--border);
-  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border-table);
+  border-right: 1px solid var(--border-table);
   vertical-align: middle;
   text-align: center;
   white-space: nowrap;
@@ -285,9 +291,9 @@
   position: sticky;
   left: 0;
   z-index: 2;
-  background: var(--bg-subtle);
 }
-.stickyFirst td:first-child   { background: var(--surface); }
+.stickyFirst th:first-child { background: var(--bg-header); }
+.stickyFirst td:first-child  { background: var(--surface); }
 .stickyFirst .loss td:first-child,
 .stickyFirst .warn td:first-child { background: var(--surface) !important; }
 

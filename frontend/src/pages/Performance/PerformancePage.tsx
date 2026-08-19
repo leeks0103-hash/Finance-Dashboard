@@ -70,7 +70,7 @@ const PerformancePage = () => {
               datasets={vm.chartDatasets}
               options={{
                 ...vm.chartOptions,
-                scales: { y: { ticks: { callback: v => v + '억' } } },
+                scales: { y: { ticks: { color: vm.chartTickColor, callback: v => v + '억' } }, x: { ticks: { color: vm.chartTickColor } } },
               }}
             />
           </div>

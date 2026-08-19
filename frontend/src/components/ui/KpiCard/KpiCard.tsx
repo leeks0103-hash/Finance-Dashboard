@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import type { KpiAccent } from '@/types';
 import styles from './KpiCard.module.css';
 
@@ -86,7 +87,8 @@ const BgIcon = ({ up }: { up: boolean }) => (
 );
 
 const KpiCard = ({ label, value, accent, sub, trend, trendUp = false }: Props) => {
-  const gradId = `spark-grad-${accent}`;
+  const uid   = useId();
+  const gradId = `spark-grad-${uid.replace(/:/g, '')}`;
 
   return (
     <div className={`${styles.card} ${styles[accent]}`}>
@@ -104,7 +106,7 @@ const KpiCard = ({ label, value, accent, sub, trend, trendUp = false }: Props) =
       <div className={styles.value}>{value}</div>
       {sub && <div className={styles.sub}>{sub}</div>}
       {/* 스파크라인 — flat 카드에서 은은한 배경 그래프 */}
-      <div className={styles.sparkWrap} style={{ color: 'currentColor' }}>
+      <div className={styles.sparkWrap}>
         <Sparkline up={trendUp} gradId={gradId} />
       </div>
     </div>

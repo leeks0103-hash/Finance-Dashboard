@@ -19,11 +19,12 @@ export interface KpiChartDataset {
 }
 
 export interface KpiChartData {
-  labels:   string[];
-  targets:  number[];
-  actuals:  number[];
-  datasets: KpiChartDataset[];
-  options:  ChartOptions<'bar'>;
+  labels:    string[];
+  targets:   number[];
+  actuals:   number[];
+  datasets:  KpiChartDataset[];
+  options:   ChartOptions<'bar'>;
+  tickColor: string;
 }
 
 export interface KpiSummaryRow {
@@ -105,13 +106,13 @@ export const useKpiPageViewModel = (): KpiPageViewModel => {
     const targets = items.map(it => typeof it.target_2026 === 'number' ? it.target_2026 : 0);
     const actuals = items.map(it => typeof it.actual_2026 === 'number' ? it.actual_2026 : 0);
     return {
-      labels, targets, actuals, options: chartOptions,
+      labels, targets, actuals, options: chartOptions, tickColor: labelColor,
       datasets: [
         { label: '26년 목표', data: targets, backgroundColor: palette.target,  borderRadius: 4 },
         { label: '26년 실적', data: actuals, backgroundColor: palette.revenue, borderRadius: 4 },
       ],
     };
-  }, [items, chartOptions, palette]);
+  }, [items, chartOptions, palette, labelColor]);
 
   const summaryRows = useMemo((): KpiSummaryRow[] =>
     items.map(it => {

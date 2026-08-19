@@ -1,45 +1,38 @@
 /* nowrap 필수 — wrap이면 FilterBar 높이 변해 페이지 점프 */
-.panel { display: flex; align-items: center; gap: 10px; flex-wrap: nowrap; }
+.panel { display: flex; align-items: center; gap: 0; flex-wrap: nowrap; }
 
 .group {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex-shrink: 0;
-  padding: 6px 12px;
-  border-radius: var(--radius-pill, 999px);
-  background: var(--bg-subtle, rgba(255,255,255,0.03));
-  border: 1px solid var(--border);
+  padding: 0 16px;
+}
+
+/* 그룹 사이 세로 구분선 */
+.group + .group {
+  border-left: 1px solid var(--border);
 }
 
 .label {
-  font-size: 0.65rem;
-  font-weight: 700;
+  font-size: 0.72rem;
+  font-weight: 600;
   color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
   white-space: nowrap;
   flex-shrink: 0;
+  padding-right: 2px;
 }
 
-/* 다크: 더 선명한 cyan 계열로 */
-:global([data-theme="dark"]) .label {
-  color: var(--brand-mid);
-  opacity: 0.85;
-  font-size: 0.6rem;
-}
+.divider { display: none; }
 
-.divider {
-  display: none;
-}
-
-.chips { display: flex; flex-wrap: nowrap; gap: 5px; }
+.chips { display: flex; flex-wrap: nowrap; gap: 4px; }
 
 /* 좁은 화면 — 칩 그룹 대신 드롭다운으로 전환 (가로 스크롤/잘림 방지) */
 .dropdownOnly { display: none; }
 
 @media (max-width: 1100px) {
-  .panel { flex-wrap: wrap; }
+  .panel { flex-wrap: wrap; gap: 8px; }
+  .group + .group { border-left: none; }
   .chipsOnly    { display: none; }
   .dropdownOnly { display: block; }
 }

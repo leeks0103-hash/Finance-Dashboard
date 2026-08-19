@@ -249,19 +249,18 @@
 }
 .pgItem:disabled { opacity: 0.35; cursor: not-allowed; }
 
-/* active 페이지 — KPI 카드 변수 공유로 브랜드 색상 자동 동기화 */
 .pgActive {
-  background: linear-gradient(135deg, var(--kpi-brand-start) 0%, var(--kpi-brand-mid) 60%, var(--kpi-brand-end) 100%);
+  background: var(--brand-mid);
   border-color: transparent;
   color: #fff;
   font-weight: 700;
   cursor: default;
-  box-shadow: 0 3px 10px var(--kpi-brand-shadow);
+  box-shadow: 0 2px 8px rgba(79,70,229,0.30);
 }
 
 [data-theme="dark"] .pgActive {
-  color: var(--kpi-brand-value, #6BB8FF);
-  box-shadow: 0 3px 10px var(--kpi-brand-shadow), 0 0 0 1px rgba(80,140,255,0.25);
+  background: var(--brand-mid);
+  box-shadow: 0 2px 8px rgba(129,140,248,0.35);
 }
 
 [data-theme="dark"] .pgItem {
