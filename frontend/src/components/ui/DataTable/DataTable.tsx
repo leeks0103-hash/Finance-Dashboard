@@ -153,6 +153,8 @@ interface Props<T> {
   copyableColumns?: string[];
   /** 더블클릭 시 검색바에 해당 셀 값을 자동 입력할 컬럼 id 목록 (예: project_code) */
   searchOnDblClick?: string[];
+  /** 정렬 컬럼 변경 시 콜백 — columnId(정렬중) 또는 null(정렬 해제) */
+  onSortChange?: (columnId: string | null) => void;
 }
 
 const DEFAULT_PAGE_SIZES = [10, 20, 30, 50, 100];
@@ -189,6 +191,7 @@ const DataTable = <T extends object>({
   toolbarExtra,
   copyableColumns,
   searchOnDblClick,
+  onSortChange,
 }: Props<T>) => {
   const isServerMode   = !!serverPagination;
   const isInfiniteMode = !!infiniteLoadMore;
@@ -255,6 +258,9 @@ const DataTable = <T extends object>({
     });
   }, [lsKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // 정렬 상태 (controlled — onSortChange 콜백 연동)
+  const [sorting, setSorting] = useState<import('@tanstack/react-table').SortingState>([]);
+
   // 클라이언트 검색 상태 (서버모드에선 사용 안 함)
   const [searchInput,      setSearchInput]      = useState('');
   const [globalFilter,     setGlobalFilter]     = useState('');
@@ -283,10 +289,16 @@ const DataTable = <T extends object>({
     columns: columnsWithIndex,
     meta: { searchQuery },
     state: {
+      sorting,
       globalFilter: isServerMode ? undefined : globalFilter,
       columnVisibility,
       columnSizing: colSizing,
       ...(storageKey && colOrder.length ? { columnOrder: colOrder } : {}),
+    },
+    onSortingChange: (updater) => {
+      const next = typeof updater === 'function' ? updater(sorting) : updater;
+      setSorting(next);
+      onSortChange?.(next.length > 0 ? next[0].id : null);
     },
     columnResizeMode: storageKey ? 'onChange' : undefined,
     getRowId,

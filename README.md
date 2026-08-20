@@ -203,7 +203,7 @@ python scripts/extract_kpi_ppt.py
 실적 현황은 별도 추출 스크립트 없이 엑셀 파일을 직접 교체합니다:
 
 1. 새 `26년 사업계획 통합관리 파일_*.xlsx`를 `data/` 폴더에 저장
-2. `app.py`의 `PERF_EXCEL_PATH` 경로 수정 (파일명이 바뀐 경우)
+2. `performance.py`의 `PERF_EXCEL_PATH` 경로 수정 (파일명이 바뀐 경우)
 3. 대시보드에서 **실적 현황 탭 → 서버 재시작** 또는 환경변수 재설정
 
 ---
@@ -353,12 +353,17 @@ Invoke-RestMethod http://localhost:5000/api/kpi/reload -Method POST
 
 ```
 dashboard/
-├── app.py                    # Flask 백엔드 (API + 정적 파일 서빙)
+├── app.py                    # Flask 앱 생성 + Blueprint 등록 + 서버 실행 (진입점)
+├── finance.py                # 재무 API (/api/data, /api/summary, /api/insights 등)
+├── performance.py            # 실적현황 API (/api/performance/*)
+├── kpi.py                    # KPI API (/api/kpi/*)
+├── shared.py                 # 공유 유틸 (is_ranked_valid_code 등)
 ├── requirements.txt
 ├── scripts/
-│   ├── extract_financial_ppt.py   # PPT → 재무 엑셀 추출
-│   ├── extract_kpi_ppt.py         # PPT → KPI 엑셀 추출
+│   ├── extract_financial_ppt.py   # PPT → 재무 엑셀 추출 (증분)
+│   ├── extract_kpi_ppt.py         # PPT → KPI 엑셀 추출 (전량)
 │   ├── compare_and_update.py      # ★ 비교·추출·갱신 통합 자동화
+│   ├── check_perf_headers.py      # 실적 엑셀 새 달 시트 컬럼 확인용
 │   └── file_compare.py            # PPT 폴더 비교 유틸
 ├── data/                     # 추출된 엑셀 파일 (git 제외)
 │   ├── 재무관점 필수 데이터 추출.xlsx

@@ -452,6 +452,42 @@ def build_data_index(data_ws):
     return index_map
 
 
+def cleanup_deleted_files(data_ws, history_ws, base_dir):
+    """소스 폴더에서 삭제된 파일의 데이터 행을 취합·처리이력 시트에서 자동 제거."""
+    current_filenames = set()
+    for root, _, files in os.walk(base_dir):
+        for name in files:
+            if os.path.splitext(name)[1].lower() in SUPPORTED_EXTENSIONS:
+                if not is_temp_or_hidden_office_file(name):
+                    current_filenames.add(name)
+
+    # 취합 시트 — 아래서 위로 순회해야 인덱스 밀림 없이 삭제 가능
+    rows_to_delete = [
+        row_num
+        for row_num in range(2, data_ws.max_row + 1)
+        if normalize_text(data_ws.cell(row=row_num, column=13).value) not in current_filenames
+        and normalize_text(data_ws.cell(row=row_num, column=13).value) != ""
+    ]
+    for row_num in reversed(rows_to_delete):
+        data_ws.delete_rows(row_num)
+    if rows_to_delete:
+        log(f"[정리] 취합 시트 {len(rows_to_delete)}행 제거 (삭제된 파일)")
+
+    # 처리이력 시트 — 삭제된 파일 signature도 지워야 다음 실행 때 재처리됨
+    history_rows_to_delete = [
+        row_num
+        for row_num in range(2, history_ws.max_row + 1)
+        if normalize_text(history_ws.cell(row=row_num, column=2).value) not in current_filenames
+        and normalize_text(history_ws.cell(row=row_num, column=2).value) != ""
+    ]
+    for row_num in reversed(history_rows_to_delete):
+        history_ws.delete_rows(row_num)
+    if history_rows_to_delete:
+        log(f"[정리] 처리이력 {len(history_rows_to_delete)}건 제거")
+
+    return len(rows_to_delete)
+
+
 def upsert_rows(data_ws, rows):
     index_map = build_data_index(data_ws)
     inserted = 0
@@ -849,6 +885,11 @@ def main():
     data_ws = get_or_create_sheet(wb, TARGET_SHEET, OUTPUT_HEADERS)
     history_ws = get_or_create_sheet(wb, HISTORY_SHEET, HISTORY_HEADERS)
     apply_sheet_layout(data_ws)
+
+    # 소스 폴더에 없는 파일 데이터 자동 정리 (파일 삭제 시 엑셀에도 반영)
+    if not RETRY_MODE:
+        cleanup_deleted_files(data_ws, history_ws, BASE_DIR)
+        wb.save(TARGET_EXCEL)
 
     processed_signatures = load_processed_signatures(history_ws)
 

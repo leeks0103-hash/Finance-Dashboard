@@ -438,6 +438,22 @@ def safe_cell_value(value):
     return value
 
 
+def cleanup_deleted_files(data_ws, processed_filenames: set) -> int:
+    """이번 실행에서 처리된 파일 목록에 없는 행을 취합 시트에서 자동 제거.
+    KPI는 전량 재처리 방식이므로 처리된 파일 목록 = 현재 소스 폴더의 전체 파일."""
+    rows_to_delete = [
+        row_idx
+        for row_idx in range(2, data_ws.max_row + 1)
+        if normalize_text(data_ws.cell(row=row_idx, column=FILENAME_COL).value) not in processed_filenames
+        and normalize_text(data_ws.cell(row=row_idx, column=FILENAME_COL).value) != ""
+    ]
+    for row_idx in reversed(rows_to_delete):
+        data_ws.delete_rows(row_idx)
+    if rows_to_delete:
+        logger.info(f"[정리] 취합 시트 {len(rows_to_delete)}행 제거 (삭제된 파일)")
+    return len(rows_to_delete)
+
+
 def upsert_data_rows(ws, rows: List[List]) -> Tuple[int, int]:
     inserted = 0
     updated = 0
@@ -1178,6 +1194,11 @@ def main():
     if all_records:
         inserted, updated = upsert_data_rows(data_ws, all_records)
         logger.info(f"전체 데이터 적재 완료: 신규 {inserted}건 / 덮어쓰기 {updated}건")
+
+    # 소스 폴더에 없는 파일 데이터 자동 정리
+    if not RETRY_MODE:
+        processed_filenames = {meta["파일명"] for _, meta in all_target_files}
+        cleanup_deleted_files(data_ws, processed_filenames)
 
     update_summary_sheet(summary_ws, data_ws)
 
