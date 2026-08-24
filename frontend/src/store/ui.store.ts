@@ -7,12 +7,6 @@ interface UiStore {
 
   lastLoaded: string | null;
   setLastLoaded: (v: string | null) => void;
-
-  showLogScale: boolean;
-  toggleLogScale: () => void;
-
-  showYearChart: boolean;
-  toggleYearChart: () => void;
 }
 
 export const useUiStore = create<UiStore>()(
@@ -23,12 +17,6 @@ export const useUiStore = create<UiStore>()(
 
       lastLoaded: null,
       setLastLoaded: (v) => set({ lastLoaded: v }),
-
-      showLogScale: false,
-      toggleLogScale: () => set(s => ({ showLogScale: !s.showLogScale })),
-
-      showYearChart: false,
-      toggleYearChart: () => set(s => ({ showYearChart: !s.showYearChart })),
     }),
     {
       name: 'ui-store',

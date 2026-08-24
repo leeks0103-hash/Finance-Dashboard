@@ -10,7 +10,7 @@ import { useUiStore } from '@/store';
 import { useQuickSearchStore } from '@/store/quickSearch.store';
 import { formatEok, PERF_MONTH } from '@/utils';
 import { makeBarOptions } from '@/utils/chartOptions';
-import { getChartPalette } from '@/utils/chartColors';
+import { getChartPalette, getChartTheme } from '@/utils/chartColors';
 import type { PerfProject } from '@/types/performance.types';
 import type { ServerPagination, ServerSearch } from '@/components/ui/DataTable';
 import type { ChartOptions } from 'chart.js';
@@ -180,7 +180,7 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
   const dark = theme === 'dark';
   const palette = useMemo(() => getChartPalette(dark), [dark]);
   const showLabels = useUiStore(s => s.showChartLabels);
-  const labelColor = dark ? 'rgba(255,255,255,0.95)' : '#111111';
+  const { labelColor } = getChartTheme(dark);
 
   const chartLabels   = useMemo(() => monthly.map(m => m.month),   [monthly]);
   const chartDatasets = useMemo((): PerfChartDataset[] => [

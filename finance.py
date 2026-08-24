@@ -365,7 +365,7 @@ def api_summary():
     if df.empty:
         return jsonify({
             "total_revenue": 0, "total_expenditure": 0, "total_profit": 0,
-            "avg_profit_rate": 0, "count": 0, "by_part": {}, "by_year": {}, "by_stage": {},
+            "avg_profit_rate": 0, "count": 0, "by_part": {}, "by_stage": {},
             "cost_breakdown": {"direct_cost": 0, "labor_cost": 0, "overhead": 0},
         })
 
@@ -380,18 +380,6 @@ def api_summary():
             overhead=("overhead", "sum"),
             profit=("operating_profit", "sum"),
             count=("project_code", "count"),
-        )
-        .to_dict(orient="index")
-    )
-
-    by_year = (
-        df.groupby("year")
-        .agg(
-            revenue=("revenue", "sum"),
-            expenditure=("expenditure", "sum"),
-            profit=("operating_profit", "sum"),
-            count=("project_code", "count"),
-            avg_profit_rate=("profit_rate", _safe_avg_rate),
         )
         .to_dict(orient="index")
     )
@@ -417,7 +405,6 @@ def api_summary():
         "avg_profit_rate":  round(rates.mean(), 1) if not rates.empty else 0,
         "count":            len(df),
         "by_part":          by_part,
-        "by_year":          by_year,
         "by_stage":         by_stage,
         "cost_breakdown": {
             "direct_cost": df["direct_cost"].sum(),

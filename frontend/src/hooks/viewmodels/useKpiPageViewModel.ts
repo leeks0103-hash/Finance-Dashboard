@@ -6,7 +6,7 @@ import { useKpiFilterStore } from '@/store/kpiFilter.store';
 import { useUiStore } from '@/store';
 import { useTheme } from '@/hooks/useTheme';
 import { makeBarOptions } from '@/utils/chartOptions';
-import { getChartPalette } from '@/utils/chartColors';
+import { getChartPalette, getChartTheme } from '@/utils/chartColors';
 import { sortKpiRawCols } from '@/utils/kpiColumns';
 import type { KpiRawRow } from '@/types/kpi.types';
 import type { ServerPagination, ServerSearch } from '@/components/ui/DataTable';
@@ -87,7 +87,7 @@ export const useKpiPageViewModel = (): KpiPageViewModel => {
   const { theme } = useTheme();
   const dark = theme === 'dark';
   const showLabels = useUiStore(s => s.showChartLabels);
-  const labelColor = dark ? 'rgba(255,255,255,0.95)' : '#111111';
+  const { labelColor } = getChartTheme(dark);
   const palette = useMemo(() => getChartPalette(dark), [dark]);
 
   const chartOptions = useMemo(() => makeBarOptions(showLabels, labelColor, {

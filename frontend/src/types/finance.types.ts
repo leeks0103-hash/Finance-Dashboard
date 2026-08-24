@@ -42,14 +42,6 @@ export interface CostBreakdown {
   overhead: number;
 }
 
-export interface YearStats {
-  revenue: number;
-  expenditure: number;
-  profit: number;
-  count: number;
-  avg_profit_rate?: number;
-}
-
 export interface Summary {
   total_revenue: number;
   total_expenditure: number;
@@ -57,7 +49,6 @@ export interface Summary {
   avg_profit_rate: number;
   count: number;
   by_part: Record<string, PartStats>;
-  by_year?: Record<string, YearStats>;
   by_stage?: Record<string, PartStats>;
   cost_breakdown: CostBreakdown;
 }

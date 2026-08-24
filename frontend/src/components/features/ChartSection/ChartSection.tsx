@@ -9,15 +9,25 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { useChartViewModel } from '@/hooks/viewmodels';
 import { useTheme, useFilterOptions } from '@/hooks';
-import { useFilterStore, useUiStore } from '@/store';
+import { useFilterStore } from '@/store';
 import { makeBarOptions } from '@/utils/chartOptions';
-import { getChartPalette } from '@/utils/chartColors';
+import { getChartPalette, getChartTheme } from '@/utils/chartColors';
 import { isAllSelected } from '@/utils/array';
 import { ChartCard, BarChart, DoughnutChart, Toggle, useTableDndSensors } from '@/components/ui';
+import type { ChartOptions } from 'chart.js';
 import styles from './ChartSection.module.css';
 
 const DEFAULT_CHART_ORDER = ['profitRate', 'revExp', 'costBreakdown', 'stageChart'];
 const LS_CHART_ORDER = 'finance-chart-order';
+
+// x축 stacked 해제 + 테마(격자·눈금) 색 오버라이드 병합 — 매출/지출류 차트 여러 개가 공유하는 패턴
+const withUnstackedTheme = (
+  options: ChartOptions<'bar'>,
+  scaleOverride: { x: Record<string, unknown>; y: Record<string, unknown> },
+): ChartOptions<'bar'> => ({
+  ...options,
+  scales: { ...scaleOverride, x: { ...scaleOverride.x, stacked: false } },
+});
 
 // 드래그 가능 차트 카드 래퍼 — 모듈 스코프에서 정의해야 React가 컴포넌트 정체성 유지
 // 카드 전체가 아니라 좌상단 그립 아이콘만 드래그 핸들 — 차트 본문(호버·클릭·바 클릭)은 영향 없음
@@ -49,8 +59,7 @@ const ChartSection = () => {
   const { theme } = useTheme();
   const dark = theme === 'dark';
 
-  const stages        = useFilterStore(s => s.stages);
-  const showYearChart = useUiStore(s => s.showYearChart);
+  const stages = useFilterStore(s => s.stages);
   const { stages: allStages } = useFilterOptions();
 
   const stageLabel = stages.length > 0 && !isAllSelected(stages, allStages) ? stages.join('·') : '전체';
@@ -58,10 +67,7 @@ const ChartSection = () => {
   // 파트별 이익율 카드 — 토글 켜면 이익율(%) 대신 이익액(억원) 표시
   const [showProfitAmount, setShowProfitAmount] = useState(false);
 
-  // 팔레트 — 오렌지/웜 브랜드에 맞춤
-  const labelColor = dark ? 'rgba(255,255,255,0.95)' : '#111111';
-  const gridColor  = dark ? 'rgba(90,90,100,0.55)'   : 'rgba(0,0,0,0.08)';
-  const tickColor  = dark ? 'rgba(230,230,236,0.95)' : '#1E1E1E';
+  const { labelColor, gridColor, tickColor } = getChartTheme(dark);
 
   const vm = useChartViewModel(labelColor);
 
@@ -104,13 +110,10 @@ const ChartSection = () => {
     y: { grid: { color: gridColor }, ticks: { color: tickColor } },
   }), [gridColor, tickColor]);
 
-  const revExpOptions  = useMemo(() => ({
-    ...vm.revExp.options,
-    scales: { ...scaleOverride, x: { ...scaleOverride.x, stacked: false } },
-  }), [vm.revExp.options, scaleOverride]);
-
-  // 로그 스케일 사용 시 0이하 값이 있으면 자동 fallback
-  const canUseLogScale = vm.showLogScale && vm.profitRate.rates.every(r => r > 0);
+  const revExpOptions = useMemo(
+    () => withUnstackedTheme(vm.revExp.options, scaleOverride),
+    [vm.revExp.options, scaleOverride],
+  );
 
   const profitRateOptions = useMemo(() => ({
     ...vm.profitRate.options,
@@ -119,11 +122,11 @@ const ChartSection = () => {
       ...vm.profitRate.options.scales,
       y: {
         ...scaleOverride.y,
-        type: canUseLogScale ? ('logarithmic' as const) : ('linear' as const),
+        type: 'linear' as const,
         ticks: { ...scaleOverride.y.ticks, callback: (v: string | number) => v + '%' },
       },
     },
-  }), [vm.profitRate.options, scaleOverride, canUseLogScale]);
+  }), [vm.profitRate.options, scaleOverride]);
 
   // 파트별 이익율 카드 토글 ON — 이익액(억원) 뷰용 옵션
   const profitAmountOptions = useMemo(() => ({
@@ -142,15 +145,10 @@ const ChartSection = () => {
     scales: { ...scaleOverride, y: { ...scaleOverride.y, ticks: { ...scaleOverride.y.ticks, callback: (v: string | number) => v + '억' } } },
   }), [vm.showLabels, labelColor, scaleOverride]);
 
-  const yearTrendOptions = useMemo(() => ({
-    ...vm.yearTrend.options,
-    scales: { ...scaleOverride, x: { ...scaleOverride.x, stacked: false } },
-  }), [vm.yearTrend.options, scaleOverride]);
-
-  const stageChartOptions = useMemo(() => ({
-    ...vm.stageChart.options,
-    scales: { ...scaleOverride, x: { ...scaleOverride.x, stacked: false } },
-  }), [vm.stageChart.options, scaleOverride]);
+  const stageChartOptions = useMemo(
+    () => withUnstackedTheme(vm.stageChart.options, scaleOverride),
+    [vm.stageChart.options, scaleOverride],
+  );
 
   if (vm.isLoading) return (
     <div className={styles.grid}>
@@ -266,22 +264,6 @@ const ChartSection = () => {
           {visibleCharts.map(c => (
             <SortableChart key={c.id} id={c.id}>{c.node}</SortableChart>
           ))}
-
-          {showYearChart && vm.yearTrend.labels.length > 0 && (
-            <ChartCard compact={false}>
-              <ChartCard.Title>연도별 매출 / 이익 추이</ChartCard.Title>
-              <ChartCard.Body>
-                <BarChart
-                  labels={vm.yearTrend.labels}
-                  datasets={[
-                    { label: '매출(억)', data: vm.yearTrend.revenues, backgroundColor: palette.revenue },
-                    { label: '이익(억)', data: vm.yearTrend.profits,  backgroundColor: palette.profit  },
-                  ]}
-                  options={yearTrendOptions}
-                />
-              </ChartCard.Body>
-            </ChartCard>
-          )}
         </div>
       </SortableContext>
     </DndContext>

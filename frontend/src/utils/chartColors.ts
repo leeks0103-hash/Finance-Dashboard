@@ -19,6 +19,23 @@ export interface ChartPalette {
   costOverhead: string;
 }
 
+/** 데이터 시리즈 색과 별개로, 축 눈금·격자선·데이터라벨 텍스트에 쓰는 차트 "크롬" 색 — 3탭 공용 */
+export interface ChartTheme {
+  labelColor: string;
+  gridColor:  string;
+  tickColor:  string;
+}
+
+export const getChartTheme = (dark: boolean): ChartTheme => dark ? {
+  labelColor: 'rgba(255,255,255,0.95)',
+  gridColor:  'rgba(90,90,100,0.55)',
+  tickColor:  'rgba(230,230,236,0.95)',
+} : {
+  labelColor: '#111111',
+  gridColor:  'rgba(0,0,0,0.08)',
+  tickColor:  '#1E1E1E',
+};
+
 export const getChartPalette = (dark: boolean): ChartPalette => dark ? {
   revenue:      'rgba(129,140,248,0.82)',
   cost:         'rgba(248,113,113,0.82)',
