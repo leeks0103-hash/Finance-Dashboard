@@ -55,6 +55,23 @@ function SortableChart({ id, children }: SortableChartProps) {
   );
 }
 
+// 로딩/에러/데이터없음 4칸 플레이스홀더 — 셋이 카드 4개짜리 그리드라는 구조만 같고 내용만 다름
+interface ChartStateGridProps { variant: 'skeleton' | 'error' | 'empty'; icon?: string; message?: string; }
+function ChartStateGrid({ variant, icon, message }: ChartStateGridProps) {
+  return (
+    <>
+      {[0, 1, 2, 3].map(i => variant === 'skeleton' ? (
+        <div key={i} className={styles.skeleton} />
+      ) : (
+        <div key={i} className={variant === 'error' ? styles.errorCard : styles.emptyCard}>
+          <span className={variant === 'error' ? styles.errorIcon : styles.emptyIcon}>{icon}</span>
+          <span>{message}</span>
+        </div>
+      ))}
+    </>
+  );
+}
+
 const ChartSection = () => {
   const { theme } = useTheme();
   const dark = theme === 'dark';
@@ -150,34 +167,6 @@ const ChartSection = () => {
     [vm.stageChart.options, scaleOverride],
   );
 
-  if (vm.isLoading) return (
-    <div className={styles.grid}>
-      {[0, 1, 2, 3].map(i => <div key={i} className={styles.skeleton} />)}
-    </div>
-  );
-
-  if (vm.isError) return (
-    <div className={styles.grid}>
-      {[0, 1, 2, 3].map(i => (
-        <div key={i} className={styles.errorCard}>
-          <span className={styles.errorIcon}>⚠</span>
-          <span>데이터를 불러올 수 없습니다</span>
-        </div>
-      ))}
-    </div>
-  );
-
-  if (vm.isEmpty) return (
-    <div className={styles.grid}>
-      {[0, 1, 2, 3].map(i => (
-        <div key={i} className={styles.emptyCard}>
-          <span className={styles.emptyIcon}>📊</span>
-          <span>데이터 없음</span>
-        </div>
-      ))}
-    </div>
-  );
-
   // id → 렌더 함수 — 드래그 순서(chartOrder)에 따라 이 중 하나를 골라 렌더
   const chartRenderers: Record<string, () => ReactNode | null> = {
     profitRate: () => (
@@ -256,14 +245,20 @@ const ChartSection = () => {
     .map(id => ({ id, node: chartRenderers[id]?.() ?? null }))
     .filter(c => c.node !== null);
 
+  // 로딩/에러/empty/정상 — 서로 같이 나타나지 않는 상태이므로 하나로 합쳐서 관리
+  const chartState = vm.isLoading ? 'loading' : vm.isError ? 'error' : vm.isEmpty ? 'empty' : 'ready';
+
+  const content = chartState === 'loading' ? <ChartStateGrid variant="skeleton" />
+    : chartState === 'error' ? <ChartStateGrid variant="error" icon="⚠" message="데이터를 불러올 수 없습니다" />
+    : chartState === 'empty' ? <ChartStateGrid variant="empty" icon="📊" message="데이터 없음" />
+    : visibleCharts.map(c => <SortableChart key={c.id} id={c.id}>{c.node}</SortableChart>);
+
   return (
-    /* 테마 전환 시 key로 완전 리마운트 → 색상 보장 */
     <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handleChartDragEnd}>
       <SortableContext items={visibleCharts.map(c => c.id)} strategy={rectSortingStrategy}>
-        <div className={styles.grid} key={dark ? 'dark' : 'light'}>
-          {visibleCharts.map(c => (
-            <SortableChart key={c.id} id={c.id}>{c.node}</SortableChart>
-          ))}
+        {/* key: 테마 전환·상태 전환마다 완전 리마운트 → 색상 보장 + fade-in 재생 */}
+        <div className={styles.grid} key={`${dark ? 'dark' : 'light'}-${chartState}`}>
+          {content}
         </div>
       </SortableContext>
     </DndContext>

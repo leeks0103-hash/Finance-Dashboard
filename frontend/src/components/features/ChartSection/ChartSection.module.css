@@ -46,6 +46,13 @@
   grid-template-columns: 1fr 1fr 1fr 1fr;
   gap: 12px;
   height: 400px;
+  /* 로딩/에러/empty → 실제 차트로 바뀔 때(그리고 테마 전환으로 key가 바뀌어 리마운트될 때) 재생 */
+  animation: contentFadeIn 0.3s ease;
+}
+
+@keyframes contentFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 @media (max-width: 1200px) {

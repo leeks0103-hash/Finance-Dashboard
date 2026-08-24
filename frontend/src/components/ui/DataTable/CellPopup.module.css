@@ -7,6 +7,7 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
+  animation: popupFadeIn 0.18s ease;
 }
 
 .popupBox {
@@ -20,6 +21,13 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  animation: popupSlideUp 0.2s ease;
+}
+
+@keyframes popupFadeIn  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes popupSlideUp {
+  from { transform: translateY(16px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
 }
 
 .popupHeader {

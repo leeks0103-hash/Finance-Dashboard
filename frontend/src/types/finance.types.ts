@@ -76,6 +76,22 @@ export interface Insights {
   comments: Comment[];
 }
 
+/** 재무/실적현황 인사이트 순위 리스트 한 행 — InsightSectionView 공용 표시 단위 */
+export interface InsightRow {
+  key:         string;
+  displayCode: string;
+  part:        string;
+  value:       string;
+  valueColor?: string;
+  subValue?:   string;
+}
+
+export interface InsightListSpec {
+  variant: 'profit' | 'risk' | 'default';
+  title:   string;
+  rows:    InsightRow[];
+}
+
 // M-6: discriminated union — TypeScript가 ok:true/false 분기를 타입 안전하게 처리
 export type ReloadResponse =
   | { ok: true;  loaded_at: string; count: number; corrected_rows: number }

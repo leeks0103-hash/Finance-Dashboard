@@ -1,5 +1,6 @@
 export * from './KpiCard';
 export * from './FilterChip';
+export * from './FilterPanelView';
 export * from './InsightComment';
 export * from './Badge';
 export * from './Spinner';
@@ -7,7 +8,9 @@ export * from './ErrorFallback';
 export * from './EmptyState';
 export * from './Chart';
 export * from './Button';
+export * from './CsvExportBar';
 export * from './InsightListCard';
+export * from './InsightSectionView';
 export * from './ProjectRankRow';
 export * from './DownloadModal';
 export * from './NegCell';

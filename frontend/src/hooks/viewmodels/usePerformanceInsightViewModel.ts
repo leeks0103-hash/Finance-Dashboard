@@ -1,21 +1,13 @@
 import { usePerformanceInsights } from '@/hooks/usePerformanceInsights';
 import { formatEok } from '@/utils';
-
-export interface PerfInsightRowViewModel {
-  key:         string;
-  displayCode: string;
-  part:        string;
-  value:       string;
-  valueColor:  string;
-  subValue:    string;
-}
+import type { InsightRow } from '@/types';
 
 export interface PerformanceInsightViewModel {
   isLoading: boolean;
   isEmpty:   boolean;
   comments:  Array<{ type: 'positive' | 'info' | 'neutral' | 'warning'; icon: string; text: string }>;
-  worst: PerfInsightRowViewModel[];
-  risk:  PerfInsightRowViewModel[];
+  worst: InsightRow[];
+  risk:  InsightRow[];
 }
 
 /** 화면에 표시할 짧은 코드 */

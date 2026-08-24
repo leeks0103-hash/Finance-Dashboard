@@ -143,6 +143,12 @@
   min-width: 120px;
   max-height: min(60vh, 480px);
   overflow-y: auto;
+  animation: dropIn 0.15s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes dropIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .colMenu.colMenuGrid {
@@ -174,6 +180,13 @@
   border-right: none;
   /* 가로스크롤 없어도 테이블 하단 border 보이도록 */
   border-bottom: 1px solid var(--border);
+  /* 스켈레톤(별개 엘리먼트) → 실제 테이블로 처음 나타날 때만 재생 — 리페치 중엔 위 opacity transition이 담당 */
+  animation: contentFadeIn 0.25s ease;
+}
+
+@keyframes contentFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 /* compact 모드는 사실상 페이지네이션이 없는 고정형 소형 테이블 —

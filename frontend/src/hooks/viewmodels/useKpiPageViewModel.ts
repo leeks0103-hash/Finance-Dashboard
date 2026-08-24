@@ -108,7 +108,7 @@ export const useKpiPageViewModel = (): KpiPageViewModel => {
     return {
       labels, targets, actuals, options: chartOptions, tickColor: labelColor,
       datasets: [
-        { label: '26년 목표', data: targets, backgroundColor: palette.target,  borderRadius: 4 },
+        { label: '26년 목표', data: targets, backgroundColor: palette.cost,    borderRadius: 4 },
         { label: '26년 실적', data: actuals, backgroundColor: palette.revenue, borderRadius: 4 },
       ],
     };
