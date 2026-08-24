@@ -118,8 +118,7 @@ export const useExport = () => {
         const ts = data.loaded_at ?? '';
         const shortTs = ts.length >= 16 ? ts.slice(5, 16).replace('T', ' ') : ts;
         setLastLoaded(shortTs || null);
-        const cr = (data as any).corrected_rows;
-        setCorrectedRows(typeof cr === 'number' ? cr : 0);
+        setCorrectedRows(data.corrected_rows);
       }
     },
     onError: (err) => {

@@ -10,6 +10,9 @@ interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
   loading?: boolean;
   icon?: ReactNode;
   children: ReactNode;
+  /** true면 기본 variant/size 시각 스타일을 전혀 입히지 않음 — FilterChip처럼 완전히 다른 자체 비주얼을
+   *  가진 커스텀 컨트롤이 <button> 시맨틱·a11y·disabled 처리만 가져다 쓸 때 사용 */
+  unstyled?: boolean;
 }
 
 const Button = ({
@@ -20,10 +23,11 @@ const Button = ({
   children,
   disabled,
   className = '',
+  unstyled = false,
   ...rest
 }: Props) => (
   <button
-    className={`${styles.btn} ${styles[variant]} ${styles[size]} ${className}`}
+    className={unstyled ? className : `${styles.btn} ${styles[variant]} ${styles[size]} ${className}`}
     disabled={disabled || loading}
     aria-busy={loading}
     {...rest}

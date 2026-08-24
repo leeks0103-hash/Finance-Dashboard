@@ -1,16 +1,16 @@
-import { useState, useMemo, useCallback, useEffect, useRef, type ReactNode } from 'react';
-import { createPortal } from 'react-dom';
+import { useState, useMemo, useCallback, useRef, type ReactNode } from 'react';
 import {
-  DndContext, closestCenter, PointerSensor, useSensor, useSensors,
+  DndContext, closestCenter,
   type DragEndEvent,
 } from '@dnd-kit/core';
 import {
-  SortableContext, horizontalListSortingStrategy, useSortable, arrayMove,
+  SortableContext, horizontalListSortingStrategy, arrayMove,
 } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { CopyText, Button, Pagination, HighlightText } from '@/components/ui';
-import { useColumnHighlight } from '@/hooks/useColumnHighlight';
-import { useClipboardPopup } from '@/hooks/useClipboardPopup';
+import {
+  CopyText, Button, Pagination, HighlightText,
+  useColumnHighlight, useClipboardPopup, useTableEscapePriority, useTableDndSensors,
+  SortableHeaderCell, CellPopup, TableTitleBar,
+} from '@/components/ui';
 import styles from './KpiRawTable.module.css';
 
 export const KPI_METRICS = [
@@ -88,26 +88,15 @@ interface DraggableThProps {
   onHeaderClick: (colId: string) => void;
 }
 function DraggableTh({ col, width, onResizeStart, isHighlighted, onHeaderClick }: DraggableThProps) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: col.id });
-
   return (
-    <th
-      ref={setNodeRef}
-      onClick={isDragging ? undefined : () => onHeaderClick(col.id)}
-      className={isHighlighted ? styles.thHighlighted : ''}
-      style={{
-        width,
-        minWidth: width,
-        transform: CSS.Transform.toString(transform),
-        transition,
-        opacity: isDragging ? 0.5 : 1,
-        cursor: 'grab',
-        position: 'relative',
-        whiteSpace: 'pre-line',
-      }}
-      {...attributes}
-      {...listeners}
+    <SortableHeaderCell
+      id={col.id}
+      isDraggable
+      isHighlighted={isHighlighted}
+      highlightedClassName={styles.thHighlighted}
+      width={width}
+      style={{ minWidth: width, whiteSpace: 'pre-line' }}
+      onClick={() => onHeaderClick(col.id)}
     >
       {col.header}
       <div
@@ -115,7 +104,7 @@ function DraggableTh({ col, width, onResizeStart, isHighlighted, onHeaderClick }
         onPointerDown={e => { e.stopPropagation(); onResizeStart(col.id, e.clientX, width); }}
         onClick={e => e.stopPropagation()}
       />
-    </th>
+    </SortableHeaderCell>
   );
 }
 
@@ -157,22 +146,18 @@ const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, serverP
   );
 
   // ── 컬럼 하이라이트 ───────────────────────────────────────
-  const { highlightedCol, setHighlight, clearHighlight } = useColumnHighlight();
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const { highlightedCol, setHighlight, clearHighlight } = useColumnHighlight(wrapRef);
 
   // ── 파일명 복사 팝업 ──────────────────────────────────────
   const { popup, copied: popupCopied, openPopup, closePopup, copyPopupText } = useClipboardPopup();
 
   // Esc — 팝업 닫기 > 하이라이트 해제 > 검색 초기화 (DataTable과 동일한 우선순위)
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
-      if (popup) { closePopup(); return; }
-      if (highlightedCol) { clearHighlight(); return; }
-      if (serverSearch?.value) serverSearch.onChange('');
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [popup, closePopup, highlightedCol, clearHighlight, serverSearch]);
+  useTableEscapePriority([
+    { active: !!popup, run: closePopup },
+    { active: !!highlightedCol, run: clearHighlight },
+    { active: !!serverSearch?.value, run: () => serverSearch?.onChange('') },
+  ]);
 
   // ── 리사이즈 ──────────────────────────────────────────────
   const resizeRef = useRef<{ id: string; startX: number; startW: number } | null>(null);
@@ -200,7 +185,7 @@ const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, serverP
   }, []);
 
   // ── DnD ───────────────────────────────────────────────────
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const sensors = useTableDndSensors();
 
   const handleDragEnd = useCallback((e: DragEndEvent) => {
     const { active, over } = e;
@@ -217,16 +202,6 @@ const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, serverP
   const totalLabel = serverPagination ? `${serverPagination.total}건` : `${data.length}건`;
   // 표시 행 수 — 프로젝트 수 × KPI 항목 수 (최소 5줄 보장)
   const visibleRows = Math.max(5, data.length * KPI_METRICS.length);
-
-  const wrapRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!highlightedCol) return;
-    const onMouseDown = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) clearHighlight();
-    };
-    document.addEventListener('mousedown', onMouseDown);
-    return () => document.removeEventListener('mousedown', onMouseDown);
-  }, [highlightedCol, clearHighlight]);
 
   const card = (
     <div ref={wrapRef} className={styles.wrapper} style={{ '--kpi-rows': visibleRows } as React.CSSProperties}>
@@ -335,43 +310,16 @@ const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, serverP
         />
       )}
 
-      {popup && createPortal(
-        <div className={styles.popupOverlay} onClick={closePopup}>
-          <div className={styles.popupBox} onClick={e => e.stopPropagation()}>
-            <div className={styles.popupHeader}>
-              <span>파일명</span>
-              <Button variant="ghost" size="sm" className={styles.popupClose} onClick={closePopup} aria-label="닫기">✕</Button>
-            </div>
-            <div
-              className={`${styles.popupBody} ${popupCopied ? styles.popupBodyCopied : ''}`}
-              onClick={copyPopupText}
-              role="button"
-              tabIndex={0}
-              onKeyDown={e => e.key === 'Enter' && copyPopupText()}
-            >
-              <span>{popup.text}</span>
-              <span className={styles.popupCopyHint}>{popupCopied ? '✓ 복사됨' : '클릭해서 복사'}</span>
-            </div>
-          </div>
-        </div>,
-        document.body,
-      )}
+      <CellPopup title="파일명" popup={popup} copied={popupCopied} onClose={closePopup} onCopy={copyPopupText} />
     </div>
   );
 
   if (!title) return card;
 
   return (
-    <div className={styles.outerGroup}>
-      <div className={styles.outerTitle}>
-        <div className={styles.outerTitleLeft}>
-          <span className={styles.title}>{title}</span>
-          <span className={styles.count}>{totalLabel}</span>
-        </div>
-        {toolbarExtra && <div>{toolbarExtra}</div>}
-      </div>
+    <TableTitleBar title={title} count={totalLabel} toolbarExtra={toolbarExtra}>
       {card}
-    </div>
+    </TableTitleBar>
   );
 };
 

@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useKpiSummary, useKpiDataPaged } from '@/hooks/useKpiSummary';
 import { useDebouncedSearch } from '@/hooks/useDebouncedSearch';
+import { useReactPagination } from '@/lib/pagination';
 import { useKpiFilterStore } from '@/store/kpiFilter.store';
 import { useUiStore } from '@/store';
 import { useTheme } from '@/hooks/useTheme';
@@ -62,8 +63,7 @@ const SEARCH_FIELD_OPTIONS = [
 ];
 
 export const useKpiPageViewModel = (): KpiPageViewModel => {
-  const [page,     setPage]     = useState(1);
-  const [pageSize, setPageSize] = useState(30);
+  const pagination = useReactPagination(30);
   const [searchField, setSearchField] = useState('');
   const search = useDebouncedSearch(350);
   const years  = useKpiFilterStore(s => s.years);
@@ -76,7 +76,7 @@ export const useKpiPageViewModel = (): KpiPageViewModel => {
     isLoading: dataLoading,
     isFetching,
   } = useKpiDataPaged(
-    { page, pageSize, search: search.debouncedValue, field: searchField },
+    { page: pagination.page, pageSize: pagination.pageSize, search: search.debouncedValue, field: searchField },
     { years, parts, stages },
   );
 
@@ -150,21 +150,21 @@ export const useKpiPageViewModel = (): KpiPageViewModel => {
     rawCols,
 
     serverPagination: {
-      page,
-      pageSize,
-      total:       data?.total ?? 0,
-      onPageChange:     setPage,
-      onPageSizeChange: (s) => { setPageSize(s); setPage(1); },
+      page:             pagination.page,
+      pageSize:         pagination.pageSize,
+      total:            data?.total ?? 0,
+      onPageChange:     pagination.setPage,
+      onPageSizeChange: pagination.setPageSize,
     },
 
     serverSearch: {
       value:    search.inputValue,
       onChange: (val) => {
         search.handleChange({ target: { value: val } } as React.ChangeEvent<HTMLInputElement>);
-        setPage(1);
+        pagination.resetToFirstPage();
       },
       field:        searchField,
-      onFieldChange: (f) => { setSearchField(f); setPage(1); },
+      onFieldChange: (f) => { setSearchField(f); pagination.resetToFirstPage(); },
       fieldOptions:  SEARCH_FIELD_OPTIONS,
     },
   };

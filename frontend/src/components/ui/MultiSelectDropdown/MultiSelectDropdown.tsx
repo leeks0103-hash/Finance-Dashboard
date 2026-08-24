@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { Button } from '@/components/ui/Button';
 import styles from './MultiSelectDropdown.module.css';
 
 export interface MultiSelectDropdownProps {
@@ -42,8 +43,8 @@ const MultiSelectDropdown = ({
 
   return (
     <div className={styles.wrap} ref={wrapRef}>
-      <button
-        type="button"
+      <Button
+        unstyled
         className={`${styles.trigger} ${count > 0 ? styles.active : ''}`}
         onClick={() => setOpen(v => !v)}
         aria-expanded={open}
@@ -51,7 +52,7 @@ const MultiSelectDropdown = ({
         <span className={styles.triggerLabel}>{label}</span>
         {count > 0 && <span className={styles.badge}>{count}</span>}
         <span className={`${styles.arrow} ${open ? styles.arrowOpen : ''}`}>▾</span>
-      </button>
+      </Button>
 
       {open && (
         <div className={styles.dropdown}>

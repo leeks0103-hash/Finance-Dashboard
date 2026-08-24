@@ -87,7 +87,7 @@ export interface Insights {
 
 // M-6: discriminated union — TypeScript가 ok:true/false 분기를 타입 안전하게 처리
 export type ReloadResponse =
-  | { ok: true;  loaded_at: string; count: number }
+  | { ok: true;  loaded_at: string; count: number; corrected_rows: number }
   | { ok: false; error: string };
 
 export interface PagedResponse<T> {

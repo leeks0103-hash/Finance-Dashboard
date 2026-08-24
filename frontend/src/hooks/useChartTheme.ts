@@ -11,10 +11,11 @@ export function useChartTheme() {
     defaults.color = dark ? 'rgba(91,168,204,0.8)' : '#64748B';
 
     // 등록된 모든 scale type에 대해 grid/tick 기본값 설정
-    const scales = (defaults as any).scales ?? {};
-    Object.keys(scales).forEach(type => {
-      scales[type].grid  ??= {};
-      scales[type].ticks ??= {};
+    const scales = defaults.scales;
+    (Object.keys(scales) as (keyof typeof scales)[]).forEach(type => {
+      const scale = scales[type];
+      scale.grid  ??= {} as NonNullable<typeof scale.grid>;
+      scale.ticks ??= {} as NonNullable<typeof scale.ticks>;
       // ChartSection이 options.scales로 직접 주입하므로 defaults는 fallback만 담당
     });
   }, [theme]);

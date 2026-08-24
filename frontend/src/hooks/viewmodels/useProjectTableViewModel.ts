@@ -3,6 +3,7 @@ import { useProjects } from '@/hooks/useProjects';
 import { useSummary } from '@/hooks/useSummary';
 import { useDebouncedSearch } from '@/hooks/useDebouncedSearch';
 import { useQuickSearchStore } from '@/store/quickSearch.store';
+import { useReactPagination } from '@/lib/pagination';
 import { formatBillion, formatRate } from '@/utils';
 import type { Project } from '@/types';
 import type { ServerPagination, ServerSearch } from '@/components/ui/DataTable';
@@ -45,8 +46,7 @@ const SEARCH_FIELD_OPTIONS = [
 ];
 
 export const useProjectTableViewModel = (): ProjectTableViewModel => {
-  const [page,     setPage]     = useState(1);
-  const [pageSize, setPageSize] = useState(30);
+  const pagination = useReactPagination(30);
   const [searchField, setSearchField] = useState('');
   const search = useDebouncedSearch(350);
 
@@ -56,15 +56,15 @@ export const useProjectTableViewModel = (): ProjectTableViewModel => {
   useEffect(() => {
     if (!financeQuick) return;
     search.setFilter(financeQuick);
-    setPage(1);
+    pagination.resetToFirstPage();
     clearFinanceQ('');
   }, [financeQuick]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { data: paged, isLoading, isFetching } = useProjects({
-    page,
-    pageSize,
-    search: search.debouncedValue,
-    field:  searchField,
+    page:     pagination.page,
+    pageSize: pagination.pageSize,
+    search:   search.debouncedValue,
+    field:    searchField,
   });
 
   // 합계는 /api/summary (전체 필터 기준) — 페이지네이션 여부와 무관한 전체 집계값
@@ -96,20 +96,20 @@ export const useProjectTableViewModel = (): ProjectTableViewModel => {
 
     serverPagination: {
       total:            paged?.total ?? 0,
-      page,
-      pageSize,
-      onPageChange:     (p) => setPage(p),
-      onPageSizeChange: (s) => { setPageSize(s); setPage(1); },
+      page:             pagination.page,
+      pageSize:         pagination.pageSize,
+      onPageChange:     pagination.setPage,
+      onPageSizeChange: pagination.setPageSize,
     },
 
     serverSearch: {
       value:    search.inputValue,
       onChange: (val) => {
         search.handleChange({ target: { value: val } } as React.ChangeEvent<HTMLInputElement>);
-        setPage(1);
+        pagination.resetToFirstPage();
       },
       field:        searchField,
-      onFieldChange: (f) => { setSearchField(f); setPage(1); },
+      onFieldChange: (f) => { setSearchField(f); pagination.resetToFirstPage(); },
       fieldOptions:  SEARCH_FIELD_OPTIONS,
     },
   };

@@ -17,7 +17,8 @@
 .track:focus-visible { box-shadow: 0 0 0 3px var(--brand-bg); }
 .disabled { opacity: 0.4; cursor: not-allowed; }
 /* 다크 네브바 안의 토글 — 사이트 시안 고정 */
-.on { background: var(--brand-mid) !important; }
+.on      { background: var(--brand-mid) !important; }
+.dangerOn { background: var(--color-loss, #e53e3e) !important; }
 
 .thumb {
   position: absolute;
@@ -29,10 +30,12 @@
   transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1),
               width 0.12s ease;
 }
-.on .thumb { transform: translateX(20px); }
+.on .thumb,
+.dangerOn .thumb { transform: translateX(20px); }
 
 .track:active .thumb { width: 20px; }
-.on:active .thumb { transform: translateX(16px); width: 20px; }
+.on:active .thumb,
+.dangerOn:active .thumb { transform: translateX(16px); width: 20px; }
 
 .innerLabel {
   position: absolute;
@@ -44,5 +47,6 @@
   pointer-events: none;
   letter-spacing: 0.06em;
 }
-.track:not(.on) .innerLabel { right: 14px; color: var(--text-muted); }
-.on .innerLabel { left: 6px; color: #fff; }
+.track:not(.on):not(.dangerOn) .innerLabel { right: 14px; color: var(--text-muted); }
+.on .innerLabel,
+.dangerOn .innerLabel { left: 6px; color: #fff; }

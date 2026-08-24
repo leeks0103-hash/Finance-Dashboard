@@ -62,31 +62,6 @@
   gap: 6px;
 }
 
-.outerGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.outerTitle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 2px;
-}
-
-.outerTitleLeft {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.title {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--text);
-}
-
 .searchWrap {
   position: relative;
   display: flex;
@@ -151,11 +126,6 @@
   margin-left: auto;   /* count 다음 오른쪽 끝으로 밀기 */
 }
 .pageSizeSelect:hover { border-color: var(--brand-mid); }
-
-.count {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-}
 
 /* 컬럼 숨김 */
 .colToggleWrap { position: relative; }
@@ -396,84 +366,6 @@
 .dblClickable:hover {
   background: color-mix(in srgb, var(--accent) 6%, transparent);
 }
-
-/* ── 셀 내용 팝업 모달 ─── */
-.popupOverlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-  z-index: 500;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-}
-
-.popupBox {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
-  max-width: min(90vw, 720px);
-  width: 100%;
-  max-height: 70vh;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.popupHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border);
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--text-sub);
-}
-
-.popupClose {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 14px;
-  color: var(--text-muted);
-  padding: 2px 6px;
-  border-radius: 4px;
-  line-height: 1;
-}
-.popupClose:hover { background: var(--bg-subtle); color: var(--text-primary); }
-
-.popupBody {
-  padding: 16px;
-  font-size: 0.9rem;
-  color: var(--text-primary);
-  line-height: 1.7;
-  overflow-y: auto;
-  white-space: pre-wrap;
-  word-break: keep-all;
-  overflow-wrap: break-word;
-}
-
-.popupBodyCopyable {
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  transition: background 0.14s ease;
-}
-.popupBodyCopyable:hover { background: var(--brand-bg); }
-.popupBodyCopied { background: var(--profit-bg) !important; }
-
-.popupCopyHint {
-  flex-shrink: 0;
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  white-space: nowrap;
-}
-
 
 /* NO. 인덱스 컬럼 가운데 정렬 — :first-child 규칙보다 명시도 높게 */
 .table td.indexCell,

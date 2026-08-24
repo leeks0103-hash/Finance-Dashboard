@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/Button';
 import styles from './TabNav.module.css';
 
 export type TabId = 'finance' | 'kpi' | 'performance';
@@ -21,15 +22,16 @@ interface Props {
 const TabNav = ({ active, onChange }: Props) => (
   <nav className={styles.nav} role="tablist">
     {TABS.map(tab => (
-      <button
+      <Button
         key={tab.id}
+        unstyled
         role="tab"
         aria-selected={active === tab.id}
         className={`${styles.tab} ${active === tab.id ? styles.active : ''}`}
         onClick={() => onChange(tab.id)}
       >
         {tab.label}
-      </button>
+      </Button>
     ))}
   </nav>
 );

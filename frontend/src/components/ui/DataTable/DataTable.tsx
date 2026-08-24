@@ -1,5 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useCallback, type CSSProperties, type ReactNode, type MouseEvent as ReactMouseEvent } from 'react';
-import { createPortal } from 'react-dom';
+import { useState, useRef, useMemo, useCallback, useEffect, type CSSProperties, type ReactNode } from 'react';
 import {
   useReactTable,
   getCoreRowModel, getSortedRowModel,
@@ -11,57 +10,45 @@ import {
 import {
   DndContext,
   closestCenter,
-  PointerSensor,
-  useSensor,
-  useSensors,
   type DragEndEvent,
 } from '@dnd-kit/core';
 import {
   SortableContext,
   horizontalListSortingStrategy,
-  useSortable,
   arrayMove,
 } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import { Button } from '@/components/ui/Button';
 import { Pagination } from '@/components/ui/Pagination';
-import { useColumnHighlight } from '@/hooks/useColumnHighlight';
-import { useClipboardPopup } from '@/hooks/useClipboardPopup';
+import { useColumnHighlight } from './useColumnHighlight';
+import { useClipboardPopup } from './useClipboardPopup';
+import { useTableEscapePriority } from './useTableEscapePriority';
+import { useTableDndSensors } from './useTableDndSensors';
+import { SortableHeaderCell } from './SortableHeaderCell';
+import { CellPopup } from './CellPopup';
+import { TableTitleBar } from './TableTitleBar';
 import styles from './DataTable.module.css';
 
 // ── 드래그 가능 th — 모듈 스코프에서 정의해야 React가 컴포넌트 정체성 유지 ──
-interface DraggableThProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  header:        Header<any, unknown>;
+interface DraggableThProps<T> {
+  header:        Header<T, unknown>;
   isDraggable:   boolean;
   isHighlighted: boolean;
   onHeaderClick: (columnId: string) => void;
 }
-const DraggableTh = ({ header, isDraggable, isHighlighted, onHeaderClick }: DraggableThProps) => {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: header.id });
+function DraggableTh<T>({ header, isDraggable, isHighlighted, onHeaderClick }: DraggableThProps<T>) {
   const toggleSort = header.column.getToggleSortingHandler();
   return (
-    <th
-      ref={setNodeRef}
-      onClick={!isDragging ? (e: ReactMouseEvent<HTMLTableCellElement>) => {
-        toggleSort?.(e);
-        onHeaderClick(header.column.id);
-      } : undefined}
+    <SortableHeaderCell
+      id={header.id}
+      isDraggable={isDraggable}
+      isHighlighted={isHighlighted}
+      highlightedClassName={styles.thHighlighted}
       className={[
         header.column.getCanSort() ? styles.sortable : '',
         header.column.id === '__index' ? styles.indexCell : '',
-        isHighlighted ? styles.thHighlighted : '',
       ].join(' ')}
-      style={{
-        transform: CSS.Transform.toString(transform),
-        transition,
-        opacity: isDragging ? 0.5 : 1,
-        cursor: isDraggable ? 'grab' : undefined,
-        width: header.getSize() !== 150 ? header.getSize() : undefined,
-        position: 'relative',
-      }}
-      {...(isDraggable ? { ...attributes, ...listeners } : {})}
+      width={header.getSize() !== 150 ? header.getSize() : undefined}
+      onClick={e => { toggleSort?.(e); onHeaderClick(header.column.id); }}
     >
       {flexRender(header.column.columnDef.header, header.getContext())}
       {header.column.getCanSort() && (
@@ -78,9 +65,9 @@ const DraggableTh = ({ header, isDraggable, isHighlighted, onHeaderClick }: Drag
           className={`${styles.resizeHandle} ${header.column.getIsResizing() ? styles.resizing : ''}`}
         />
       )}
-    </th>
+    </SortableHeaderCell>
   );
-};
+}
 
 export interface HideableColumn {
   id:    string;
@@ -216,7 +203,7 @@ const DataTable = <T extends object>({
     try { return JSON.parse(localStorage.getItem(lsSizeKey) ?? '{}'); } catch { return {}; }
   });
 
-  const dndSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const dndSensors = useTableDndSensors();
 
   // ── 인덱스 컬럼 (항상 맨 앞, DnD·숨김 제외) ─────────────────
   const indexCol: ColumnDef<T> = useMemo(() => ({
@@ -269,7 +256,7 @@ const DataTable = <T extends object>({
   const colMenuRef = useRef<HTMLDivElement>(null);
 
   const tableWrapRef = useRef<HTMLDivElement>(null);
-  const { highlightedCol, setHighlight, clearHighlight } = useColumnHighlight();
+  const { highlightedCol, setHighlight, clearHighlight } = useColumnHighlight(tableWrapRef);
   const { popup, copied: popupCopied, openPopup: openPopupRaw, closePopup, copyPopupText } = useClipboardPopup();
 
   const openPopup = useCallback((text: string, columnId?: string) => {
@@ -355,34 +342,6 @@ const DataTable = <T extends object>({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        if (popup) { closePopup(); return; }
-        if (highlightedCol) { clearHighlight(); return; }
-        if (isServerMode) {
-          serverSearch?.onChange('');
-        } else {
-          setSearchInput(''); setGlobalFilter('');
-        }
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [searchInput, popup, closePopup, isServerMode, serverSearch, highlightedCol, clearHighlight]);
-
-  // 테이블 외부 클릭 시 하이라이트 해제
-  useEffect(() => {
-    if (!highlightedCol) return;
-    const onMouseDown = (e: MouseEvent) => {
-      if (tableWrapRef.current && !tableWrapRef.current.contains(e.target as Node)) {
-        clearHighlight();
-      }
-    };
-    document.addEventListener('mousedown', onMouseDown);
-    return () => document.removeEventListener('mousedown', onMouseDown);
-  }, [highlightedCol, clearHighlight]);
-
   const rows     = table.getRowModel().rows;
   const filtered = isServerMode ? null : table.getFilteredRowModel().rows;
 
@@ -426,6 +385,13 @@ const DataTable = <T extends object>({
     if (isServerMode) serverSearch?.onChange('');
     else { setSearchInput(''); setGlobalFilter(''); }
   }, [isServerMode, serverSearch]);
+
+  // Esc 우선순위 — 팝업 닫기 > 하이라이트 해제 > 검색 초기화
+  useTableEscapePriority([
+    { active: !!popup, run: closePopup },
+    { active: !!highlightedCol, run: clearHighlight },
+    { active: hasSearchValue, run: clearSearch },
+  ]);
 
   const showSearch = searchable || !!serverSearch;
   const hasToolbarContent = pageSizeOptions.length > 1 ||
@@ -630,31 +596,7 @@ const DataTable = <T extends object>({
         />
       )}
 
-      {popup && createPortal(
-        <div className={styles.popupOverlay} onClick={closePopup}>
-          <div className={styles.popupBox} onClick={e => e.stopPropagation()}>
-            <div className={styles.popupHeader}>
-              <span>셀 내용</span>
-              <Button variant="ghost" size="sm" className={styles.popupClose} onClick={closePopup} aria-label="닫기">✕</Button>
-            </div>
-            {popup.copyable ? (
-              <div
-                className={`${styles.popupBody} ${styles.popupBodyCopyable} ${popupCopied ? styles.popupBodyCopied : ''}`}
-                onClick={copyPopupText}
-                role="button"
-                tabIndex={0}
-                onKeyDown={e => e.key === 'Enter' && copyPopupText()}
-              >
-                <span>{popup.text}</span>
-                <span className={styles.popupCopyHint}>{popupCopied ? '✓ 복사됨' : '클릭해서 복사'}</span>
-              </div>
-            ) : (
-              <div className={styles.popupBody}>{popup.text}</div>
-            )}
-          </div>
-        </div>,
-        document.body,
-      )}
+      <CellPopup title="셀 내용" popup={popup} copied={popupCopied} onClose={closePopup} onCopy={copyPopupText} />
 
     </div>
   );
@@ -662,16 +604,9 @@ const DataTable = <T extends object>({
   if (!title) return tableCard;
 
   return (
-    <div className={styles.outerGroup}>
-      <div className={styles.outerTitle}>
-        <div className={styles.outerTitleLeft}>
-          <span className={styles.title}>{title}</span>
-          {!hideCount && <span className={styles.count}>{countLabel}</span>}
-        </div>
-        {toolbarExtra && <div>{toolbarExtra}</div>}
-      </div>
+    <TableTitleBar title={title} count={!hideCount ? countLabel : undefined} toolbarExtra={toolbarExtra}>
       {tableCard}
-    </div>
+    </TableTitleBar>
   );
 };
 

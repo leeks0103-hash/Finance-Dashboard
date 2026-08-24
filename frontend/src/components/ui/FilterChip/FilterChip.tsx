@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/Button';
 import styles from './FilterChip.module.css';
 
 interface Props {
@@ -8,8 +9,8 @@ interface Props {
 }
 
 const FilterChip = ({ label, checked, onChange, onHover }: Props) => (
-  <button
-    type="button"
+  <Button
+    unstyled
     className={`${styles.chip} ${checked ? styles.checked : ''}`}
     onClick={onChange}
     onMouseEnter={onHover}
@@ -17,7 +18,7 @@ const FilterChip = ({ label, checked, onChange, onHover }: Props) => (
   >
     {checked && <span className={styles.checkIcon} aria-hidden>✓</span>}
     {label}
-  </button>
+  </Button>
 );
 
 export default FilterChip;

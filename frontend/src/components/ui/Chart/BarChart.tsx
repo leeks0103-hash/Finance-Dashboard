@@ -31,15 +31,22 @@ const BarChart = ({ labels, datasets, horizontal = false, options, onClick }: Pr
     hoverBorderColor: 'rgba(0,0,0,0.18)',
   }));
 
+  const pluginsInput = options?.plugins ?? {};
+  const legendRaw: unknown = pluginsInput.legend;
+  const { legend: legendOpts, ...otherPlugins } = pluginsInput;
+  // chart.js는 런타임에 plugins.legend: false로 범례 자체를 끌 수 있지만 타입 정의는 이를 모델링하지 않음 —
+  // 객체로 간주해 스프레드하면 false가 조용히 무시되고 기본 범례가 다시 나타나므로 별도 분기 필요
   const merged: ChartOptions<'bar'> = {
     responsive: true,
     maintainAspectRatio: false,
     indexAxis: horizontal ? 'y' : 'x',
     ...options,
     plugins: {
-      legend:      { position: 'bottom', labels: { font: { size: 11 } } },
-      datalabels:  { display: false },  // 각 차트에서 options.plugins.datalabels로 override
-      ...options?.plugins,
+      legend: legendRaw === false
+        ? (false as unknown as NonNullable<ChartOptions<'bar'>['plugins']>['legend'])
+        : { position: 'bottom', labels: { font: { size: 11 } }, ...(legendOpts ?? {}) },
+      datalabels: { display: false },  // 각 차트에서 options.plugins.datalabels로 override
+      ...otherPlugins,
     },
     onClick: (_event: ChartEvent, elements: ActiveElement[], chart: Chart) => {
       if (elements.length > 0 && onClick) {

@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { usePerformanceSummary } from '@/hooks/usePerformanceSummary';
 import { usePerformanceData, usePerformanceOptions } from '@/hooks/usePerformanceData';
 import { useDebouncedSearch } from '@/hooks/useDebouncedSearch';
+import { useReactPagination } from '@/lib/pagination';
 import { useCountUp } from '@/hooks/useCountUp';
 import { useTheme } from '@/hooks/useTheme';
 import { usePerfStore } from '@/store/perf.store';
@@ -85,8 +86,7 @@ const SEARCH_FIELD_OPTIONS = [
 ];
 
 export const usePerformanceViewModel = (): PerformanceViewModel => {
-  const [page,     setPage]     = useState(1);
-  const [pageSize, setPageSize] = useState(30);
+  const pagination = useReactPagination(30);
   const [searchField, setSearchField] = useState('');
   const search = useDebouncedSearch(350);
 
@@ -96,13 +96,13 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
   useEffect(() => {
     if (!perfQuick) return;
     search.setFilter(perfQuick);
-    setPage(1);
+    pagination.resetToFirstPage();
     clearPerfQ('');
   }, [perfQuick]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { data: summary,    isLoading: sumLoading } = usePerformanceSummary();
   const { data: paged,      isLoading: projLoading, isFetching } = usePerformanceData({
-    page, pageSize, search: search.debouncedValue, field: searchField,
+    page: pagination.page, pageSize: pagination.pageSize, search: search.debouncedValue, field: searchField,
   });
   const { data: options } = usePerformanceOptions();
   const selectedParts = usePerfStore(s => s.selectedParts);
@@ -218,19 +218,20 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
 
     serverPagination: {
       total:            paged?.total ?? 0,
-      page, pageSize,
-      onPageChange:     (p) => setPage(p),
-      onPageSizeChange: (s) => { setPageSize(s); setPage(1); },
+      page:             pagination.page,
+      pageSize:         pagination.pageSize,
+      onPageChange:     pagination.setPage,
+      onPageSizeChange: pagination.setPageSize,
     },
 
     serverSearch: {
       value:    search.inputValue,
       onChange: (val) => {
         search.handleChange({ target: { value: val } } as React.ChangeEvent<HTMLInputElement>);
-        setPage(1);
+        pagination.resetToFirstPage();
       },
       field:        searchField,
-      onFieldChange: (f) => { setSearchField(f); setPage(1); },
+      onFieldChange: (f) => { setSearchField(f); pagination.resetToFirstPage(); },
       fieldOptions:  SEARCH_FIELD_OPTIONS,
     },
   };

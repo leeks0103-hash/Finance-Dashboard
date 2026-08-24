@@ -182,14 +182,16 @@ def load_excel():
     df = df[df["project_code"].notna() & (df["project_code"].astype(str).str.strip() != "")]
 
     df["year"] = df["year"].astype(str).str.replace(r'\.0$', '', regex=True).str.strip()
-    mask_no_year = df["year"].isin(["", "nan", "None"])
+    # pandas 3.x의 신규 string dtype은 astype(str) 후에도 결측값을 문자열 "nan"이 아닌
+    # 실제 결측(NA)으로 유지하므로 isin(["nan", ...])만으로는 못 잡음 — isna()를 함께 확인
+    mask_no_year = df["year"].isin(["", "nan", "None"]) | df["year"].isna()
     if mask_no_year.any():
         df.loc[mask_no_year, "year"] = df.loc[mask_no_year].apply(
             lambda r: _extract_year(r["filename"], r["reflected_at"]), axis=1
         )
 
     df["part"] = df["part"].astype(str).str.strip()
-    mask_no_part = df["part"].isin(["", "nan", "None"])
+    mask_no_part = df["part"].isin(["", "nan", "None"]) | df["part"].isna()
     if mask_no_part.any():
         df.loc[mask_no_part, "part"] = df.loc[mask_no_part, "filename"].apply(_extract_part)
 

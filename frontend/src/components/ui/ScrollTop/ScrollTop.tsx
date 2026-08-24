@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Button } from '@/components/ui/Button';
 import styles from './ScrollTop.module.css';
 
 const ScrollTop = () => {
@@ -17,9 +18,9 @@ const ScrollTop = () => {
   if (!visible) return null;
 
   return (
-    <button className={styles.btn} onClick={scrollUp} aria-label="맨 위로">
+    <Button unstyled className={styles.btn} onClick={scrollUp} aria-label="맨 위로">
       ↑
-    </button>
+    </Button>
   );
 };
 

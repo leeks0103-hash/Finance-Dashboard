@@ -114,6 +114,7 @@ const ChartSection = () => {
 
   const profitRateOptions = useMemo(() => ({
     ...vm.profitRate.options,
+    plugins: { ...vm.profitRate.options.plugins, legend: { display: false } },
     scales: {
       ...vm.profitRate.options.scales,
       y: {
@@ -129,6 +130,7 @@ const ChartSection = () => {
     ...makeBarOptions(vm.showLabels, labelColor, {
       layout: { padding: { top: 24 } },
       plugins: {
+        legend: { display: false },
         datalabels: {
           anchor: 'end',
           align:  'top',
@@ -186,7 +188,7 @@ const ChartSection = () => {
           <span>파트별 이익율(%)</span>
           <span className={styles.toggleGroup}>
             <span className={styles.stageBadge}>{showProfitAmount ? '이익액' : '이익율'}</span>
-            <Toggle checked={showProfitAmount} onChange={() => setShowProfitAmount(v => !v)} />
+            <Toggle checked={showProfitAmount} onChange={() => setShowProfitAmount(v => !v)} danger={showProfitAmount} />
           </span>
         </ChartCard.Title>
         <ChartCard.Body>
