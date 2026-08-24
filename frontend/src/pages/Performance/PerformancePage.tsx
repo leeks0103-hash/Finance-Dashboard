@@ -61,7 +61,7 @@ const PerformancePage = () => {
       </div>
 
       {/* 월별 실적 차트 */}
-      <ChartCard>
+      <ChartCard compact={false}>
         <ChartCard.Title>월별 실적 현황 ({PERF_MONTH} 점검 기준, 억원)</ChartCard.Title>
         <ChartCard.Body>
           <div className={styles.chartWrap}>

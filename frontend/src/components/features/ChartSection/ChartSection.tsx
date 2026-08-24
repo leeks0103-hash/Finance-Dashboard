@@ -184,7 +184,7 @@ const ChartSection = () => {
   const chartRenderers: Record<string, () => ReactNode | null> = {
     profitRate: () => (
       <ChartCard>
-        <ChartCard.Title compact>
+        <ChartCard.Title>
           <span>파트별 이익율(%)</span>
           <span className={styles.toggleGroup}>
             <span className={styles.stageBadge}>{showProfitAmount ? '이익액' : '이익율'}</span>
@@ -205,7 +205,7 @@ const ChartSection = () => {
     ),
     revExp: () => (
       <ChartCard>
-        <ChartCard.Title compact>파트별 매출 / 지출</ChartCard.Title>
+        <ChartCard.Title>파트별 매출 / 지출</ChartCard.Title>
         <ChartCard.Body>
           <BarChart
             horizontal
@@ -221,7 +221,7 @@ const ChartSection = () => {
     ),
     costBreakdown: () => (
       <ChartCard>
-        <ChartCard.Title compact>
+        <ChartCard.Title>
           <span>원가 구성</span>
           <span className={styles.stageBadge}>{stageLabel}</span>
         </ChartCard.Title>
@@ -238,7 +238,7 @@ const ChartSection = () => {
     ),
     stageChart: () => vm.stageChart.labels.length > 0 ? (
       <ChartCard>
-        <ChartCard.Title compact>보고단계별 매출/지출 현황</ChartCard.Title>
+        <ChartCard.Title>보고단계별 매출/지출 현황</ChartCard.Title>
         <ChartCard.Body>
           <BarChart
             horizontal
@@ -268,7 +268,7 @@ const ChartSection = () => {
           ))}
 
           {showYearChart && vm.yearTrend.labels.length > 0 && (
-            <ChartCard>
+            <ChartCard compact={false}>
               <ChartCard.Title>연도별 매출 / 이익 추이</ChartCard.Title>
               <ChartCard.Body>
                 <BarChart
