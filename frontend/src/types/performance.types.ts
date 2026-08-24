@@ -43,8 +43,7 @@ export interface PerfProject {
   cost_overhead:     number;
   cost_mgmt:         number;
   operating_profit:  number;
-  profit_rate_raw:   number;
-  profit_rate:       number;  // % 변환 완료
+  profit_rate:       number;  // % 변환 완료 (백엔드에서 profit_rate_raw * 100 후 drop)
   // 6월 점검
   jun_check_total:   number;
   chk_m01: number; chk_m02: number; chk_m03: number; chk_m04: number;

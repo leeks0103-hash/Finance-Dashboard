@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { getPerfData, getPerfOptions } from '@/api/performance.api';
 import { usePerfStore } from '@/store/perf.store';
 import type { PageParams, PagedResponse } from '@/types/finance.types';
@@ -29,16 +30,18 @@ export const usePerformanceData = (page: PageParams) => {
     meta: { queryType: 'perf-data' },
   });
 
-  // 다음 페이지 prefetch
+  // 다음 페이지 prefetch — useEffect로 렌더 밖에서 실행
   const { data } = query;
-  if (data && page.page < Math.ceil(data.total / page.pageSize)) {
-    const nextPage = { ...page, page: page.page + 1 };
-    qc.prefetchQuery({
-      queryKey: ['perf-data', selectedParts, selectedTeam, nextPage],
-      queryFn:  () => getPerfData(selectedParts, nextPage, selectedTeam),
-      staleTime: STALE_5MIN,
-    });
-  }
+  useEffect(() => {
+    if (data && page.page < Math.ceil(data.total / page.pageSize)) {
+      const nextPage = { ...page, page: page.page + 1 };
+      qc.prefetchQuery({
+        queryKey: ['perf-data', selectedParts, selectedTeam, nextPage],
+        queryFn:  () => getPerfData(selectedParts, nextPage, selectedTeam),
+        staleTime: STALE_5MIN,
+      });
+    }
+  }, [data, page, selectedParts, selectedTeam, qc]);
 
   return query;
 };

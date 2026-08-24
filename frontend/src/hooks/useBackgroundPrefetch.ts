@@ -18,15 +18,15 @@ export const useBackgroundPrefetch = () => {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      // ── 실적 현황 ────────────────────────────────────────────
+      // ── 실적 현황 — queryKey는 usePerformanceSummary/usePerformanceData와 동일해야 캐시 히트
       qc.prefetchQuery({
-        queryKey: ['perf-summary', []],
-        queryFn:  () => getPerfSummary([]),
+        queryKey: ['perf-summary', [], ''],
+        queryFn:  () => getPerfSummary([], ''),
         staleTime: STALE_5MIN,
       });
       qc.prefetchQuery({
-        queryKey: ['perf-data', [], DEFAULT_PAGE],
-        queryFn:  () => getPerfData([], DEFAULT_PAGE),
+        queryKey: ['perf-data', [], '', DEFAULT_PAGE],
+        queryFn:  () => getPerfData([], DEFAULT_PAGE, ''),
         staleTime: STALE_5MIN,
       });
       qc.prefetchQuery({

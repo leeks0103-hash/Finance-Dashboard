@@ -168,25 +168,24 @@ def load_perf_excel():
         return _perf_cached_df
 
     _perf_engine = "pyxlsb" if PERF_EXCEL_PATH.endswith(".xlsb") else "openpyxl"
-    sheet_names     = pd.ExcelFile(PERF_EXCEL_PATH, engine=_perf_engine).sheet_names
-    resolved_sheet  = _resolve_perf_sheet(sheet_names)
-    logger.info("실적 시트 자동 선택: %s", resolved_sheet)
+    with pd.ExcelFile(PERF_EXCEL_PATH, engine=_perf_engine) as xf:
+        resolved_sheet = _resolve_perf_sheet(xf.sheet_names)
+        logger.info("실적 시트 자동 선택: %s", resolved_sheet)
 
-    if resolved_sheet not in _PERF_COL_MAPS:
-        raise ValueError(
-            f"자동 선택된 시트 '{resolved_sheet}'에 대한 컬럼맵이 없습니다. "
-            f"scripts/check_perf_headers.py로 헤더를 확인하고 _PERF_COL_MAPS에 추가하세요."
+        if resolved_sheet not in _PERF_COL_MAPS:
+            raise ValueError(
+                f"자동 선택된 시트 '{resolved_sheet}'에 대한 컬럼맵이 없습니다. "
+                f"scripts/check_perf_headers.py로 헤더를 확인하고 _PERF_COL_MAPS에 추가하세요."
+            )
+        col_map     = _PERF_COL_MAPS[resolved_sheet]
+        col_indices = sorted(col_map.keys())
+        df = xf.parse(
+            resolved_sheet,
+            header=None,
+            skiprows=12,
+            usecols=col_indices,
         )
-    col_map     = _PERF_COL_MAPS[resolved_sheet]
-    col_indices = sorted(col_map.keys())
-    df = pd.read_excel(
-        PERF_EXCEL_PATH,
-        sheet_name=resolved_sheet,
-        header=None,
-        skiprows=12,
-        usecols=col_indices,
-        engine=_perf_engine,
-    )
+    df.columns = [col_map[i] for i in col_indices]
     df.columns = [col_map[i] for i in col_indices]
 
     df = df[df["project_code"].notna()]

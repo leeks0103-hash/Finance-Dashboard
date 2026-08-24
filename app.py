@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from flask import Flask, render_template
 from flask.json.provider import DefaultJSONProvider
 
-from finance import finance_bp, get_df, load_excel, _sort_stages
+from finance import finance_bp, get_df, load_excel, _sort_stages, _cache_lock
 from performance import perf_bp
 from kpi import kpi_bp
 
@@ -44,7 +44,8 @@ def index():
 
 
 if __name__ == "__main__":
-    load_excel()
+    with _cache_lock:
+        load_excel()
     try:
         from waitress import serve
         print("서버 시작: http://0.0.0.0:5000")

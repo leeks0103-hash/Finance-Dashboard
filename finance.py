@@ -348,7 +348,7 @@ def api_data():
     total = len(df)
     try:
         page      = max(1, int(request.args.get("page", 1)))
-        page_size = min(200, max(1, int(request.args.get("page_size", 30))))
+        page_size = min(5000, max(1, int(request.args.get("page_size", 30))))
     except (ValueError, TypeError):
         page, page_size = 1, 30
 
@@ -369,7 +369,7 @@ def api_summary():
             "cost_breakdown": {"direct_cost": 0, "labor_cost": 0, "overhead": 0},
         })
 
-    rates  = df["profit_rate"]
+    rates  = df.loc[df["profit_rate"] > 0, "profit_rate"]
     by_part = (
         df.groupby("part")
         .agg(
@@ -385,7 +385,7 @@ def api_summary():
     )
 
     by_stage_raw = (
-        get_df().groupby("stage")
+        df.groupby("stage")
         .agg(
             revenue=("revenue", "sum"),
             expenditure=("expenditure", "sum"),

@@ -45,7 +45,7 @@ def _safe_num(v) -> float:
         return 0.0
 
 
-def _read_sheet_via_com(xl_app, wb_com, sheet_name: str) -> pd.DataFrame:
+def _read_sheet_via_com(wb_com, sheet_name: str) -> pd.DataFrame:
     """열려있는 COM Workbook에서 시트 하나를 DataFrame으로 읽는다."""
     ws = None
     for i in range(1, wb_com.Sheets.Count + 1):
@@ -89,8 +89,8 @@ def _load_kpi_via_com() -> tuple[pd.DataFrame, pd.DataFrame]:
             ReadOnly=True,
             IgnoreReadOnlyRecommended=True,
         )
-        raw_df = _read_sheet_via_com(xl_app, wb_com, "취합")
-        agg_df = _read_sheet_via_com(xl_app, wb_com, "kpi 집계")
+        raw_df = _read_sheet_via_com(wb_com, "취합")
+        agg_df = _read_sheet_via_com(wb_com, "kpi 집계")
         logger.info("KPI COM 읽기 완료 — 취합 %d행, 집계 %d행", len(raw_df), len(agg_df))
         return raw_df, agg_df
     except Exception as e:
