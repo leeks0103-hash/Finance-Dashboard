@@ -6,6 +6,11 @@ import { reloadPerfData } from '@/api/performance.api';
 import { useFilters } from './useFilters';
 import { useUiStore } from '@/store';
 
+// 브라우저가 다운로드를 시작할 시간을 번 뒤 blob URL 해제 — 너무 빨리 해제하면 일부 브라우저에서 다운로드 실패
+const BLOB_URL_REVOKE_DELAY_MS = 1000;
+// 이보다 오래 걸릴 때만 로딩 모달 표시 — 짧은 다운로드에서 모달이 번쩍이는 것 방지
+const PDF_MODAL_DELAY_MS = 300;
+
 /** RFC 4180 — 쉼표/개행/따옴표가 포함된 필드를 안전하게 인용 */
 const csvField = (v: unknown): string => {
   const s = String(v ?? '');
@@ -29,7 +34,7 @@ export const downloadCsvFile = (filename: string, headers: string[], rows: unkno
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  setTimeout(() => URL.revokeObjectURL(url), BLOB_URL_REVOKE_DELAY_MS);
 };
 
 export const useExport = () => {
@@ -37,7 +42,7 @@ export const useExport = () => {
   const qc = useQueryClient();
   const setLastLoaded = useUiStore(s => s.setLastLoaded);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
-  // 300ms 이상 걸릴 때만 모달 표시 — 짧은 다운로드에서 번쩍임 방지
+  // PDF_MODAL_DELAY_MS 이상 걸릴 때만 모달 표시 — 짧은 다운로드에서 번쩍임 방지
   const [showModal, setShowModal] = useState(false);
   const [correctedRows, setCorrectedRows] = useState<number>(0);
 
@@ -65,8 +70,7 @@ export const useExport = () => {
   const exportPdf = async () => {
     setIsExportingPdf(true);
 
-    // 300ms 이상 걸리면 그때 모달 표시
-    const timer = setTimeout(() => setShowModal(true), 300);
+    const timer = setTimeout(() => setShowModal(true), PDF_MODAL_DELAY_MS);
 
     try {
       const res = await fetch(getPdfUrl(filters));
@@ -90,7 +94,7 @@ export const useExport = () => {
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setTimeout(() => URL.revokeObjectURL(url), BLOB_URL_REVOKE_DELAY_MS);
     } catch (err) {
       console.error('[PDF Export]', err);
       alert(`PDF 생성 중 오류가 발생했습니다.\n${err instanceof Error ? err.message : ''}`);
@@ -130,7 +134,7 @@ export const useExport = () => {
     exportCsv,
     exportPdf,
     isExportingPdf,
-    showPdfModal: showModal,  // 300ms 지연 후 true — 모달 표시 여부
+    showPdfModal: showModal,  // PDF_MODAL_DELAY_MS 지연 후 true — 모달 표시 여부
     reload: reloadMutation.mutate,
     isReloading: reloadMutation.isPending,
     correctedRows,

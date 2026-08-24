@@ -1,6 +1,6 @@
 import { useMemo, useState, useCallback, type ReactNode } from 'react';
 import {
-  DndContext, closestCenter, PointerSensor, useSensor, useSensors,
+  DndContext, closestCenter,
   type DragEndEvent,
 } from '@dnd-kit/core';
 import {
@@ -13,7 +13,7 @@ import { useFilterStore, useUiStore } from '@/store';
 import { makeBarOptions } from '@/utils/chartOptions';
 import { getChartPalette } from '@/utils/chartColors';
 import { isAllSelected } from '@/utils/array';
-import { ChartCard, BarChart, DoughnutChart, Toggle } from '@/components/ui';
+import { ChartCard, BarChart, DoughnutChart, Toggle, useTableDndSensors } from '@/components/ui';
 import styles from './ChartSection.module.css';
 
 const DEFAULT_CHART_ORDER = ['profitRate', 'revExp', 'costBreakdown', 'stageChart'];
@@ -75,7 +75,7 @@ const ChartSection = () => {
     } catch { return DEFAULT_CHART_ORDER; }
   });
 
-  const dndSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const dndSensors = useTableDndSensors();
 
   const handleChartDragEnd = useCallback((e: DragEndEvent) => {
     const { active, over } = e;

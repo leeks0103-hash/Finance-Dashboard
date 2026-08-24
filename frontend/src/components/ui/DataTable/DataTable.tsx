@@ -28,6 +28,13 @@ import { CellPopup } from './CellPopup';
 import { TableTitleBar } from './TableTitleBar';
 import styles from './DataTable.module.css';
 
+// 정렬 상태 → 화살표 문자 (중첩 삼항 대신 순차 조건으로 — 어떤 상태가 어떤 기호인지 한눈에 보이게)
+function sortArrow(sorted: false | 'asc' | 'desc'): string {
+  if (sorted === 'asc')  return '↑';
+  if (sorted === 'desc') return '↓';
+  return '⇅';
+}
+
 // ── 드래그 가능 th — 모듈 스코프에서 정의해야 React가 컴포넌트 정체성 유지 ──
 interface DraggableThProps<T> {
   header:        Header<T, unknown>;
@@ -53,8 +60,7 @@ function DraggableTh<T>({ header, isDraggable, isHighlighted, onHeaderClick }: D
       {flexRender(header.column.columnDef.header, header.getContext())}
       {header.column.getCanSort() && (
         <span className={header.column.getIsSorted() ? styles.sortActive : styles.sortIdle}>
-          {header.column.getIsSorted() === 'asc'  ? '↑' :
-           header.column.getIsSorted() === 'desc' ? '↓' : '⇅'}
+          {sortArrow(header.column.getIsSorted())}
         </span>
       )}
       {isDraggable && header.column.getCanResize() && (
@@ -345,52 +351,64 @@ const DataTable = <T extends object>({
   const rows     = table.getRowModel().rows;
   const filtered = isServerMode ? null : table.getFilteredRowModel().rows;
 
-  // 페이지 상태 — 서버/클라이언트 통합
-  const pageIndex   = isServerMode ? serverPagination!.page - 1 : table.getState().pagination.pageIndex;
-  const pageSize    = isServerMode ? serverPagination!.pageSize : table.getState().pagination.pageSize;
-  // 실제 보여지는 행 수 기준 — pageSize를 다 못 채워도(검색 결과 적음) 그만큼만 여백 확보
-  const dtRows      = Math.max(MIN_TABLE_ROWS, Math.min(pageSize, rows.length));
-  const pageCount   = isServerMode
-    ? Math.ceil(serverPagination!.total / serverPagination!.pageSize)
-    : table.getPageCount();
-
-  const goToPage = useCallback((idx: number) => {
-    if (isServerMode) serverPagination!.onPageChange(idx + 1);
-    else table.setPageIndex(idx);
-  }, [isServerMode, serverPagination, table]);
-
-  // 건수 표시
-  const countLabel = useMemo(() => {
-    if (isServerMode)   return `${serverPagination!.total}건`;
-    if (isInfiniteMode) return `${rows.length} / ${infiniteLoadMore!.total}건`;
-    const search = globalFilter;
-    if (search && filtered) return `${filtered.length} / ${data.length}건`;
-    return `${data.length}건`;
-  }, [isServerMode, isInfiniteMode, serverPagination, infiniteLoadMore, globalFilter, filtered, data.length, rows.length]);
-
-  // 검색 값·핸들러
-  const searchValue    = isServerMode ? (serverSearch?.value ?? '') : searchInput;
-  const hasSearchValue = searchValue.length > 0;
-
-  const handleSearchChange = useCallback((val: string) => {
+  // ── 서버/클라이언트 페이지네이션 통합 — 아래로는 이 값들만 쓰고 isServerMode를 다시 안 봄 ──
+  const pagination = useMemo(() => {
     if (isServerMode) {
-      serverSearch?.onChange(val);
-    } else {
-      setSearchInput(val);
-      table.setPageIndex(0);
+      const { page, pageSize: size, total, onPageChange, onPageSizeChange } = serverPagination!;
+      return {
+        pageIndex:   page - 1,
+        pageSize:    size,
+        pageCount:   Math.ceil(total / size),
+        countLabel:  `${total}건`,
+        goToPage:    (idx: number) => onPageChange(idx + 1),
+        setPageSize: (n: number) => onPageSizeChange(n),
+      };
     }
-  }, [isServerMode, serverSearch, table]);
+    const { pageIndex, pageSize: size } = table.getState().pagination;
+    const countLabel = isInfiniteMode
+      ? `${rows.length} / ${infiniteLoadMore!.total}건`
+      : globalFilter && filtered
+        ? `${filtered.length} / ${data.length}건`
+        : `${data.length}건`;
+    return {
+      pageIndex,
+      pageSize:    size,
+      pageCount:   table.getPageCount(),
+      countLabel,
+      goToPage:    (idx: number) => table.setPageIndex(idx),
+      setPageSize: (n: number) => { table.setPageSize(n); table.setPageIndex(0); },
+    };
+  }, [isServerMode, serverPagination, table, isInfiniteMode, infiniteLoadMore, globalFilter, filtered, data.length, rows.length]);
 
-  const clearSearch = useCallback(() => {
-    if (isServerMode) serverSearch?.onChange('');
-    else { setSearchInput(''); setGlobalFilter(''); }
-  }, [isServerMode, serverSearch]);
+  // 실제 보여지는 행 수 기준 — pageSize를 다 못 채워도(검색 결과 적음) 그만큼만 여백 확보
+  const dtRows = Math.max(MIN_TABLE_ROWS, Math.min(pagination.pageSize, rows.length));
+
+  // ── 서버/클라이언트 검색 통합 ──
+  const tableSearch = useMemo(() => {
+    if (isServerMode) {
+      const value = serverSearch?.value ?? '';
+      return {
+        value,
+        hasValue:     value.length > 0,
+        onChange:     (val: string) => serverSearch?.onChange(val),
+        clear:        () => serverSearch?.onChange(''),
+        fillFromCell: (text: string) => serverSearch?.onChange(text),
+      };
+    }
+    return {
+      value: searchInput,
+      hasValue:     searchInput.length > 0,
+      onChange:     (val: string) => { setSearchInput(val); table.setPageIndex(0); },
+      clear:        () => { setSearchInput(''); setGlobalFilter(''); },
+      fillFromCell: (text: string) => { setSearchInput(text); setGlobalFilter(text); },
+    };
+  }, [isServerMode, serverSearch, searchInput, table]);
 
   // Esc 우선순위 — 팝업 닫기 > 하이라이트 해제 > 검색 초기화
   useTableEscapePriority([
     { active: !!popup, run: closePopup },
     { active: !!highlightedCol, run: clearHighlight },
-    { active: hasSearchValue, run: clearSearch },
+    { active: tableSearch.hasValue, run: tableSearch.clear },
   ]);
 
   const showSearch = searchable || !!serverSearch;
@@ -412,12 +430,8 @@ const DataTable = <T extends object>({
             {pageSizeOptions.length > 1 && (
               <select
                 className={styles.pageSizeSelect}
-                value={pageSize}
-                onChange={e => {
-                  const n = Number(e.target.value);
-                  if (isServerMode) serverPagination!.onPageSizeChange(n);
-                  else { table.setPageSize(n); table.setPageIndex(0); }
-                }}
+                value={pagination.pageSize}
+                onChange={e => pagination.setPageSize(Number(e.target.value))}
               >
                 {pageSizeOptions.map(n => <option key={n} value={n}>{n}행</option>)}
               </select>
@@ -465,12 +479,12 @@ const DataTable = <T extends object>({
               <input
                 className={styles.search}
                 placeholder={searchPlaceholder}
-                value={searchValue}
-                onChange={e => handleSearchChange(e.target.value)}
+                value={tableSearch.value}
+                onChange={e => tableSearch.onChange(e.target.value)}
               />
-              {hasSearchValue && (
+              {tableSearch.hasValue && (
                 <Button variant="ghost" size="sm" className={styles.searchClear}
-                  onClick={clearSearch} aria-label="초기화">✕</Button>
+                  onClick={tableSearch.clear} aria-label="초기화">✕</Button>
               )}
             </div>
           )}
@@ -537,10 +551,7 @@ const DataTable = <T extends object>({
                           title={text || undefined}
                           onClick={isLong ? () => openPopup(text, cell.column.id) : undefined}
                           onDoubleClick={searchOnDblClick?.includes(cell.column.id) && text
-                            ? () => {
-                                if (isServerMode) serverSearch?.onChange(text);
-                                else { setSearchInput(text); setGlobalFilter(text); }
-                              }
+                            ? () => tableSearch.fillFromCell(text)
                             : undefined}
                           className={[
                             isLong ? styles.clickable : '',
@@ -590,9 +601,9 @@ const DataTable = <T extends object>({
       {/* 일반 / 서버 페이지 네비게이션 */}
       {!isInfiniteMode && (
         <Pagination
-          page={pageIndex + 1}
-          pageCount={pageCount}
-          onPageChange={p => goToPage(p - 1)}
+          page={pagination.pageIndex + 1}
+          pageCount={pagination.pageCount}
+          onPageChange={p => pagination.goToPage(p - 1)}
         />
       )}
 
@@ -604,7 +615,7 @@ const DataTable = <T extends object>({
   if (!title) return tableCard;
 
   return (
-    <TableTitleBar title={title} count={!hideCount ? countLabel : undefined} toolbarExtra={toolbarExtra}>
+    <TableTitleBar title={title} count={!hideCount ? pagination.countLabel : undefined} toolbarExtra={toolbarExtra}>
       {tableCard}
     </TableTitleBar>
   );
