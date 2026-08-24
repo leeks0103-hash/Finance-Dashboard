@@ -130,8 +130,8 @@
 :global([data-theme="dark"]) .loss   .value { color: var(--loss); }
 :global([data-theme="dark"]) .warn   .value { color: var(--warn); }
 :global([data-theme="dark"]) .purple .value { color: var(--purple); }
-:global([data-theme="dark"]) .up   { background: rgba(52,211,153,0.12); color: var(--profit); }
-:global([data-theme="dark"]) .down { background: rgba(248,113,113,0.12); color: var(--loss); }
+:global([data-theme="dark"]) .up   { background: rgba(52,211,153,0.20); color: #6ee7b7; }
+:global([data-theme="dark"]) .down { background: rgba(248,113,113,0.20); color: #fca5a5; }
 
 @media (max-width: 900px) {
   .card  { min-height: 108px; padding: 18px 20px 14px; }

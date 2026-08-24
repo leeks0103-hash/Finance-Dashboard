@@ -15,10 +15,25 @@
 .neutral  { background: var(--bg-subtle); }
 .warning  { background: var(--warn-bg); font-weight: 500; }
 
-/* 다크: 더 선명하게 */
-:global([data-theme="dark"]) .positive { background: rgba(0, 230, 118, 0.14); }
-:global([data-theme="dark"]) .info     { background: rgba(56, 189, 248, 0.12); }
-:global([data-theme="dark"]) .warning  { background: rgba(240, 224, 64, 0.16); }
-:global([data-theme="dark"]) .neutral  { background: rgba(148, 163, 184, 0.06); }
+/* 다크: 좌측 컬러 보더 + 충분한 배경 opacity — 저opacity는 거의 안 보임 */
+:global([data-theme="dark"]) .positive {
+  background: rgba(52, 211, 153, 0.18);
+  border-left: 3px solid rgba(52, 211, 153, 0.70);
+  color: #d1fae5;
+}
+:global([data-theme="dark"]) .info {
+  background: rgba(56, 189, 248, 0.18);
+  border-left: 3px solid rgba(56, 189, 248, 0.65);
+  color: #e0f2fe;
+}
+:global([data-theme="dark"]) .warning {
+  background: rgba(251, 191, 36, 0.18);
+  border-left: 3px solid rgba(251, 191, 36, 0.75);
+  color: #fef3c7;
+}
+:global([data-theme="dark"]) .neutral {
+  background: rgba(148, 163, 184, 0.14);
+  border-left: 3px solid rgba(148, 163, 184, 0.45);
+}
 
 .icon { flex-shrink: 0; }
