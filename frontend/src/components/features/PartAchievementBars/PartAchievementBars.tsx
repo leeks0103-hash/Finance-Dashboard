@@ -1,12 +1,9 @@
-import { Button } from '@/components/ui';
 import type { PerfPartRow } from '@/hooks/viewmodels/usePerformanceViewModel';
 import styles from './PartAchievementBars.module.css';
 
 interface Props {
-  rows:    PerfPartRow[];
-  visible: boolean;
-  onToggle: () => void;
-  month:   string;
+  rows:  PerfPartRow[];
+  month: string;
 }
 
 const STRIP = /^[①-⑦⑧⑨⑩]\s*/;
@@ -17,7 +14,7 @@ const barColor = (rate: number) => {
   return 'var(--loss)';
 };
 
-const PartAchievementBars = ({ rows, visible, onToggle, month }: Props) => {
+const PartAchievementBars = ({ rows, month }: Props) => {
   const sorted = [...rows].sort((a, b) => {
     const ra = a.planInitialNum > 0 ? a.junActualNum / a.planInitialNum : 0;
     const rb = b.planInitialNum > 0 ? b.junActualNum / b.planInitialNum : 0;
@@ -28,12 +25,9 @@ const PartAchievementBars = ({ rows, visible, onToggle, month }: Props) => {
     <div className={styles.sectionGroup}>
       <div className={styles.header}>
         <span className={styles.title}>파트별 달성 현황 ({month} 기준)</span>
-        <Button variant="ghost" size="sm" onClick={onToggle}>
-          {visible ? '접기 ▲' : '펼치기 ▼'}
-        </Button>
       </div>
 
-      <div className={`${styles.wrap} ${visible ? styles.wrapOpen : ''}`}>
+      <div className={`${styles.wrap} ${styles.wrapOpen}`}>
         <div className={styles.body}>
           {sorted.map(row => {
             const rate = row.planInitialNum > 0

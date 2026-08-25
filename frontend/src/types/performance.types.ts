@@ -117,10 +117,18 @@ export interface PerfMonthly {
   cost:    number;
 }
 
+export interface PerfProgressStats {
+  revenue: number;
+  cost:    number;
+  profit:  number;
+  count:   number;
+}
+
 export interface PerfSummary {
-  total:   PerfTotal;
-  by_part: Record<string, PerfPartStats>;
-  monthly: PerfMonthly[];
+  total:       PerfTotal;
+  by_part:     Record<string, PerfPartStats>;
+  by_progress: Record<string, PerfProgressStats>;
+  monthly:     PerfMonthly[];
 }
 
 export interface PerfOptions {

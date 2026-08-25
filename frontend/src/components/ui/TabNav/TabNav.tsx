@@ -8,10 +8,10 @@ interface Tab {
   label: string;
 }
 
+// 'finance'(구 재무 데이터 탭)는 /finance URL로 직접 접근은 유지하되 네비게이션에서는 제외 — 재무현황(실적 데이터 기반)으로 통합
 const TABS: Tab[] = [
-  { id: 'finance',     label: '재무 데이터' },
+  { id: 'performance', label: '재무현황' },
   { id: 'kpi',         label: 'KPI' },
-  { id: 'performance', label: '실적 현황' },
 ];
 
 interface Props {

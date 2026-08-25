@@ -48,10 +48,10 @@ const TabLayout = () => {
         {isPerformance && <><PerfFilter /><PerformanceActionBar /></>}
       </div>
 
-      {/* ── 재무 데이터 — 항상 마운트 ── */}
-      <div className={styles.pageContent} style={show('finance')}>
+      {/* ── 재무현황(구 실적 현황) — 항상 마운트, 랜딩 탭 ── */}
+      <div className={styles.pageContent} style={show('performance')}>
         <Suspense fallback={null}>
-          <FinancePage />
+          <PerformancePage />
         </Suspense>
       </div>
 
@@ -64,11 +64,11 @@ const TabLayout = () => {
         </div>
       )}
 
-      {/* ── 실적 현황 — 첫 방문 후 keep-mount ── */}
-      {mounted.has('performance') && (
-        <div className={styles.pageContent} style={show('performance')}>
+      {/* ── 재무 데이터(구 탭, /finance URL 직접 접근용) — 첫 방문 후 keep-mount ── */}
+      {mounted.has('finance') && (
+        <div className={styles.pageContent} style={show('finance')}>
           <Suspense fallback={null}>
-            <PerformancePage />
+            <FinancePage />
           </Suspense>
         </div>
       )}

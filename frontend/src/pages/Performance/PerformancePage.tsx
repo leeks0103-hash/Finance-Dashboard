@@ -1,9 +1,9 @@
-import { useState } from 'react';
 import { createColumnHelper } from '@tanstack/react-table';
 import { usePerformanceViewModel } from '@/hooks/viewmodels/usePerformanceViewModel';
 import type { PerfPartRow } from '@/hooks/viewmodels/usePerformanceViewModel';
-import { ChartCard, BarChart, DataTable, KpiCard } from '@/components/ui';
+import { DataTable, KpiCard } from '@/components/ui';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import PerformanceChartSection from '@/components/features/PerformanceChartSection/PerformanceChartSection';
 import PerformanceInsightSection from '@/components/features/PerformanceInsightSection';
 import PartAchievementBars from '@/components/features/PartAchievementBars/PartAchievementBars';
 import { perfColumns, PERF_HIDEABLE_COLS } from '@/components/features/PerformanceTable/columns';
@@ -40,7 +40,6 @@ const byPartColumns = [
 
 const PerformancePage = () => {
   const vm = usePerformanceViewModel();
-  const [showAchieve, setShowAchieve] = useState(true);
 
   return (
     <main className={styles.main}>
@@ -64,25 +63,9 @@ const PerformancePage = () => {
         </ErrorBoundary>
       </div>
 
-      {/* 월별 실적 차트 */}
+      {/* 차트 섹션 — 월별 실적/계획vs실적/이익율/원가구성/진행단계 (드래그 순서 변경 가능) */}
       <div className="fadeUp" style={{ animationDelay: '100ms' }}>
-        <ErrorBoundary>
-          <ChartCard compact={false}>
-            <ChartCard.Title>월별 실적 현황 ({PERF_MONTH} 점검 기준, 억원)</ChartCard.Title>
-            <ChartCard.Body>
-              <div className={styles.chartWrap}>
-                <BarChart
-                  labels={vm.chartLabels}
-                  datasets={vm.chartDatasets}
-                  options={{
-                    ...vm.chartOptions,
-                    scales: { y: { ticks: { color: vm.chartTickColor, callback: v => v + '억' } }, x: { ticks: { color: vm.chartTickColor } } },
-                  }}
-                />
-              </div>
-            </ChartCard.Body>
-          </ChartCard>
-        </ErrorBoundary>
+        <ErrorBoundary><PerformanceChartSection /></ErrorBoundary>
       </div>
 
       {/* 파트별 달성 현황 진행바 */}
@@ -91,8 +74,6 @@ const PerformancePage = () => {
           <ErrorBoundary>
             <PartAchievementBars
               rows={vm.byPart}
-              visible={showAchieve}
-              onToggle={() => setShowAchieve(v => !v)}
               month={PERF_MONTH}
             />
           </ErrorBoundary>

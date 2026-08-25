@@ -7,7 +7,7 @@ const App = () => (
   <div className={styles.root}>
     <Navbar />
     <Routes>
-      <Route path="/" element={<Navigate to="/finance" replace />} />
+      <Route path="/" element={<Navigate to="/performance" replace />} />
       <Route path="/*" element={<TabLayout />} />
     </Routes>
   </div>

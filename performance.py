@@ -122,10 +122,18 @@ _PERF_COL_MAP_JUN = {
 }
 
 # 7월 시트: 40번 앞에 2컬럼, 41번 앞에 1컬럼 추가 삽입 → 40번부터 +2, 41번부터 +3
+# ⚠️ 38/39번(jun_actual/jun_cost_rate)은 이 시프트 공식으로는 그대로 38/39에 남는데,
+#    실제로는 "6월 결산" 컬럼(AM/AN열)이라 최신월이 아님 — 새로 삽입된 40/41번(AO/AP열)이
+#    "7월 결산 기준 실적 집계 현황"(진짜 최신 실적). jun_actual/jun_cost_rate는
+#    "이번 집계월 실적"을 가리키는 논리 필드이므로 시트가 바뀔 때마다 최신월 컬럼으로 재매핑 필요.
+#    (2026-08-25 실적현황 계산.png 대조 검증 — AM열이 아니라 AO열이 맞음)
 _PERF_COL_MAP_JUL = {
     (idx + 3 if idx >= 41 else idx + 2 if idx == 40 else idx): name
     for idx, name in _PERF_COL_MAP_JUN.items()
+    if idx not in (38, 39)
 }
+_PERF_COL_MAP_JUL[40] = "jun_actual"
+_PERF_COL_MAP_JUL[41] = "jun_cost_rate"
 
 _PERF_COL_MAPS = {
     "2026년 (6월 집계)": _PERF_COL_MAP_JUN,
@@ -264,6 +272,8 @@ def get_perf_df() -> pd.DataFrame:
 
 _PART_PREFIX_RE = re.compile(r"^[①-⑦]\s*")
 
+_PROGRESS_PRIORITY = ["제안", "협의", "착수", "중간", "완료", "인큐베이팅", "이월", "드롭", "미정"]
+
 
 def apply_perf_filters(df: pd.DataFrame) -> pd.DataFrame:
     parts = request.args.getlist("part")
@@ -332,7 +342,7 @@ def api_perf_data():
 def api_perf_summary():
     df = apply_perf_filters(get_perf_df())
     if df.empty:
-        return jsonify({"total": {}, "by_part": {}})
+        return jsonify({"total": {}, "by_part": {}, "by_progress": {}, "monthly": []})
 
     rev  = df[df["category"] == "매출"]
     cost = df[df["category"] == "원가"]
@@ -368,6 +378,19 @@ def api_perf_summary():
             "count":            int(len(rev_grp)),
         }
 
+    by_progress_raw = {}
+    for prog_name, rev_grp in rev.groupby("progress"):
+        cost_grp = cost[cost["progress"] == prog_name]
+        by_progress_raw[prog_name] = {
+            "revenue": float(rev_grp["jun_actual"].sum()),
+            "cost":    float(cost_grp["jun_actual"].sum()),
+            "profit":  float(rev_grp["operating_profit"].sum()),
+            "count":   int(len(rev_grp)),
+        }
+    known_prog   = [p for p in _PROGRESS_PRIORITY if p in by_progress_raw]
+    unknown_prog = sorted(k for k in by_progress_raw if k not in _PROGRESS_PRIORITY)
+    by_progress  = {p: by_progress_raw[p] for p in known_prog + unknown_prog}
+
     MONTH_COLS = [
         ("chk_m01","1월"), ("chk_m02","2월"), ("chk_m03","3월"),
         ("chk_m04","4월"), ("chk_m05","5월"), ("chk_m06","6월"),
@@ -384,7 +407,7 @@ def api_perf_summary():
         if col in rev.columns
     ]
 
-    return jsonify({"total": total, "by_part": by_part, "monthly": monthly})
+    return jsonify({"total": total, "by_part": by_part, "by_progress": by_progress, "monthly": monthly})
 
 
 @perf_bp.route("/api/performance/insights")
