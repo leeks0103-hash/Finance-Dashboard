@@ -27,8 +27,7 @@ const BarChart = ({ labels, datasets, horizontal = false, options, onClick }: Pr
       : Array.isArray(d.backgroundColor)
         ? (d.backgroundColor as string[]).map(toHoverColor)
         : d.backgroundColor,
-    hoverBorderWidth: 2,
-    hoverBorderColor: 'rgba(0,0,0,0.18)',
+    hoverBorderWidth: 0,
   }));
 
   const pluginsInput = options?.plugins ?? {};
