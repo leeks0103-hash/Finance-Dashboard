@@ -75,7 +75,7 @@ const SEARCH_FIELD_OPTIONS = [
 ];
 
 export const usePerformanceViewModel = (): PerformanceViewModel => {
-  const pagination = useReactPagination(30);
+  const pagination = useReactPagination(20);
   const [searchField, setSearchField] = useState('');
   const search = useDebouncedSearch(350);
 
