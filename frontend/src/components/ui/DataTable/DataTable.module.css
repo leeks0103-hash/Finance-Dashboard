@@ -153,7 +153,13 @@
 
 .colMenu.colMenuGrid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(150px, 1fr));
+  /* 폭 미지정 시 절대배치 요소는 내용 기준으로 쪼그라들 수 있어 명시 — 2단이 확실히 보이게 */
+  width: 320px;
+}
+.colMenu.colMenuGrid .colMenuItem {
+  white-space: normal;
+  word-break: keep-all;
 }
 
 .colMenuItem {
@@ -365,6 +371,11 @@
   .search { width: 130px; }
 }
 
+@media (max-width: 480px) {
+  .searchWrap { width: 100%; }
+  .search { width: 100%; box-sizing: border-box; }
+}
+
 /* ── 셀 클릭 가능 표시 ─── */
 .clickable {
   cursor: pointer;
@@ -378,6 +389,24 @@
 }
 .dblClickable:hover {
   background: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+
+/* 긴 텍스트(클릭→팝업)이면서 더블클릭 기능도 겹치는 셀 — 클릭 커서(손가락)가 우선해야 함
+   (클래스 단독 지정 시 동일 우선순위라 CSS 선언 순서로 밀려 cursor:text가 이기던 문제) */
+.clickable.dblClickable {
+  cursor: pointer;
+}
+
+/* expandableRow — 더블클릭으로 펼친 콘텐츠 행, 연한 하늘색 */
+.expandedRow > td {
+  background: var(--info-bg);
+  border-left: 3px solid var(--info);
+  padding: 0;
+}
+
+/* expandableRow로 펼쳐진 원본 행 — 어느 행을 클릭해서 열었는지 표시 */
+.rowExpanded > td {
+  background: var(--info-bg);
 }
 
 /* NO. 인덱스 컬럼 가운데 정렬 — :first-child 규칙보다 명시도 높게 */

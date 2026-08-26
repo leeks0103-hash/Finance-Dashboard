@@ -8,7 +8,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 2px;
+  padding: 0 10px;
 }
 
 .title {
@@ -91,6 +91,7 @@
   font-weight: 700;
   text-align: right;
   white-space: nowrap;
+  color: var(--text);
 }
 
 .vals {

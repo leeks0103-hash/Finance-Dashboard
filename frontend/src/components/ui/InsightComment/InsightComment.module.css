@@ -9,11 +9,17 @@
   transition: transform 0.14s ease;
 }
 
-/* 배경색만으로 구분 — border 제거 */
-.positive { background: var(--profit-bg); }
-.info     { background: var(--info-bg); }
-.neutral  { background: var(--bg-subtle); }
-.warning  { background: var(--warn-bg); font-weight: 500; }
+/* 라이트 모드 — 좌측 컬러 보더 + 배경 */
+.positive { background: var(--profit-bg); border-left: 3px solid var(--profit); }
+.info     { background: var(--info-bg);   border-left: 3px solid var(--info); }
+.neutral  { background: var(--bg-subtle); border-left: 3px solid var(--border); }
+
+/* warning — 뱃지로 구분, 텍스트는 기본 색 유지 */
+.warning {
+  background: rgba(239, 68, 68, 0.07);
+  border-left: 4px solid var(--loss);
+  font-weight: 500;
+}
 
 /* 다크: 좌측 컬러 보더 + 충분한 배경 opacity — 저opacity는 거의 안 보임 */
 :global([data-theme="dark"]) .positive {
@@ -37,3 +43,28 @@
 }
 
 .icon { flex-shrink: 0; }
+
+.badge {
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  background: var(--loss);
+  color: #fff;
+  letter-spacing: 0.02em;
+  align-self: center;
+}
+
+.projectLink {
+  display: inline;
+  font: inherit;
+  font-weight: 700;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+}

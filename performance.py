@@ -407,7 +407,7 @@ def api_perf_summary():
         if col in rev.columns
     ]
 
-    return jsonify({"total": total, "by_part": by_part, "by_progress": by_progress, "monthly": monthly})
+    return jsonify({"total": total, "by_part": by_part, "by_progress": by_progress, "monthly": monthly, "loaded_at": _perf_last_loaded})
 
 
 @perf_bp.route("/api/performance/insights")
@@ -452,14 +452,18 @@ def api_perf_insights():
     for _, lrow in loss_rows.iterrows():
         comments.append({
             "type": "warning", "icon": "",
-            "text": f"<b>{html_escape(str(lrow['project_code']))}</b> 손실 {_bil_perf(lrow['operating_profit'])} — 확인 필요",
+            "project_code": str(lrow["project_code"]),
+            "project_name": str(lrow["project_name"]),
+            "text": f"손실 {_bil_perf(lrow['operating_profit'])} — 확인 필요",
         })
 
     worst_rows = valid_achieve[valid_achieve["achieve_rate"] < 70].nsmallest(2, "achieve_rate")
     for _, wrow in worst_rows.iterrows():
         comments.append({
             "type": "warning", "icon": "",
-            "text": f"<b>{html_escape(str(wrow['project_code']))}</b> ({html_escape(str(wrow['part']))}) 달성률 {wrow['achieve_rate']}% — 목표 대비 부진",
+            "project_code": str(wrow["project_code"]),
+            "project_name": str(wrow["project_name"]),
+            "text": f"({html_escape(str(wrow['part']))}) 달성률 {wrow['achieve_rate']}% — 목표 대비 부진",
         })
 
     part_stats = (

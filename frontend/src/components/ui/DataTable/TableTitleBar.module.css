@@ -8,10 +8,16 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 2px;
+  padding: 0 10px;
 }
 
 .outerTitleLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.titleGroup {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -26,4 +32,11 @@
 .count {
   font-size: 0.78rem;
   color: var(--text-muted);
+}
+
+.scrollHint {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  opacity: 0.75;
+  white-space: nowrap;
 }

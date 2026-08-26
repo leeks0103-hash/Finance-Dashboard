@@ -51,6 +51,7 @@ export interface Summary {
   by_part: Record<string, PartStats>;
   by_stage?: Record<string, PartStats>;
   cost_breakdown: CostBreakdown;
+  loaded_at?: string | null;
 }
 
 export type CommentType = 'positive' | 'info' | 'neutral' | 'warning';
@@ -59,6 +60,9 @@ export interface Comment {
   type: CommentType;
   icon: string;
   text: string;
+  /** 특정 프로젝트를 가리키는 코멘트만 존재 — 있으면 프로젝트명 클릭 가능 (실적 인사이트에서 사용) */
+  project_code?: string;
+  project_name?: string;
 }
 
 export interface ProjectRow {
@@ -90,6 +94,10 @@ export interface InsightListSpec {
   variant: 'profit' | 'risk' | 'default';
   title:   string;
   rows:    InsightRow[];
+  /** 제공 시 기본 카드(테두리 박스) + ProjectRankRow 목록 대신 이 렌더러로 전체 바디를 그림 (예: 테이블) */
+  renderList?: (rows: InsightRow[], onCodeSearch: (code: string) => void) => import('react').ReactNode;
+  /** true면 카드 박스 없이 "주요 코멘트"와 동일한 평면 타이틀 스타일로 렌더 */
+  plain?: boolean;
 }
 
 // M-6: discriminated union — TypeScript가 ok:true/false 분기를 타입 안전하게 처리

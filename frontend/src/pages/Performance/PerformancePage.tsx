@@ -7,6 +7,8 @@ import PerformanceChartSection from '@/components/features/PerformanceChartSecti
 import PerformanceInsightSection from '@/components/features/PerformanceInsightSection';
 import PartAchievementBars from '@/components/features/PartAchievementBars/PartAchievementBars';
 import { perfColumns, PERF_HIDEABLE_COLS } from '@/components/features/PerformanceTable/columns';
+import FinanceCrossCheckPanel from '@/components/features/PerformanceTable/FinanceCrossCheckPanel';
+import FinanceSearchResults from '@/components/features/PerformanceTable/FinanceSearchResults';
 import type { PerfProject } from '@/types/performance.types';
 import { PERF_YEAR, PERF_MONTH } from '@/utils';
 import styles from './PerformancePage.module.css';
@@ -128,11 +130,26 @@ const PerformancePage = () => {
             emptyTitle="검색 결과 없음"
             emptyDescription="다른 검색어나 필터 조건을 시도해보세요."
             storageKey="performance-project"
-            copyableColumns={['filename']}
-            searchOnDblClick={['project_code']}
+            expandableRow={{
+              // project_code는 미배정 placeholder("생성예정" 등)로 여러 행이 값이 겹칠 수 있음 —
+              // _row_num(원본 행 번호, getRowId와 동일)만 진짜 유니크해서 펼침 키로 반드시 이걸 써야 함
+              getKey: (row) => String(row._row_num),
+              excludeColumns: ['filename'],
+              renderContent: (row, close) => <FinanceCrossCheckPanel projectCode={row.project_code} onClose={close} />,
+            }}
           />
         </ErrorBoundary>
       </div>
+
+      {/* 2depth: 재무 데이터 검색 결과 — 검색어가 있고 재무 결과가 있을 때만 노출 */}
+      {vm.hasFinanceResults && (
+        <ErrorBoundary>
+          <FinanceSearchResults
+            results={vm.financeResults}
+            searchTerm={vm.financeSearchTerm}
+          />
+        </ErrorBoundary>
+      )}
 
     </main>
   );

@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, useCallback, useEffect, type CSSProperties, type ReactNode } from 'react';
+import { useState, useRef, useMemo, useCallback, useEffect, Fragment, type CSSProperties, type ReactNode } from 'react';
 import {
   useReactTable,
   getCoreRowModel, getSortedRowModel,
@@ -107,6 +107,14 @@ export interface InfiniteLoadMore {
   fetchNextPage:      () => void;
 }
 
+/** 더블클릭한 행 바로 아래에 콘텐츠를 펼쳐 보여주는 기능 — 한 번에 하나만 열림(toggle) */
+export interface ExpandableRow<T> {
+  getKey:          (row: T) => string;
+  /** 이 컬럼 id들은 더블클릭해도 확장 안 됨 (예: 파일명 — 기존 팝업 복사 기능 유지) */
+  excludeColumns?: string[];
+  renderContent:   (row: T, close: () => void) => ReactNode;
+}
+
 interface Props<T> {
   data:               T[];
   columns:            ColumnDef<T, unknown>[];
@@ -142,10 +150,10 @@ interface Props<T> {
   storageKey?: string;
   /** 툴바 우측에 추가 렌더링할 요소 (뷰 전환 토글 등) */
   toolbarExtra?: ReactNode;
-  /** 셀 내용 팝업에서 클릭 시 복사 가능하게 할 컬럼 id 목록 (예: 원본파일명) */
-  copyableColumns?: string[];
   /** 더블클릭 시 검색바에 해당 셀 값을 자동 입력할 컬럼 id 목록 (예: project_code) */
   searchOnDblClick?: string[];
+  /** 더블클릭 시 행 바로 아래에 콘텐츠를 펼치는 기능 — searchOnDblClick과 동시 사용 시 이쪽이 우선 */
+  expandableRow?: ExpandableRow<T>;
   /** 정렬 컬럼 변경 시 콜백 — columnId(정렬중) 또는 null(정렬 해제) */
   onSortChange?: (columnId: string | null) => void;
 }
@@ -182,8 +190,8 @@ const DataTable = <T extends object>({
   initialColumnVisibility = {},
   storageKey,
   toolbarExtra,
-  copyableColumns,
   searchOnDblClick,
+  expandableRow,
   onSortChange,
 }: Props<T>) => {
   const isServerMode   = !!serverPagination;
@@ -262,13 +270,30 @@ const DataTable = <T extends object>({
   const [showColMenu,      setShowColMenu]      = useState(false);
   const colMenuRef = useRef<HTMLDivElement>(null);
 
+  // expandableRow — 더블클릭한 행 바로 아래에 콘텐츠 펼치기, 한 번에 하나만
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
+  const closeExpanded = useCallback(() => setExpandedKey(null), []);
+  const expandedRowRef = useRef<HTMLTableRowElement>(null);
+
+  // 펼쳐진 행이 뷰포트 밖에 있으면 페이지 스크롤
+  useEffect(() => {
+    if (!expandedKey || !expandedRowRef.current) return;
+    const timer = setTimeout(() => {
+      const el = expandedRowRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const inView = rect.top >= 0 && rect.bottom <= window.innerHeight;
+      if (!inView) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }, 80);
+    return () => clearTimeout(timer);
+  }, [expandedKey]);
+
   const tableWrapRef = useRef<HTMLDivElement>(null);
   const { highlightedCol, setHighlight, clearHighlight } = useColumnHighlight(tableWrapRef);
-  const { popup, copied: popupCopied, openPopup: openPopupRaw, closePopup, copyPopupText } = useClipboardPopup();
-
-  const openPopup = useCallback((text: string, columnId?: string) => {
-    openPopupRaw(text, !!columnId && !!copyableColumns?.includes(columnId));
-  }, [copyableColumns, openPopupRaw]);
+  // 셀 팝업은 항상 복사 가능 — 컬럼별 선별 없이 무조건 복사 기능 제공
+  const { popup, copied: popupCopied, openPopup, closePopup, copyPopupText } = useClipboardPopup();
 
   useEffect(() => {
     if (isServerMode) return;
@@ -496,6 +521,13 @@ const DataTable = <T extends object>({
         <div className={styles.skeletonWrap}>
           {[...Array(6)].map((_, i) => <div key={i} className={styles.skeletonRow} />)}
         </div>
+      ) : rows.length === 0 ? (
+        /* 결과 없음 — 테이블 자체를 그리지 않아 불필요한 가로 스크롤 방지 */
+        <div className={styles.emptyInner}>
+          <span className={styles.emptyIcon}>{emptyIcon}</span>
+          <strong>{emptyTitle}</strong>
+          <span>{emptyDescription}</span>
+        </div>
       ) : (
         <div className={`${styles.scroll} ${isFetching ? styles.fetching : ''}`}>
           {/* DndContext를 table 바깥으로 — thead 안에 div 자식이 생기는 HTML 오류 방지 */}
@@ -528,35 +560,33 @@ const DataTable = <T extends object>({
             </thead>
 
             <tbody>
-              {rows.length === 0 ? (
-                <tr>
-                  <td colSpan={table.getVisibleLeafColumns().length} className={styles.empty}>
-                    <div className={styles.emptyInner}>
-                      <span className={styles.emptyIcon}>{emptyIcon}</span>
-                      <strong>{emptyTitle}</strong>
-                      <span>{emptyDescription}</span>
-                    </div>
-                  </td>
-                </tr>
-              ) : rows.map(row => {
+              {rows.map(row => {
                 const variant = getRowVariant?.(row.original) ?? '';
+                const expandKey = expandableRow?.getKey(row.original);
+                const isExpanded = !!expandableRow && expandedKey === expandKey;
                 return (
-                  <tr key={row.id} className={variant ? styles[variant] : ''}>
+                <Fragment key={row.id}>
+                  <tr className={[variant ? styles[variant] : '', isExpanded ? styles.rowExpanded : ''].join(' ') || undefined}>
                     {row.getVisibleCells().map(cell => {
                       const raw = cell.getValue();
                       const text = raw != null && raw !== '' ? String(raw) : '';
                       const isLong = text.length > 20;
+                      const canExpand = !!expandableRow && !expandableRow.excludeColumns?.includes(cell.column.id);
                       return (
                         <td
                           key={cell.id}
                           title={text || undefined}
-                          onClick={isLong ? () => openPopup(text, cell.column.id) : undefined}
-                          onDoubleClick={searchOnDblClick?.includes(cell.column.id) && text
-                            ? () => tableSearch.fillFromCell(text)
-                            : undefined}
+                          onClick={isLong ? () => openPopup(text, true) : undefined}
+                          onDoubleClick={
+                            canExpand
+                              ? () => setExpandedKey(k => k === expandKey ? null : expandKey!)
+                              : searchOnDblClick?.includes(cell.column.id) && text
+                                ? () => tableSearch.fillFromCell(text)
+                                : undefined
+                          }
                           className={[
                             isLong ? styles.clickable : '',
-                            searchOnDblClick?.includes(cell.column.id) ? styles.dblClickable : '',
+                            (canExpand || searchOnDblClick?.includes(cell.column.id)) ? styles.dblClickable : '',
                             cell.column.id === '__index' ? styles.indexCell : '',
                             highlightedCol === cell.column.id ? styles.tdHighlighted : '',
                           ].join(' ') || undefined}
@@ -566,6 +596,14 @@ const DataTable = <T extends object>({
                       );
                     })}
                   </tr>
+                  {isExpanded && (
+                    <tr ref={expandedRowRef} className={styles.expandedRow}>
+                      <td colSpan={table.getVisibleLeafColumns().length}>
+                        {expandableRow!.renderContent(row.original, closeExpanded)}
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
                 );
               })}
             </tbody>

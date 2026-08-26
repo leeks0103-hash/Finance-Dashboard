@@ -129,6 +129,7 @@ export interface PerfSummary {
   by_part:     Record<string, PerfPartStats>;
   by_progress: Record<string, PerfProgressStats>;
   monthly:     PerfMonthly[];
+  loaded_at?:  string | null;
 }
 
 export interface PerfOptions {
@@ -157,6 +158,9 @@ export interface PerfComment {
   type: 'positive' | 'info' | 'neutral' | 'warning';
   icon: string;
   text: string;
+  /** 특정 프로젝트를 가리키는 코멘트만 존재 — 있으면 프로젝트명 클릭 가능 */
+  project_code?: string;
+  project_name?: string;
 }
 
 export interface PerfInsights {

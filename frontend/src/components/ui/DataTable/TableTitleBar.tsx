@@ -14,8 +14,11 @@ export const TableTitleBar = ({ title, count, toolbarExtra, children }: Props) =
   <div className={styles.outerGroup}>
     <div className={styles.outerTitle}>
       <div className={styles.outerTitleLeft}>
-        <span className={styles.title}>{title}</span>
-        {count != null && <span className={styles.count}>{count}</span>}
+        <div className={styles.titleGroup}>
+          <span className={styles.title}>{title}</span>
+          {count != null && <span className={styles.count}>{count}</span>}
+        </div>
+        <div className={styles.scrollHint}>⇔ Shift + 마우스 휠로 가로 스크롤</div>
       </div>
       {toolbarExtra && <div>{toolbarExtra}</div>}
     </div>

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, type MouseEvent } from 'react';
 import HighlightText from '@/components/ui/HighlightText/HighlightText';
 import styles from './CopyText.module.css';
 
@@ -28,8 +28,11 @@ const CopyText = ({ text, className, highlight, onSearch }: Props) => {
     setTimeout(() => setCopied(false), 1500);
   }, [text]);
 
-  const handleClick    = copy;
-  const handleDblClick = onSearch ? () => onSearch(text) : undefined;
+  // stopPropagation 필수 — DataTable 안에서 쓰일 때 부모 <td>의 팝업/검색-채우기 클릭이 중복 발동되는 것 방지
+  const handleClick = (e: MouseEvent) => { e.stopPropagation(); copy(); };
+  const handleDblClick = onSearch
+    ? (e: MouseEvent) => { e.stopPropagation(); onSearch(text); }
+    : undefined;
 
   return (
     <span

@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { usePerformanceSummary } from '@/hooks/usePerformanceSummary';
 import { usePerformanceData, usePerformanceOptions } from '@/hooks/usePerformanceData';
 import { useDebouncedSearch } from '@/hooks/useDebouncedSearch';
@@ -7,8 +8,13 @@ import { useCountUp } from '@/hooks/useCountUp';
 import { usePerfStore } from '@/store/perf.store';
 import { useQuickSearchStore } from '@/store/quickSearch.store';
 import { formatEok, PERF_MONTH } from '@/utils';
+import { getProjects } from '@/api/finance.api';
+import { STALE_5MIN, GC_10MIN } from '@/hooks/queryClient';
 import type { PerfProject } from '@/types/performance.types';
+import type { Project, Filters } from '@/types/finance.types';
 import type { ServerPagination, ServerSearch } from '@/components/ui/DataTable';
+
+const FINANCE_EMPTY_FILTERS: Filters = { years: [], parts: [], stages: [] };
 
 const toEokNum = (v: number) => +(v / 100_000).toFixed(1);
 
@@ -53,6 +59,10 @@ export interface PerformanceViewModel {
   resetFilters:  () => void;
   serverPagination: ServerPagination;
   serverSearch:     ServerSearch;
+  /** 2depth: 재무 데이터 검색 결과 */
+  financeResults:    Project[];
+  hasFinanceResults: boolean;
+  financeSearchTerm: string;
 }
 
 const SEARCH_FIELD_OPTIONS = [
@@ -84,6 +94,21 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
     page: pagination.page, pageSize: pagination.pageSize, search: search.debouncedValue, field: searchField,
   });
   const { data: options } = usePerformanceOptions();
+
+  // 2depth: 실적 검색과 동일한 debounced 값으로 재무 API 병렬 조회
+  const financeSearchEnabled = search.debouncedValue.trim().length > 0;
+  const { data: financeData } = useQuery({
+    queryKey: ['finance-2depth', search.debouncedValue],
+    queryFn:  () => getProjects(FINANCE_EMPTY_FILTERS, {
+      page: 1, pageSize: 50,
+      search: search.debouncedValue,
+      field: '',
+    }).then(r => r.data),
+    enabled:   financeSearchEnabled,
+    staleTime: STALE_5MIN,
+    gcTime:    GC_10MIN,
+  });
+  const financeResults: Project[] = financeData ?? [];
   const selectedParts = usePerfStore(s => s.selectedParts);
   const togglePart    = usePerfStore(s => s.togglePart);
   const reset         = usePerfStore(s => s.reset);
@@ -128,7 +153,7 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
     return [
       { label: '매출 계획 (최초)', value: `${animPlan.toFixed(1)}억원`, sub: `${total.count}개 프로젝트`, accent: 'brand', trendUp: true },
       { label: `${PERF_MONTH} 실적 집계`,    value: `${animJun.toFixed(1)}억원`,    sub: `달성률 ${achieveRate}%`,          accent: junActualRaw >= planRaw ? 'profit' : 'warn', trendUp: momRevK !== null ? momRevK >= 0 : junActualRaw >= planRaw,  trend: momTag(momRevK) },
-      { label: `${PERF_MONTH} 점검 연간합계`, value: `${animCheck.toFixed(1)}억원`,  sub: `원가 ${formatEok(total.jun_cost)}`, accent: 'purple', trendUp: true },
+      { label: `${PERF_MONTH} 점검 연간합계`, value: `${animCheck.toFixed(1)}억원`,  sub: `원가 ${formatEok(total.jun_cost)}원`, accent: 'purple', trendUp: true },
       { label: '경상손익', value: `${animProfit.toFixed(1)}억원`, sub: `손익률 ${animRate.toFixed(1)}%`, accent: profitRaw >= 0 ? 'profit' : 'loss', trendUp: momProfK !== null ? momProfK >= 0 : profitRaw >= 0, trend: momTag(momProfK) },
     ];
   }, [total, monthly, animPlan, animJun, animCheck, animProfit, animRate, planRaw, junActualRaw, junCheckRaw, profitRaw]);
@@ -180,5 +205,9 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
       onFieldChange: (f) => { setSearchField(f); pagination.resetToFirstPage(); },
       fieldOptions:  SEARCH_FIELD_OPTIONS,
     },
+
+    financeResults,
+    hasFinanceResults: financeSearchEnabled && financeResults.length > 0,
+    financeSearchTerm: search.debouncedValue,
   };
 };

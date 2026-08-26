@@ -39,3 +39,9 @@
   min-width: 40px;
   text-align: center;
 }
+
+@media (max-width: 480px) {
+  .item { min-width: 28px; height: 28px; padding: 0 6px; font-size: 0.75rem; }
+  .spacer { display: none; }
+  .label { display: none; }
+}

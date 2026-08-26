@@ -175,7 +175,6 @@ const KpiPage = () => {
                 emptyDescription="다른 검색어나 필터 조건을 시도해보세요."
                 storageKey="kpi-raw-flat"
                 toolbarExtra={viewToggle}
-                copyableColumns={['파일명']}
               />
             ) : (
               <KpiRawTable

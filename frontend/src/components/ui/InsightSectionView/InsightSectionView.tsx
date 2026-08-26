@@ -10,7 +10,7 @@ interface Props {
   isEmpty:      boolean;
   heading:      string;
   comments:     Comment[];
-  lists:        [InsightListSpec, InsightListSpec];
+  lists:        InsightListSpec[];
   onCodeSearch: (code: string) => void;
 }
 
@@ -35,13 +35,40 @@ export const InsightSectionView = ({ isLoading, isEmpty, heading, comments, list
             <div className={styles.paneTitle}>■ 주요 코멘트</div>
             <div className={styles.commentScroll}>
               {comments.map((c, i) => (
-                <InsightComment key={c.type + i + c.text.slice(0, 20)} type={c.type} text={c.text} />
+                <InsightComment
+                  key={c.type + i + c.text.slice(0, 20)}
+                  type={c.type}
+                  text={c.text}
+                  projectCode={c.project_code}
+                  projectName={c.project_name}
+                  onProjectClick={onCodeSearch}
+                />
               ))}
             </div>
           </div>
 
           <div className={styles.listsPane}>
-            {lists.map(list => (
+            {lists.map(list => list.plain ? (
+              <div key={list.title} className={styles.plainList}>
+                <div className={styles.paneTitle}>■ {list.title}</div>
+                <div className={styles.plainScroll}>
+                  {list.renderList
+                    ? list.renderList(list.rows, onCodeSearch)
+                    : list.rows.map((r, i) => (
+                        <ProjectRankRow
+                          key={r.key}
+                          rank={i + 1}
+                          projectCode={r.displayCode}
+                          part={r.part}
+                          value={r.value}
+                          valueColor={r.valueColor}
+                          subValue={r.subValue}
+                          onCodeSearch={onCodeSearch}
+                        />
+                      ))}
+                </div>
+              </div>
+            ) : (
               <InsightListCard key={list.title} variant={list.variant}>
                 <InsightListCard.Title>{list.title}</InsightListCard.Title>
                 <InsightListCard.Body>

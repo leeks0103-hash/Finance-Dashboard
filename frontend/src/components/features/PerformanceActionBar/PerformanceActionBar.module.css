@@ -1,0 +1,13 @@
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.lastLoaded {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  line-height: 1;
+}

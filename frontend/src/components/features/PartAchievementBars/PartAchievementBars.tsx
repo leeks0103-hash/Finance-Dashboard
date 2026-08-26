@@ -50,7 +50,7 @@ const PartAchievementBars = ({ rows, month }: Props) => {
                   {over && <div className={styles.overMark} style={{ background: color }} />}
                 </div>
 
-                <span className={styles.pct} style={{ color }}>
+                <span className={styles.pct}>
                   {rate.toFixed(1)}%{over ? ' ✓' : ''}
                 </span>
 

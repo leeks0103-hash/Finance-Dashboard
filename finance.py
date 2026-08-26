@@ -411,6 +411,7 @@ def api_summary():
             "labor_cost":  df["labor_cost"].sum(),
             "overhead":    df["overhead"].sum(),
         },
+        "loaded_at": _last_loaded,
     })
 
 

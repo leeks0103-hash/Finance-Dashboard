@@ -1,5 +1,5 @@
 import { createColumnHelper } from '@tanstack/react-table';
-import { CopyText, HighlightText } from '@/components/ui';
+import { HighlightText } from '@/components/ui';
 import type { HideableColumn } from '@/components/ui/DataTable';
 import type { PerfProject } from '@/types/performance.types';
 import { formatEok, formatPctRaw, formatNum, PERF_MONTH } from '@/utils';
@@ -15,11 +15,11 @@ const txt = (i: { getValue: () => unknown; table: { options: { meta?: { searchQu
   <HighlightText text={String(i.getValue() ?? '')} query={i.table.options.meta?.searchQuery} />;
 
 export const perfColumns = [
-  // 식별 — 프로젝트코드 제일 앞 (sticky 첫 번째 컬럼)
+  // 식별 — 프로젝트코드 제일 앞 (sticky 첫 번째 컬럼) — 더블클릭 시 재무 데이터 교차조회로 대체, 클릭 복사 제거
   h.accessor('project_code', {
     header: '프로젝트코드',
     enableSorting: true,
-    cell: i => <CopyText text={i.getValue()} highlight={i.table.options.meta?.searchQuery} />,
+    cell: txt,
   }),
   h.accessor('part',         { header: '파트',       cell: txt }),
   h.accessor('team',         { header: '팀',         cell: txt }),
