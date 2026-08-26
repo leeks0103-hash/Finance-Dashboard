@@ -1,0 +1,59 @@
+.wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.btn {
+  appearance: none;
+  background: none;
+  border: 1.5px solid var(--text-muted);
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  font-style: italic;
+  color: var(--text-muted);
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+  flex-shrink: 0;
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
+}
+
+.btn:hover {
+  color: var(--brand-mid);
+  border-color: var(--brand-mid);
+  background: var(--brand-bg);
+}
+
+/* 팝오버 */
+.popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 300;
+  width: 360px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.13);
+  animation: fadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+:global([data-theme="dark"]) .popover {
+  box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.content {
+  padding: 8px 16px;
+}

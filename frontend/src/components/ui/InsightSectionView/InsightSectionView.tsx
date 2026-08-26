@@ -1,7 +1,9 @@
+import type { ReactNode } from 'react';
 import { InsightComment } from '../InsightComment';
 import { InsightListCard } from '../InsightListCard';
 import { ProjectRankRow } from '../ProjectRankRow';
 import { EmptyState } from '../EmptyState';
+import { InfoButton } from '../InfoButton/InfoButton';
 import type { Comment, InsightListSpec } from '@/types';
 import styles from './InsightSectionView.module.css';
 
@@ -9,13 +11,14 @@ interface Props {
   isLoading:    boolean;
   isEmpty:      boolean;
   heading:      string;
+  headingInfo?: ReactNode;
   comments:     Comment[];
   lists:        InsightListSpec[];
   onCodeSearch: (code: string) => void;
 }
 
 /** 재무/실적현황 인사이트 섹션 공용 레이아웃 — 코멘트 + 순위 리스트 2개, 데이터·라벨만 갈아끼움 */
-export const InsightSectionView = ({ isLoading, isEmpty, heading, comments, lists, onCodeSearch }: Props) => {
+export const InsightSectionView = ({ isLoading, isEmpty, heading, headingInfo, comments, lists, onCodeSearch }: Props) => {
   if (isLoading) return <div className={styles.skeleton} />;
 
   if (isEmpty) return (
@@ -25,7 +28,10 @@ export const InsightSectionView = ({ isLoading, isEmpty, heading, comments, list
   return (
     <div className={styles.sectionGroup}>
       <div className={styles.header}>
-        {heading}
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+          {heading}
+          {headingInfo && <InfoButton>{headingInfo}</InfoButton>}
+        </span>
         <span className={styles.sub}>필터 기준 자동 분석</span>
       </div>
 

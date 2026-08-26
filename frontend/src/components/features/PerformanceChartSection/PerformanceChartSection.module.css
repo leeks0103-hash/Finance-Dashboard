@@ -1,3 +1,9 @@
+.chartTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
 .toggleGroup {
   display: flex;
   align-items: center;

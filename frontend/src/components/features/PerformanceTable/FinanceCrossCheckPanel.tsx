@@ -23,7 +23,7 @@ const STAGE_COLOR: Record<string, string> = {
   '사업계획': '#34d399',
   '착수':     '#34d399',
   '중간':     '#fbbf24',
-  '완료':     '#94a3b8',
+  '완료':     '#7c3aed',
 };
 
 function stageColor(stage: string) {

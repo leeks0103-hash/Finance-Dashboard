@@ -11,7 +11,11 @@ import { usePerformanceChartViewModel } from '@/hooks/viewmodels';
 import { useTheme } from '@/hooks';
 import { makeBarOptions } from '@/utils/chartOptions';
 import { getChartPalette, getChartTheme } from '@/utils/chartColors';
-import { ChartCard, BarChart, DoughnutChart, Toggle, useTableDndSensors } from '@/components/ui';
+import { ChartCard, BarChart, DoughnutChart, Toggle, useTableDndSensors, InfoButton } from '@/components/ui';
+import {
+  INFO_MONTHLY, INFO_PROFIT_RATE, INFO_COST_BREAKDOWN,
+  INFO_PLAN_VS_ACTUAL, INFO_PROGRESS,
+} from '@/utils/infoTexts';
 import type { ChartOptions } from 'chart.js';
 import styles from './PerformanceChartSection.module.css';
 
@@ -177,7 +181,7 @@ const PerformanceChartSection = () => {
   const chartRenderers: Record<string, () => ReactNode | null> = {
     monthly: () => (
       <ChartCard>
-        <ChartCard.Title>월별 실적 추이</ChartCard.Title>
+        <ChartCard.Title><span className={styles.chartTitle}>월별 실적 추이<InfoButton>{INFO_MONTHLY}</InfoButton></span></ChartCard.Title>
         <ChartCard.Body>
           <BarChart
             labels={vm.monthly.labels}
@@ -200,7 +204,7 @@ const PerformanceChartSection = () => {
     ),
     planVsActual: () => (
       <ChartCard>
-        <ChartCard.Title>파트별 계획 vs 실적</ChartCard.Title>
+        <ChartCard.Title><span className={styles.chartTitle}>파트별 계획 vs 실적<InfoButton>{INFO_PLAN_VS_ACTUAL}</InfoButton></span></ChartCard.Title>
         <ChartCard.Body>
           <BarChart
             horizontal
@@ -217,7 +221,7 @@ const PerformanceChartSection = () => {
     profitRate: () => (
       <ChartCard>
         <ChartCard.Title>
-          <span>파트별 이익율(%)</span>
+          <span className={styles.chartTitle}>파트별 이익율(%)<InfoButton>{INFO_PROFIT_RATE}</InfoButton></span>
           <span className={styles.toggleGroup}>
             <span className={styles.badge}>{showProfitAmount ? '이익액' : '이익율'}</span>
             <Toggle checked={showProfitAmount} onChange={() => setShowProfitAmount(v => !v)} danger={showProfitAmount} />
@@ -237,7 +241,7 @@ const PerformanceChartSection = () => {
     ),
     costBreakdown: () => (
       <ChartCard>
-        <ChartCard.Title>원가 구성</ChartCard.Title>
+        <ChartCard.Title><span className={styles.chartTitle}>원가 구성<InfoButton>{INFO_COST_BREAKDOWN}</InfoButton></span></ChartCard.Title>
         <ChartCard.Body>
           <DoughnutChart
             labels={vm.costBreakdown.labels}
@@ -251,7 +255,7 @@ const PerformanceChartSection = () => {
     ),
     progress: () => vm.progress.labels.length > 0 ? (
       <ChartCard>
-        <ChartCard.Title>진행단계별 매출/원가</ChartCard.Title>
+        <ChartCard.Title><span className={styles.chartTitle}>진행단계별 매출/원가<InfoButton>{INFO_PROGRESS}</InfoButton></span></ChartCard.Title>
         <ChartCard.Body>
           <BarChart
             horizontal

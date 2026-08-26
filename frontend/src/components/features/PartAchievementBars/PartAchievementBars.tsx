@@ -1,9 +1,12 @@
+import type { ReactNode } from 'react';
 import type { PerfPartRow } from '@/hooks/viewmodels/usePerformanceViewModel';
+import { InfoButton } from '@/components/ui';
 import styles from './PartAchievementBars.module.css';
 
 interface Props {
   rows:  PerfPartRow[];
   month: string;
+  info?: ReactNode;
 }
 
 const STRIP = /^[①-⑦⑧⑨⑩]\s*/;
@@ -14,7 +17,7 @@ const barColor = (rate: number) => {
   return 'var(--loss)';
 };
 
-const PartAchievementBars = ({ rows, month }: Props) => {
+const PartAchievementBars = ({ rows, month, info }: Props) => {
   const sorted = [...rows].sort((a, b) => {
     const ra = a.planInitialNum > 0 ? a.junActualNum / a.planInitialNum : 0;
     const rb = b.planInitialNum > 0 ? b.junActualNum / b.planInitialNum : 0;
@@ -25,6 +28,7 @@ const PartAchievementBars = ({ rows, month }: Props) => {
     <div className={styles.sectionGroup}>
       <div className={styles.header}>
         <span className={styles.title}>파트별 달성 현황 ({month} 기준)</span>
+          {info && <InfoButton>{info}</InfoButton>}
       </div>
 
       <div className={`${styles.wrap} ${styles.wrapOpen}`}>

@@ -8,6 +8,10 @@ import styles from './BarChart.module.css';
 
 Chart.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend, ChartDataLabels);
 
+// Chart.js는 CSS font-family를 무시 — 전역 폰트 직접 주입
+Chart.defaults.font.family = "'GmarketSans', 'Pretendard', 'Apple SD Gothic Neo', sans-serif";
+Chart.defaults.font.size   = 13;
+
 interface Props {
   labels:      string[];
   datasets:    ChartData<'bar'>['datasets'];
@@ -43,7 +47,7 @@ const BarChart = ({ labels, datasets, horizontal = false, options, onClick }: Pr
     plugins: {
       legend: legendRaw === false
         ? (false as unknown as NonNullable<ChartOptions<'bar'>['plugins']>['legend'])
-        : { position: 'bottom', labels: { font: { size: 11 } }, ...(legendOpts ?? {}) },
+        : { position: 'bottom', labels: { font: { size: 13 } }, ...(legendOpts ?? {}) },
       datalabels: { display: false },  // 각 차트에서 options.plugins.datalabels로 override
       ...otherPlugins,
     },

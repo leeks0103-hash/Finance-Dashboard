@@ -23,3 +23,4 @@ export * from './TabNav';
 export * from './DataTable';
 export * from './MultiSelectDropdown';
 export * from './Pagination';
+export { InfoButton } from './InfoButton/InfoButton';

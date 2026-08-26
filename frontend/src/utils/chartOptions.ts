@@ -23,7 +23,7 @@ export const makeBarOptions = (
     datalabels: {
       display,
       color:  labelColor,
-      font:   { size: 12, weight: 'bold' },
+      font:   { size: 13, weight: 'bold', family: "'GmarketSans', 'Pretendard', sans-serif" },
       anchor: 'center',
       align:  'center',
       ...(extra?.plugins?.datalabels ?? {}),

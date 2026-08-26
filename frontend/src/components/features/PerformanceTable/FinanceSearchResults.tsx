@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { createColumnHelper } from '@tanstack/react-table';
 import { DataTable, CopyText, HighlightText } from '@/components/ui';
 import type { Project } from '@/types/finance.types';
@@ -9,9 +9,10 @@ const ch = createColumnHelper<Project>();
 interface Props {
   results:    Project[];
   searchTerm: string;
+  info?:      ReactNode;
 }
 
-const FinanceSearchResults = ({ results, searchTerm }: Props) => {
+const FinanceSearchResults = ({ results, searchTerm, info }: Props) => {
   const columns = useMemo(() => [
     ch.accessor('project_code', {
       header: '프로젝트코드',
@@ -42,7 +43,8 @@ const FinanceSearchResults = ({ results, searchTerm }: Props) => {
         data={results}
         columns={columns as never}
         getRowId={row => String(row._row_num)}
-        title="재무 데이터에서도 발견됨"
+        title="재무 데이터 검색 결과"
+        info={info}
         defaultPageSize={10}
         pageSizeOptions={[10, 20]}
         emptyIcon="🔍"

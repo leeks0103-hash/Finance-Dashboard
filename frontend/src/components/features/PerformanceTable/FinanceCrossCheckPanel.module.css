@@ -26,7 +26,7 @@
 
 .code {
   font-size: 0.8rem;
-  font-family: monospace;
+  font-family: 'Geist', monospace;
   font-weight: 600;
   color: var(--brand-mid);
 }
@@ -87,7 +87,7 @@
 .stageName {
   font-size: 0.82rem;
   font-weight: 700;
-  color: var(--stage-color, #94a3b8);
+  color: var(--text);
 }
 
 .yearPill {

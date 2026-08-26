@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { createColumnHelper } from '@tanstack/react-table';
 import { usePerformanceInsightViewModel } from '@/hooks/viewmodels';
 import { InsightSectionView, CopyText, DataTable } from '@/components/ui';
@@ -8,7 +8,7 @@ import type { Project } from '@/types';
 
 const h = createColumnHelper<Project>();
 
-const PerformanceInsightSection = () => {
+const PerformanceInsightSection = ({ info }: { info?: ReactNode }) => {
   const vm = usePerformanceInsightViewModel();
   const setPerfSearch = useQuickSearchStore(s => s.setPerf);
 
@@ -32,6 +32,7 @@ const PerformanceInsightSection = () => {
       isLoading={vm.isLoading}
       isEmpty={vm.isEmpty}
       heading="실적 인사이트"
+      headingInfo={info}
       comments={vm.comments}
       onCodeSearch={setPerfSearch}
       lists={[

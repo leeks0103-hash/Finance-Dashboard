@@ -1,7 +1,7 @@
 import { createColumnHelper } from '@tanstack/react-table';
 import { usePerformanceViewModel } from '@/hooks/viewmodels/usePerformanceViewModel';
 import type { PerfPartRow } from '@/hooks/viewmodels/usePerformanceViewModel';
-import { DataTable, KpiCard } from '@/components/ui';
+import { DataTable, KpiCard, InfoButton } from '@/components/ui';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import PerformanceChartSection from '@/components/features/PerformanceChartSection/PerformanceChartSection';
 import PerformanceInsightSection from '@/components/features/PerformanceInsightSection';
@@ -11,6 +11,13 @@ import FinanceCrossCheckPanel from '@/components/features/PerformanceTable/Finan
 import FinanceSearchResults from '@/components/features/PerformanceTable/FinanceSearchResults';
 import type { PerfProject } from '@/types/performance.types';
 import { PERF_YEAR, PERF_MONTH } from '@/utils';
+import {
+  INFO_ACHIEVEMENT_BARS,
+  INFO_PART_TABLE,
+  INFO_INSIGHT,
+  INFO_PROJECT_TABLE,
+  INFO_FINANCE_SEARCH,
+} from '@/utils/infoTexts';
 import styles from './PerformancePage.module.css';
 
 // 파트별 실적 컬럼 — 모듈 스코프에서 한 번만 생성 (stable reference)
@@ -65,7 +72,7 @@ const PerformancePage = () => {
         </ErrorBoundary>
       </div>
 
-      {/* 차트 섹션 — 월별 실적/계획vs실적/이익율/원가구성/진행단계 (드래그 순서 변경 가능) */}
+      {/* 차트 섹션 */}
       <div className="fadeUp" style={{ animationDelay: '100ms' }}>
         <ErrorBoundary><PerformanceChartSection /></ErrorBoundary>
       </div>
@@ -74,41 +81,41 @@ const PerformancePage = () => {
       {vm.byPart.length > 0 && (
         <div className="fadeUp" style={{ animationDelay: '150ms' }}>
           <ErrorBoundary>
-            <PartAchievementBars
-              rows={vm.byPart}
-              month={PERF_MONTH}
-            />
+            <PartAchievementBars rows={vm.byPart} month={PERF_MONTH} info={INFO_ACHIEVEMENT_BARS} />
           </ErrorBoundary>
         </div>
       )}
 
-      {/* 파트별 실적 — PerfPartRow 타입으로 DataTable<PerfPartRow> */}
+      {/* 파트별 실적 */}
       <div className="fadeUp" style={{ animationDelay: '200ms' }}>
         <ErrorBoundary>
           <div className={styles.sectionGroup}>
-            <h3 className={styles.sectionTitle}>파트별 실적 ({PERF_YEAR} {PERF_MONTH} 기준, 억원)</h3>
+            <h3 className={styles.sectionTitle}>
+              파트별 실적 ({PERF_YEAR} {PERF_MONTH} 기준, 억원)
+              <InfoButton>{INFO_PART_TABLE}</InfoButton>
+            </h3>
             <div className={styles.section}>
-            <DataTable<PerfPartRow>
-              data={vm.byPart}
-              columns={byPartColumns as never}
-              getRowId={(row) => row.part}
-              getRowVariant={(row) => row.isLoss ? 'loss' : ''}
-              defaultPageSize={10}
-              pageSizeOptions={[10]}
-              compact
-              hideToolbar
-            />
+              <DataTable<PerfPartRow>
+                data={vm.byPart}
+                columns={byPartColumns as never}
+                getRowId={(row) => row.part}
+                getRowVariant={(row) => row.isLoss ? 'loss' : ''}
+                defaultPageSize={10}
+                pageSizeOptions={[10]}
+                compact
+                hideToolbar
+              />
             </div>
           </div>
         </ErrorBoundary>
       </div>
 
-      {/* 실적 인사이트 — 목표 대비 부진/손실 자동 분석 */}
+      {/* 실적 인사이트 */}
       <div className="fadeUp" style={{ animationDelay: '250ms' }}>
-        <ErrorBoundary><PerformanceInsightSection /></ErrorBoundary>
+        <ErrorBoundary><PerformanceInsightSection info={INFO_INSIGHT} /></ErrorBoundary>
       </div>
 
-      {/* 프로젝트 상세 — title을 DataTable 내부로 이동해 재무 상세와 동일한 구도 */}
+      {/* 프로젝트 상세 */}
       <div className="fadeUp" style={{ animationDelay: '300ms' }}>
         <ErrorBoundary>
           <DataTable<PerfProject>
@@ -116,6 +123,7 @@ const PerformancePage = () => {
             columns={perfColumns as never}
             getRowId={(row) => String(row._row_num)}
             title="프로젝트 상세"
+            info={INFO_PROJECT_TABLE}
             isLoading={vm.isLoading}
             isFetching={vm.isFetching}
             stickyFirstCol
@@ -131,8 +139,6 @@ const PerformancePage = () => {
             emptyDescription="다른 검색어나 필터 조건을 시도해보세요."
             storageKey="performance-project"
             expandableRow={{
-              // project_code는 미배정 placeholder("생성예정" 등)로 여러 행이 값이 겹칠 수 있음 —
-              // _row_num(원본 행 번호, getRowId와 동일)만 진짜 유니크해서 펼침 키로 반드시 이걸 써야 함
               getKey: (row) => String(row._row_num),
               excludeColumns: ['filename'],
               renderContent: (row, close) => <FinanceCrossCheckPanel projectCode={row.project_code} onClose={close} />,
@@ -141,12 +147,13 @@ const PerformancePage = () => {
         </ErrorBoundary>
       </div>
 
-      {/* 2depth: 재무 데이터 검색 결과 — 검색어가 있고 재무 결과가 있을 때만 노출 */}
+      {/* 2depth: 재무 데이터 검색 결과 */}
       {vm.hasFinanceResults && (
         <ErrorBoundary>
           <FinanceSearchResults
             results={vm.financeResults}
             searchTerm={vm.financeSearchTerm}
+            info={INFO_FINANCE_SEARCH}
           />
         </ErrorBoundary>
       )}
