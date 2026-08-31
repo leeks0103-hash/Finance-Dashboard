@@ -1,5 +1,27 @@
 # 세션 진행 기록
 
+## [2026-08-31] DataTable 대규모 개선 + 재무이력 테이블 재설계 + 미수사유 파이프라인
+
+**완료된 작업**
+- **DataTable 컬럼 리사이즈 핵심 버그 수정**: `table-layout: fixed` 누락이 원인 — storageKey 있는 테이블만 적용, 없는 테이블은 auto 유지(경상손익 등 컬럼 과도한 확장 방지)
+- **DataTable ⇌ 맞춤 버튼**: 현재 페이지 셀 텍스트로 모든 컬럼 자동 맞춤(스케일업 없이 타이트하게), storageKey 테이블에만 노출
+- **DataTable 더블클릭 auto-fit**: 리사이즈 핸들 더블클릭 시 해당 컬럼 컨텐츠 너비로 자동 조절
+- **DataTable 컬럼 드롭다운 클리핑 수정**: wrapper `overflow: visible`, 상하단 모서리는 toolbar/scroll에서 각각 처리
+- **재무이력 2뎁스(FinanceCrossCheckPanel) 전면 재설계**: 카드→테이블 전환, 수동 리사이즈+더블클릭 auto-fit+localStorage 저장, 셀 팝업·복사, th 중앙정렬, 첫 진입 여백 없이 컨테이너 채움(DEFAULT_WIDTHS 비례 스케일)
+- **미수주 패널(FinanceDetailPanel)**: 카드그리드→한줄 2컬럼 레이아웃, 이익율|미수사유|파일명 같은 행
+- **미수주 프로젝트 섹션**: InsightSectionView 제거→단순 sectionGroup 구조, 미수사유·비고 컬럼 분리
+- **미수사유 추출 파이프라인**: `extract_financial_ppt.py`에 16열 추가, PPT 전체 슬라이드에서 "★ 미수 사유" 텍스트박스 파싱, `finance.py`/`finance.types.ts` 연동
+- **[신규/미생성] placeholder 코드 버그 수정**: 대괄호 패턴 코드가 PLACEHOLDER_CODES에 없어 다른 파일 비고가 덮어씌워지는 문제 — 정규식 패턴으로 확장
+- **폰트**: 작은 글씨(≤0.72rem) font-weight Bold→Medium 완화 (10개 파일), KpiCard/ChartCard Geist 폰트 주석처리
+- **perfColumns 전체 size 지정**: 150px 기본값으로 과도했던 컬럼들 적정 크기로(66~200px)
+
+**다음 세션 과제**
+- 맞춤 버튼 정확도 개선 여지 있음 (셀 렌더링 요소의 실제 폭 vs 텍스트 폭 차이)
+- 미수사유 추출: PPT 재실행 후 데이터 채워지는지 확인 필요 (`FORCE_REPROCESS = True` 후 실행)
+- 재무 비고 검색 안 됨 문제 (이전 세션 이월, 어느 검색창인지 확인 전 보류)
+
+---
+
 ## [2026-08-26] 대표님 보고용 UX 대규모 개선 세션
 
 **완료된 작업**
