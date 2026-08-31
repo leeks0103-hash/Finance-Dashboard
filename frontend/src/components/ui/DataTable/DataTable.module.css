@@ -3,18 +3,37 @@
 /* ── 컬럼 리사이즈 핸들 ─────────────────── */
 .resizeHandle {
   position: absolute;
-  right: 0;
+  right: -4px;          /* 중심을 열 경계에 맞춤 */
   top: 0;
   height: 100%;
-  width: 5px;
+  width: 9px;           /* 클릭 영역 확대 */
   cursor: col-resize;
   user-select: none;
   touch-action: none;
   background: transparent;
   z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-.resizeHandle:hover { background: var(--accent); opacity: 0.5; }
-.resizing { background: var(--accent) !important; opacity: 0.8; }
+/* 가운데 1px 선을 pseudo로 표시 — 항상 살짝 보임 */
+.resizeHandle::after {
+  content: '';
+  display: block;
+  width: 1px;
+  height: 60%;
+  background: var(--border);
+  border-radius: 1px;
+  transition: background 0.12s, height 0.12s;
+}
+.resizeHandle:hover::after {
+  background: var(--accent);
+  height: 80%;
+}
+.resizing::after {
+  background: var(--accent) !important;
+  height: 80%;
+}
 
 .wrapper {
   display: flex;
@@ -23,7 +42,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
-  overflow: hidden;
+  overflow: visible;          /* 드롭다운이 잘리지 않도록 — 테이블 클리핑은 .scroll이 담당 */
   transition: box-shadow 0.2s ease, height 0.2s ease;
 }
 
@@ -54,6 +73,8 @@
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
   flex-wrap: wrap;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;  /* 상단 모서리 */
+  overflow: visible;  /* 드롭다운이 잘리지 않도록 */
 }
 
 .toolbarLeft {
@@ -181,6 +202,7 @@
 .scroll {
   flex: 1;
   overflow: auto;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);  /* 하단 모서리 클리핑 */
   min-height: calc(var(--dt-rows, 5) * 33px);
   transition: opacity 0.15s, min-height 0.2s ease;
   border-right: none;
@@ -211,9 +233,14 @@
   min-width: 600px;
 }
 
+/* storageKey 있는 테이블만 fixed — 리사이즈에 필수, 없는 테이블엔 적용하면 컬럼 150px 고정 버그 */
+.tableFixed {
+  table-layout: fixed;
+}
+
 .table th {
   font-size: 0.72rem;
-  font-weight: 700;
+  font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--text-sub);

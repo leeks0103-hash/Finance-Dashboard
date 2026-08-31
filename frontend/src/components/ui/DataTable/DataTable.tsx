@@ -54,7 +54,7 @@ function DraggableTh<T>({ header, isDraggable, isHighlighted, onHeaderClick }: D
         header.column.getCanSort() ? styles.sortable : '',
         header.column.id === '__index' ? styles.indexCell : '',
       ].join(' ')}
-      width={header.getSize() !== 150 ? header.getSize() : undefined}
+      width={header.getSize()}
       onClick={e => { toggleSort?.(e); onHeaderClick(header.column.id); }}
     >
       {flexRender(header.column.columnDef.header, header.getContext())}
@@ -68,6 +68,40 @@ function DraggableTh<T>({ header, isDraggable, isHighlighted, onHeaderClick }: D
           onPointerDown={e => { e.stopPropagation(); header.getResizeHandler()(e as never); }}
           onTouchStart={e => { e.stopPropagation(); header.getResizeHandler()(e as never); }}
           onClick={e => e.stopPropagation()}
+          onDoubleClick={e => {
+            e.stopPropagation();
+            const thEl    = (e.currentTarget as HTMLElement).closest('th');
+            const tableEl = thEl?.closest('table') as HTMLTableElement | null;
+            if (!tableEl || !thEl) return;
+            const colId    = header.column.id;
+            const tanTable = header.getContext().table;
+
+            // 실제 셀의 computed font으로 임시 span 측정 — canvas보다 정확
+            const span = document.createElement('span');
+            span.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;left:-9999px;top:-9999px';
+            document.body.appendChild(span);
+
+            const thFont = getComputedStyle(thEl).font;
+            const firstTd = tableEl.querySelector('tbody td') as HTMLElement | null;
+            const tdFont  = firstTd ? getComputedStyle(firstTd).font : thFont;
+
+            // 헤더 텍스트 너비
+            span.style.font  = thFont;
+            span.textContent = String(header.column.columnDef.header ?? '');
+            let maxW = span.offsetWidth + 32; // 패딩 + 정렬 화살표 + 리사이즈 핸들 여유
+
+            // 모든 행의 셀 값 너비
+            span.style.font = tdFont;
+            tanTable.getRowModel().rows.forEach(row => {
+              const cell = row.getAllCells().find(c => c.column.id === colId);
+              const val  = String(cell?.getValue() ?? '');
+              span.textContent = val;
+              maxW = Math.max(maxW, span.offsetWidth + 20); // 좌우 패딩
+            });
+
+            document.body.removeChild(span);
+            tanTable.setColumnSizing(prev => ({ ...prev, [colId]: Math.min(Math.max(maxW, 60), 400) }));
+          }}
           className={`${styles.resizeHandle} ${header.column.getIsResizing() ? styles.resizing : ''}`}
         />
       )}
@@ -295,6 +329,46 @@ const DataTable = <T extends object>({
 
   const tableWrapRef = useRef<HTMLDivElement>(null);
   const { highlightedCol, setHighlight, clearHighlight } = useColumnHighlight(tableWrapRef);
+
+  // 전체 컬럼 현재 데이터 기준 자동 맞춤 (storageKey 있는 테이블만)
+  const autoFitAll = storageKey ? () => {
+    const tbl = tableWrapRef.current?.querySelector('table') as HTMLTableElement | null;
+    if (!tbl) return;
+    const span = document.createElement('span');
+    span.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;left:-9999px;top:-9999px';
+    document.body.appendChild(span);
+
+    const thEls   = Array.from(tbl.querySelectorAll('thead th')) as HTMLElement[];
+    const firstTd = tbl.querySelector('tbody td') as HTMLElement | null;
+    const tdFont  = firstTd ? getComputedStyle(firstTd).font : '';
+    const MAX_COL = 320;
+
+    const visibleCols = table.getVisibleLeafColumns();
+    const newSizing: Record<string, number> = {};
+
+    visibleCols.forEach((col, idx) => {
+      const thEl = thEls[idx];
+      const thFont = thEl ? getComputedStyle(thEl).font : tdFont;
+
+      span.style.font  = thFont;
+      span.textContent = String(col.columnDef.header ?? col.id);
+      let maxW = span.offsetWidth + 32;
+
+      span.style.font = tdFont;
+      tbl.querySelectorAll(`tbody td:nth-child(${idx + 1})`).forEach(td => {
+        span.textContent = (td as HTMLElement).textContent ?? '';
+        maxW = Math.max(maxW, span.offsetWidth + 20);
+      });
+
+      newSizing[col.id] = Math.min(Math.max(maxW, 50), MAX_COL);
+    });
+
+    document.body.removeChild(span);
+
+    // 컨텐츠 너비에만 맞춤 — 스케일업 없이 각 컬럼 타이트하게
+    table.setColumnSizing(newSizing);
+    if (lsSizeKey) localStorage.setItem(lsSizeKey, JSON.stringify(newSizing));
+  } : undefined;
   // 셀 팝업은 항상 복사 가능 — 컬럼별 선별 없이 무조건 복사 기능 제공
   const { popup, copied: popupCopied, openPopup, closePopup, copyPopupText } = useClipboardPopup();
 
@@ -466,6 +540,12 @@ const DataTable = <T extends object>({
               </select>
             )}
 
+            {autoFitAll && (
+              <Button variant="ghost" size="sm" onClick={autoFitAll} title="현재 데이터 기준 열 너비 자동 맞춤">
+                ⇌ 맞춤
+              </Button>
+            )}
+
             {hideableColumns && hideableColumns.length > 0 && (
               <div className={styles.colToggleWrap} ref={colMenuRef}>
                 <Button variant="ghost" size="sm" onClick={() => setShowColMenu(v => !v)}>
@@ -539,7 +619,14 @@ const DataTable = <T extends object>({
             collisionDetection={closestCenter}
             onDragEnd={handleDragEnd}
           >
-          <table className={`${styles.table} ${stickyFirstCol ? styles.stickyFirst : ''}`}>
+          <table
+            className={[
+              styles.table,
+              storageKey ? styles.tableFixed : '',
+              stickyFirstCol ? styles.stickyFirst : '',
+            ].filter(Boolean).join(' ')}
+            style={storageKey ? { width: table.getTotalSize() } : undefined}
+          >
             <thead>
               {table.getHeaderGroups().map(hg => (
                   <SortableContext

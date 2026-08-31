@@ -23,6 +23,7 @@ export interface Project {
   filename: string;
   processed_at: string;
   reflected_at: string;
+  missed_bid_reason?: string;
 }
 
 export interface PartStats {

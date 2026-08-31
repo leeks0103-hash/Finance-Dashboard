@@ -1,6 +1,6 @@
 .panel {
   padding: 10px 14px 14px;
-  width: 640px;
+  width: 900px;
   max-width: 100%;
 }
 
@@ -9,7 +9,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .headerLeft {
@@ -26,8 +26,7 @@
 
 .code {
   font-size: 0.8rem;
-  font-family: 'Geist', monospace;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--brand-mid);
 }
 
@@ -44,150 +43,124 @@
   padding: 0;
   transition: opacity 0.12s;
 }
-.closeBtn:hover {
-  opacity: 0.6;
-}
+.closeBtn:hover { opacity: 0.6; }
 
-/* ── 카드 목록 ── */
-.cards {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-/* ── 단계 카드 — 좌측 컬러 액센트 ── */
-.card {
+/* ── 테이블 ── */
+.tableWrap {
+  overflow-x: auto;
   border: 1px solid var(--border);
-  border-left: 4px solid var(--stage-color, #94a3b8);
-  border-radius: 10px;
-  background: var(--surface);
-  overflow: hidden;
-  transition: box-shadow 0.18s, transform 0.18s;
+  border-radius: 8px;
 }
 
-.card:hover {
-  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-  transform: translateY(-1px);
-}
-
-:global([data-theme="dark"]) .card:hover {
-  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
-}
-
-/* 단계 헤더 — stage color 10% tint */
-.cardHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 7px 12px;
-  background: color-mix(in srgb, var(--stage-color, #94a3b8) 10%, var(--surface));
-  border-bottom: 1px solid var(--border);
-}
-
-.stageName {
+.table {
+  width: 100%;
+  border-collapse: collapse;
   font-size: 0.82rem;
-  font-weight: 700;
-  color: var(--text);
+  min-width: 560px;
 }
 
-.yearPill {
+.table thead th {
   font-size: 0.68rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  background: var(--bg-subtle);
-  border: 1px solid var(--border);
-  padding: 1px 7px;
-  border-radius: 20px;
-}
-
-/* ── 카드 본문 ── */
-.body {
-  padding: 10px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-/* ── 수치 — 3열, 세로 구분선 ── */
-.metrics {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-}
-
-.metric {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding: 0 10px;
-}
-
-.metric:first-child { padding-left: 0; }
-.metric:last-child  { padding-right: 0; }
-
-.metric:not(:last-child) {
-  border-right: 1px solid var(--border);
-}
-
-.metricLabel {
-  font-size: 0.68rem;
-  font-weight: 700;
+  font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-muted);
+  padding: 8px 12px;
+  text-align: center;
+  background: var(--bg);
+  border-bottom: 2px solid var(--border);
+  white-space: nowrap;
+  user-select: none;
+  position: relative;
 }
 
-.metricValue {
-  font-size: 0.86rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  line-height: 1.2;
-}
+.table thead th.right { text-align: center; }
 
-.loss { color: var(--loss); }
-
-/* ── 구분선 ── */
-.divider {
-  height: 1px;
-  background: var(--border);
-}
-
-/* ── 비고 / 파일명 ── */
-.infoRow {
+/* 리사이즈 핸들 */
+.resizeHandle {
+  position: absolute;
+  right: -4px;
+  top: 0;
+  height: 100%;
+  width: 9px;
+  cursor: col-resize;
+  z-index: 2;
   display: flex;
-  flex-direction: column;
-  gap: 3px;
+  align-items: center;
+  justify-content: center;
+}
+.resizeHandle::after {
+  content: '';
+  display: block;
+  width: 1px;
+  height: 60%;
+  background: var(--border);
+  border-radius: 1px;
+  transition: background 0.12s, height 0.12s;
+}
+.resizeHandle:hover::after { background: var(--accent); height: 80%; }
+
+.table tbody td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  vertical-align: middle;
 }
 
-.infoLabel {
-  font-size: 0.68rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+.table tbody tr:last-child td { border-bottom: none; }
+
+.table tbody tr:hover td { background: var(--bg-subtle); }
+
+:global([data-theme="dark"]) .table tbody tr:hover td {
+  background: rgba(255,255,255,0.04);
+}
+
+/* 보고단계 — 좌측 컬러 바 */
+.stageCell {
+  font-weight: 600;
+  font-size: 0.84rem;
+  border-left: 3px solid var(--stage-color, #94a3b8);
+  padding-left: 10px !important;
+  white-space: nowrap;
+}
+
+.yearCell {
+  white-space: nowrap;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+/* 숫자 — 우측 정렬 + tabular nums */
+.numCell {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* 긴 텍스트 — ellipsis */
+.truncCell {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fileCell {
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.75rem;
   color: var(--text-muted);
 }
 
-.infoText {
-  font-size: 0.82rem;
-  color: var(--text);
-  line-height: 1.55;
-  word-break: keep-all;
-  overflow-wrap: break-word;
-  margin: 0;
-}
+.loss { color: var(--loss); font-weight: 600; }
 
-.infoEmpty {
-  color: var(--text-muted);
-  font-style: italic;
-}
-
-/* CopyText — 파일명, 전체 표시 + 클릭 복사 */
-.filenameText {
-  font-size: 0.8rem;
-  color: var(--text);
-  word-break: break-all;
-  line-height: 1.5;
+.clickable {
   cursor: pointer;
+  transition: background 0.12s;
 }
+.clickable:hover { background: var(--brand-bg); }
 
 /* ── 로딩 / 빈 상태 ── */
 .center {
@@ -205,18 +178,6 @@
   text-align: center;
 }
 
-.emptyIcon {
-  font-size: 2rem;
-  line-height: 1;
-}
-
-.emptyTitle {
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: var(--text);
-}
-
-.emptySub {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-}
+.emptyIcon  { font-size: 2rem; line-height: 1; }
+.emptyTitle { font-size: 0.9rem; font-weight: 700; color: var(--text); }
+.emptySub   { font-size: 0.8rem; color: var(--text-muted); }

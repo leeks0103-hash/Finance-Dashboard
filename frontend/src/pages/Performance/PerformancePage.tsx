@@ -110,9 +110,19 @@ const PerformancePage = () => {
         </ErrorBoundary>
       </div>
 
-      {/* 실적 인사이트 */}
+      {/* 미수주 프로젝트 */}
       <div className="fadeUp" style={{ animationDelay: '250ms' }}>
-        <ErrorBoundary><PerformanceInsightSection info={INFO_INSIGHT} /></ErrorBoundary>
+        <ErrorBoundary>
+          <div className={styles.sectionGroup}>
+            <h3 className={styles.sectionTitle}>
+              미수주 프로젝트
+              <InfoButton>{INFO_INSIGHT}</InfoButton>
+            </h3>
+            <div className={styles.section}>
+              <PerformanceInsightSection />
+            </div>
+          </div>
+        </ErrorBoundary>
       </div>
 
       {/* 프로젝트 상세 */}

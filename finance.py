@@ -34,6 +34,7 @@ EXCEL_COLS = [
     "revenue", "expenditure", "direct_cost", "labor_cost",
     "overhead", "operating_profit", "profit_rate",
     "note", "filename", "processed_at", "reflected_at",
+    "missed_bid_reason",  # 16열 — PPT 텍스트박스에서 추출한 미수 사유
 ]
 COLUMNS = EXCEL_COLS
 
@@ -229,7 +230,7 @@ def load_excel():
     ).round(1)
     df.loc[bad_rate & ~has_revenue, "profit_rate"] = 0
 
-    plain_str_cols = ["project_code", "part", "stage", "note", "filename"]
+    plain_str_cols = ["project_code", "part", "stage", "note", "filename", "missed_bid_reason"]
     for col in plain_str_cols:
         df[col] = df[col].astype(str).str.strip().replace("nan", "")
 
@@ -330,7 +331,7 @@ def api_data():
 
     search = request.args.get("search", "").strip()
     field  = request.args.get("field", "").strip()
-    _SEARCHABLE_COLS = {"project_code", "part", "stage", "note", "filename"}
+    _SEARCHABLE_COLS = {"project_code", "part", "stage", "note", "filename", "missed_bid_reason"}
     if search:
         s = search.lower()
         if field in _SEARCHABLE_COLS:

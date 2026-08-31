@@ -13,30 +13,42 @@ interface Props {
  * 목록에서 안 보여주던 나머지 재무 필드(연도/단계/원가 구성/처리일 등)를 그대로 펼쳐서 보여줌.
  * 이미 fetch된 Project 객체를 그대로 쓰므로 별도 API 호출 없음.
  */
-const FinanceDetailPanel = ({ project: p, onClose }: Props) => (
-  <div className={styles.panel}>
-    <div className={styles.header}>
-      <span className={styles.title}>재무 데이터(PPT) 상세 — {p.project_code}</span>
-      <Button unstyled className={styles.closeBtn} onClick={onClose} aria-label="닫기">✕</Button>
-    </div>
+const FinanceDetailPanel = ({ project: p, onClose }: Props) => {
+  const missedBidReason = p.missed_bid_reason || '-';
 
-    <div className={styles.grid}>
-      <div className={styles.field}><span className={styles.label}>연도</span><span>{p.year}</span></div>
-      <div className={styles.field}><span className={styles.label}>보고단계</span><span>{p.stage}</span></div>
-      <div className={styles.field}><span className={styles.label}>매출</span><span>{formatBillion(p.revenue)}</span></div>
-      <div className={styles.field}><span className={styles.label}>지출</span><span>{formatBillion(p.expenditure)}</span></div>
-      <div className={styles.field}><span className={styles.label}>직접원가</span><span>{formatBillion(p.direct_cost)}</span></div>
-      <div className={styles.field}><span className={styles.label}>인건비</span><span>{formatBillion(p.labor_cost)}</span></div>
-      <div className={styles.field}><span className={styles.label}>공통원가</span><span>{formatBillion(p.overhead)}</span></div>
-      <div className={styles.field}>
-        <span className={styles.label}>경상이익</span>
-        <span className={p.operating_profit < 0 ? styles.loss : undefined}>{formatBillion(p.operating_profit)}</span>
+  return (
+    <div className={styles.panel}>
+      <div className={styles.header}>
+        <span className={styles.title}>재무 데이터(PPT) 상세 — {p.project_code}</span>
+        <Button unstyled className={styles.closeBtn} onClick={onClose} aria-label="닫기">✕</Button>
       </div>
-      <div className={styles.field}><span className={styles.label}>이익율</span><span>{formatRate(p.profit_rate)}</span></div>
-      <div className={styles.field}><span className={styles.label}>처리일</span><span>{p.processed_at || '-'}</span></div>
-      <div className={styles.field}><span className={styles.label}>반영일</span><span>{p.reflected_at || '-'}</span></div>
+
+      <div className={styles.rows}>
+        <div className={styles.row}><span className={styles.key}>연도</span><span className={styles.val}>{p.year}</span></div>
+        <div className={styles.row}><span className={styles.key}>보고단계</span><span className={styles.val}>{p.stage}</span></div>
+        <div className={styles.row}><span className={styles.key}>매출</span><span className={styles.val}>{formatBillion(p.revenue)}</span></div>
+        <div className={styles.row}><span className={styles.key}>지출</span><span className={styles.val}>{formatBillion(p.expenditure)}</span></div>
+        <div className={styles.row}><span className={styles.key}>직접원가</span><span className={styles.val}>{formatBillion(p.direct_cost)}</span></div>
+        <div className={styles.row}><span className={styles.key}>인건비</span><span className={styles.val}>{formatBillion(p.labor_cost)}</span></div>
+        <div className={styles.row}><span className={styles.key}>공통원가</span><span className={styles.val}>{formatBillion(p.overhead)}</span></div>
+        <div className={styles.row}>
+          <span className={styles.key}>경상이익</span>
+          <span className={`${styles.val}${p.operating_profit < 0 ? ` ${styles.loss}` : ''}`}>
+            {formatBillion(p.operating_profit)}
+          </span>
+        </div>
+        <div className={styles.row}><span className={styles.key}>처리일</span><span className={styles.val}>{p.processed_at || '-'}</span></div>
+        <div className={styles.row}><span className={styles.key}>반영일</span><span className={styles.val}>{p.reflected_at || '-'}</span></div>
+
+        {/* 이익율 | 비고(미수사유) | 파일명 — 한 행 */}
+        <div className={styles.triRow}>
+          <div className={styles.row}><span className={styles.key}>이익율</span><span className={styles.val}>{formatRate(p.profit_rate)}</span></div>
+          <div className={styles.row}><span className={styles.key}>미수사유</span><span className={styles.val} title={missedBidReason}>{missedBidReason}</span></div>
+          <div className={styles.row}><span className={styles.key}>파일명</span><span className={styles.val} title={p.filename}>{p.filename}</span></div>
+        </div>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 export default FinanceDetailPanel;

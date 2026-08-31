@@ -1,14 +1,14 @@
-import { useMemo, type ReactNode } from 'react';
+import { useMemo } from 'react';
 import { createColumnHelper } from '@tanstack/react-table';
 import { usePerformanceInsightViewModel } from '@/hooks/viewmodels';
-import { InsightSectionView, CopyText, DataTable } from '@/components/ui';
+import { CopyText, DataTable } from '@/components/ui';
 import { useQuickSearchStore } from '@/store/quickSearch.store';
 import FinanceDetailPanel from './FinanceDetailPanel';
 import type { Project } from '@/types';
 
 const h = createColumnHelper<Project>();
 
-const PerformanceInsightSection = ({ info }: { info?: ReactNode }) => {
+const PerformanceInsightSection = () => {
   const vm = usePerformanceInsightViewModel();
   const setPerfSearch = useQuickSearchStore(s => s.setPerf);
 
@@ -23,47 +23,37 @@ const PerformanceInsightSection = ({ info }: { info?: ReactNode }) => {
       cell: i => <CopyText text={i.getValue()} onSearch={setPerfSearch} />,
     }),
     h.accessor('part', { header: '파트', size: 70 }),
-    h.accessor('note', { header: '비고' }),
+    h.accessor('note', { header: '비고', cell: i => <span title={i.getValue()}>{i.getValue() || '-'}</span> }),
+    h.accessor('missed_bid_reason', {
+      header: '미수사유',
+      cell: i => {
+        const reason = i.getValue() || '-';
+        return <span title={reason}>{reason}</span>;
+      },
+    }),
     h.accessor('filename', { header: '파일명', cell: i => <span title={i.getValue()}>{i.getValue()}</span> }),
   ], [setPerfSearch]);
 
   return (
-    <InsightSectionView
+    <DataTable<Project>
+      data={vm.missedBidProjects}
+      columns={missedBidColumns as never}
+      // project_code는 미배정 placeholder("생성 예정" 등)라 여러 행이 값이 겹칠 수 있음 —
+      // _row_num(원본 시트 행 번호)만 진짜 유니크해서 행 식별·펼침 키로 반드시 이걸 써야 함
+      getRowId={p => String(p._row_num)}
       isLoading={vm.isLoading}
-      isEmpty={vm.isEmpty}
-      heading="실적 인사이트"
-      headingInfo={info}
-      comments={vm.comments}
-      onCodeSearch={setPerfSearch}
-      lists={[
-        {
-          variant: 'default', title: '미수주 프로젝트', rows: vm.missedBid, plain: true,
-          // rows(InsightRow[])는 InsightListSpec 계약 충족용 — 실제 렌더는 원본 Project 배열(vm.missedBidProjects)로,
-          // 더블클릭하면 목록에 안 보이는 나머지 재무 필드(연도/단계/원가구성/처리일 등)를 그 자리에서 펼침.
-          // 실적현황 쪽엔 애초에 데이터가 없으므로(미수주=낙찰 실패) 교차조회 없이 자기 자신의 상세만 보여줌.
-          renderList: () => (
-            <DataTable<Project>
-              data={vm.missedBidProjects}
-              columns={missedBidColumns as never}
-              // project_code는 미배정 placeholder("생성 예정" 등)라 여러 행이 값이 겹칠 수 있음 —
-              // _row_num(원본 시트 행 번호)만 진짜 유니크해서 행 식별·펼침 키로 반드시 이걸 써야 함
-              getRowId={p => String(p._row_num)}
-              compact
-              hideToolbar
-              defaultPageSize={20}
-              pageSizeOptions={[20]}
-              expandableRow={{
-                getKey: p => String(p._row_num),
-                excludeColumns: ['project_code'],
-                renderContent: (p, close) => <FinanceDetailPanel project={p} onClose={close} />,
-              }}
-            />
-          ),
-        },
-        // ── 구버전 — 목표대비부진/손실·저수익 (2026-08 [미수주] 리스트로 교체, 삭제하지 않고 보존) ──
-        // { variant: 'default', title: '목표 대비 부진', rows: vm.worst },
-        // { variant: 'risk',    title: '손실 / 저수익',  rows: vm.risk },
-      ]}
+      compact
+      hideToolbar
+      defaultPageSize={20}
+      pageSizeOptions={[20]}
+      emptyIcon="📋"
+      emptyTitle="미수주 프로젝트 없음"
+      emptyDescription="재무 PPT에만 있는 미수주 프로젝트가 없습니다."
+      expandableRow={{
+        getKey: p => String(p._row_num),
+        excludeColumns: ['project_code'],
+        renderContent: (p, close) => <FinanceDetailPanel project={p} onClose={close} />,
+      }}
     />
   );
 };

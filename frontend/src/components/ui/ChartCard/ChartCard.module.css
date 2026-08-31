@@ -45,12 +45,12 @@
   justify-content: space-between;
   gap: 8px;
   font-size: 0.70rem;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.07em;
   margin-bottom: 14px;
-  font-family: 'Geist', 'SF Pro Display', monospace;
+  /* font-family: 'Geist', 'SF Pro Display', monospace; */
   flex-shrink: 0;
 }
 

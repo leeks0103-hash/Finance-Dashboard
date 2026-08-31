@@ -27,25 +27,47 @@
   background: var(--bg-subtle);
 }
 
-.grid {
+/* 2-column grid — 각 필드 한 줄(label: value) 표시 */
+.rows {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 8px 16px;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 20px;
 }
 
-.field {
+.row {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-  font-size: 0.8rem;
-  color: var(--text);
+  align-items: baseline;
+  gap: 6px;
+  font-size: 0.80rem;
+  min-width: 0;
 }
 
-.label {
+/* 이익율 | 비고 | 파일명 — 3항목 한 행 */
+.triRow {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 20px;
+}
+.triRow .row {
+  flex: 1;
+  min-width: 0;
+}
+
+.key {
   font-size: 0.68rem;
+  font-weight: 500;
   color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.val {
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
 }
 
 .loss { color: var(--loss); font-weight: 600; }

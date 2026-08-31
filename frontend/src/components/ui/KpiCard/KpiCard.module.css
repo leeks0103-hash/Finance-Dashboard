@@ -46,11 +46,11 @@
 
 .label {
   font-size: 0.70rem;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--text-muted);
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  font-family: 'Geist', 'SF Pro Display', monospace;
+  /* font-family: 'Geist', 'SF Pro Display', monospace; */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -73,7 +73,7 @@
 
 /* ── 큰 숫자 — 데이터가 주인공 ── */
 .value {
-  font-family: 'Geist', 'SF Pro Display', 'Helvetica Neue', monospace;
+  /* font-family: 'Geist', 'SF Pro Display', 'Helvetica Neue', monospace; */
   font-size: 2.10rem;
   font-weight: 700;
   letter-spacing: -0.03em;
