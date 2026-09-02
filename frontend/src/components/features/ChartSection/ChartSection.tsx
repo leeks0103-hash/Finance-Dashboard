@@ -86,7 +86,7 @@ const ChartSection = () => {
 
   const { labelColor, gridColor, tickColor } = getChartTheme(dark);
 
-  const vm = useChartViewModel(labelColor);
+  const vm = useChartViewModel();
 
   // 차트 카드 드래그 순서 — localStorage 저장 + 새로고침 유지
   const [chartOrder, setChartOrder] = useState<string[]>(() => {

@@ -89,7 +89,7 @@ const PerformanceChartSection = () => {
 
   const { labelColor, gridColor, tickColor } = getChartTheme(dark);
 
-  const vm = usePerformanceChartViewModel(labelColor);
+  const vm = usePerformanceChartViewModel();
 
   const [chartOrder, setChartOrder] = useState<string[]>(() => {
     try {

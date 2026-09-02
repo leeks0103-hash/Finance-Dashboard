@@ -1,7 +1,9 @@
 import { useMemo } from 'react';
 import { usePerformanceSummary } from '@/hooks/usePerformanceSummary';
 import { useUiStore } from '@/store';
+import { useTheme } from '@/hooks/useTheme';
 import { makeBarOptions } from '@/utils/chartOptions';
+import { getChartTheme } from '@/utils/chartColors';
 import { sortProgress } from '@/utils/progressOrder';
 import { PERF_MONTH } from '@/utils';
 import type { ChartOptions } from 'chart.js';
@@ -50,9 +52,11 @@ export interface PerformanceChartViewModel {
   };
 }
 
-export const usePerformanceChartViewModel = (labelColor: string): PerformanceChartViewModel => {
+export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
   const { data: summary, isLoading, isError } = usePerformanceSummary();
   const showLabels = useUiStore(s => s.showChartLabels);
+  const { theme } = useTheme();
+  const { labelColor } = getChartTheme(theme === 'dark');
 
   const monthlyLength = summary?.monthly.length ?? 12;
 

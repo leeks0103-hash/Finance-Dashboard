@@ -44,6 +44,7 @@ export interface PerfPartRow {
   junCostNum:      number;
   profitRateNum:   number;
   costRateStr:     string;
+  achieveRateNum:  number;
 }
 
 export interface PerformanceViewModel {
@@ -167,6 +168,7 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
         const junActualNum   = toEokNum(s.jun_actual);
         const junCostNum     = toEokNum(s.jun_cost);
         const costRate = junActualNum > 0 ? `${((junCostNum / junActualNum) * 100).toFixed(1)}%` : '-';
+        const achieveRateNum = planInitialNum > 0 ? (junActualNum / planInitialNum) * 100 : 0;
         return {
           part,
           planInitial: formatEok(s.plan_initial), junActual: formatEok(s.jun_actual),
@@ -174,6 +176,7 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
           operatingProfit: formatEok(s.operating_profit), profitRate: `${s.avg_profit_rate.toFixed(1)}%`,
           count: s.count, isLoss: s.operating_profit < 0,
           planInitialNum, junActualNum, junCostNum, profitRateNum: s.avg_profit_rate, costRateStr: costRate,
+          achieveRateNum,
         };
       });
   }, [summary?.by_part]);

@@ -9,3 +9,4 @@ export { usePerformanceViewModel }  from './usePerformanceViewModel';
 export { usePerformanceChartViewModel } from './usePerformanceChartViewModel';
 export { usePerformanceInsightViewModel } from './usePerformanceInsightViewModel';
 export { useKpiPageViewModel }      from './useKpiPageViewModel';
+export { useFinanceCrossCheckViewModel } from './useFinanceCrossCheckViewModel';

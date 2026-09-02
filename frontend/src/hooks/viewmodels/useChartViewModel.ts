@@ -1,7 +1,9 @@
 import { useMemo } from 'react';
 import { useSummary } from '@/hooks/useSummary';
 import { useUiStore } from '@/store';
+import { useTheme } from '@/hooks/useTheme';
 import { makeBarOptions } from '@/utils/chartOptions';
+import { getChartTheme } from '@/utils/chartColors';
 import { sortStages } from '@/utils/stageOrder';
 import type { ChartOptions } from 'chart.js';
 
@@ -37,9 +39,11 @@ export interface ChartViewModel {
   labelColor: string;
 }
 
-export const useChartViewModel = (labelColor: string): ChartViewModel => {
+export const useChartViewModel = (): ChartViewModel => {
   const { data, isLoading, isError } = useSummary();
   const showLabels = useUiStore(s => s.showChartLabels);
+  const { theme } = useTheme();
+  const { labelColor } = getChartTheme(theme === 'dark');
 
   const revExpOptions = useMemo(() => makeBarOptions(showLabels, labelColor, {
     layout: { padding: { right: 52 } },

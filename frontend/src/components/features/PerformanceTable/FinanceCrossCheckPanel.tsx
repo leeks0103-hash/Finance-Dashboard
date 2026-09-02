@@ -1,17 +1,12 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { getProjects } from '@/api/finance.api';
 import { Button, Spinner } from '@/components/ui';
 import { useClipboardPopup } from '@/components/ui/DataTable/useClipboardPopup';
 import { CellPopup }         from '@/components/ui/DataTable/CellPopup';
-import { sortStages }        from '@/utils/stageOrder';
-import { extractRealCode }   from '@/utils/projectCode';
+import { useFinanceCrossCheckViewModel } from '@/hooks/viewmodels';
 import { formatBillion, formatRate } from '@/utils';
-import type { Filters, Project } from '@/types/finance.types';
-import { STALE_5MIN, GC_10MIN } from '@/hooks/queryClient';
+import type { Project } from '@/types/finance.types';
 import styles from './FinanceCrossCheckPanel.module.css';
 
-const EMPTY_FILTERS: Filters = { years: [], parts: [], stages: [] };
 const LS_KEY = 'finance-cross-check-col-widths';
 // 보고단계 | 연도 | 매출 | 지출 | 이익율 | 비고 | 파일명
 const DEFAULT_WIDTHS = [110, 64, 80, 80, 90, 160, 220];
@@ -74,23 +69,8 @@ const FinanceCrossCheckPanel = ({ projectCode, onClose }: Props) => {
   const { popup, copied, openPopup, closePopup, copyPopupText } = useClipboardPopup();
   const [colWidths, setColWidths] = useState<number[]>(loadWidths);
 
-  const realCode   = extractRealCode(projectCode);
-  const searchTerm = realCode ?? projectCode;
-
-  const { data, isLoading } = useQuery({
-    queryKey: ['finance-by-code', searchTerm],
-    queryFn:  () => getProjects(EMPTY_FILTERS, { page: 1, pageSize: 20, search: searchTerm, field: 'project_code' })
-      .then(r => r.data),
-    staleTime: STALE_5MIN,
-    gcTime:    GC_10MIN,
-  });
-
-  const rows          = data ?? [];
-  const distinctFiles = new Set(rows.map(r => r.filename));
-  const isAmbiguous   = !realCode && distinctFiles.size > 1;
-  const stageRank     = new Map(sortStages(rows.map(r => r.stage)).map((s, i) => [s, i]));
-  const sorted        = [...rows].sort((a, b) => (stageRank.get(a.stage) ?? 99) - (stageRank.get(b.stage) ?? 99));
-  const totalWidth    = colWidths.reduce((a, b) => a + b, 0);
+  const { isLoading, isAmbiguous, fileCount, sorted } = useFinanceCrossCheckViewModel(projectCode);
+  const totalWidth = colWidths.reduce((a, b) => a + b, 0);
 
   // 첫 진입 시 DEFAULT_WIDTHS를, 저장값 있으면 저장값을 컨테이너에 비례 스케일
   useEffect(() => {
@@ -205,7 +185,7 @@ const FinanceCrossCheckPanel = ({ projectCode, onClose }: Props) => {
           <div className={styles.emptyBox}>
             <span className={styles.emptyIcon}>⚠️</span>
             <strong className={styles.emptyTitle}>특정 불가</strong>
-            <span className={styles.emptySub}>이 코드를 {distinctFiles.size}개 파일이 공유합니다</span>
+            <span className={styles.emptySub}>이 코드를 {fileCount}개 파일이 공유합니다</span>
           </div>
         ) : sorted.length === 0 ? (
           <div className={styles.emptyBox}>

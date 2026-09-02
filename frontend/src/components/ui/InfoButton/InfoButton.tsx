@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, type ReactNode } from 'react';
+import { Button } from '@/components/ui/Button';
 import styles from './InfoButton.module.css';
 
 interface Props {
@@ -20,14 +21,15 @@ export const InfoButton = ({ children }: Props) => {
 
   return (
     <div ref={wrapRef} className={styles.wrap}>
-      <button
+      <Button
+        unstyled
         className={styles.btn}
         onClick={() => setOpen(v => !v)}
         aria-label="데이터 기준 설명"
         type="button"
       >
         i
-      </button>
+      </Button>
       {open && (
         <div className={styles.popover}>
           <div className={styles.content}>{children}</div>
