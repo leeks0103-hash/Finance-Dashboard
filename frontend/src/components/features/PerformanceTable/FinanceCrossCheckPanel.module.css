@@ -1,6 +1,6 @@
 .panel {
   padding: 10px 14px 14px;
-  width: 900px;
+  width: 1200px;
   max-width: 100%;
 }
 
@@ -119,8 +119,8 @@
 .stageCell {
   font-weight: 600;
   font-size: 0.84rem;
+  text-align: center;
   border-left: 3px solid var(--stage-color, #94a3b8);
-  padding-left: 10px !important;
   white-space: nowrap;
 }
 

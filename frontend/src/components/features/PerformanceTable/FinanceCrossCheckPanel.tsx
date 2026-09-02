@@ -74,6 +74,23 @@ const FinanceCrossCheckPanel = ({ projectCode, onClose }: Props) => {
   const { popup, copied, openPopup, closePopup, copyPopupText } = useClipboardPopup();
   const [colWidths, setColWidths] = useState<number[]>(loadWidths);
 
+  const realCode   = extractRealCode(projectCode);
+  const searchTerm = realCode ?? projectCode;
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['finance-by-code', searchTerm],
+    queryFn:  () => getProjects(EMPTY_FILTERS, { page: 1, pageSize: 20, search: searchTerm, field: 'project_code' })
+      .then(r => r.data),
+    staleTime: STALE_5MIN,
+    gcTime:    GC_10MIN,
+  });
+
+  const rows          = data ?? [];
+  const distinctFiles = new Set(rows.map(r => r.filename));
+  const isAmbiguous   = !realCode && distinctFiles.size > 1;
+  const stageRank     = new Map(sortStages(rows.map(r => r.stage)).map((s, i) => [s, i]));
+  const sorted        = [...rows].sort((a, b) => (stageRank.get(a.stage) ?? 99) - (stageRank.get(b.stage) ?? 99));
+  const totalWidth    = colWidths.reduce((a, b) => a + b, 0);
 
   // 첫 진입 시 DEFAULT_WIDTHS를, 저장값 있으면 저장값을 컨테이너에 비례 스케일
   useEffect(() => {
@@ -170,24 +187,6 @@ const FinanceCrossCheckPanel = ({ projectCode, onClose }: Props) => {
       return next;
     });
   }, []);
-
-  const realCode   = extractRealCode(projectCode);
-  const searchTerm = realCode ?? projectCode;
-
-  const { data, isLoading } = useQuery({
-    queryKey: ['finance-by-code', searchTerm],
-    queryFn:  () => getProjects(EMPTY_FILTERS, { page: 1, pageSize: 20, search: searchTerm, field: 'project_code' })
-      .then(r => r.data),
-    staleTime: STALE_5MIN,
-    gcTime:    GC_10MIN,
-  });
-
-  const rows          = data ?? [];
-  const distinctFiles = new Set(rows.map(r => r.filename));
-  const isAmbiguous   = !realCode && distinctFiles.size > 1;
-  const stageRank     = new Map(sortStages(rows.map(r => r.stage)).map((s, i) => [s, i]));
-  const sorted        = [...rows].sort((a, b) => (stageRank.get(a.stage) ?? 99) - (stageRank.get(b.stage) ?? 99));
-  const totalWidth    = colWidths.reduce((a, b) => a + b, 0);
 
   return (
     <>
