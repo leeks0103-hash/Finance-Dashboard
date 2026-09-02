@@ -1,5 +1,31 @@
 # 세션 진행 기록
 
+## [2026-09-02] 디자인 시스템 재검토 + AdminLTE/Bootstrap5 톤 전면 적용
+
+**배경**
+- 기존 자체 디자인이 "안 예쁘다"는 문제 제기로 여러 오픈소스 대시보드 템플릿(Nuxt UI, shadcn/ui, ngx-admin, vue-element-admin, AdminLTE, Adminator)을 실제로 clone해서 소스 레벨까지 조사
+- Angular/Vue 전면 전환은 기존 React 프론트 자산(DataTable 리사이즈/DnD, 재무이력 2뎁스 패널, 필터 스토어 등) 전부 폐기해야 해서 배제
+- vue-element-admin은 Vue2(EOL) + 실질적 유지보수 중단(2024-10 이후 커밋 없음) 확인 후 후보 제외
+- 실데이터 연동한 정적 목업 3종(`playgrounds/playground-*.html`: shadcn 톤 / ngx-admin·Eva 톤 / AdminLTE·Bootstrap5 톤)을 만들어 비교 → AdminLTE/Bootstrap5 톤으로 확정
+- 최종 결정: **Bootstrap 라이브러리는 설치하지 않고**, akveo/nebular·ColorlibHQ/AdminLTE 로컬 clone에서 grep으로 뽑은 실측 색상/radius/shadow 값만 기존 CSS Modules 토큰에 반영 (React 로직·구조·API 전부 유지)
+
+**완료된 작업**
+- `index.css` 전체 색상(브랜드/이익/손실/경고/정보/보더/배경)·radius 4종·shadow 3종을 라이트/다크 모두 Bootstrap5 실측값으로 교체
+- KpiCard/ChartCard/Button/DataTable/Navbar/MultiSelectDropdown/ProjectTable/KpiRawTable/PartAchievementBars 등 컴포넌트별 하드코딩 색상·radius·shadow 정리
+- 부수 버그 수정: 다크모드 `--shadow-lg` 누락, `Toggle`의 `--color-loss`(미정의 변수), `MultiSelectDropdown`의 `--bg-card`/`--text-main`(미정의 변수)로 스타일 미적용되던 문제
+- 차트 색상(`chartColors.ts`)이 옛 인디고 팔레트로 남아있던 것을 발견 → dataviz 스킬의 사전 검증 팔레트로 교체, `validate_palette.js`로 라이트/다크 색맹 대비·명도·채도·배경대비 실측 통과 확인 후 적용
+- `DataTable`: compact 테이블(KPI 집계, 파트별 실적)이 카드 폭보다 좁거나 넓으면 첫 진입 시 비례 조정해 항상 꽉 차도록 수정 (기존엔 좁을 때만 대응 + 컬럼 총합이 카드보다 넓으면 불필요한 가로 스크롤 발생하던 문제); 안 맞물리던 전체 컬럼 "⇌ 맞춤" 버튼 삭제
+- 재무이력 패널(`FinanceCrossCheckPanel`) TDZ 에러 수정(`sorted` 선언 전 참조), 보고단계 가운데정렬, 폭 900→1400px 확장
+- 실적현황 테이블(`perfColumns`) 프로젝트코드/파트/팀/사업구분/고객구분 기본 폭 소폭 확대, `비고` 컬럼 기본 폭 150→280px(그동안 size 미지정으로 방치돼 있었음)
+- 손실/저수익 안내 텍스트(`INFO_PROJECT_TABLE`)에 실제 색상(빨강/노랑) 입히고 줄바꿈 분리
+
+**다음 세션 과제**
+- `playgrounds/playground-*.html` 3종은 참고용 정적 목업 — 실제 커밋에는 미포함, 필요시 재참조
+- 재무 비고 검색 안 됨 문제 (이전 세션 이월, 계속 보류)
+- push는 아직 안 함 — 사용자 확인 후 진행
+
+---
+
 ## [2026-08-31] DataTable 대규모 개선 + 재무이력 테이블 재설계 + 미수사유 파이프라인
 
 **완료된 작업**
