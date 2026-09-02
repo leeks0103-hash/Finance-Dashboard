@@ -21,10 +21,10 @@
 .correctedBadge {
   font-size: 0.65rem;
   font-weight: 600;
-  color: var(--warn, #d97706);
-  background: rgba(217, 119, 6, 0.12);
-  border: 1px solid rgba(217, 119, 6, 0.35);
-  border-radius: 4px;
+  color: var(--warn);
+  background: var(--warn-bg);
+  border: 1px solid rgba(255, 193, 7, 0.35);
+  border-radius: var(--radius-sm);
   padding: 1px 5px;
   white-space: nowrap;
   line-height: 1.6;

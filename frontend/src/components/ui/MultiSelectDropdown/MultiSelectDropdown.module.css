@@ -8,10 +8,10 @@
   align-items: center;
   gap: 4px;
   padding: 5px 10px;
-  border-radius: 6px;
+  border-radius: var(--radius-btn);
   border: 1.5px solid var(--border);
-  background: var(--bg-card);
-  color: var(--text-main);
+  background: var(--surface);
+  color: var(--text);
   font-size: 0.8rem;
   font-weight: 500;
   cursor: pointer;
@@ -41,7 +41,7 @@
   min-width: 18px;
   height: 18px;
   padding: 0 4px;
-  border-radius: 9px;
+  border-radius: var(--radius-pill);
   background: var(--brand-mid);
   color: #fff;
   font-size: 0.68rem;
@@ -67,10 +67,10 @@
   min-width: 140px;
   max-height: 260px;
   overflow-y: auto;
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
   padding: 4px 0;
   animation: dropIn 0.15s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
@@ -80,11 +80,6 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
-:global([data-theme="dark"]) .dropdown {
-  background: #1e293b;
-  border-color: #334155;
-}
-
 .item {
   display: flex;
   align-items: center;
@@ -92,20 +87,12 @@
   padding: 7px 12px;
   cursor: pointer;
   font-size: 0.82rem;
-  color: #1e293b;
+  color: var(--text);
   transition: background 0.1s;
 }
 
 .item:hover {
-  background: #f1f5f9;
-}
-
-:global([data-theme="dark"]) .item {
-  color: #f1f5f9;
-}
-
-:global([data-theme="dark"]) .item:hover {
-  background: #475569;
+  background: var(--brand-bg);
 }
 
 .checkbox {
@@ -124,9 +111,4 @@
   height: 1px;
   background: var(--border);
   margin: 2px 8px;
-}
-
-/* 다크모드 그림자 */
-:global([data-theme="dark"]) .dropdown {
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
 }

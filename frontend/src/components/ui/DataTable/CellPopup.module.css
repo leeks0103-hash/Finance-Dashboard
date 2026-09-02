@@ -48,7 +48,7 @@
   font-size: 14px;
   color: var(--text-muted);
   padding: 2px 6px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   line-height: 1;
 }
 .popupClose:hover { background: var(--bg-subtle); color: var(--text-primary); }

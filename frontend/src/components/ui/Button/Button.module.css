@@ -24,17 +24,17 @@
 .primary {
   background: var(--brand-mid);
   color: #fff;
-  box-shadow: 0 1px 4px rgba(37, 99, 235, 0.25);
+  box-shadow: 0 1px 4px rgba(13, 110, 253, 0.25);
 }
 .primary:hover:not(:disabled) {
   background: var(--brand);
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.32);
+  box-shadow: 0 4px 12px rgba(13, 110, 253, 0.32);
 }
 
 .danger {
   background: var(--loss);
   color: #fff;
-  box-shadow: 0 1px 4px rgba(220, 38, 38, 0.22);
+  box-shadow: 0 1px 4px rgba(220, 53, 69, 0.22);
 }
 .danger:hover:not(:disabled) {
   filter: brightness(1.1);
@@ -43,7 +43,7 @@
 .success {
   background: var(--profit);
   color: #fff;
-  box-shadow: 0 1px 4px rgba(22, 163, 74, 0.22);
+  box-shadow: 0 1px 4px rgba(25, 135, 84, 0.22);
 }
 .success:hover:not(:disabled) {
   filter: brightness(1.08);

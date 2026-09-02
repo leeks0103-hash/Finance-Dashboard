@@ -20,15 +20,15 @@ function CountCell({ value }: { value: string }) {
 // KPI 집계 컬럼 — 모듈 스코프 (stable)
 const sh = createColumnHelper<KpiSummaryRow>();
 const summaryColumns = [
-  sh.accessor('name',       { header: 'KPI 항목' }),
-  sh.accessor('agg',        { header: '집계방식' }),
-  sh.accessor('targetStr',  { header: '26년 목표', enableSorting: true,
+  sh.accessor('name',       { header: 'KPI 항목', size: 420 }),
+  sh.accessor('agg',        { header: '집계방식', size: 120 }),
+  sh.accessor('targetStr',  { header: '26년 목표', size: 220, enableSorting: true,
     cell: i => { const v = i.getValue() as string; return /신규/.test(v) ? <CountCell value={v} /> : <>{v}</>; },
   }),
-  sh.accessor('actual',     { header: '26년 실적', enableSorting: true,
+  sh.accessor('actual',     { header: '26년 실적', size: 220, enableSorting: true,
     cell: i => { const v = i.getValue() as string; return /신규/.test(v) ? <CountCell value={v} /> : <>{v}</>; },
   }),
-  sh.accessor('prevActual', { header: '25년 실적', enableSorting: true,
+  sh.accessor('prevActual', { header: '25년 실적', size: 220, enableSorting: true,
     cell: i => { const v = i.getValue() as string; return /신규/.test(v) ? <CountCell value={v} /> : <>{v}</>; },
   }),
 ];

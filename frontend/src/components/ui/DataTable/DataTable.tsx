@@ -330,45 +330,6 @@ const DataTable = <T extends object>({
   const tableWrapRef = useRef<HTMLDivElement>(null);
   const { highlightedCol, setHighlight, clearHighlight } = useColumnHighlight(tableWrapRef);
 
-  // 전체 컬럼 현재 데이터 기준 자동 맞춤 (storageKey 있는 테이블만)
-  const autoFitAll = storageKey ? () => {
-    const tbl = tableWrapRef.current?.querySelector('table') as HTMLTableElement | null;
-    if (!tbl) return;
-    const span = document.createElement('span');
-    span.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;left:-9999px;top:-9999px';
-    document.body.appendChild(span);
-
-    const thEls   = Array.from(tbl.querySelectorAll('thead th')) as HTMLElement[];
-    const firstTd = tbl.querySelector('tbody td') as HTMLElement | null;
-    const tdFont  = firstTd ? getComputedStyle(firstTd).font : '';
-    const MAX_COL = 320;
-
-    const visibleCols = table.getVisibleLeafColumns();
-    const newSizing: Record<string, number> = {};
-
-    visibleCols.forEach((col, idx) => {
-      const thEl = thEls[idx];
-      const thFont = thEl ? getComputedStyle(thEl).font : tdFont;
-
-      span.style.font  = thFont;
-      span.textContent = String(col.columnDef.header ?? col.id);
-      let maxW = span.offsetWidth + 32;
-
-      span.style.font = tdFont;
-      tbl.querySelectorAll(`tbody td:nth-child(${idx + 1})`).forEach(td => {
-        span.textContent = (td as HTMLElement).textContent ?? '';
-        maxW = Math.max(maxW, span.offsetWidth + 20);
-      });
-
-      newSizing[col.id] = Math.min(Math.max(maxW, 50), MAX_COL);
-    });
-
-    document.body.removeChild(span);
-
-    // 컨텐츠 너비에만 맞춤 — 스케일업 없이 각 컬럼 타이트하게
-    table.setColumnSizing(newSizing);
-    if (lsSizeKey) localStorage.setItem(lsSizeKey, JSON.stringify(newSizing));
-  } : undefined;
   // 셀 팝업은 항상 복사 가능 — 컬럼별 선별 없이 무조건 복사 기능 제공
   const { popup, copied: popupCopied, openPopup, closePopup, copyPopupText } = useClipboardPopup();
 
@@ -427,6 +388,28 @@ const DataTable = <T extends object>({
       rowCount: serverPagination!.total,
     }),
   });
+
+  // compact 테이블(KPI 집계, 파트별 실적 등) — 고정형 소형 테이블이라 가로 스크롤이 없어야 함.
+  // 컬럼 합계가 카드 폭과 다르면(좁든 넓든) 첫 진입 시 비례 조정해서 항상 폭에 꼭 맞춤.
+  // 한 번만 실행(fittedRef) — FinanceCrossCheckPanel의 scaleToFill과 동일 패턴
+  const compactFitRef = useRef(false);
+  useEffect(() => {
+    if (!compact || !storageKey || compactFitRef.current) return;
+    const wrapEl = tableWrapRef.current;
+    if (!wrapEl) return;
+    const wrapW = wrapEl.clientWidth;
+    const total = table.getTotalSize();
+    if (!wrapW || total === wrapW) return;
+    compactFitRef.current = true;
+    const scale = wrapW / total;
+    const next: Record<string, number> = {};
+    table.getVisibleLeafColumns().forEach(col => {
+      next[col.id] = Math.round(col.getSize() * scale);
+    });
+    setColSizing(next);
+    if (lsSizeKey) localStorage.setItem(lsSizeKey, JSON.stringify(next));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [compact, storageKey, data.length]);
 
   // 컬럼 드롭박스 외부 클릭 시 닫기
   useEffect(() => {
@@ -538,12 +521,6 @@ const DataTable = <T extends object>({
               >
                 {pageSizeOptions.map(n => <option key={n} value={n}>{n}행</option>)}
               </select>
-            )}
-
-            {autoFitAll && (
-              <Button variant="ghost" size="sm" onClick={autoFitAll} title="현재 데이터 기준 열 너비 자동 맞춤">
-                ⇌ 맞춤
-              </Button>
             )}
 
             {hideableColumns && hideableColumns.length > 0 && (

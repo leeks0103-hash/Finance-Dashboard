@@ -2,7 +2,7 @@
   font-size: 0.8rem;
   padding: 3px 6px;
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text);
 }
@@ -18,7 +18,7 @@
   font-size: 0.82rem;
   padding: 5px 28px 5px 10px;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius);
   background: var(--surface);
   color: var(--text);
   width: 320px;
@@ -128,7 +128,7 @@
 
 /* 헤더 클릭 컬럼 하이라이트 */
 .thHighlighted { background: var(--brand-mid) !important; color: #fff !important; }
-.table td.tdHighlighted { background: var(--brand-bg, rgba(99,102,241,0.08)) !important; }
+.table td.tdHighlighted { background: var(--brand-bg) !important; }
 
 /* 리사이즈 핸들 */
 .resizeHandle {
@@ -168,11 +168,11 @@
 
 /* 적절성 지표 등 소규모 척도인데 값이 비정상적으로 큰 행 — 원본 오입력 의심 경고 */
 .suspicious td:not(.spanCell) {
-  background: rgba(220,38,38,0.16) !important;
+  background: rgba(220,53,69,0.16) !important;
 }
 
 :global([data-theme="dark"]) .suspicious td:not(.spanCell) {
-  background: rgba(248,113,113,0.20) !important;
+  background: rgba(234,134,143,0.20) !important;
 }
 
 /* 프로젝트 구분 — rowspan 셀 배경 (항상 기본색) */
@@ -225,7 +225,7 @@
 
 /* ── 스켈레톤 ─────────────────────────── */
 .skeletonWrap { padding: 16px; display: flex; flex-direction: column; gap: 8px; }
-.skeletonRow  { height: 36px; border-radius: 4px; background: var(--border); animation: pulse 1.2s ease-in-out infinite; }
+.skeletonRow  { height: 36px; border-radius: var(--radius-sm); background: var(--border); animation: pulse 1.2s ease-in-out infinite; }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
 
 /* ── 페이지네이션 ─────────────────────── */
@@ -247,7 +247,7 @@
   padding: 0 8px;
   font-size: 0.78rem;
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text);
   cursor: pointer;

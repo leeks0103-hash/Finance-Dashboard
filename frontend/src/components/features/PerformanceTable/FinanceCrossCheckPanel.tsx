@@ -35,14 +35,14 @@ interface Props {
 }
 
 const STAGE_COLOR: Record<string, string> = {
-  '사전검토': '#818cf8', '검토': '#818cf8',
-  '제안':     '#60a5fa', '사업계획': '#34d399',
-  '착수':     '#34d399', '중간': '#fbbf24',
-  '완료':     '#7c3aed',
+  '사전검토': '#0dcaf0', '검토': '#0dcaf0',
+  '제안':     '#9ec5fe', '사업계획': '#198754',
+  '착수':     '#198754', '중간': '#ffc107',
+  '완료':     '#6f42c1',
 };
 function stageColor(stage: string) {
   for (const [k, v] of Object.entries(STAGE_COLOR)) if (stage.includes(k)) return v;
-  return '#94a3b8';
+  return '#adb5bd';
 }
 
 interface RowProps { r: Project; onCell: (text: string, copyable?: boolean) => void; }

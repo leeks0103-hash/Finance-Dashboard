@@ -142,7 +142,13 @@ export const INFO_PROJECT_TABLE = (
   <InfoTable rows={[
     ['출처',    '실적현황 엑셀'],
     ['대상',    '카테고리 = 매출 행 (1행 = 1프로젝트)'],
-    ['좌측 선', '빨강: 손익 < 0 / 노랑: 이익율 < 5% (호버 시 배경 강조)'],
+    ['좌측 선', <>
+      <span style={{ color: 'var(--loss)', fontWeight: 700 }}>빨강</span>: 손익 {'<'} 0
+      <br />
+      <span style={{ color: 'var(--warn)', fontWeight: 700 }}>노랑</span>: 이익율 {'<'} 5%
+      <br />
+      <span style={{ fontSize: '0.82em', color: 'var(--text-muted)' }}>(호버 시 배경 강조)</span>
+    </>],
     ['더블클릭','재무 PPT 이력 팝업 표시'],
     ['필터',    '파트 · 팀 필터 + 검색어 적용'],
   ]} />

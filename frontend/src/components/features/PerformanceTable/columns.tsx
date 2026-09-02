@@ -17,17 +17,17 @@ const txt = (i: { getValue: () => unknown; table: { options: { meta?: { searchQu
 export const perfColumns = [
   // 식별 — 프로젝트코드 제일 앞 (sticky 첫 번째 컬럼) — 더블클릭 시 재무 데이터 교차조회로 대체, 클릭 복사 제거
   h.accessor('project_code', {
-    header: '프로젝트코드', size: 148,
+    header: '프로젝트코드', size: 164,
     enableSorting: true,
     cell: txt,
   }),
-  h.accessor('part',         { header: '파트',         size: 88,  cell: txt }),
-  h.accessor('team',         { header: '팀',           size: 88,  cell: txt }),
+  h.accessor('part',         { header: '파트',         size: 100, cell: txt }),
+  h.accessor('team',         { header: '팀',           size: 100, cell: txt }),
   h.accessor('project_name', { header: '프로젝트명',   size: 200, cell: txt }),
   h.accessor('manager',      { header: '담당자',       size: 78,  cell: txt }),
   h.accessor('tech_category',{ header: '미래기술분류', size: 108, cell: txt }),
-  h.accessor('biz_type',     { header: '사업구분',     size: 88,  cell: txt }),
-  h.accessor('customer_type',{ header: '고객구분',     size: 88,  cell: txt }),
+  h.accessor('biz_type',     { header: '사업구분',     size: 100, cell: txt }),
+  h.accessor('customer_type',{ header: '고객구분',     size: 100, cell: txt }),
   h.accessor('biz_plan',     { header: '사업계획',     size: 88,  cell: txt }),
   h.accessor('progress',     { header: '진행',         size: 78,  cell: txt }),
   h.accessor('edu_type',     { header: '교육형태',     size: 88,  cell: txt }),
@@ -92,7 +92,7 @@ export const perfColumns = [
   h.accessor('sa_overhead_cost',   { header: '제경비',      cell: i => num(i.getValue()) }),
   // 기타
   h.accessor('change_note', { header: '변동 검토의견', cell: txt }),
-  h.accessor('note',        { header: '비고',          cell: txt }),
+  h.accessor('note',        { header: '비고', size: 280, cell: txt }),
   h.accessor('filename',    { header: '원본파일명',    cell: txt }),
 ];
 

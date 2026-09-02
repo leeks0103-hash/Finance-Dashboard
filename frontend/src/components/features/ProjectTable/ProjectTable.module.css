@@ -207,7 +207,7 @@
   background: var(--surface);
   cursor: pointer;
   padding: 5px 8px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   outline: none;
   font-family: inherit;
   transition: border-color 0.15s ease;
@@ -233,7 +233,7 @@
   color: var(--text-sub);
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: all 0.15s ease;
   line-height: 1;
@@ -255,12 +255,12 @@
   color: #fff;
   font-weight: 700;
   cursor: default;
-  box-shadow: 0 2px 8px rgba(79,70,229,0.30);
+  box-shadow: 0 2px 8px rgba(13,110,253,0.30);
 }
 
 [data-theme="dark"] .pgActive {
   background: var(--brand-mid);
-  box-shadow: 0 2px 8px rgba(129,140,248,0.35);
+  box-shadow: 0 2px 8px rgba(110,168,254,0.35);
 }
 
 [data-theme="dark"] .pgItem {

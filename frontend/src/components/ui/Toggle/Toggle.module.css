@@ -18,7 +18,7 @@
 .disabled { opacity: 0.4; cursor: not-allowed; }
 /* 다크 네브바 안의 토글 — 사이트 시안 고정 */
 .on      { background: var(--brand-mid) !important; }
-.dangerOn { background: var(--color-loss, #e53e3e) !important; }
+.dangerOn { background: var(--loss) !important; }
 
 .thumb {
   position: absolute;

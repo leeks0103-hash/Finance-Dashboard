@@ -55,10 +55,6 @@
   color: var(--text-sub);
 }
 
-:global([data-theme="dark"]) .code {
-  color: #b8d4ea;
-}
-
 /* 우측: 매출 · 이익율 */
 .valueGroup {
   flex-shrink: 0;
@@ -73,11 +69,6 @@
   white-space: nowrap;
   font-weight: 500;
 }
-
-:global([data-theme="dark"]) .subValue {
-  color: #a8c8e0;
-}
-
 
 .value {
   font-weight: 800;
