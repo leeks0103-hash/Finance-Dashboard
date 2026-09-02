@@ -18,11 +18,20 @@
 - 재무이력 패널(`FinanceCrossCheckPanel`) TDZ 에러 수정(`sorted` 선언 전 참조), 보고단계 가운데정렬, 폭 900→1400px 확장
 - 실적현황 테이블(`perfColumns`) 프로젝트코드/파트/팀/사업구분/고객구분 기본 폭 소폭 확대, `비고` 컬럼 기본 폭 150→280px(그동안 size 미지정으로 방치돼 있었음)
 - 손실/저수익 안내 텍스트(`INFO_PROJECT_TABLE`)에 실제 색상(빨강/노랑) 입히고 줄바꿈 분리
+- 세션 마무리 전 CLAUDE.md 아키텍처 규칙(레이어 의존성/컴포넌트 책임) 전수 점검 후 위반 수정:
+  - `InfoButton`의 raw `<button>` → `<Button unstyled>` 교체
+  - `useChartViewModel`/`usePerformanceChartViewModel`이 `labelColor`를 파라미터로 받던 것 제거,
+    `useKpiPageViewModel`처럼 내부에서 `useTheme()` 직접 호출하도록 통일
+  - `FinanceCrossCheckPanel`의 `useQuery`+정렬+모호성 판정 로직을 `useFinanceCrossCheckViewModel`로 분리
+  - `KpiRawTable`의 `cellVal`/`isImplausibleScoreRow` 순수 함수를 `utils/kpiColumns.ts`로 이동
+  - `PartAchievementBars`의 달성률 계산을 `usePerformanceViewModel`의 `PerfPartRow.achieveRateNum`으로 이전
+  - `theme.store.ts`가 persist 미들웨어 대신 localStorage 직접 접근하는 이유(FOUC 스크립트 포맷 일치)를 주석으로 명확화 — 의도적 예외로 유지
+  - 스켈레톤 플레이스홀더 `key={i}` 6곳은 고정 개수 배열이라 실질 위험 없어 그대로 둠
+  - lint/tsc/vitest(59/59)/build 전부 통과 확인
 
 **다음 세션 과제**
 - `playgrounds/playground-*.html` 3종은 참고용 정적 목업 — 실제 커밋에는 미포함, 필요시 재참조
 - 재무 비고 검색 안 됨 문제 (이전 세션 이월, 계속 보류)
-- push는 아직 안 함 — 사용자 확인 후 진행
 
 ---
 
