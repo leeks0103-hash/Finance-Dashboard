@@ -8,18 +8,42 @@
   line-height: 1.5;
   transition: transform 0.14s ease;
 }
-.comment:hover { transform: translateX(2px); }
 
-/* 배경색만으로 구분 — border 제거 */
-.positive { background: var(--profit-bg); }
-.info     { background: var(--info-bg); }
-.neutral  { background: var(--bg-subtle); }
-.warning  { background: var(--warn-bg); font-weight: 500; }
+/* 라이트 모드 — 좌측 컬러 보더 + 배경 */
+.positive { background: var(--profit-bg); border-left: 3px solid var(--profit); }
+.info     { background: var(--info-bg);   border-left: 3px solid var(--info); }
+.neutral  { background: var(--bg-subtle); border-left: 3px solid var(--border); }
 
-/* 다크: 더 선명하게 */
-:global([data-theme="dark"]) .positive { background: rgba(0, 230, 118, 0.14); }
-:global([data-theme="dark"]) .info     { background: rgba(56, 189, 248, 0.12); }
-:global([data-theme="dark"]) .warning  { background: rgba(240, 224, 64, 0.16); }
-:global([data-theme="dark"]) .neutral  { background: rgba(148, 163, 184, 0.06); }
+/* warning — 뱃지로 구분, 텍스트는 기본 색 유지 */
+.warning {
+  background: var(--loss-bg);
+  border-left: 4px solid var(--loss);
+  font-weight: 500;
+}
 
 .icon { flex-shrink: 0; }
+
+.badge {
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  background: var(--loss);
+  color: #fff;
+  letter-spacing: 0.02em;
+  align-self: center;
+}
+
+.projectLink {
+  display: inline;
+  font: inherit;
+  font-weight: 700;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+}

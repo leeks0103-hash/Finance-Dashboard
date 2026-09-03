@@ -1,8 +1,8 @@
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import KpiSection     from '@/components/features/KpiSection';
-import ChartSection   from '@/components/features/ChartSection';
-import InsightSection from '@/components/features/InsightSection';
-import ProjectTable   from '@/components/features/ProjectTable';
+import KpiSection   from '@/components/features/KpiSection';
+import ChartSection from '@/components/features/ChartSection';
+import PartTable    from '@/components/features/PartTable';
+import ProjectTable from '@/components/features/ProjectTable';
 import styles from './FinancePage.module.css';
 
 const FinancePage = () => (
@@ -13,10 +13,10 @@ const FinancePage = () => (
     <div className="fadeUp" style={{ animationDelay: '100ms' }}>
       <ErrorBoundary><ChartSection /></ErrorBoundary>
     </div>
-    <div className="fadeUp" style={{ animationDelay: '200ms' }}>
-      <ErrorBoundary><InsightSection /></ErrorBoundary>
+    <div className="fadeUp" style={{ animationDelay: '150ms' }}>
+      <ErrorBoundary><PartTable /></ErrorBoundary>
     </div>
-    <div className="fadeUp" style={{ animationDelay: '300ms' }}>
+    <div className="fadeUp" style={{ animationDelay: '200ms' }}>
       <ErrorBoundary><ProjectTable /></ErrorBoundary>
     </div>
   </main>

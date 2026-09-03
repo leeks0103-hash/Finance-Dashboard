@@ -32,7 +32,7 @@ const ProjectTable = () => {
       emptyDescription="다른 검색어나 필터 조건을 시도해보세요."
       initialColumnVisibility={{ filename: true }}
       storageKey="finance-project"
-      copyableColumns={['filename']}
+      searchOnDblClick={['project_code']}
     />
   );
 };

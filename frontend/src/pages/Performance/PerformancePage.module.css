@@ -73,6 +73,9 @@
 @media (max-width: 900px) {
   .kpiGrid { grid-template-columns: repeat(2, 1fr); }
 }
+@media (max-width: 480px) {
+  .kpiGrid { grid-template-columns: 1fr; }
+}
 
 
 /* 차트 */
@@ -81,20 +84,28 @@
 }
 
 /* 섹션 */
+.sectionGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+  padding: 0 10px;
+}
+
 .section {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 12px;
   overflow: hidden;
-}
-
-.sectionTitle {
-  padding: 16px 20px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text);
-  border-bottom: 1px solid var(--border);
-  margin: 0;
 }
 
 .tableWrap {

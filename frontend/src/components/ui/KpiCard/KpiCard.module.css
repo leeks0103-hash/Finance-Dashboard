@@ -3,7 +3,7 @@
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius);
   padding: 24px 28px 20px;
   display: flex;
   flex-direction: column;
@@ -18,8 +18,7 @@
 
 /* ultra-subtle hover lift — no shadow by default */
 .card:hover {
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
 /* 상단 2px accent 바 */
@@ -28,7 +27,7 @@
   position: absolute;
   top: 0; left: 0; right: 0;
   height: 2px;
-  border-radius: 8px 8px 0 0;
+  border-radius: var(--radius) var(--radius) 0 0;
   pointer-events: none;
 }
 
@@ -47,11 +46,16 @@
 
 .label {
   font-size: 0.70rem;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--text-muted);
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  font-family: 'Geist', 'SF Pro Display', monospace;
+  /* font-family: 'Geist', 'SF Pro Display', monospace; */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 /* 트렌드 배지 — muted pastel */
@@ -64,12 +68,12 @@
   letter-spacing: 0.02em;
 }
 
-.up   { background: var(--pastel-green, #EDF3EC); color: #346538; }
-.down { background: var(--pastel-red,   #FDEBEC); color: #9F2F2D; }
+.up   { background: var(--profit-bg); color: var(--profit); }
+.down { background: var(--loss-bg);   color: var(--loss); }
 
 /* ── 큰 숫자 — 데이터가 주인공 ── */
 .value {
-  font-family: 'Geist', 'SF Pro Display', 'Helvetica Neue', monospace;
+  /* font-family: 'Geist', 'SF Pro Display', 'Helvetica Neue', monospace; */
   font-size: 2.10rem;
   font-weight: 700;
   letter-spacing: -0.03em;
@@ -93,16 +97,23 @@
   letter-spacing: 0.01em;
 }
 
-/* ── 스파크라인 ── */
+/* ── 스파크라인 — accent 색상 상속 ── */
 .sparkWrap {
   position: absolute;
   bottom: 0; right: 0;
   width: 52%;
   height: 48px;
-  opacity: 0.12;
+  opacity: 0.22;
   pointer-events: none;
 }
 .spark { width: 100%; height: 100%; }
+
+/* 스파크라인 색상을 accent 계열로 */
+.brand  .sparkWrap { color: var(--brand-mid); }
+.profit .sparkWrap { color: var(--profit); }
+.loss   .sparkWrap { color: var(--loss); }
+.warn   .sparkWrap { color: var(--warn); }
+.purple .sparkWrap { color: var(--purple); }
 
 .bgIcon { display: none; }
 
@@ -111,7 +122,7 @@
   border-color: var(--border);
 }
 :global([data-theme="dark"]) .card:hover {
-  box-shadow: 0 2px 12px rgba(0,0,0,0.30);
+  box-shadow: var(--shadow-md);
 }
 :global([data-theme="dark"]) .value { color: var(--text-primary); }
 :global([data-theme="dark"]) .brand  .value { color: var(--brand-mid); }
@@ -119,8 +130,8 @@
 :global([data-theme="dark"]) .loss   .value { color: var(--loss); }
 :global([data-theme="dark"]) .warn   .value { color: var(--warn); }
 :global([data-theme="dark"]) .purple .value { color: var(--purple); }
-:global([data-theme="dark"]) .up   { background: rgba(52,211,153,0.12); color: var(--profit); }
-:global([data-theme="dark"]) .down { background: rgba(248,113,113,0.12); color: var(--loss); }
+:global([data-theme="dark"]) .up   { background: var(--profit-bg); color: var(--profit); }
+:global([data-theme="dark"]) .down { background: var(--loss-bg);   color: var(--loss); }
 
 @media (max-width: 900px) {
   .card  { min-height: 108px; padding: 18px 20px 14px; }

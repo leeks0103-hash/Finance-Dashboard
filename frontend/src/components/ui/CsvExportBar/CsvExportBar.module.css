@@ -1,0 +1,6 @@
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0; /* 절대 줄어들지 않음 — 스크롤 영역 밖에 고정 */
+}

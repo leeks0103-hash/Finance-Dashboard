@@ -12,7 +12,10 @@ export default defineConfig({
   },
   server: {
     host: '0.0.0.0',
-    port: 5173,
+    // 5173은 Vite 기본값이라 다른 프로젝트와 충돌 잦음 — 5174도 마찬가지(다른 프로젝트가
+    // 5173 충돌 시 자동으로 5174로 옮겨감). 자동 증가 범위 밖의 값으로 고정.
+    port: 5188,
+    strictPort: true,
     proxy: {
       '/api': {
         target: `http://localhost:${BACKEND_PORT}`,

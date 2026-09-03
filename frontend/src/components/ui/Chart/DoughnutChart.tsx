@@ -41,7 +41,7 @@ const DoughnutChart = ({
           position: 'bottom',
           labels: {
             color: labelColor,
-            font: { size: 11 },
+            font: { size: 13 },
             generateLabels: (chart) => {
               const ds   = chart.data.datasets[0];
               const nums = ds.data as number[];

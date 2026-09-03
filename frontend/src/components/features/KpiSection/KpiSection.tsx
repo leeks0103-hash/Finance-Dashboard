@@ -11,12 +11,6 @@ const KpiSection = () => {
 
   const handleRetry = () => qc.invalidateQueries({ queryKey: ['summary', filters] });
 
-  if (vm.isLoading) return (
-    <div className={styles.grid}>
-      {[0,1,2,3].map(i => <div key={i} className={styles.skeleton} />)}
-    </div>
-  );
-
   if (vm.isError) return (
     <ErrorFallback
       title="KPI 데이터 오류"
@@ -25,24 +19,25 @@ const KpiSection = () => {
     />
   );
 
-  if (vm.cards.length === 0) return (
-    <div className={styles.grid}>
-      {[0,1,2,3].map(i => <div key={i} className={`${styles.skeleton} ${styles.dimmed}`} />)}
-    </div>
-  );
+  // 로딩 중 / 카드 없음 — 같은 스켈레톤 그리드, empty는 dimmed 처리만 다름
+  const isPlaceholder = vm.isLoading || vm.cards.length === 0;
 
   return (
     <div className={styles.grid}>
-      {vm.cards.map(card => (
-        <KpiCard
-          key={card.label}
-          label={card.label}
-          value={card.value}
-          accent={card.accent}
-          trend={card.trend}
-          trendUp={card.trendUp}
-        />
-      ))}
+      {isPlaceholder
+        ? [0, 1, 2, 3].map(i => (
+            <div key={i} className={`${styles.skeleton} ${vm.isLoading ? '' : styles.dimmed}`} />
+          ))
+        : vm.cards.map(card => (
+            <KpiCard
+              key={card.label}
+              label={card.label}
+              value={card.value}
+              accent={card.accent}
+              trend={card.trend}
+              trendUp={card.trendUp}
+            />
+          ))}
     </div>
   );
 };

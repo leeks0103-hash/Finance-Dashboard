@@ -1,6 +1,6 @@
 import { useMemo, useState, useCallback, type ReactNode } from 'react';
 import {
-  DndContext, closestCenter, PointerSensor, useSensor, useSensors,
+  DndContext, closestCenter,
   type DragEndEvent,
 } from '@dnd-kit/core';
 import {
@@ -9,15 +9,25 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { useChartViewModel } from '@/hooks/viewmodels';
 import { useTheme, useFilterOptions } from '@/hooks';
-import { useFilterStore, useUiStore } from '@/store';
+import { useFilterStore } from '@/store';
 import { makeBarOptions } from '@/utils/chartOptions';
-import { getChartPalette } from '@/utils/chartColors';
+import { getChartPalette, getChartTheme } from '@/utils/chartColors';
 import { isAllSelected } from '@/utils/array';
-import { ChartCard, BarChart, DoughnutChart, Toggle } from '@/components/ui';
+import { ChartCard, BarChart, DoughnutChart, Toggle, useTableDndSensors } from '@/components/ui';
+import type { ChartOptions } from 'chart.js';
 import styles from './ChartSection.module.css';
 
 const DEFAULT_CHART_ORDER = ['profitRate', 'revExp', 'costBreakdown', 'stageChart'];
 const LS_CHART_ORDER = 'finance-chart-order';
+
+// x축 stacked 해제 + 테마(격자·눈금) 색 오버라이드 병합 — 매출/지출류 차트 여러 개가 공유하는 패턴
+const withUnstackedTheme = (
+  options: ChartOptions<'bar'>,
+  scaleOverride: { x: Record<string, unknown>; y: Record<string, unknown> },
+): ChartOptions<'bar'> => ({
+  ...options,
+  scales: { ...scaleOverride, x: { ...scaleOverride.x, stacked: false } },
+});
 
 // 드래그 가능 차트 카드 래퍼 — 모듈 스코프에서 정의해야 React가 컴포넌트 정체성 유지
 // 카드 전체가 아니라 좌상단 그립 아이콘만 드래그 핸들 — 차트 본문(호버·클릭·바 클릭)은 영향 없음
@@ -45,27 +55,38 @@ function SortableChart({ id, children }: SortableChartProps) {
   );
 }
 
+// 로딩/에러/데이터없음 4칸 플레이스홀더 — 셋이 카드 4개짜리 그리드라는 구조만 같고 내용만 다름
+interface ChartStateGridProps { variant: 'skeleton' | 'error' | 'empty'; icon?: string; message?: string; }
+function ChartStateGrid({ variant, icon, message }: ChartStateGridProps) {
+  return (
+    <>
+      {[0, 1, 2, 3].map(i => variant === 'skeleton' ? (
+        <div key={i} className={styles.skeleton} />
+      ) : (
+        <div key={i} className={variant === 'error' ? styles.errorCard : styles.emptyCard}>
+          <span className={variant === 'error' ? styles.errorIcon : styles.emptyIcon}>{icon}</span>
+          <span>{message}</span>
+        </div>
+      ))}
+    </>
+  );
+}
+
 const ChartSection = () => {
   const { theme } = useTheme();
   const dark = theme === 'dark';
 
-  const togglePart    = useFilterStore(s => s.togglePart);
-  const stages        = useFilterStore(s => s.stages);
-  const showYearChart = useUiStore(s => s.showYearChart);
+  const stages = useFilterStore(s => s.stages);
   const { stages: allStages } = useFilterOptions();
 
-  const handlePartClick = togglePart;
   const stageLabel = stages.length > 0 && !isAllSelected(stages, allStages) ? stages.join('·') : '전체';
 
   // 파트별 이익율 카드 — 토글 켜면 이익율(%) 대신 이익액(억원) 표시
   const [showProfitAmount, setShowProfitAmount] = useState(false);
 
-  // 팔레트 — 오렌지/웜 브랜드에 맞춤
-  const labelColor = dark ? 'rgba(212,212,216,0.90)' : '#3F3F46';   // zinc-300 / zinc-700
-  const gridColor  = dark ? 'rgba(63,63,70,0.60)'    : 'rgba(0,0,0,0.06)';
-  const tickColor  = dark ? 'rgba(161,161,170,0.90)' : '#71717A';   // zinc-400 / zinc-500
+  const { labelColor, gridColor, tickColor } = getChartTheme(dark);
 
-  const vm = useChartViewModel(labelColor);
+  const vm = useChartViewModel();
 
   // 차트 카드 드래그 순서 — localStorage 저장 + 새로고침 유지
   const [chartOrder, setChartOrder] = useState<string[]>(() => {
@@ -77,7 +98,7 @@ const ChartSection = () => {
     } catch { return DEFAULT_CHART_ORDER; }
   });
 
-  const dndSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const dndSensors = useTableDndSensors();
 
   const handleChartDragEnd = useCallback((e: DragEndEvent) => {
     const { active, over } = e;
@@ -106,31 +127,30 @@ const ChartSection = () => {
     y: { grid: { color: gridColor }, ticks: { color: tickColor } },
   }), [gridColor, tickColor]);
 
-  const revExpOptions  = useMemo(() => ({
-    ...vm.revExp.options,
-    scales: { ...scaleOverride, x: { ...scaleOverride.x, stacked: false } },
-  }), [vm.revExp.options, scaleOverride]);
-
-  // 로그 스케일 사용 시 0이하 값이 있으면 자동 fallback
-  const canUseLogScale = vm.showLogScale && vm.profitRate.rates.every(r => r > 0);
+  const revExpOptions = useMemo(
+    () => withUnstackedTheme(vm.revExp.options, scaleOverride),
+    [vm.revExp.options, scaleOverride],
+  );
 
   const profitRateOptions = useMemo(() => ({
     ...vm.profitRate.options,
+    plugins: { ...vm.profitRate.options.plugins, legend: { display: false } },
     scales: {
       ...vm.profitRate.options.scales,
       y: {
         ...scaleOverride.y,
-        type: canUseLogScale ? ('logarithmic' as const) : ('linear' as const),
+        type: 'linear' as const,
         ticks: { ...scaleOverride.y.ticks, callback: (v: string | number) => v + '%' },
       },
     },
-  }), [vm.profitRate.options, scaleOverride, canUseLogScale]);
+  }), [vm.profitRate.options, scaleOverride]);
 
   // 파트별 이익율 카드 토글 ON — 이익액(억원) 뷰용 옵션
   const profitAmountOptions = useMemo(() => ({
     ...makeBarOptions(vm.showLabels, labelColor, {
       layout: { padding: { top: 24 } },
       plugins: {
+        legend: { display: false },
         datalabels: {
           anchor: 'end',
           align:  'top',
@@ -142,42 +162,9 @@ const ChartSection = () => {
     scales: { ...scaleOverride, y: { ...scaleOverride.y, ticks: { ...scaleOverride.y.ticks, callback: (v: string | number) => v + '억' } } },
   }), [vm.showLabels, labelColor, scaleOverride]);
 
-  const yearTrendOptions = useMemo(() => ({
-    ...vm.yearTrend.options,
-    scales: { ...scaleOverride, x: { ...scaleOverride.x, stacked: false } },
-  }), [vm.yearTrend.options, scaleOverride]);
-
-  const stageChartOptions = useMemo(() => ({
-    ...vm.stageChart.options,
-    scales: { ...scaleOverride, x: { ...scaleOverride.x, stacked: false } },
-  }), [vm.stageChart.options, scaleOverride]);
-
-  if (vm.isLoading) return (
-    <div className={styles.grid}>
-      {[0, 1, 2, 3].map(i => <div key={i} className={styles.skeleton} />)}
-    </div>
-  );
-
-  if (vm.isError) return (
-    <div className={styles.grid}>
-      {[0, 1, 2, 3].map(i => (
-        <div key={i} className={styles.errorCard}>
-          <span className={styles.errorIcon}>⚠</span>
-          <span>데이터를 불러올 수 없습니다</span>
-        </div>
-      ))}
-    </div>
-  );
-
-  if (vm.isEmpty) return (
-    <div className={styles.grid}>
-      {[0, 1, 2, 3].map(i => (
-        <div key={i} className={styles.emptyCard}>
-          <span className={styles.emptyIcon}>📊</span>
-          <span>데이터 없음</span>
-        </div>
-      ))}
-    </div>
+  const stageChartOptions = useMemo(
+    () => withUnstackedTheme(vm.stageChart.options, scaleOverride),
+    [vm.stageChart.options, scaleOverride],
   );
 
   // id → 렌더 함수 — 드래그 순서(chartOrder)에 따라 이 중 하나를 골라 렌더
@@ -188,7 +175,7 @@ const ChartSection = () => {
           <span>파트별 이익율(%)</span>
           <span className={styles.toggleGroup}>
             <span className={styles.stageBadge}>{showProfitAmount ? '이익액' : '이익율'}</span>
-            <Toggle checked={showProfitAmount} onChange={() => setShowProfitAmount(v => !v)} />
+            <Toggle checked={showProfitAmount} onChange={() => setShowProfitAmount(v => !v)} danger={showProfitAmount} />
           </span>
         </ChartCard.Title>
         <ChartCard.Body>
@@ -199,7 +186,6 @@ const ChartSection = () => {
               : { label: '이익율(%)',  data: vm.profitRate.rates, backgroundColor: profitColors }
             ]}
             options={showProfitAmount ? profitAmountOptions : profitRateOptions}
-            onClick={handlePartClick}
           />
         </ChartCard.Body>
       </ChartCard>
@@ -216,7 +202,6 @@ const ChartSection = () => {
               { label: '지출(억)', data: vm.revExp.expenditures, backgroundColor: palette.cost    },
             ]}
             options={revExpOptions}
-            onClick={handlePartClick}
           />
         </ChartCard.Body>
       </ChartCard>
@@ -260,30 +245,20 @@ const ChartSection = () => {
     .map(id => ({ id, node: chartRenderers[id]?.() ?? null }))
     .filter(c => c.node !== null);
 
+  // 로딩/에러/empty/정상 — 서로 같이 나타나지 않는 상태이므로 하나로 합쳐서 관리
+  const chartState = vm.isLoading ? 'loading' : vm.isError ? 'error' : vm.isEmpty ? 'empty' : 'ready';
+
+  const content = chartState === 'loading' ? <ChartStateGrid variant="skeleton" />
+    : chartState === 'error' ? <ChartStateGrid variant="error" icon="⚠" message="데이터를 불러올 수 없습니다" />
+    : chartState === 'empty' ? <ChartStateGrid variant="empty" icon="📊" message="데이터 없음" />
+    : visibleCharts.map(c => <SortableChart key={c.id} id={c.id}>{c.node}</SortableChart>);
+
   return (
-    /* 테마 전환 시 key로 완전 리마운트 → 색상 보장 */
     <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handleChartDragEnd}>
       <SortableContext items={visibleCharts.map(c => c.id)} strategy={rectSortingStrategy}>
-        <div className={styles.grid} key={dark ? 'dark' : 'light'}>
-          {visibleCharts.map(c => (
-            <SortableChart key={c.id} id={c.id}>{c.node}</SortableChart>
-          ))}
-
-          {showYearChart && vm.yearTrend.labels.length > 0 && (
-            <ChartCard>
-              <ChartCard.Title>연도별 매출 / 이익 추이</ChartCard.Title>
-              <ChartCard.Body>
-                <BarChart
-                  labels={vm.yearTrend.labels}
-                  datasets={[
-                    { label: '매출(억)', data: vm.yearTrend.revenues, backgroundColor: palette.revenue },
-                    { label: '이익(억)', data: vm.yearTrend.profits,  backgroundColor: palette.profit  },
-                  ]}
-                  options={yearTrendOptions}
-                />
-              </ChartCard.Body>
-            </ChartCard>
-          )}
+        {/* key: 테마 전환·상태 전환마다 완전 리마운트 → 색상 보장 + fade-in 재생 */}
+        <div className={styles.grid} key={`${dark ? 'dark' : 'light'}-${chartState}`}>
+          {content}
         </div>
       </SortableContext>
     </DndContext>

@@ -10,7 +10,7 @@ import styles from './Navbar.module.css';
 
 const Navbar = () => {
   const { theme, toggle: toggleTheme } = useTheme();
-  const { showChartLabels, toggleChartLabels, showLogScale, toggleLogScale, showYearChart, toggleYearChart } = useUiStore();
+  const { showChartLabels, toggleChartLabels } = useUiStore();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const { pathname } = useLocation();
@@ -68,20 +68,6 @@ const Navbar = () => {
                 <div className={styles.row}>
                   <span className={styles.rowText}>{showChartLabels ? '표시 중' : '숨김'}</span>
                   <Toggle checked={showChartLabels} onChange={toggleChartLabels} />
-                </div>
-              </div>
-
-              <div className={styles.divider} />
-
-              <div className={styles.section}>
-                <span className={styles.sectionLabel}>차트 옵션</span>
-                <div className={styles.row}>
-                  <span className={styles.rowText}>로그 스케일</span>
-                  <Toggle checked={showLogScale} onChange={toggleLogScale} disabled />
-                </div>
-                <div className={styles.row}>
-                  <span className={styles.rowText}>연도 추이</span>
-                  <Toggle checked={showYearChart} onChange={toggleYearChart} disabled />
                 </div>
               </div>
             </div>

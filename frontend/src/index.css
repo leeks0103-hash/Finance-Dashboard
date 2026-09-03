@@ -1,131 +1,123 @@
-/* ─── Light mode ──────────────────────────────── */
+/* ─── Light mode — Bootstrap5 실측값 (akveo/nebular, ColorlibHQ/AdminLTE 대조) ─ */
 :root,
 [data-theme="light"] {
   --nav-bg: #18181B;   /* zinc-900 */
 
-  --brand:        #4338CA;   /* indigo-700 */
-  --brand-mid:    #4F46E5;   /* indigo-600 */
-  --brand-light:  #818CF8;   /* indigo-400 */
-  --brand-bg:     rgba(79, 70, 229, 0.07);
+  --brand:        #0D6EFD;   /* bootstrap primary */
+  --brand-mid:    #0B5ED7;   /* bootstrap primary hover shade */
+  --brand-light:  #9EC5FE;   /* bootstrap primary-border-subtle */
+  --brand-bg:     #CFE2FF;   /* bootstrap primary-bg-subtle */
 
-  --profit:       #059669;
-  --profit-bg:    rgba(5, 150, 105, 0.08);
-  --loss:         #DC2626;
-  --loss-bg:      rgba(220, 38, 38, 0.07);
-  --warn:         #D97706;
-  --warn-bg:      rgba(217, 119, 6, 0.08);
-  --info:         #0284C7;
-  --info-bg:      rgba(2, 132, 199, 0.08);
-  --purple:       #7C3AED;
-  --purple-bg:    rgba(124, 58, 237, 0.08);
+  --profit:       #198754;   /* bootstrap success */
+  --profit-bg:    #D1E7DD;   /* bootstrap success-bg-subtle */
+  --loss:         #DC3545;   /* bootstrap danger */
+  --loss-bg:      #F8D7DA;   /* bootstrap danger-bg-subtle */
+  --warn:         #FFC107;   /* bootstrap warning */
+  --warn-bg:      #FFF3CD;   /* bootstrap warning-bg-subtle */
+  --info:         #0DCAF0;   /* bootstrap info */
+  --info-bg:      #CFF4FC;   /* bootstrap info-bg-subtle */
+  --purple:       #6F42C1;   /* bootstrap $purple */
+  --purple-bg:    #ECE3F9;
 
   --surface:      #FFFFFF;
-  --bg:           #F7F6F3;   /* warm bone canvas */
-  --bg-subtle:    #F0EFEC;
-  --border:       #EAEAEA;   /* ultra-light structural */
-  --border-focus: #F97316;
+  --bg:           #F8F9FA;   /* bootstrap tertiary-bg (gray-100) */
+  --bg-subtle:    #E9ECEF;   /* bootstrap secondary-bg (gray-200) */
+  --bg-header:    #E9ECEF;
+  --border:       #DEE2E6;   /* bootstrap border-color (gray-300) */
+  --border-table: #DEE2E6;
+  --border-focus: #0D6EFD;
 
-  --text-primary: #111111;
-  --text-sub:     #2F3437;
-  --text-muted:   #787774;
+  --text:         #212529;   /* bootstrap body-color (gray-900) */
+  --text-primary: #212529;
+  --text-sub:     #343A40;
+  --text-muted:   #6C757D;   /* bootstrap gray-600 */
 
-  --pastel-blue:  #E1F3FE;
-  --pastel-green: #EDF3EC;
-  --pastel-yellow:#FBF3DB;
-  --pastel-red:   #FDEBEC;
+  --pastel-blue:  #CFF4FC;
+  --pastel-green: #D1E7DD;
+  --pastel-yellow:#FFF3CD;
+  --pastel-red:   #F8D7DA;
 
-  /* ── KPI 카드 그라디언트 토큰 (라이트 — 오렌지 브랜드) ── */
-  --kpi-brand-start:  #FB923C; --kpi-brand-mid:  #EA580C; --kpi-brand-end:  #C2410C;
-  --kpi-profit-start: #34D399; --kpi-profit-mid: #059669; --kpi-profit-end: #047857;
-  --kpi-loss-start:   #F87171; --kpi-loss-mid:   #DC2626; --kpi-loss-end:   #991B1B;
-  --kpi-warn-start:   #FCD34D; --kpi-warn-mid:   #D97706; --kpi-warn-end:   #92400E;
-  --kpi-purple-start: #C4B5FD; --kpi-purple-mid: #7C3AED; --kpi-purple-end: #5B21B6;
-  --kpi-brand-shadow:  rgba(234,  88,  12, 0.30);
-  --kpi-profit-shadow: rgba(5,   150, 105, 0.20);
-  --kpi-loss-shadow:   rgba(220,  38,  38, 0.20);
-  --kpi-warn-shadow:   rgba(217, 119,   6, 0.22);
-  --kpi-purple-shadow: rgba(124,  58, 237, 0.20);
-  --kpi-label-color:  rgba(255, 255, 255, 0.82);
-  --kpi-badge-up:     rgba(255, 255, 255, 0.20);
-  --kpi-badge-down:   rgba(0,   0,   0,   0.20);
-  --kpi-glass-line:   rgba(255, 255, 255, 0.45);
-  --kpi-glass-fade:   rgba(255, 255, 255, 0.07);
-  --kpi-spark:        rgba(255, 255, 255, 0.30);
 
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-md: 0 4px 14px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.05);
-  --shadow-lg: 0 8px 32px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.05);
+  --shadow-sm: 0 0 1px rgba(33,37,41,0.125), 0 1px 3px rgba(33,37,41,0.2);
+  --shadow-md: 0 2px 6px rgba(33,37,41,0.15), 0 1px 4px rgba(33,37,41,0.1);
+  --shadow-lg: 0 6px 18px rgba(33,37,41,0.18), 0 2px 8px rgba(33,37,41,0.1);
 }
 
-/* ─── Dark mode — Warm Slate ────────────────── */
+/* ─── Dark mode — Bootstrap5 data-bs-theme="dark" 실측값 ────────── */
 [data-theme="dark"] {
   --nav-bg: #09090B;   /* zinc-950 */
 
-  --brand:        #6366F1;   /* indigo-500 */
-  --brand-mid:    #818CF8;   /* indigo-400 */
-  --brand-light:  #A5B4FC;   /* indigo-300 */
-  --brand-bg:     rgba(129, 140, 248, 0.12);
+  --brand:        #6EA8FE;   /* bootstrap dark primary-text-emphasis */
+  --brand-mid:    #0D6EFD;
+  --brand-light:  #9EC5FE;
+  --brand-bg:     #031633;   /* bootstrap dark primary-bg-subtle */
 
-  --profit:       #34D399;
-  --profit-bg:    rgba(52, 211, 153, 0.10);
-  --loss:         #F87171;
-  --loss-bg:      rgba(248, 113, 113, 0.10);
-  --warn:         #FBBF24;
-  --warn-bg:      rgba(251, 191,  36, 0.10);
-  --info:         #38BDF8;
-  --info-bg:      rgba(56,  189, 248, 0.10);
-  --purple:       #C084FC;
-  --purple-bg:    rgba(192, 132, 252, 0.10);
+  --profit:       #75B798;   /* bootstrap dark success-text-emphasis 계열 */
+  --profit-bg:    #051B11;   /* bootstrap dark success-bg-subtle */
+  --loss:         #EA868F;   /* bootstrap dark danger-text-emphasis 계열 */
+  --loss-bg:      #2C0B0E;   /* bootstrap dark danger-bg-subtle */
+  --warn:         #FFDA6A;   /* bootstrap dark warning-text-emphasis 계열 */
+  --warn-bg:      #332701;   /* bootstrap dark warning-bg-subtle */
+  --info:         #6EDFF6;   /* bootstrap dark info-text-emphasis 계열 */
+  --info-bg:      #032830;   /* bootstrap dark info-bg-subtle */
+  --purple:       #C29FFA;
+  --purple-bg:    #2A1F42;
 
-  --surface:      #18181B;   /* zinc-900 */
-  --bg:           #09090B;   /* zinc-950 */
-  --bg-subtle:    #27272A;   /* zinc-800 */
-  --border:       #3F3F46;   /* zinc-700 */
-  --border-focus: #818CF8;
+  --surface:      #2B3035;   /* bootstrap dark tertiary-bg */
+  --bg:           #212529;   /* bootstrap dark body-bg (gray-900) */
+  --bg-subtle:    #343A40;   /* bootstrap dark secondary-bg (gray-800) */
+  --border:       #495057;   /* bootstrap dark border-color (gray-700) */
+  --border-table: #495057;
+  --border-focus: #6EA8FE;
+  --bg-header:    #343A40;
 
-  --text:         #FAFAFA;
-  --text-primary: #FAFAFA;
-  --text-sub:     #D4D4D8;
-  --text-muted:   #A1A1AA;
+  --text:         #DEE2E6;   /* bootstrap dark body-color */
+  --text-primary: #DEE2E6;
+  --text-sub:     #E9ECEF;
+  --text-muted:   #ADB5BD;   /* bootstrap gray-500 */
 
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.45), 0 1px 2px rgba(0,0,0,0.30);
-  --shadow-md: 0 4px 16px rgba(0,0,0,0.55), 0 2px 4px rgba(0,0,0,0.30);
-
-  /* ── KPI 카드 (다크 — 웜 슬레이트) ── */
-  --kpi-brand-start:  #7c2d12; --kpi-brand-mid:  #9a3412; --kpi-brand-end:  #431407;
-  --kpi-profit-start: #064e3b; --kpi-profit-mid: #044231; --kpi-profit-end: #022c22;
-  --kpi-loss-start:   #7f1d1d; --kpi-loss-mid:   #6b1919; --kpi-loss-end:   #450a0a;
-  --kpi-warn-start:   #451a03; --kpi-warn-mid:   #3a1502; --kpi-warn-end:   #270e01;
-  --kpi-purple-start: #2e1065; --kpi-purple-mid: #25094f; --kpi-purple-end: #14033a;
-  --kpi-brand-shadow:  rgba(249, 115,  22, 0.35);
-  --kpi-profit-shadow: rgba(52,  211, 153, 0.22);
-  --kpi-loss-shadow:   rgba(248, 113, 113, 0.22);
-  --kpi-warn-shadow:   rgba(251, 191,  36, 0.22);
-  --kpi-purple-shadow: rgba(192, 132, 252, 0.22);
-  --kpi-brand-value:  #FED7AA;
-  --kpi-profit-value: #6EE7B7;
-  --kpi-loss-value:   #FCA5A5;
-  --kpi-warn-value:   #FCD34D;
-  --kpi-purple-value: #DDD6FE;
-  --kpi-label-color:  rgba(255, 255, 255, 0.65);
-  --kpi-badge-up:     rgba(255, 255, 255, 0.12);
-  --kpi-badge-down:   rgba(0,   0,   0,   0.28);
-  --kpi-glass-line:   rgba(255, 255, 255, 0.10);
-  --kpi-glass-fade:   rgba(255, 255, 255, 0.04);
-  --kpi-spark:        rgba(255, 255, 255, 0.22);
+  --shadow-sm: 0 0 1px rgba(0,0,0,0.5), 0 1px 3px rgba(0,0,0,0.4);
+  --shadow-md: 0 2px 8px rgba(0,0,0,0.55), 0 1px 4px rgba(0,0,0,0.4);
+  --shadow-lg: 0 6px 20px rgba(0,0,0,0.6), 0 2px 8px rgba(0,0,0,0.4);
 }
 
 /* ─── 공통 토큰 ──────────────────────────────── */
 :root {
   --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
 
-  --radius:      12px;
-  --radius-sm:   6px;
-  --radius-lg:   18px;
-  --radius-btn:  8px;
+  --radius:      6px;    /* bootstrap --bs-border-radius: 0.375rem 실측 */
+  --radius-sm:   4px;
+  --radius-lg:   10px;
+  --radius-btn:  6px;
   --radius-pill: 100px;
 
   --transition: 0.18s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* ─── 지마켓 산스 ─────────────────────────────── */
+@font-face {
+  font-family: 'GmarketSans';
+  font-weight: 300;
+  font-display: swap;
+  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansLight.woff') format('woff');
+}
+@font-face {
+  font-family: 'GmarketSans';
+  font-weight: 400;   /* Regular → Medium 파일로 매핑 (GmarketSans엔 400이 없음) */
+  font-display: swap;
+  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansMedium.woff') format('woff');
+}
+@font-face {
+  font-family: 'GmarketSans';
+  font-weight: 500;
+  font-display: swap;
+  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansMedium.woff') format('woff');
+}
+@font-face {
+  font-family: 'GmarketSans';
+  font-weight: 700;
+  font-display: swap;
+  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansBold.woff') format('woff');
 }
 
 /* ─── Reset ──────────────────────────────────── */
@@ -133,16 +125,15 @@
 
 body {
   background: var(--bg);
-  font-family: 'Geist', 'SF Pro Display', 'Pretendard', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+  font-family: 'GmarketSans', 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
   color: var(--text-primary);
-  font-size: 14px;
+  font-size: 15px;
   transition: background 0.2s ease, color 0.2s ease;
   -webkit-font-smoothing: antialiased;
 }
 
 [data-theme="dark"] body {
   -webkit-font-smoothing: antialiased;
-  font-weight: 450;
 }
 [data-theme="light"] body {
   -webkit-font-smoothing: auto;

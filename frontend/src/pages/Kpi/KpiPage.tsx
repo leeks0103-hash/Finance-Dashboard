@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { createColumnHelper } from '@tanstack/react-table';
 import { useKpiPageViewModel } from '@/hooks/viewmodels/useKpiPageViewModel';
 import { ChartCard, BarChart, DataTable, CopyText, HighlightText, Button } from '@/components/ui';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import KpiRawTable from '@/components/features/KpiRawTable/KpiRawTable';
 import type { KpiRawRow } from '@/types/kpi.types';
 import type { KpiSummaryRow } from '@/hooks/viewmodels/useKpiPageViewModel';
@@ -19,15 +20,15 @@ function CountCell({ value }: { value: string }) {
 // KPI 집계 컬럼 — 모듈 스코프 (stable)
 const sh = createColumnHelper<KpiSummaryRow>();
 const summaryColumns = [
-  sh.accessor('name',       { header: 'KPI 항목' }),
-  sh.accessor('agg',        { header: '집계방식' }),
-  sh.accessor('targetStr',  { header: '26년 목표', enableSorting: true,
+  sh.accessor('name',       { header: 'KPI 항목', size: 420 }),
+  sh.accessor('agg',        { header: '집계방식', size: 120 }),
+  sh.accessor('targetStr',  { header: '26년 목표', size: 220, enableSorting: true,
     cell: i => { const v = i.getValue() as string; return /신규/.test(v) ? <CountCell value={v} /> : <>{v}</>; },
   }),
-  sh.accessor('actual',     { header: '26년 실적', enableSorting: true,
+  sh.accessor('actual',     { header: '26년 실적', size: 220, enableSorting: true,
     cell: i => { const v = i.getValue() as string; return /신규/.test(v) ? <CountCell value={v} /> : <>{v}</>; },
   }),
-  sh.accessor('prevActual', { header: '25년 실적', enableSorting: true,
+  sh.accessor('prevActual', { header: '25년 실적', size: 220, enableSorting: true,
     cell: i => { const v = i.getValue() as string; return /신규/.test(v) ? <CountCell value={v} /> : <>{v}</>; },
   }),
 ];
@@ -92,82 +93,103 @@ const KpiPage = () => {
     <main className={styles.mainFull}>
 
       {/* KPI 목표 vs 실적 차트 */}
-      <ChartCard>
-        <ChartCard.Title>KPI 목표 vs 실적 (2026년)</ChartCard.Title>
-        <ChartCard.Body>
-          <div className={styles.chartWrap}>
-            <BarChart
-              labels={vm.chart.labels}
-              datasets={vm.chart.datasets}
-              options={{
-                indexAxis: 'y',
-                ...vm.chart.options,
-                scales: { x: { ticks: { callback: v => Number(v).toLocaleString() } } },
-              }}
-            />
-          </div>
-        </ChartCard.Body>
-      </ChartCard>
+      <div className="fadeUp" style={{ animationDelay: '0ms' }}>
+        <ErrorBoundary>
+          <ChartCard compact={false}>
+            <ChartCard.Title>KPI 목표 vs 실적 (2026년)</ChartCard.Title>
+            <ChartCard.Body>
+              <div className={styles.chartWrap} style={{ height: Math.max(320, vm.chart.labels.length * 40) }}>
+                <BarChart
+                  labels={vm.chart.labels}
+                  datasets={vm.chart.datasets}
+                  options={{
+                    indexAxis: 'y',
+                    ...vm.chart.options,
+                    scales: {
+                      x: { ticks: { color: vm.chart.tickColor, callback: v => Number(v).toLocaleString() } },
+                      y: { ticks: {
+                        color: vm.chart.tickColor,
+                        callback: function (this: { chart: { width: number } }, _value: unknown, index: number) {
+                          const label = vm.chart.labels[index] ?? '';
+                          const maxChars = Math.max(6, Math.floor((this.chart.width * 0.4) / 13));
+                          return label.length > maxChars ? `…${label.slice(-(maxChars - 1))}` : label;
+                        },
+                      } },
+                    },
+                  }}
+                />
+              </div>
+            </ChartCard.Body>
+          </ChartCard>
+        </ErrorBoundary>
+      </div>
 
       {/* KPI 집계 — 검색·정렬 활성화 */}
-      <DataTable<KpiSummaryRow>
-        data={vm.summaryRows}
-        columns={summaryColumns as never}
-        getRowId={row => row.name}
-        title="KPI 집계"
-        hideCount
-        compact
-        defaultPageSize={10}
-        pageSizeOptions={[10]}
-        storageKey="kpi-summary"
-      />
+      <div className="fadeUp" style={{ animationDelay: '100ms' }}>
+        <ErrorBoundary>
+          <DataTable<KpiSummaryRow>
+            data={vm.summaryRows}
+            columns={summaryColumns as never}
+            getRowId={row => row.name}
+            title="KPI 집계"
+            hideCount
+            compact
+            defaultPageSize={10}
+            pageSizeOptions={[10]}
+            storageKey="kpi-summary"
+          />
+        </ErrorBoundary>
+      </div>
 
       {/* KPI 취합 — flat / rowspan 토글 (툴바에 통합) */}
-      {(() => {
-        const viewToggle = (
-          <div className={styles.viewToggle}>
-            <Button variant="ghost" size="sm"
-              className={`${styles.toggleBtn} ${rawView === 'flat' ? styles.toggleActive : ''}`}
-              onClick={() => setRawView('flat')}
-            >목록</Button>
-            <Button variant="ghost" size="sm"
-              className={`${styles.toggleBtn} ${rawView === 'rowspan' ? styles.toggleActive : ''}`}
-              onClick={() => setRawView('rowspan')}
-            >KPI 상세</Button>
-          </div>
-        );
-        return rawView === 'flat' ? (
-          <DataTable<KpiRawRow>
-            data={vm.rawRows}
-            columns={rawColumns as never}
-            getRowId={row => String(row['_row_num'])}
-            title="KPI 취합"
-            isLoading={vm.isLoading}
-            isFetching={vm.isFetching}
-            serverPagination={vm.serverPagination}
-            serverSearch={vm.serverSearch}
-            searchPlaceholder="프로젝트코드·파트명 검색…"
-            hideableColumns={rawHideableCols}
-            initialColumnVisibility={rawInitialHidden}
-            emptyIcon="🔍"
-            emptyTitle="검색 결과 없음"
-            emptyDescription="다른 검색어나 필터 조건을 시도해보세요."
-            storageKey="kpi-raw-flat"
-            toolbarExtra={viewToggle}
-            copyableColumns={['파일명']}
-          />
-        ) : (
-          <KpiRawTable
-            data={vm.rawRows}
-            title="KPI 취합"
-            isLoading={vm.isLoading}
-            isFetching={vm.isFetching}
-            serverPagination={vm.serverPagination}
-            serverSearch={vm.serverSearch}
-            toolbarExtra={viewToggle}
-          />
-        );
-      })()}
+      <div className="fadeUp" style={{ animationDelay: '200ms' }}>
+        <ErrorBoundary>
+          {(() => {
+            const viewToggle = (
+              <div className={styles.viewToggle}>
+                <Button variant="ghost" size="sm"
+                  className={`${styles.toggleBtn} ${rawView === 'flat' ? styles.toggleActive : ''}`}
+                  onClick={() => setRawView('flat')}
+                >목록</Button>
+                <Button variant="ghost" size="sm"
+                  className={`${styles.toggleBtn} ${rawView === 'rowspan' ? styles.toggleActive : ''}`}
+                  onClick={() => setRawView('rowspan')}
+                >KPI 상세</Button>
+              </div>
+            );
+            return rawView === 'flat' ? (
+              <DataTable<KpiRawRow>
+                data={vm.rawRows}
+                columns={rawColumns as never}
+                getRowId={row => String(row['_row_num'])}
+                title="KPI 취합"
+                isLoading={vm.isLoading}
+                isFetching={vm.isFetching}
+                serverPagination={vm.serverPagination}
+                serverSearch={vm.serverSearch}
+                searchPlaceholder="프로젝트코드·파트명 검색…"
+                hideableColumns={rawHideableCols}
+                initialColumnVisibility={rawInitialHidden}
+                emptyIcon="🔍"
+                emptyTitle="검색 결과 없음"
+                emptyDescription="다른 검색어나 필터 조건을 시도해보세요."
+                storageKey="kpi-raw-flat"
+                toolbarExtra={viewToggle}
+              />
+            ) : (
+              <KpiRawTable
+                data={vm.rawRows}
+                title="KPI 취합"
+                isLoading={vm.isLoading}
+                isFetching={vm.isFetching}
+                serverPagination={vm.serverPagination}
+                serverSearch={vm.serverSearch}
+                toolbarExtra={viewToggle}
+              />
+            );
+          })()}
+        </ErrorBoundary>
+      </div>
 
     </main>
   );

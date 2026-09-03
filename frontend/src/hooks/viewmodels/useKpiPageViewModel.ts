@@ -1,11 +1,13 @@
 import { useState, useMemo } from 'react';
 import { useKpiSummary, useKpiDataPaged } from '@/hooks/useKpiSummary';
 import { useDebouncedSearch } from '@/hooks/useDebouncedSearch';
+import { useReactPagination } from '@/lib/pagination';
 import { useKpiFilterStore } from '@/store/kpiFilter.store';
 import { useUiStore } from '@/store';
 import { useTheme } from '@/hooks/useTheme';
 import { makeBarOptions } from '@/utils/chartOptions';
-import { getChartPalette } from '@/utils/chartColors';
+import { getChartPalette, getChartTheme } from '@/utils/chartColors';
+import { sortKpiRawCols } from '@/utils/kpiColumns';
 import type { KpiRawRow } from '@/types/kpi.types';
 import type { ServerPagination, ServerSearch } from '@/components/ui/DataTable';
 import type { ChartOptions } from 'chart.js';
@@ -18,11 +20,12 @@ export interface KpiChartDataset {
 }
 
 export interface KpiChartData {
-  labels:   string[];
-  targets:  number[];
-  actuals:  number[];
-  datasets: KpiChartDataset[];
-  options:  ChartOptions<'bar'>;
+  labels:    string[];
+  targets:   number[];
+  actuals:   number[];
+  datasets:  KpiChartDataset[];
+  options:   ChartOptions<'bar'>;
+  tickColor: string;
 }
 
 export interface KpiSummaryRow {
@@ -51,9 +54,17 @@ export interface KpiPageViewModel {
 
 const fmtNum = (v: number) => v !== 0 ? v.toLocaleString() : '0';
 
+const SEARCH_FIELD_OPTIONS = [
+  { value: '',        label: '전체' },
+  { value: '프로젝트코드', label: '프로젝트코드' },
+  { value: '파트명',      label: '파트명' },
+  { value: '보고단계',    label: '보고단계' },
+  { value: '파일명',      label: '파일명' },
+];
+
 export const useKpiPageViewModel = (): KpiPageViewModel => {
-  const [page,     setPage]     = useState(1);
-  const [pageSize, setPageSize] = useState(30);
+  const pagination = useReactPagination(30);
+  const [searchField, setSearchField] = useState('');
   const search = useDebouncedSearch(350);
   const years  = useKpiFilterStore(s => s.years);
   const parts  = useKpiFilterStore(s => s.parts);
@@ -65,7 +76,7 @@ export const useKpiPageViewModel = (): KpiPageViewModel => {
     isLoading: dataLoading,
     isFetching,
   } = useKpiDataPaged(
-    { page, pageSize, search: search.debouncedValue },
+    { page: pagination.page, pageSize: pagination.pageSize, search: search.debouncedValue, field: searchField },
     { years, parts, stages },
   );
 
@@ -76,7 +87,7 @@ export const useKpiPageViewModel = (): KpiPageViewModel => {
   const { theme } = useTheme();
   const dark = theme === 'dark';
   const showLabels = useUiStore(s => s.showChartLabels);
-  const labelColor = dark ? 'rgba(212,212,216,0.90)' : '#3F3F46';
+  const { labelColor } = getChartTheme(dark);
   const palette = useMemo(() => getChartPalette(dark), [dark]);
 
   const chartOptions = useMemo(() => makeBarOptions(showLabels, labelColor, {
@@ -95,13 +106,13 @@ export const useKpiPageViewModel = (): KpiPageViewModel => {
     const targets = items.map(it => typeof it.target_2026 === 'number' ? it.target_2026 : 0);
     const actuals = items.map(it => typeof it.actual_2026 === 'number' ? it.actual_2026 : 0);
     return {
-      labels, targets, actuals, options: chartOptions,
+      labels, targets, actuals, options: chartOptions, tickColor: labelColor,
       datasets: [
-        { label: '26년 목표', data: targets, backgroundColor: palette.target,  borderRadius: 4 },
+        { label: '26년 목표', data: targets, backgroundColor: palette.cost,    borderRadius: 4 },
         { label: '26년 실적', data: actuals, backgroundColor: palette.revenue, borderRadius: 4 },
       ],
     };
-  }, [items, chartOptions, palette]);
+  }, [items, chartOptions, palette, labelColor]);
 
   const summaryRows = useMemo((): KpiSummaryRow[] =>
     items.map(it => {
@@ -126,25 +137,7 @@ export const useKpiPageViewModel = (): KpiPageViewModel => {
   [items]);
 
   // flat 뷰 컬럼: 식별자 앞으로, 비고 계열만 제외, KPI 지표 순서로 정렬
-  const rawCols = useMemo(() => {
-    if (!rawRows.length) return [];
-    const FRONT   = ['프로젝트코드', '수행연도', '파트명', '보고단계'];
-    const TAIL    = ['파일명', '처리일시', '최종수정일시'];
-    const METRICS = ['NPS', '전략기술과정_건수', '전략기술과정_적절성', '특화교육체계_건수',
-                     'AI교육_고객사건수', 'AI교육_적절성', '신사업_매출억', '신사업_신규기존건수'];
-    const all   = Object.keys(rawRows[0]).filter(c => !/비고/.test(c) && c !== '_row_num');
-    const front = FRONT.filter(c => all.includes(c));
-    const tail  = TAIL.filter(c => all.includes(c));
-    const rest  = all.filter(c => !FRONT.includes(c) && !TAIL.includes(c));
-
-    const metricIdx = (col: string) => {
-      const i = METRICS.findIndex(m => col === m || col.startsWith(m + '_'));
-      return i >= 0 ? i : METRICS.length;
-    };
-    rest.sort((a, b) => metricIdx(a) - metricIdx(b));
-
-    return [...front, ...rest, ...tail];
-  }, [rawRows]);
+  const rawCols = useMemo(() => sortKpiRawCols(rawRows), [rawRows]);
 
   return {
     isLoading,
@@ -157,19 +150,22 @@ export const useKpiPageViewModel = (): KpiPageViewModel => {
     rawCols,
 
     serverPagination: {
-      page,
-      pageSize,
-      total:       data?.total ?? 0,
-      onPageChange:     setPage,
-      onPageSizeChange: (s) => { setPageSize(s); setPage(1); },
+      page:             pagination.page,
+      pageSize:         pagination.pageSize,
+      total:            data?.total ?? 0,
+      onPageChange:     pagination.setPage,
+      onPageSizeChange: pagination.setPageSize,
     },
 
     serverSearch: {
       value:    search.inputValue,
       onChange: (val) => {
         search.handleChange({ target: { value: val } } as React.ChangeEvent<HTMLInputElement>);
-        setPage(1);
+        pagination.resetToFirstPage();
       },
+      field:        searchField,
+      onFieldChange: (f) => { setSearchField(f); pagination.resetToFirstPage(); },
+      fieldOptions:  SEARCH_FIELD_OPTIONS,
     },
   };
 };

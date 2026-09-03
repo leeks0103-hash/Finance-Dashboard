@@ -1,26 +1,24 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { usePerformanceSummary } from '@/hooks/usePerformanceSummary';
 import { usePerformanceData, usePerformanceOptions } from '@/hooks/usePerformanceData';
 import { useDebouncedSearch } from '@/hooks/useDebouncedSearch';
+import { useReactPagination } from '@/lib/pagination';
 import { useCountUp } from '@/hooks/useCountUp';
-import { useTheme } from '@/hooks/useTheme';
 import { usePerfStore } from '@/store/perf.store';
-import { useUiStore } from '@/store';
+import { useQuickSearchStore } from '@/store/quickSearch.store';
 import { formatEok, PERF_MONTH } from '@/utils';
-import { makeBarOptions } from '@/utils/chartOptions';
-import { getChartPalette } from '@/utils/chartColors';
+import { getProjects } from '@/api/finance.api';
+import { STALE_5MIN, GC_10MIN } from '@/hooks/queryClient';
 import type { PerfProject } from '@/types/performance.types';
+import type { Project, Filters } from '@/types/finance.types';
 import type { ServerPagination, ServerSearch } from '@/components/ui/DataTable';
-import type { ChartOptions } from 'chart.js';
+
+const FINANCE_EMPTY_FILTERS: Filters = { years: [], parts: [], stages: [] };
 
 const toEokNum = (v: number) => +(v / 100_000).toFixed(1);
 
-// PERF_MONTH("7월") 기준 — 이후 달은 아직 실적이 없는 추정 구간이므로 흐릿하게 표시
 const CURRENT_MONTH_NUM = parseInt(PERF_MONTH, 10);
-const isFutureMonth = (label: string) => parseInt(label, 10) > CURRENT_MONTH_NUM;
-
-// 팔레트의 rgba(...) 문자열 알파값만 교체 — 미래 월 흐림 처리용
-const fadeAlpha = (rgba: string, alpha: number) => rgba.replace(/[\d.]+\)$/, `${alpha})`);
 
 export interface PerfKpiCard {
   label:   string;
@@ -28,6 +26,7 @@ export interface PerfKpiCard {
   sub:     string;
   accent:  'brand' | 'warn' | 'profit' | 'loss' | 'purple';
   trendUp: boolean;
+  trend?:  string;
 }
 
 export interface PerfPartRow {
@@ -45,13 +44,7 @@ export interface PerfPartRow {
   junCostNum:      number;
   profitRateNum:   number;
   costRateStr:     string;
-}
-
-export interface PerfChartDataset {
-  label:           string;
-  data:            number[];
-  backgroundColor: string | string[];
-  borderRadius:    number;
+  achieveRateNum:  number;
 }
 
 export interface PerformanceViewModel {
@@ -60,9 +53,6 @@ export interface PerformanceViewModel {
   isEmpty:       boolean;
   kpiCards:      PerfKpiCard[];
   byPart:        PerfPartRow[];
-  chartLabels:   string[];
-  chartDatasets: PerfChartDataset[];
-  chartOptions:  ChartOptions<'bar'>;
   projects:      PerfProject[];
   parts:         string[];
   selectedParts: string[];
@@ -70,24 +60,63 @@ export interface PerformanceViewModel {
   resetFilters:  () => void;
   serverPagination: ServerPagination;
   serverSearch:     ServerSearch;
+  /** 2depth: 재무 데이터 검색 결과 */
+  financeResults:    Project[];
+  hasFinanceResults: boolean;
+  financeSearchTerm: string;
 }
 
+const SEARCH_FIELD_OPTIONS = [
+  { value: '',             label: '전체' },
+  { value: 'project_code', label: '프로젝트코드' },
+  { value: 'project_name', label: '프로젝트명' },
+  { value: 'manager',      label: '담당자' },
+  { value: 'part',         label: '파트' },
+  { value: 'team',         label: '팀' },
+];
+
 export const usePerformanceViewModel = (): PerformanceViewModel => {
-  const [page,     setPage]     = useState(1);
-  const [pageSize, setPageSize] = useState(30);
+  const pagination = useReactPagination(20);
+  const [searchField, setSearchField] = useState('');
   const search = useDebouncedSearch(350);
+
+  // 실적 인사이트 코드 클릭 → 검색창 자동 채우기
+  const perfQuick  = useQuickSearchStore(s => s.perf);
+  const clearPerfQ = useQuickSearchStore(s => s.setPerf);
+  useEffect(() => {
+    if (!perfQuick) return;
+    search.setFilter(perfQuick);
+    pagination.resetToFirstPage();
+    clearPerfQ('');
+  }, [perfQuick]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { data: summary,    isLoading: sumLoading } = usePerformanceSummary();
   const { data: paged,      isLoading: projLoading, isFetching } = usePerformanceData({
-    page, pageSize, search: search.debouncedValue,
+    page: pagination.page, pageSize: pagination.pageSize, search: search.debouncedValue, field: searchField,
   });
   const { data: options } = usePerformanceOptions();
+
+  // 2depth: 실적 검색과 동일한 debounced 값으로 재무 API 병렬 조회
+  const financeSearchEnabled = search.debouncedValue.trim().length > 0;
+  const { data: financeData } = useQuery({
+    queryKey: ['finance-2depth', search.debouncedValue],
+    queryFn:  () => getProjects(FINANCE_EMPTY_FILTERS, {
+      page: 1, pageSize: 50,
+      search: search.debouncedValue,
+      field: '',
+    }).then(r => r.data),
+    enabled:   financeSearchEnabled,
+    staleTime: STALE_5MIN,
+    gcTime:    GC_10MIN,
+  });
+  const financeResults: Project[] = financeData ?? [];
   const selectedParts = usePerfStore(s => s.selectedParts);
   const togglePart    = usePerfStore(s => s.togglePart);
   const reset         = usePerfStore(s => s.reset);
 
   const isLoading = sumLoading || projLoading;
   const total     = summary?.total;
+  const monthly   = summary?.monthly ?? [];
 
   const junActualRaw = total?.jun_actual       ?? 0;
   const profitRaw    = total?.operating_profit ?? 0;
@@ -104,13 +133,31 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
   const kpiCards: PerfKpiCard[] = useMemo(() => {
     if (!total) return [];
     const achieveRate = planRaw > 0 ? ((junActualRaw / planRaw) * 100).toFixed(1) : '-';
+
+    // 전월 대비 계산 — monthly[]는 chk_m01~12 집계, 0-based 인덱스
+    const currIdx = CURRENT_MONTH_NUM - 1;
+    const curr = monthly[currIdx];
+    const prev = currIdx > 0 ? monthly[currIdx - 1] : null;
+
+    const momTag = (diffK: number | null): string | undefined => {
+      if (diffK === null || !prev) return undefined;
+      return `전월대비 ${Math.abs(diffK / 100_000).toFixed(1)}억`;
+    };
+
+    // 카드2: 이번달 점검 매출 vs 전월
+    const momRevK  = curr && prev ? curr.revenue - prev.revenue : null;
+    // 카드4: 이번달 (점검매출-원가) vs 전월
+    const momProfK = curr && prev
+      ? (curr.revenue - curr.cost) - (prev.revenue - prev.cost)
+      : null;
+
     return [
       { label: '매출 계획 (최초)', value: `${animPlan.toFixed(1)}억원`, sub: `${total.count}개 프로젝트`, accent: 'brand', trendUp: true },
-      { label: `${PERF_MONTH} 실적 집계`,   value: `${animJun.toFixed(1)}억원`,  sub: `달성률 ${achieveRate}%`, accent: junActualRaw >= planRaw ? 'profit' : 'warn', trendUp: junActualRaw >= planRaw },
-      { label: `${PERF_MONTH} 점검 연간합계`, value: `${animCheck.toFixed(1)}억원`, sub: `원가 ${formatEok(total.jun_cost)}`, accent: 'purple', trendUp: true },
-      { label: '경상손익', value: `${animProfit.toFixed(1)}억원`, sub: `손익률 ${animRate.toFixed(1)}%`, accent: profitRaw >= 0 ? 'profit' : 'loss', trendUp: profitRaw >= 0 },
+      { label: `${PERF_MONTH} 실적 집계`,    value: `${animJun.toFixed(1)}억원`,    sub: `달성률 ${achieveRate}%`,          accent: junActualRaw >= planRaw ? 'profit' : 'warn', trendUp: momRevK !== null ? momRevK >= 0 : junActualRaw >= planRaw,  trend: momTag(momRevK) },
+      { label: `${PERF_MONTH} 점검 연간합계`, value: `${animCheck.toFixed(1)}억원`,  sub: `원가 ${formatEok(total.jun_cost)}원`, accent: 'purple', trendUp: true },
+      { label: '경상손익', value: `${animProfit.toFixed(1)}억원`, sub: `손익률 ${animRate.toFixed(1)}%`, accent: profitRaw >= 0 ? 'profit' : 'loss', trendUp: momProfK !== null ? momProfK >= 0 : profitRaw >= 0, trend: momTag(momProfK) },
     ];
-  }, [total, animPlan, animJun, animCheck, animProfit, animRate, planRaw, junActualRaw, junCheckRaw, profitRaw]);
+  }, [total, monthly, animPlan, animJun, animCheck, animProfit, animRate, planRaw, junActualRaw, junCheckRaw, profitRaw]);
 
   const byPart = useMemo((): PerfPartRow[] => {
     if (!summary?.by_part) return [];
@@ -121,6 +168,7 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
         const junActualNum   = toEokNum(s.jun_actual);
         const junCostNum     = toEokNum(s.jun_cost);
         const costRate = junActualNum > 0 ? `${((junCostNum / junActualNum) * 100).toFixed(1)}%` : '-';
+        const achieveRateNum = planInitialNum > 0 ? (junActualNum / planInitialNum) * 100 : 0;
         return {
           part,
           planInitial: formatEok(s.plan_initial), junActual: formatEok(s.jun_actual),
@@ -128,63 +176,41 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
           operatingProfit: formatEok(s.operating_profit), profitRate: `${s.avg_profit_rate.toFixed(1)}%`,
           count: s.count, isLoss: s.operating_profit < 0,
           planInitialNum, junActualNum, junCostNum, profitRateNum: s.avg_profit_rate, costRateStr: costRate,
+          achieveRateNum,
         };
       });
   }, [summary?.by_part]);
 
   const projects: PerfProject[] = paged?.rows ?? [];
 
-  const { theme } = useTheme();
-  const dark = theme === 'dark';
-  const palette = useMemo(() => getChartPalette(dark), [dark]);
-  const showLabels = useUiStore(s => s.showChartLabels);
-  const labelColor = dark ? 'rgba(212,212,216,0.90)' : '#3F3F46';
-
-  const monthly       = summary?.monthly ?? [];
-  const chartLabels   = useMemo(() => monthly.map(m => m.month),   [monthly]);
-  const chartDatasets = useMemo((): PerfChartDataset[] => [
-    {
-      label: '매출', data: monthly.map(m => +(m.revenue / 100_000).toFixed(1)),
-      backgroundColor: monthly.map(m => isFutureMonth(m.month) ? fadeAlpha(palette.revenue, 0.25) : palette.revenue),
-      borderRadius: 4,
-    },
-    {
-      label: '원가', data: monthly.map(m => +(m.cost / 100_000).toFixed(1)),
-      backgroundColor: monthly.map(m => isFutureMonth(m.month) ? fadeAlpha(palette.cost, 0.25) : palette.cost),
-      borderRadius: 4,
-    },
-  ], [monthly, palette]);
-
-  const chartOptions = useMemo(() => makeBarOptions(showLabels, labelColor, {
-    plugins: {
-      datalabels: {
-        anchor: 'end',
-        align:  'end',
-        formatter: (v: number) => `${v}억`,
-      },
-    },
-  }), [showLabels, labelColor]);
-
   return {
     isLoading, isFetching: isFetching ?? false,
     isEmpty: !isLoading && !total,
-    kpiCards, byPart, chartLabels, chartDatasets, chartOptions,
+    kpiCards, byPart,
     projects,
     parts: options?.parts ?? [], selectedParts, togglePart, resetFilters: reset,
 
     serverPagination: {
       total:            paged?.total ?? 0,
-      page, pageSize,
-      onPageChange:     (p) => setPage(p),
-      onPageSizeChange: (s) => { setPageSize(s); setPage(1); },
+      page:             pagination.page,
+      pageSize:         pagination.pageSize,
+      onPageChange:     pagination.setPage,
+      onPageSizeChange: pagination.setPageSize,
     },
 
     serverSearch: {
       value:    search.inputValue,
       onChange: (val) => {
         search.handleChange({ target: { value: val } } as React.ChangeEvent<HTMLInputElement>);
-        setPage(1);
+        pagination.resetToFirstPage();
       },
+      field:        searchField,
+      onFieldChange: (f) => { setSearchField(f); pagination.resetToFirstPage(); },
+      fieldOptions:  SEARCH_FIELD_OPTIONS,
     },
+
+    financeResults,
+    hasFinanceResults: financeSearchEnabled && financeResults.length > 0,
+    financeSearchTerm: search.debouncedValue,
   };
 };

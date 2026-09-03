@@ -1,0 +1,1 @@
+export { FilterPanelView } from './FilterPanelView';

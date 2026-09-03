@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { getProjects } from '@/api';
 import { useFilters } from './useFilters';
 import type { PageParams, PagedResponse, Project } from '@/types/finance.types';
@@ -24,16 +25,18 @@ export const useProjects = (page: PageParams) => {
     staleTime: STALE_5MIN,
   });
 
-  // 다음 페이지 prefetch — 사용자가 "다음" 클릭하기 전에 미리 캐싱
+  // 다음 페이지 prefetch — useEffect로 렌더 밖에서 실행
   const { data } = query;
-  if (data && page.page < Math.ceil(data.total / page.pageSize)) {
-    const nextPage = { ...page, page: page.page + 1 };
-    qc.prefetchQuery({
-      queryKey: ['projects', filters, nextPage],
-      queryFn:  () => getProjects(filters, nextPage),
-      staleTime: STALE_5MIN,
-    });
-  }
+  useEffect(() => {
+    if (data && page.page < Math.ceil(data.total / page.pageSize)) {
+      const nextPage = { ...page, page: page.page + 1 };
+      qc.prefetchQuery({
+        queryKey: ['projects', filters, nextPage],
+        queryFn:  () => getProjects(filters, nextPage),
+        staleTime: STALE_5MIN,
+      });
+    }
+  }, [data, page, filters, qc]);
 
   return query;
 };

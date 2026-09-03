@@ -1,16 +1,17 @@
-import { useState, useMemo, useCallback, useEffect, useRef, type ReactNode } from 'react';
-import { createPortal } from 'react-dom';
+import { useState, useMemo, useCallback, useRef, type ReactNode } from 'react';
 import {
-  DndContext, closestCenter, PointerSensor, useSensor, useSensors,
+  DndContext, closestCenter,
   type DragEndEvent,
 } from '@dnd-kit/core';
 import {
-  SortableContext, horizontalListSortingStrategy, useSortable, arrayMove,
+  SortableContext, horizontalListSortingStrategy, arrayMove,
 } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { CopyText, Button, Pagination, HighlightText } from '@/components/ui';
-import { useColumnHighlight } from '@/hooks/useColumnHighlight';
-import { useClipboardPopup } from '@/hooks/useClipboardPopup';
+import {
+  CopyText, Button, Pagination, HighlightText,
+  useColumnHighlight, useClipboardPopup, useTableEscapePriority, useTableDndSensors,
+  SortableHeaderCell, CellPopup, TableTitleBar,
+} from '@/components/ui';
+import { cellVal, isImplausibleScoreRow } from '@/utils/kpiColumns';
 import styles from './KpiRawTable.module.css';
 
 export const KPI_METRICS = [
@@ -61,24 +62,6 @@ function loadFromLS<T>(key: string, fallback: T): T {
   try { return JSON.parse(localStorage.getItem(key) ?? 'null') ?? fallback; } catch { return fallback; }
 }
 
-function cellVal(v: unknown): string {
-  if (v === null || v === undefined || v === '' || v === 0 || v === '0') return '-';  // 미입력
-  const s = String(v).trim();
-  if (s === 'N' || s === 'n') return 'N';  // 명시적 해당없음
-  return s;
-}
-
-// "_적절성" 지표는 0~5 내외 척도인데, PPT 원본에 인원수 등 엉뚱한 값이 잘못 들어가면
-// 수십~수만대 값이 찍히는 경우가 있음 (known-issues.md 기록된 패턴) — 행 배경으로 경고 표시
-const IMPLAUSIBLE_SCORE_THRESHOLD = 10;
-function isImplausibleScoreRow(row: KpiRawRow, metricKey: string): boolean {
-  if (!metricKey.endsWith('_적절성')) return false;
-  return ['사업계획', 'PJ목표', 'PJ실적', 'PJ유사'].some(field => {
-    const n = Number(row[`${metricKey}_${field}`]);
-    return Number.isFinite(n) && n > IMPLAUSIBLE_SCORE_THRESHOLD;
-  });
-}
-
 // ── DnD 가능한 th ────────────────────────────────────────────
 interface DraggableThProps {
   col:    ColDef;
@@ -88,26 +71,15 @@ interface DraggableThProps {
   onHeaderClick: (colId: string) => void;
 }
 function DraggableTh({ col, width, onResizeStart, isHighlighted, onHeaderClick }: DraggableThProps) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: col.id });
-
   return (
-    <th
-      ref={setNodeRef}
-      onClick={isDragging ? undefined : () => onHeaderClick(col.id)}
-      className={isHighlighted ? styles.thHighlighted : ''}
-      style={{
-        width,
-        minWidth: width,
-        transform: CSS.Transform.toString(transform),
-        transition,
-        opacity: isDragging ? 0.5 : 1,
-        cursor: 'grab',
-        position: 'relative',
-        whiteSpace: 'pre-line',
-      }}
-      {...attributes}
-      {...listeners}
+    <SortableHeaderCell
+      id={col.id}
+      isDraggable
+      isHighlighted={isHighlighted}
+      highlightedClassName={styles.thHighlighted}
+      width={width}
+      style={{ minWidth: width, whiteSpace: 'pre-line' }}
+      onClick={() => onHeaderClick(col.id)}
     >
       {col.header}
       <div
@@ -115,7 +87,7 @@ function DraggableTh({ col, width, onResizeStart, isHighlighted, onHeaderClick }
         onPointerDown={e => { e.stopPropagation(); onResizeStart(col.id, e.clientX, width); }}
         onClick={e => e.stopPropagation()}
       />
-    </th>
+    </SortableHeaderCell>
   );
 }
 
@@ -157,22 +129,18 @@ const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, serverP
   );
 
   // ── 컬럼 하이라이트 ───────────────────────────────────────
-  const { highlightedCol, toggleHighlight, clearHighlight } = useColumnHighlight();
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const { highlightedCol, setHighlight, clearHighlight } = useColumnHighlight(wrapRef);
 
   // ── 파일명 복사 팝업 ──────────────────────────────────────
   const { popup, copied: popupCopied, openPopup, closePopup, copyPopupText } = useClipboardPopup();
 
   // Esc — 팝업 닫기 > 하이라이트 해제 > 검색 초기화 (DataTable과 동일한 우선순위)
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
-      if (popup) { closePopup(); return; }
-      if (highlightedCol) { clearHighlight(); return; }
-      if (serverSearch?.value) serverSearch.onChange('');
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [popup, closePopup, highlightedCol, clearHighlight, serverSearch]);
+  useTableEscapePriority([
+    { active: !!popup, run: closePopup },
+    { active: !!highlightedCol, run: clearHighlight },
+    { active: !!serverSearch?.value, run: () => serverSearch?.onChange('') },
+  ]);
 
   // ── 리사이즈 ──────────────────────────────────────────────
   const resizeRef = useRef<{ id: string; startX: number; startW: number } | null>(null);
@@ -200,7 +168,7 @@ const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, serverP
   }, []);
 
   // ── DnD ───────────────────────────────────────────────────
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const sensors = useTableDndSensors();
 
   const handleDragEnd = useCallback((e: DragEndEvent) => {
     const { active, over } = e;
@@ -215,30 +183,32 @@ const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, serverP
   // ── 페이지네이션 ──────────────────────────────────────────
   const pageCount  = serverPagination ? Math.ceil(serverPagination.total / serverPagination.pageSize) : 1;
   const totalLabel = serverPagination ? `${serverPagination.total}건` : `${data.length}건`;
+  // 표시 행 수 — 프로젝트 수 × KPI 항목 수 (최소 5줄 보장)
+  const visibleRows = Math.max(5, data.length * KPI_METRICS.length);
 
-  return (
-    <div className={styles.wrapper}>
-      {/* 툴바 */}
+  const card = (
+    <div ref={wrapRef} className={styles.wrapper} style={{ '--kpi-rows': visibleRows } as React.CSSProperties}>
+      {/* 툴바 — 행 수 조절 + 검색 (왼쪽 정렬, 뷰 토글은 outerTitle로 이동) */}
       <div className={styles.toolbar}>
-        {title && <span className={styles.title}>{title}</span>}
-        <span className={styles.count}>{totalLabel}</span>
-        {serverPagination && (
-          <select className={styles.pageSizeSelect} value={serverPagination.pageSize}
-            onChange={e => serverPagination.onPageSizeChange(Number(e.target.value))}>
-            {[10, 20, 30, 50].map(n => <option key={n} value={n}>{n}행</option>)}
-          </select>
-        )}
-        {serverSearch && (
-          <div className={styles.searchWrap}>
-            <input className={styles.search} placeholder="프로젝트코드·파트명 검색…"
-              value={serverSearch.value}
-              onChange={e => serverSearch.onChange(e.target.value)} />
-            {serverSearch.value && (
-              <Button variant="ghost" size="sm" className={styles.searchClear} onClick={() => serverSearch.onChange('')}>✕</Button>
-            )}
-          </div>
-        )}
-        {toolbarExtra}
+        <div aria-hidden className={styles.toolbarPhantom} />
+        <div className={styles.toolbarRight}>
+          {serverPagination && (
+            <select className={styles.pageSizeSelect} value={serverPagination.pageSize}
+              onChange={e => serverPagination.onPageSizeChange(Number(e.target.value))}>
+              {[10, 20, 30, 50].map(n => <option key={n} value={n}>{n}행</option>)}
+            </select>
+          )}
+          {serverSearch && (
+            <div className={styles.searchWrap}>
+              <input className={styles.search} placeholder="프로젝트코드·파트명 검색…"
+                value={serverSearch.value}
+                onChange={e => serverSearch.onChange(e.target.value)} />
+              {serverSearch.value && (
+                <Button variant="ghost" size="sm" className={styles.searchClear} onClick={() => serverSearch.onChange('')}>✕</Button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* 테이블 */}
@@ -249,7 +219,7 @@ const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, serverP
           </div>
         ) : (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <table className={styles.table} style={{ tableLayout: 'fixed', width: orderedCols.reduce((s, c) => s + (colSizes[c.id] ?? c.defaultWidth), 0) }}>
+          <table className={styles.table} style={{ tableLayout: 'fixed', minWidth: orderedCols.reduce((s, c) => s + (colSizes[c.id] ?? c.defaultWidth), 0) }}>
             <colgroup>
               {orderedCols.map(c => <col key={c.id} style={{ width: colSizes[c.id] ?? c.defaultWidth }} />)}
             </colgroup>
@@ -263,7 +233,7 @@ const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, serverP
                         width={colSizes[c.id] ?? c.defaultWidth}
                         onResizeStart={handleResizeStart}
                         isHighlighted={highlightedCol === c.id}
-                        onHeaderClick={toggleHighlight}
+                        onHeaderClick={setHighlight}
                       />
                     ))}
                   </tr>
@@ -323,28 +293,16 @@ const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, serverP
         />
       )}
 
-      {popup && createPortal(
-        <div className={styles.popupOverlay} onClick={closePopup}>
-          <div className={styles.popupBox} onClick={e => e.stopPropagation()}>
-            <div className={styles.popupHeader}>
-              <span>파일명</span>
-              <Button variant="ghost" size="sm" className={styles.popupClose} onClick={closePopup} aria-label="닫기">✕</Button>
-            </div>
-            <div
-              className={`${styles.popupBody} ${popupCopied ? styles.popupBodyCopied : ''}`}
-              onClick={copyPopupText}
-              role="button"
-              tabIndex={0}
-              onKeyDown={e => e.key === 'Enter' && copyPopupText()}
-            >
-              <span>{popup.text}</span>
-              <span className={styles.popupCopyHint}>{popupCopied ? '✓ 복사됨' : '클릭해서 복사'}</span>
-            </div>
-          </div>
-        </div>,
-        document.body,
-      )}
+      <CellPopup title="파일명" popup={popup} copied={popupCopied} onClose={closePopup} onCopy={copyPopupText} />
     </div>
+  );
+
+  if (!title) return card;
+
+  return (
+    <TableTitleBar title={title} count={totalLabel} toolbarExtra={toolbarExtra}>
+      {card}
+    </TableTitleBar>
   );
 };
 

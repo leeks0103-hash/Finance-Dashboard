@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { usePerformanceOptions } from '@/hooks/usePerformanceData';
 import { usePerfStore } from '@/store/perf.store';
 import { FilterChip, MultiSelectDropdown } from '@/components/ui';
@@ -6,13 +7,22 @@ import styles from './PerformanceFilterBar.module.css';
 
 const PerformanceFilterBar = () => {
   const { data: options } = usePerformanceOptions();
-  const selectedParts = usePerfStore(s => s.selectedParts);
-  const togglePart    = usePerfStore(s => s.togglePart);
-  const selectedTeam  = usePerfStore(s => s.selectedTeam);
-  const setTeam       = usePerfStore(s => s.setTeam);
+  const selectedParts      = usePerfStore(s => s.selectedParts);
+  const togglePart         = usePerfStore(s => s.togglePart);
+  const selectedTeam       = usePerfStore(s => s.selectedTeam);
+  const setTeam            = usePerfStore(s => s.setTeam);
+  const initialized        = usePerfStore(s => s.initialized);
+  const initializeDefaults = usePerfStore(s => s.initializeDefaults);
 
   const parts = (options?.parts ?? []).map((p: string) => p.replace(/^[①-⑦]\s*/, ''));
   const teams = options?.teams ?? [];
+
+  // 최초 방문 시 한 번만 — 파트 전체 선택 상태로 시작
+  useEffect(() => {
+    if (!initialized && parts.length) {
+      initializeDefaults(parts);
+    }
+  }, [initialized, parts, initializeDefaults]);
 
   const allPartsSelected = isAllSelected(selectedParts, parts);
   const toggleAllParts = () => {

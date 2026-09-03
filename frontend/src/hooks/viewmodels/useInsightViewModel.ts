@@ -1,21 +1,13 @@
 import { useInsights } from '@/hooks/useInsights';
 import { formatRate, formatBillion } from '@/utils';
-
-export interface InsightRowViewModel {
-  projectCode: string;
-  displayCode: string;
-  part:        string;
-  value:       string;
-  valueColor:  string;
-  subValue:    string;
-}
+import type { InsightRow } from '@/types';
 
 export interface InsightViewModel {
   isLoading: boolean;
   isEmpty:   boolean;
   comments:  Array<{ type: 'positive' | 'info' | 'neutral' | 'warning'; icon: string; text: string }>;
-  top:  InsightRowViewModel[];
-  risk: InsightRowViewModel[];
+  top:  InsightRow[];
+  risk: InsightRow[];
 }
 
 /** 화면에 표시할 짧은 코드 */
@@ -36,7 +28,7 @@ export const useInsightViewModel = (): InsightViewModel => {
     isEmpty,
     comments: data.comments,
     top: data.top.slice(0, 10).map((r, i) => ({
-      projectCode: `${r.project_code}-${r.stage ?? i}`,
+      key:         `${r.project_code}-${r.stage ?? i}`,
       displayCode: shortCode(r.project_code),
       part:        r.part,
       value:       formatRate(r.profit_rate),
@@ -44,7 +36,7 @@ export const useInsightViewModel = (): InsightViewModel => {
       subValue:    formatBillion(r.revenue),
     })),
     risk: data.risk.slice(0, 10).map((r, i) => ({
-      projectCode: `${r.project_code}-${r.stage ?? i}`,
+      key:         `${r.project_code}-${r.stage ?? i}`,
       displayCode: shortCode(r.project_code),
       part:        r.part,
       value:       r.operating_profit < 0 ? '손실' : formatRate(r.profit_rate),

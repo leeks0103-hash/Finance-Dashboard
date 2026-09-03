@@ -9,7 +9,7 @@
   .grid { grid-template-columns: repeat(2, 1fr); min-height: 256px; }
 }
 @media (max-width: 480px) {
-  .grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .grid { grid-template-columns: 1fr; gap: 10px; }
 }
 
 .skeleton {

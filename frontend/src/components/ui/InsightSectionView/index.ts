@@ -1,0 +1,1 @@
+export { InsightSectionView } from './InsightSectionView';

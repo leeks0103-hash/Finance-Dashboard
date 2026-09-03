@@ -47,6 +47,15 @@ EXCLUDE_FILENAMES = {
 # 공유해도 충돌(덮어쓰기)하지 않도록 upsert 키에 파일명을 추가로 사용
 PLACEHOLDER_CODES = {"", "0", "생성예정", "미정", "tbd", "(생성 필요)", "선정 시 생성 예정"}
 
+# 대괄호 형식 미배정 코드 패턴 — ex) [신규/미생성], [생성예정], [미생성]
+# 이런 코드는 여러 파일이 공유할 수 있어서 파일명을 키에 포함해야 충돌을 막음
+_PLACEHOLDER_RE = re.compile(r'^\[.*(?:미생성|신규|생성|tbd)\]$', re.IGNORECASE)
+
+
+def _is_placeholder(code: str) -> bool:
+    c = code.strip()
+    return c in PLACEHOLDER_CODES or bool(_PLACEHOLDER_RE.match(c))
+
 _STAGE_SUFFIXES = ["사전검토", "착수", "중간", "완료", "제안"]
 
 
@@ -87,6 +96,7 @@ OUTPUT_HEADERS = [
     "원본파일명",       # 13
     "원본수정일시",     # 14
     "반영일시",         # 15
+    "미수사유",         # 16 — PPT 내 '★ 미수 사유' 텍스트박스 추출
 ]
 
 HISTORY_HEADERS = [
@@ -375,6 +385,7 @@ def apply_sheet_layout(data_ws):
         13: 28,  # 원본파일명
         14: 20,  # 원본수정일시
         15: 20,  # 반영일시
+        16: 60,  # 미수사유
     }
 
     for col_idx, width in widths.items():
@@ -434,7 +445,7 @@ def make_row_key(code, year, part, gubun, filename):
     key_year = normalize_text(year)
     key_part = normalize_text(part)
     key_gubun = normalize_text(gubun)
-    if key_code in PLACEHOLDER_CODES:
+    if _is_placeholder(key_code):
         return (key_code, key_year, key_part, key_gubun, strip_stage_suffix(filename))
     return (key_code, key_year, key_part, key_gubun)
 
@@ -450,6 +461,42 @@ def build_data_index(data_ws):
         if normalize_text(code) or normalize_text(gubun):
             index_map[make_row_key(code, year, part, gubun, filename)] = row_num
     return index_map
+
+
+def cleanup_deleted_files(data_ws, history_ws, base_dir):
+    """소스 폴더에서 삭제된 파일의 데이터 행을 취합·처리이력 시트에서 자동 제거."""
+    current_filenames = set()
+    for root, _, files in os.walk(base_dir):
+        for name in files:
+            if os.path.splitext(name)[1].lower() in SUPPORTED_EXTENSIONS:
+                if not is_temp_or_hidden_office_file(name):
+                    current_filenames.add(name)
+
+    # 취합 시트 — 아래서 위로 순회해야 인덱스 밀림 없이 삭제 가능
+    rows_to_delete = [
+        row_num
+        for row_num in range(2, data_ws.max_row + 1)
+        if normalize_text(data_ws.cell(row=row_num, column=13).value) not in current_filenames
+        and normalize_text(data_ws.cell(row=row_num, column=13).value) != ""
+    ]
+    for row_num in reversed(rows_to_delete):
+        data_ws.delete_rows(row_num)
+    if rows_to_delete:
+        log(f"[정리] 취합 시트 {len(rows_to_delete)}행 제거 (삭제된 파일)")
+
+    # 처리이력 시트 — 삭제된 파일 signature도 지워야 다음 실행 때 재처리됨
+    history_rows_to_delete = [
+        row_num
+        for row_num in range(2, history_ws.max_row + 1)
+        if normalize_text(history_ws.cell(row=row_num, column=2).value) not in current_filenames
+        and normalize_text(history_ws.cell(row=row_num, column=2).value) != ""
+    ]
+    for row_num in reversed(history_rows_to_delete):
+        history_ws.delete_rows(row_num)
+    if history_rows_to_delete:
+        log(f"[정리] 처리이력 {len(history_rows_to_delete)}건 제거")
+
+    return len(rows_to_delete)
 
 
 def upsert_rows(data_ws, rows):
@@ -480,6 +527,16 @@ def upsert_rows(data_ws, rows):
                 log(f"[경고] 비고 유지 - 기존='{existing_note}' 신규='' (파일={new_filename})")
                 row_data = list(row_data)
                 row_data[11] = existing_note
+
+            # 미수사유(16열)도 동일 — 새 값이 비어있으면 기존 값 유지
+            existing_reason = normalize_text(data_ws.cell(row=row_num, column=16).value)
+            new_reason = normalize_text(row_data[15]) if len(row_data) > 15 else ""
+            if existing_reason and not new_reason:
+                row_data = list(row_data)
+                if len(row_data) <= 15:
+                    row_data.append(existing_reason)
+                else:
+                    row_data[15] = existing_reason
 
             for col_idx, value in enumerate(row_data, start=1):
                 data_ws.cell(row=row_num, column=col_idx, value=value)
@@ -522,6 +579,46 @@ def get_slide_title_text(slide):
         pass
 
     return " ".join(texts)
+
+
+def extract_missed_bid_reason_from_presentation(presentation):
+    """전체 슬라이드에서 '★ 미수 사유' 또는 '미수주 사유/과정' 텍스트박스를 찾아 추출.
+
+    PPT 표(재무 데이터 표)가 아닌 별도 텍스트박스에 담긴 미수 사유를 가져온다.
+    여러 형태를 허용:
+      - ★ 미수 사유 : ...
+      - 미수 사유 : ...
+      - 미 수주 과정 : ...
+    """
+    # "미수" + 선택적공백 + "주" + "사유/과정" 패턴 (★/☆ 등 특수문자 앞에 올 수 있음)
+    REASON_RE = re.compile(
+        r'[★☆▶►→]?\s*미\s*수\s*(?:주\s*)?(?:사유|과정)\s*[:：]?\s*([\s\S]+)',
+        re.IGNORECASE,
+    )
+
+    try:
+        for slide_idx in range(1, presentation.Slides.Count + 1):
+            slide = presentation.Slides(slide_idx)
+            for i in range(1, slide.Shapes.Count + 1):
+                shp = slide.Shapes(i)
+                try:
+                    if not shp.HasTextFrame:
+                        continue
+                    raw = shp.TextFrame.TextRange.Text
+                    m = REASON_RE.search(raw)
+                    if not m:
+                        continue
+                    reason = m.group(1)
+                    # PPT 단락 구분자(\x0b) 및 CR 정리
+                    reason = reason.replace("\r", "").replace("\x0b", " ")
+                    reason = re.sub(r" {3,}", " ", reason).strip()
+                    if len(reason) > 5:
+                        return reason[:2000]  # 최대 2000자
+                except Exception:
+                    continue
+    except Exception:
+        pass
+    return ""
 
 
 def extract_first_table_from_slide(slide):
@@ -747,6 +844,11 @@ def extract_financial_rows_from_ppt(ppt_app, ppt_path):
         presentation = open_presentation_with_retry(ppt_app, actual_path)
         src_mtime = file_mtime_str(ppt_path)  # 원본 파일 기준 mtime 유지
 
+        # 미수 사유는 프레젠테이션 전체를 한 번만 스캔 (재무 표 슬라이드와 다른 슬라이드에 있을 수 있음)
+        missed_bid_reason = extract_missed_bid_reason_from_presentation(presentation)
+        if missed_bid_reason:
+            log(f"  [미수사유] 발견 ({len(missed_bid_reason)}자): {missed_bid_reason[:60]}…")
+
         for slide_idx in range(1, presentation.Slides.Count + 1):
             slide = presentation.Slides(slide_idx)
             title_text = get_slide_title_text(slide)
@@ -760,6 +862,8 @@ def extract_financial_rows_from_ppt(ppt_app, ppt_path):
                 continue
 
             slide_rows = extract_rows_from_table(table, ppt_path, src_mtime)
+            for row in slide_rows:
+                row.append(missed_bid_reason)   # 16열: 미수사유
             rows_all.extend(slide_rows)
 
         return rows_all
@@ -849,6 +953,11 @@ def main():
     data_ws = get_or_create_sheet(wb, TARGET_SHEET, OUTPUT_HEADERS)
     history_ws = get_or_create_sheet(wb, HISTORY_SHEET, HISTORY_HEADERS)
     apply_sheet_layout(data_ws)
+
+    # 소스 폴더에 없는 파일 데이터 자동 정리 (파일 삭제 시 엑셀에도 반영)
+    if not RETRY_MODE:
+        cleanup_deleted_files(data_ws, history_ws, BASE_DIR)
+        wb.save(TARGET_EXCEL)
 
     processed_signatures = load_processed_signatures(history_ws)
 

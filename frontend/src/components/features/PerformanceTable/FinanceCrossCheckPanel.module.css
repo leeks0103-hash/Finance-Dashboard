@@ -1,0 +1,183 @@
+.panel {
+  padding: 10px 14px 14px;
+  width: 1400px;
+  max-width: 100%;
+}
+
+/* ── 헤더 ── */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.code {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--brand-mid);
+}
+
+.closeBtn {
+  appearance: none;
+  background: none;
+  border: none;
+  outline: none;
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+  transition: opacity 0.12s;
+}
+.closeBtn:hover { opacity: 0.6; }
+
+/* ── 테이블 ── */
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  min-width: 560px;
+}
+
+.table thead th {
+  font-size: 0.68rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  padding: 8px 12px;
+  text-align: center;
+  background: var(--bg);
+  border-bottom: 2px solid var(--border);
+  white-space: nowrap;
+  user-select: none;
+  position: relative;
+}
+
+.table thead th.right { text-align: center; }
+
+/* 리사이즈 핸들 */
+.resizeHandle {
+  position: absolute;
+  right: -4px;
+  top: 0;
+  height: 100%;
+  width: 9px;
+  cursor: col-resize;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.resizeHandle::after {
+  content: '';
+  display: block;
+  width: 1px;
+  height: 60%;
+  background: var(--border);
+  border-radius: 1px;
+  transition: background 0.12s, height 0.12s;
+}
+.resizeHandle:hover::after { background: var(--accent); height: 80%; }
+
+.table tbody td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  vertical-align: middle;
+}
+
+.table tbody tr:last-child td { border-bottom: none; }
+
+.table tbody tr:hover td { background: var(--bg-subtle); }
+
+:global([data-theme="dark"]) .table tbody tr:hover td {
+  background: rgba(255,255,255,0.04);
+}
+
+/* 보고단계 — 좌측 컬러 바 */
+.stageCell {
+  font-weight: 600;
+  font-size: 0.84rem;
+  text-align: center;
+  border-left: 3px solid var(--stage-color, #94a3b8);
+  white-space: nowrap;
+}
+
+.yearCell {
+  white-space: nowrap;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+/* 숫자 — 우측 정렬 + tabular nums */
+.numCell {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* 긴 텍스트 — ellipsis */
+.truncCell {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fileCell {
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.loss { color: var(--loss); font-weight: 600; }
+
+.clickable {
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.clickable:hover { background: var(--brand-bg); }
+
+/* ── 로딩 / 빈 상태 ── */
+.center {
+  display: flex;
+  justify-content: center;
+  padding: 24px 0;
+}
+
+.emptyBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 28px 0;
+  text-align: center;
+}
+
+.emptyIcon  { font-size: 2rem; line-height: 1; }
+.emptyTitle { font-size: 0.9rem; font-weight: 700; color: var(--text); }
+.emptySub   { font-size: 0.8rem; color: var(--text-muted); }

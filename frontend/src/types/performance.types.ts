@@ -43,8 +43,7 @@ export interface PerfProject {
   cost_overhead:     number;
   cost_mgmt:         number;
   operating_profit:  number;
-  profit_rate_raw:   number;
-  profit_rate:       number;  // % 변환 완료
+  profit_rate:       number;  // % 변환 완료 (백엔드에서 profit_rate_raw * 100 후 drop)
   // 6월 점검
   jun_check_total:   number;
   chk_m01: number; chk_m02: number; chk_m03: number; chk_m04: number;
@@ -118,10 +117,19 @@ export interface PerfMonthly {
   cost:    number;
 }
 
+export interface PerfProgressStats {
+  revenue: number;
+  cost:    number;
+  profit:  number;
+  count:   number;
+}
+
 export interface PerfSummary {
-  total:   PerfTotal;
-  by_part: Record<string, PerfPartStats>;
-  monthly: PerfMonthly[];
+  total:       PerfTotal;
+  by_part:     Record<string, PerfPartStats>;
+  by_progress: Record<string, PerfProgressStats>;
+  monthly:     PerfMonthly[];
+  loaded_at?:  string | null;
 }
 
 export interface PerfOptions {
@@ -150,6 +158,9 @@ export interface PerfComment {
   type: 'positive' | 'info' | 'neutral' | 'warning';
   icon: string;
   text: string;
+  /** 특정 프로젝트를 가리키는 코멘트만 존재 — 있으면 프로젝트명 클릭 가능 */
+  project_code?: string;
+  project_name?: string;
 }
 
 export interface PerfInsights {

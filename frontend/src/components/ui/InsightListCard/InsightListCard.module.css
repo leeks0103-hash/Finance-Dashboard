@@ -33,7 +33,7 @@
 
 .title {
   font-size: 0.72rem;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--text-sub);
   padding-bottom: 6px;
   border-bottom: 1px solid var(--border);

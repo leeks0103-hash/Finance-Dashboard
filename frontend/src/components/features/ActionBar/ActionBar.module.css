@@ -2,39 +2,30 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  flex-shrink: 0;  /* 절대 줄어들지 않음 — 스크롤 영역 밖에 고정 */
+  flex-shrink: 0; /* 절대 줄어들지 않음 — 스크롤 영역 밖에 고정 */
 }
 
-.resetBtn {
-  font-size: 0.75rem;
+.reloadGroup {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.lastLoaded {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.correctedBadge {
+  font-size: 0.65rem;
   font-weight: 600;
-  padding: 5px 10px;
-  border: 1.5px solid var(--loss);
-  border-radius: var(--radius-btn);
-  background: transparent;
-  color: var(--loss);
-  cursor: pointer;
-  transition: background 0.15s ease;
+  color: var(--warn);
+  background: var(--warn-bg);
+  border: 1px solid rgba(255, 193, 7, 0.35);
+  border-radius: var(--radius-sm);
+  padding: 1px 5px;
   white-space: nowrap;
-  font-family: inherit;
+  line-height: 1.6;
 }
-.resetBtn:hover { background: var(--loss-bg); }
-
-.reloadBtn {
-  font-size: 0.8rem;
-  font-weight: 500;
-  padding: 5px 12px;
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius-btn);
-  background: var(--surface);
-  color: var(--text-sub);
-  cursor: pointer;
-  transition: all var(--transition);
-  font-family: inherit;
-  white-space: nowrap;
-}
-.reloadBtn:hover:not(:disabled) {
-  border-color: var(--text-sub);
-  color: var(--text-primary);
-}
-.reloadBtn:disabled { opacity: 0.55; cursor: not-allowed; }

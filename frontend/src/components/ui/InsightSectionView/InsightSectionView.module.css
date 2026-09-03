@@ -15,15 +15,20 @@
   box-shadow: var(--shadow-sm);
 }
 
+.sectionGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .header {
   font-weight: 700;
-  font-size: 0.92rem;
-  padding: 14px 20px 10px;
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
+  font-size: 1rem;
+  color: var(--text);
   display: flex;
   align-items: center;
   gap: 8px;
+  padding: 0 10px;
 }
 
 .sub {
@@ -32,10 +37,10 @@
   color: var(--text-muted);
 }
 
-/* 콘텐츠 영역 — 남은 높이 모두 사용, overflow 처리 */
+/* 콘텐츠 영역 — 남은 높이 모두 사용, overflow 처리. 주요 코멘트:리스트 = 1:3 */
 .body {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 3fr;
   gap: 0;
   flex: 1;
   min-height: 0; /* flex child overflow 동작에 필수 */
@@ -79,13 +84,6 @@
 .commentScroll::-webkit-scrollbar-track { background: transparent; }
 .commentScroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
-.moreBtn {
-  margin-top: 6px;
-  width: 100%;
-  font-size: 0.78rem;
-  color: var(--text-muted);
-}
-
 /* 리스트 패널 — 좌우 배치 */
 .listsPane {
   padding: 12px 14px;
@@ -93,6 +91,34 @@
   flex-direction: row;
   gap: 12px;
   min-height: 0;
+  min-width: 0; /* grid item 기본값(min-width:auto)이 내용 크기로 넘치는 것 방지 */
+}
+
+/* plain 리스트 — 카드 박스 없이 주요 코멘트(.commentsPane)와 동일한 평면 구조 */
+.plainList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.plainScroll {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.plainScroll::-webkit-scrollbar { width: 4px; }
+.plainScroll::-webkit-scrollbar-track { background: transparent; }
+.plainScroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* 좁은 화면 — 두 리스트가 나란히 있으면 값이 카드 밖으로 잘림 */
+@media (max-width: 560px) {
+  .listsPane { flex-direction: column; }
 }
 
 /* 스켈레톤 */

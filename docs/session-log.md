@@ -1,5 +1,83 @@
 # 세션 진행 기록
 
+## [2026-09-02] 디자인 시스템 재검토 + AdminLTE/Bootstrap5 톤 전면 적용
+
+**배경**
+- 기존 자체 디자인이 "안 예쁘다"는 문제 제기로 여러 오픈소스 대시보드 템플릿(Nuxt UI, shadcn/ui, ngx-admin, vue-element-admin, AdminLTE, Adminator)을 실제로 clone해서 소스 레벨까지 조사
+- Angular/Vue 전면 전환은 기존 React 프론트 자산(DataTable 리사이즈/DnD, 재무이력 2뎁스 패널, 필터 스토어 등) 전부 폐기해야 해서 배제
+- vue-element-admin은 Vue2(EOL) + 실질적 유지보수 중단(2024-10 이후 커밋 없음) 확인 후 후보 제외
+- 실데이터 연동한 정적 목업 3종(`playgrounds/playground-*.html`: shadcn 톤 / ngx-admin·Eva 톤 / AdminLTE·Bootstrap5 톤)을 만들어 비교 → AdminLTE/Bootstrap5 톤으로 확정
+- 최종 결정: **Bootstrap 라이브러리는 설치하지 않고**, akveo/nebular·ColorlibHQ/AdminLTE 로컬 clone에서 grep으로 뽑은 실측 색상/radius/shadow 값만 기존 CSS Modules 토큰에 반영 (React 로직·구조·API 전부 유지)
+
+**완료된 작업**
+- `index.css` 전체 색상(브랜드/이익/손실/경고/정보/보더/배경)·radius 4종·shadow 3종을 라이트/다크 모두 Bootstrap5 실측값으로 교체
+- KpiCard/ChartCard/Button/DataTable/Navbar/MultiSelectDropdown/ProjectTable/KpiRawTable/PartAchievementBars 등 컴포넌트별 하드코딩 색상·radius·shadow 정리
+- 부수 버그 수정: 다크모드 `--shadow-lg` 누락, `Toggle`의 `--color-loss`(미정의 변수), `MultiSelectDropdown`의 `--bg-card`/`--text-main`(미정의 변수)로 스타일 미적용되던 문제
+- 차트 색상(`chartColors.ts`)이 옛 인디고 팔레트로 남아있던 것을 발견 → dataviz 스킬의 사전 검증 팔레트로 교체, `validate_palette.js`로 라이트/다크 색맹 대비·명도·채도·배경대비 실측 통과 확인 후 적용
+- `DataTable`: compact 테이블(KPI 집계, 파트별 실적)이 카드 폭보다 좁거나 넓으면 첫 진입 시 비례 조정해 항상 꽉 차도록 수정 (기존엔 좁을 때만 대응 + 컬럼 총합이 카드보다 넓으면 불필요한 가로 스크롤 발생하던 문제); 안 맞물리던 전체 컬럼 "⇌ 맞춤" 버튼 삭제
+- 재무이력 패널(`FinanceCrossCheckPanel`) TDZ 에러 수정(`sorted` 선언 전 참조), 보고단계 가운데정렬, 폭 900→1400px 확장
+- 실적현황 테이블(`perfColumns`) 프로젝트코드/파트/팀/사업구분/고객구분 기본 폭 소폭 확대, `비고` 컬럼 기본 폭 150→280px(그동안 size 미지정으로 방치돼 있었음)
+- 손실/저수익 안내 텍스트(`INFO_PROJECT_TABLE`)에 실제 색상(빨강/노랑) 입히고 줄바꿈 분리
+- 세션 마무리 전 CLAUDE.md 아키텍처 규칙(레이어 의존성/컴포넌트 책임) 전수 점검 후 위반 수정:
+  - `InfoButton`의 raw `<button>` → `<Button unstyled>` 교체
+  - `useChartViewModel`/`usePerformanceChartViewModel`이 `labelColor`를 파라미터로 받던 것 제거,
+    `useKpiPageViewModel`처럼 내부에서 `useTheme()` 직접 호출하도록 통일
+  - `FinanceCrossCheckPanel`의 `useQuery`+정렬+모호성 판정 로직을 `useFinanceCrossCheckViewModel`로 분리
+  - `KpiRawTable`의 `cellVal`/`isImplausibleScoreRow` 순수 함수를 `utils/kpiColumns.ts`로 이동
+  - `PartAchievementBars`의 달성률 계산을 `usePerformanceViewModel`의 `PerfPartRow.achieveRateNum`으로 이전
+  - `theme.store.ts`가 persist 미들웨어 대신 localStorage 직접 접근하는 이유(FOUC 스크립트 포맷 일치)를 주석으로 명확화 — 의도적 예외로 유지
+  - 스켈레톤 플레이스홀더 `key={i}` 6곳은 고정 개수 배열이라 실질 위험 없어 그대로 둠
+  - lint/tsc/vitest(59/59)/build 전부 통과 확인
+
+**다음 세션 과제**
+- `playgrounds/playground-*.html` 3종은 참고용 정적 목업 — 실제 커밋에는 미포함, 필요시 재참조
+- 재무 비고 검색 안 됨 문제 (이전 세션 이월, 계속 보류)
+
+---
+
+## [2026-08-31] DataTable 대규모 개선 + 재무이력 테이블 재설계 + 미수사유 파이프라인
+
+**완료된 작업**
+- **DataTable 컬럼 리사이즈 핵심 버그 수정**: `table-layout: fixed` 누락이 원인 — storageKey 있는 테이블만 적용, 없는 테이블은 auto 유지(경상손익 등 컬럼 과도한 확장 방지)
+- **DataTable ⇌ 맞춤 버튼**: 현재 페이지 셀 텍스트로 모든 컬럼 자동 맞춤(스케일업 없이 타이트하게), storageKey 테이블에만 노출
+- **DataTable 더블클릭 auto-fit**: 리사이즈 핸들 더블클릭 시 해당 컬럼 컨텐츠 너비로 자동 조절
+- **DataTable 컬럼 드롭다운 클리핑 수정**: wrapper `overflow: visible`, 상하단 모서리는 toolbar/scroll에서 각각 처리
+- **재무이력 2뎁스(FinanceCrossCheckPanel) 전면 재설계**: 카드→테이블 전환, 수동 리사이즈+더블클릭 auto-fit+localStorage 저장, 셀 팝업·복사, th 중앙정렬, 첫 진입 여백 없이 컨테이너 채움(DEFAULT_WIDTHS 비례 스케일)
+- **미수주 패널(FinanceDetailPanel)**: 카드그리드→한줄 2컬럼 레이아웃, 이익율|미수사유|파일명 같은 행
+- **미수주 프로젝트 섹션**: InsightSectionView 제거→단순 sectionGroup 구조, 미수사유·비고 컬럼 분리
+- **미수사유 추출 파이프라인**: `extract_financial_ppt.py`에 16열 추가, PPT 전체 슬라이드에서 "★ 미수 사유" 텍스트박스 파싱, `finance.py`/`finance.types.ts` 연동
+- **[신규/미생성] placeholder 코드 버그 수정**: 대괄호 패턴 코드가 PLACEHOLDER_CODES에 없어 다른 파일 비고가 덮어씌워지는 문제 — 정규식 패턴으로 확장
+- **폰트**: 작은 글씨(≤0.72rem) font-weight Bold→Medium 완화 (10개 파일), KpiCard/ChartCard Geist 폰트 주석처리
+- **perfColumns 전체 size 지정**: 150px 기본값으로 과도했던 컬럼들 적정 크기로(66~200px)
+
+**다음 세션 과제**
+- 맞춤 버튼 정확도 개선 여지 있음 (셀 렌더링 요소의 실제 폭 vs 텍스트 폭 차이)
+- 미수사유 추출: PPT 재실행 후 데이터 채워지는지 확인 필요 (`FORCE_REPROCESS = True` 후 실행)
+- 재무 비고 검색 안 됨 문제 (이전 세션 이월, 어느 검색창인지 확인 전 보류)
+
+---
+
+## [2026-08-26] 대표님 보고용 UX 대규모 개선 세션
+
+**완료된 작업**
+- 모바일 반응형 전수 확인 (이번 세션 목표 #1) — 480px 이하 검색창 전폭, 페이지네이션 소형화, DataTable 빈 상태 개선
+- `DataTable` 빈 상태: 결과 없을 때 테이블 자체 미렌더링 → 가로 스크롤 제거, "검색 결과 없음" 즉시 노출
+- `DataTable` expandedRow 자동 스크롤: 더블클릭 시 뷰포트 밖이면 smooth 스크롤
+- **실적현황 2depth 검색 신규 구현**: 검색창 하나로 실적(1depth) + 재무(2depth) 병렬 조회, 재무 결과 있으면 슬라이드인 섹션 노출. 케이스별 테스트 데이터 정리 (양쪽/실적만/재무만/둘다없음)
+- **2depth 패널(FinanceCrossCheckPanel) 전면 재설계**: 단계별 컬러 카드 (좌측 액센트 보더 + 헤더 tint), 수치 3열 그리드, 비고/파일명 전체 노출, 파일명 CopyText 복사, 가로 스크롤 따라오기 (JS translateX 동기화), × 닫기 버튼 정리
+- **데이터 최신화 시각 표시**: `/api/summary`, `/api/performance/summary` 에 `loaded_at` 추가, 재무/실적 ActionBar에 초기 로드 시각 즉시 노출 (기존엔 reload 클릭 후에만 보였음)
+- **인사이트 warning 강조 개선**: 빨간 텍스트 → "⚠ 주의" 흰 뱃지 + 라이트모드 좌측 border 추가
+- **재무현황 탭 InsightSection 제거**: 인사이트는 실적현황 탭으로 단일화 (재무 PPT 기반 코멘트 제거)
+- **인사이트 조건 정리**: 실적 warning 기준 — 경상이익 < 0(손실), 달성률 < 70%(부진), 재무 warning — 이익율 < 5%(저수익)
+- KPI 카드 단위 통일: 점검 연간합계 sub "억" → "억원"
+
+**다음 세션 과제**
+- 재무 비고 검색 안 됨 문제 (어느 검색창인지 확인 후 이어가기 — memory 참조)
+- `hasActiveFilters` 로직 오인식 문제 (초기화 버튼 제거로 우회, 다른 곳 쓰게 되면 재검토)
+- 좁은 화면(모바일) 3탭 레이아웃 전수 재확인 미완료
+
+---
+
 ## [2026-08-13] 버그 수정 다수 + 실적현황 인사이트 신규 구현 세션
 
 **완료된 작업**
