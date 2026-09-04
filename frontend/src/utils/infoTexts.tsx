@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { PERF_COL } from './perfPeriod';
 
 function InfoTable({ rows }: { rows: [string, ReactNode][] }) {
   return (
@@ -64,7 +65,7 @@ function Chips({ items }: { items: string[] }) {
 export const INFO_MONTHLY = (
   <InfoTable rows={[
     ['출처',   '실적현황 엑셀'],
-    ['컬럼',   <Chips items={['chk_m01', '~', 'chk_m12']} />],
+    ['컬럼',   <Chips items={['BF~BQ열 (1~12월 점검)']} />],
     ['대상',   '카테고리 = 매출 행'],
     ['계산',   '월별 합계 (천원 → 억원)'],
     ['표시',   '현재 월 이후는 흐리게 처리'],
@@ -75,7 +76,7 @@ export const INFO_MONTHLY = (
 export const INFO_PROFIT_RATE = (
   <InfoTable rows={[
     ['출처',   '실적현황 엑셀'],
-    ['컬럼',   <Chips items={['profit_rate']} />],
+    ['컬럼',   <Chips items={[`${PERF_COL.profitRate}열 (손익률)`]} />],
     ['대상',   '카테고리 = 매출 행'],
     ['계산',   '파트별 평균 이익율 (%)'],
     ['필터',   '파트 · 팀 필터 적용'],
@@ -85,7 +86,10 @@ export const INFO_PROFIT_RATE = (
 export const INFO_COST_BREAKDOWN = (
   <InfoTable rows={[
     ['출처',   '실적현황 엑셀'],
-    ['항목',   <Chips items={['cost_direct', 'cost_labor', 'cost_overhead', 'cost_mgmt']} />],
+    ['항목',   <Chips items={[
+      `${PERF_COL.costDirect}열 (직접원가)`, `${PERF_COL.costLabor}열 (인건비)`,
+      `${PERF_COL.costOverhead}열 (공통원가)`, `${PERF_COL.costMgmt}열 (관리비)`,
+    ]} />],
     ['계산',   '전체 합산 후 항목별 구성비 (%)'],
     ['필터',   '파트 · 팀 필터 적용'],
   ]} />
@@ -94,8 +98,8 @@ export const INFO_COST_BREAKDOWN = (
 export const INFO_PLAN_VS_ACTUAL = (
   <InfoTable rows={[
     ['출처',   '실적현황 엑셀'],
-    ['계획',   <Chips items={['plan_initial']} />],
-    ['실적',   <Chips items={['jun_actual']} />],
+    ['계획',   <Chips items={[`${PERF_COL.planInitial}열 (매출 계획)`]} />],
+    ['실적',   <Chips items={[PERF_COL.actualRange]} />],
     ['계산',   '파트별 합계 비교'],
     ['필터',   '파트 · 팀 필터 적용'],
   ]} />
@@ -104,7 +108,7 @@ export const INFO_PLAN_VS_ACTUAL = (
 export const INFO_PROGRESS = (
   <InfoTable rows={[
     ['출처',   '실적현황 엑셀'],
-    ['기준',   <Chips items={['progress']} />],
+    ['기준',   <Chips items={[`${PERF_COL.progress}열 (진행단계)`]} />],
     ['대상',   '카테고리 = 매출 / 원가 행'],
     ['계산',   '진행단계별 합계'],
     ['필터',   '파트 · 팀 필터 적용 (진행단계 제외)'],
@@ -114,7 +118,7 @@ export const INFO_PROGRESS = (
 export const INFO_ACHIEVEMENT_BARS = (
   <InfoTable rows={[
     ['출처',   '실적현황 엑셀'],
-    ['계산',   'jun_actual ÷ plan_initial × 100'],
+    ['계산',   `${PERF_COL.actualRange} ÷ ${PERF_COL.planInitial}열(매출 계획) × 100`],
     ['색상',   '100% 이상 초록 / 70~99% 보라 / 70% 미만 빨강'],
     ['필터',   '파트 · 팀 필터 적용'],
   ]} />
@@ -123,7 +127,10 @@ export const INFO_ACHIEVEMENT_BARS = (
 export const INFO_PART_TABLE = (
   <InfoTable rows={[
     ['출처',   '실적현황 엑셀'],
-    ['컬럼',   <Chips items={['jun_actual', 'jun_cost', 'jun_check_total', 'operating_profit', 'profit_rate']} />],
+    ['컬럼',   <Chips items={[
+      `${PERF_COL.actualRange} (실적)`, `${PERF_COL.actualRange} (원가, category=원가)`,
+      `${PERF_COL.checkTotal}열 (점검 연간)`, `${PERF_COL.operatingProfit}열 (경상손익)`, `${PERF_COL.profitRate}열 (손익률)`,
+    ]} />],
     ['계산',   '파트별 합계 (천원 → 억원)'],
     ['필터',   '파트 · 팀 필터 적용'],
   ]} />
@@ -157,7 +164,7 @@ export const INFO_PROJECT_TABLE = (
 export const INFO_FINANCE_SEARCH = (
   <InfoTable rows={[
     ['출처',   '재무관점 필수 데이터 추출.xlsx (PPT 추출)'],
-    ['매칭',   'project_code · 파트 · 보고단계 · 비고 · 파일명 동시 검색'],
+    ['매칭',   '프로젝트코드 · 파트 · 보고단계 · 비고 · 파일명 동시 검색'],
     ['표시',   '보고단계별 이력 전체 (연도별 포함)'],
     ['비고',   '실적현황에 없고 재무에만 있는 프로젝트도 노출'],
   ]} />
