@@ -85,7 +85,7 @@
   font-size: 0.82rem;
 }
 
-.errorCard { border-color: var(--loss-bg, #fecaca); }
+.errorCard { border-color: var(--danger-bg, rgba(230,51,18,0.10)); }
 .errorIcon { font-size: 1.4rem; }
 .emptyIcon { font-size: 1.4rem; opacity: 0.5; }
 

@@ -13,9 +13,10 @@ import styles from './TabLayout.module.css';
 
 import type { TabId } from '@/components/ui/TabNav/TabNav';
 
-const FinancePage     = lazy(() => import('@/pages/Finance'));
-const KpiPage         = lazy(() => import('@/pages/Kpi'));
-const PerformancePage = lazy(() => import('@/pages/Performance'));
+const FinancePage      = lazy(() => import('@/pages/Finance'));
+const KpiPage          = lazy(() => import('@/pages/Kpi'));
+const PerformancePage  = lazy(() => import('@/pages/Performance'));
+const SatisfactionPage = lazy(() => import('@/pages/Satisfaction'));
 
 const TabLayout = () => {
   useChartTheme();
@@ -69,6 +70,15 @@ const TabLayout = () => {
         <div className={styles.pageContent} style={show('finance')}>
           <Suspense fallback={null}>
             <FinancePage />
+          </Suspense>
+        </div>
+      )}
+
+      {/* ── 강사만족도 — 첫 방문 후 keep-mount (데이터 소스 미정, 플레이스홀더) ── */}
+      {mounted.has('satisfaction') && (
+        <div className={styles.pageContent} style={show('satisfaction')}>
+          <Suspense fallback={null}>
+            <SatisfactionPage />
           </Suspense>
         </div>
       )}

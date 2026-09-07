@@ -23,7 +23,7 @@
   font-weight: 600;
   color: var(--warn);
   background: var(--warn-bg);
-  border: 1px solid rgba(255, 193, 7, 0.35);
+  border: 1px solid rgba(163, 107, 79, 0.35);
   border-radius: var(--radius-sm);
   padding: 1px 5px;
   white-space: nowrap;

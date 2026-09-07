@@ -97,8 +97,10 @@ export interface PerfPartStats {
 
 export interface PerfTotal {
   plan_initial:     number;
+  plan_cost:        number;
   actual_2025:      number;
   jun_actual:       number;
+  jun_cost_actual:  number;
   jun_cost:         number;
   jun_check_total:  number;
   operating_profit: number;

@@ -13,10 +13,12 @@ interface Props {
   labelColor?:  string;
 }
 
+// 현대 브랜드 9색 — Hyundai Blue / Active Blue / Sky Blue / Gold
 const DEFAULT_COLORS = [
-  'rgba(255,159,64,0.85)',
-  'rgba(75,192,192,0.85)',
-  'rgba(153,102,255,0.85)',
+  'rgba(0,44,95,0.9)',
+  'rgba(0,170,210,0.9)',
+  'rgba(170,202,230,0.9)',
+  'rgba(163,107,79,0.9)',
 ];
 
 const DoughnutChart = ({
@@ -24,7 +26,7 @@ const DoughnutChart = ({
   data,
   colors = DEFAULT_COLORS,
   showLabels = false,
-  labelColor = '#1e293b',
+  labelColor = '#1a1a1a',
 }: Props) => (
   <div className={styles.wrap}>
   <Doughnut
@@ -36,6 +38,8 @@ const DoughnutChart = ({
       responsive: true,
       maintainAspectRatio: false,
       animation: { duration: 700, easing: 'easeInOutQuart' },
+      // 얇은 세그먼트의 % 라벨이 캔버스 밖으로 나가 잘리지 않도록 여백 확보 (ChartCard가 overflow:hidden)
+      layout: { padding: 12 },
       plugins: {
         legend: {
           position: 'bottom',

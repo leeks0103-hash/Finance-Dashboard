@@ -2,14 +2,14 @@
  * 재무·KPI·실적현황 3탭 전체가 공유하는 차트 색상 팔레트.
  * 지표별 의미를 색으로 고정해 탭을 넘나들어도 같은 지표는 같은 색으로 보이게 한다.
  *
- * dataviz 스킬의 사전 검증된 8색 카테고리 팔레트에서 6개를 골라 씀 — 색맹 대비(ΔE)·
- * 명도·채도·배경 대비를 scripts/validate_palette.js로 실측 통과한 값만 사용 (임의 조정 금지).
- *   revenue      — 매출·실적 (blue)
- *   cost         — 지출·원가·손실 (red) — costDirect와 동일 계열(같은 "원가")
- *   profit       — 이익 절대금액 (green)
- *   rate         — 이익율(%) 등 비율 지표 (violet)
- *   costLabor    — 원가구성 도넛: 인건비 (aqua)
- *   costOverhead — 원가구성 도넛: 관리비 (yellow)
+ * 현대자동차 브랜드 지정 9색 팔레트 기반 (Sky Blue는 도넛 세그먼트 한정, 텍스트엔 미사용).
+ * 브랜드 지정값이라 대비 검증보다 팔레트 준수 우선.
+ *   revenue      — 매출·실적 (Hyundai Blue)
+ *   cost         — 지출·원가 (Hyundai Gold) — costDirect와 동일 계열(같은 "원가")
+ *   profit       — 이익 절대금액 (Active Red — 빨강=플러스)
+ *   rate         — 이익율(%) 등 비율 지표 (Active Blue shade)
+ *   costLabor    — 원가구성 도넛: 인건비 (Active Blue)
+ *   costOverhead — 원가구성 도넛: 관리비 (Sky Blue)
  */
 export interface ChartPalette {
   revenue:      string;
@@ -29,31 +29,35 @@ export interface ChartTheme {
 }
 
 export const getChartTheme = (dark: boolean): ChartTheme => dark ? {
-  labelColor: 'rgba(255,255,255,0.95)',
-  gridColor:  'rgba(90,90,100,0.55)',
-  tickColor:  'rgba(230,230,236,0.95)',
+  labelColor: 'rgba(228,220,211,0.95)',  /* Hyundai Sand */
+  gridColor:  'rgba(60,90,120,0.45)',    /* Blue-tinted grid */
+  tickColor:  'rgba(228,220,211,0.90)',  /* Hyundai Sand */
 } : {
-  labelColor: '#111111',
-  gridColor:  'rgba(0,0,0,0.08)',
-  tickColor:  '#1E1E1E',
+  labelColor: '#002C5F',                 /* Hyundai Blue */
+  gridColor:  'rgba(0,44,95,0.08)',      /* Hyundai Blue 연하게 */
+  tickColor:  '#002C5F',                 /* Hyundai Blue */
 };
 
 // fadeAlpha(PerformanceChartSection)가 마지막 숫자를 정규식으로 치환하는 방식이라
 // rgba(...) 형식(알파 1) 유지 — 순수 hex로 바꾸면 미래월 페이드 효과가 조용히 깨짐
+//
+// 현대자동차 브랜드 9색 기반:
+//   revenue = Hyundai Blue · cost/costDirect = Hyundai Gold · profit = Active Red(빨강=플러스)
+//   rate = Active Blue shade · costLabor = Active Blue · costOverhead = Sky Blue
 export const getChartPalette = (dark: boolean): ChartPalette => dark ? {
-  revenue:      'rgba(57,135,229,1)',   /* blue */
-  cost:         'rgba(230,103,103,1)',  /* red */
-  profit:       'rgba(0,131,0,1)',      /* green */
-  rate:         'rgba(144,133,233,1)',  /* violet */
-  costDirect:   'rgba(230,103,103,1)',  /* red — cost와 동일 */
-  costLabor:    'rgba(25,158,112,1)',   /* aqua */
-  costOverhead: 'rgba(201,133,0,1)',    /* yellow */
+  revenue:      'rgba(77,166,214,1)',   /* Hyundai Blue tint — 다크 가독성 */
+  cost:         'rgba(199,148,113,1)',  /* Hyundai Gold tint */
+  profit:       'rgba(255,106,77,1)',   /* Active Red tint */
+  rate:         'rgba(111,208,230,1)',  /* Active Blue tint */
+  costDirect:   'rgba(199,148,113,1)',  /* Gold — cost와 동일 */
+  costLabor:    'rgba(0,170,210,1)',    /* Active Blue */
+  costOverhead: 'rgba(170,202,230,1)',  /* Sky Blue */
 } : {
-  revenue:      'rgba(42,120,214,1)',   /* blue */
-  cost:         'rgba(227,73,72,1)',    /* red */
-  profit:       'rgba(0,131,0,1)',      /* green */
-  rate:         'rgba(74,58,167,1)',    /* violet */
-  costDirect:   'rgba(227,73,72,1)',    /* red — cost와 동일 */
-  costLabor:    'rgba(27,175,122,1)',   /* aqua */
-  costOverhead: 'rgba(237,161,0,1)',    /* yellow */
+  revenue:      'rgba(0,44,95,1)',      /* Hyundai Blue */
+  cost:         'rgba(163,107,79,1)',   /* Hyundai Gold */
+  profit:       'rgba(230,51,18,1)',    /* Active Red */
+  rate:         'rgba(0,122,153,1)',    /* Active Blue shade */
+  costDirect:   'rgba(163,107,79,1)',   /* Gold — cost와 동일 */
+  costLabor:    'rgba(0,170,210,1)',    /* Active Blue */
+  costOverhead: 'rgba(170,202,230,1)',  /* Sky Blue */
 };

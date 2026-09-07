@@ -306,7 +306,14 @@ def extract_part_from_path(filepath):
 # =========================
 def ensure_workbook(excel_path):
     if os.path.exists(excel_path):
-        wb = load_workbook(excel_path)
+        try:
+            wb = load_workbook(excel_path)
+        except Exception as e:
+            log(f"[경고] 엑셀 파일 손상 감지, 새로 생성합니다: {e}")
+            os.remove(excel_path)
+            wb = Workbook()
+            default_ws = wb.active
+            wb.remove(default_ws)
     else:
         wb = Workbook()
         default_ws = wb.active

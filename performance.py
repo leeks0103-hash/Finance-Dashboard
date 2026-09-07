@@ -239,6 +239,21 @@ def load_perf_excel():
 
     df["profit_rate"] = (df["profit_rate_raw"] * 100).round(1)
     df = df.drop(columns=["profit_rate_raw"])
+
+    # ⚠️ jun_actual(AO열)은 엑셀 자체가 "1~12월 전체 합계"(미래월 추정치까지 포함)로 계산돼 있어
+    #    "OO월 실적"이라는 이름과 달리 실제로는 연간 전체(실적+추정) 값이다.
+    #    (jun_check_total=BE열도 동일 — AO==BE, 둘 다 chk_m01~chk_m12 전체 합)
+    #    진짜 "이번 달까지의 실적"은 경과한 달(1~현재월)만 합산해야 하므로 여기서 보정한다.
+    #    jun_check_total은 "N월 점검 연간합계"라는 이름 그대로 연간(전체) 값이 맞아 보정하지 않음.
+    sheet_month_match = _PERF_SHEET_RE.match(resolved_sheet)
+    current_month_num = int(sheet_month_match.group(2))
+    elapsed_month_cols = [f"chk_m{m:02d}" for m in range(1, current_month_num + 1)]
+    df["jun_actual"] = df[elapsed_month_cols].sum(axis=1)
+    logger.info(
+        "jun_actual 보정: %d월까지(%s) 합산으로 재계산 (엑셀 AO열의 연간 전체값 대체)",
+        current_month_num, ", ".join(elapsed_month_cols),
+    )
+
     df = df.where(df.notna(), other=None)
     df["filename"] = os.path.basename(PERF_EXCEL_PATH)
 
@@ -350,9 +365,11 @@ def api_perf_summary():
     pos_rate = rev[rev["profit_rate"] > 0]["profit_rate"]
     total = {
         "plan_initial":     float(rev["plan_initial"].sum()),
+        "plan_cost":        float(cost["plan_initial"].sum()),
         "actual_2025":      float(rev["actual_2025"].sum()),
         "jun_actual":       float(rev["jun_actual"].sum()),
-        "jun_cost":         float(cost["jun_actual"].sum()),
+        "jun_cost_actual":  float(cost["jun_actual"].sum()),
+        "jun_cost":         float(cost["jun_check_total"].sum()),
         "jun_check_total":  float(rev["jun_check_total"].sum()),
         "operating_profit": float(rev["operating_profit"].sum()),
         "profit_gross":     float(rev["profit_gross"].sum()),

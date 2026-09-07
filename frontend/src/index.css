@@ -1,80 +1,98 @@
-/* ─── Light mode — Bootstrap5 실측값 (akveo/nebular, ColorlibHQ/AdminLTE 대조) ─ */
+/* ─── 현대자동차 공식 9색 팔레트 (파생 톤만 허용, 새 색조 금지) ──────────
+ *   Hyundai Blue #002c5f · Sand #e4dcd3 · Light Sand #f6f3f2 · Gold #a36b4f
+ *   White #ffffff · Black #000000 · Active Blue #00aad2 · Sky Blue #aacae6 · Active Red #e63312
+ *   재무 의미색: 이익=Active Red(빨강=플러스) / 손실=Hyundai Blue(파랑=마이너스) — 한국 증시 관행
+ *   에러·위험 UI는 재무 손실색과 별개 축 → --danger (= Active Red)
+ * ────────────────────────────────────────────────────────────────── */
 :root,
 [data-theme="light"] {
-  --nav-bg: #18181B;   /* zinc-900 */
+  --nav-bg: #002C5F;   /* Hyundai Blue */
 
-  --brand:        #0D6EFD;   /* bootstrap primary */
-  --brand-mid:    #0B5ED7;   /* bootstrap primary hover shade */
-  --brand-light:  #9EC5FE;   /* bootstrap primary-border-subtle */
-  --brand-bg:     #CFE2FF;   /* bootstrap primary-bg-subtle */
+  --brand:        #002C5F;   /* Hyundai Blue PMS 654C */
+  --brand-mid:    #001D3F;   /* Blue 파생 — 어둡게 (호버) */
+  --brand-light:  #00AAD2;   /* Active Blue */
+  --brand-bg:     rgba(0,44,95,0.08);
 
-  --profit:       #198754;   /* bootstrap success */
-  --profit-bg:    #D1E7DD;   /* bootstrap success-bg-subtle */
-  --loss:         #DC3545;   /* bootstrap danger */
-  --loss-bg:      #F8D7DA;   /* bootstrap danger-bg-subtle */
-  --warn:         #FFC107;   /* bootstrap warning */
-  --warn-bg:      #FFF3CD;   /* bootstrap warning-bg-subtle */
-  --info:         #0DCAF0;   /* bootstrap info */
-  --info-bg:      #CFF4FC;   /* bootstrap info-bg-subtle */
-  --purple:       #6F42C1;   /* bootstrap $purple */
-  --purple-bg:    #ECE3F9;
+  --profit:       #E63312;   /* 이익 = Active Red (빨강=플러스) */
+  --profit-bg:    rgba(230,51,18,0.10);
+  --loss:         #002C5F;   /* 손실 = Hyundai Blue (파랑=마이너스) */
+  --loss-bg:      rgba(0,44,95,0.10);
+  --danger:       #E63312;   /* 에러·위험 UI (재무 손실색과 별개) — Active Red */
+  --danger-bg:    rgba(230,51,18,0.10);
+  --warn:         #A36B4F;   /* Hyundai Gold PMS 876C */
+  --warn-bg:      rgba(163,107,79,0.12);
+  --info:         #007A99;   /* Active Blue 파생 — 어둡게 (흰바탕 텍스트 대비) */
+  --info-bg:      rgba(0,170,210,0.12);
+  --accent:       #0091B5;   /* Active Blue 파생 — 정렬/리사이즈/토글 인디케이터 */
+  --accent-bg:    rgba(0,170,210,0.10);
+  --purple:       #5A7C9E;   /* 4번째 시리즈·rate 계열 — Blue↔Sky 중간 블루그레이 (보라 아님) */
+  --purple-bg:    rgba(90,124,158,0.12);
 
-  --surface:      #FFFFFF;
-  --bg:           #F8F9FA;   /* bootstrap tertiary-bg (gray-100) */
-  --bg-subtle:    #E9ECEF;   /* bootstrap secondary-bg (gray-200) */
-  --bg-header:    #E9ECEF;
-  --border:       #DEE2E6;   /* bootstrap border-color (gray-300) */
-  --border-table: #DEE2E6;
-  --border-focus: #0D6EFD;
+  --surface:      #FFFFFF;   /* White */
+  --bg:           #F6F3F2;   /* Hyundai Light Sand */
+  --bg-subtle:    #E4DCD3;   /* Hyundai Sand */
+  --bg-header:    #E4DCD3;   /* Hyundai Sand */
+  --border:       #D9CEC1;   /* Sand 파생 — 어둡게 */
+  --border-table: #E0D7CC;   /* Sand 파생 */
+  --border-focus: #002C5F;
 
-  --text:         #212529;   /* bootstrap body-color (gray-900) */
-  --text-primary: #212529;
-  --text-sub:     #343A40;
-  --text-muted:   #6C757D;   /* bootstrap gray-600 */
+  --text:         #1A1A1A;   /* Black 파생 */
+  --text-primary: #1A1A1A;
+  --text-sub:     #33322F;   /* Black 파생 (웜) */
+  --text-muted:   #6B6257;   /* Sand 계열 mid-tone */
 
-  --pastel-blue:  #CFF4FC;
-  --pastel-green: #D1E7DD;
-  --pastel-yellow:#FFF3CD;
-  --pastel-red:   #F8D7DA;
+  /* 레거시 이름 — 값은 방향색 의미로 재매핑 (소비처 거의 없음) */
+  --pastel-blue:  rgba(0,170,210,0.10);
+  --pastel-green: rgba(230,51,18,0.10);
+  --pastel-yellow:rgba(163,107,79,0.12);
+  --pastel-red:   rgba(0,44,95,0.10);
 
-
-  --shadow-sm: 0 0 1px rgba(33,37,41,0.125), 0 1px 3px rgba(33,37,41,0.2);
-  --shadow-md: 0 2px 6px rgba(33,37,41,0.15), 0 1px 4px rgba(33,37,41,0.1);
-  --shadow-lg: 0 6px 18px rgba(33,37,41,0.18), 0 2px 8px rgba(33,37,41,0.1);
+  --shadow-sm: 0 0 1px rgba(0,44,95,0.08), 0 1px 3px rgba(0,44,95,0.12);
+  --shadow-md: 0 2px 6px rgba(0,44,95,0.12), 0 1px 4px rgba(0,44,95,0.08);
+  --shadow-lg: 0 6px 18px rgba(0,44,95,0.14), 0 2px 8px rgba(0,44,95,0.08);
 }
 
-/* ─── Dark mode — Bootstrap5 data-bs-theme="dark" 실측값 ────────── */
+/* ─── Dark mode — Hyundai Blue 파생 (bg #001322 / text Sand / accent Active·Sky Blue) ─── */
 [data-theme="dark"] {
-  --nav-bg: #09090B;   /* zinc-950 */
+  --nav-bg: #00182F;   /* Blue 딥 */
 
-  --brand:        #6EA8FE;   /* bootstrap dark primary-text-emphasis */
-  --brand-mid:    #0D6EFD;
-  --brand-light:  #9EC5FE;
-  --brand-bg:     #031633;   /* bootstrap dark primary-bg-subtle */
+  --brand:        #00AAD2;   /* Active Blue — 다크 배경 가독성 */
+  --brand-mid:    #4DB8D8;   /* Active Blue tint — 텍스트 강조 */
+  --brand-light:  #AACAE6;   /* Sky Blue */
+  --brand-bg:     rgba(0,170,210,0.16);
 
-  --profit:       #75B798;   /* bootstrap dark success-text-emphasis 계열 */
-  --profit-bg:    #051B11;   /* bootstrap dark success-bg-subtle */
-  --loss:         #EA868F;   /* bootstrap dark danger-text-emphasis 계열 */
-  --loss-bg:      #2C0B0E;   /* bootstrap dark danger-bg-subtle */
-  --warn:         #FFDA6A;   /* bootstrap dark warning-text-emphasis 계열 */
-  --warn-bg:      #332701;   /* bootstrap dark warning-bg-subtle */
-  --info:         #6EDFF6;   /* bootstrap dark info-text-emphasis 계열 */
-  --info-bg:      #032830;   /* bootstrap dark info-bg-subtle */
-  --purple:       #C29FFA;
-  --purple-bg:    #2A1F42;
+  --profit:       #FF6A4D;   /* 이익 = Active Red tint (다크에서 완화) */
+  --profit-bg:    rgba(230,51,18,0.20);
+  --loss:         #AACAE6;   /* 손실 = Sky Blue (#002C5F는 다크 배경서 안 보임) */
+  --loss-bg:      rgba(170,202,230,0.16);
+  --danger:       #FF6A4D;   /* Active Red tint */
+  --danger-bg:    rgba(230,51,18,0.22);
+  --warn:         #C79471;   /* Gold tint */
+  --warn-bg:      rgba(163,107,79,0.24);
+  --info:         #6FD0E6;   /* Active Blue tint — --brand보다 밝게 구분 */
+  --info-bg:      rgba(0,170,210,0.16);
+  --accent:       #33BFE0;   /* Active Blue tint */
+  --accent-bg:    rgba(0,170,210,0.18);
+  --purple:       #8FB4D6;   /* 블루그레이 tint */
+  --purple-bg:    rgba(143,180,214,0.16);
 
-  --surface:      #2B3035;   /* bootstrap dark tertiary-bg */
-  --bg:           #212529;   /* bootstrap dark body-bg (gray-900) */
-  --bg-subtle:    #343A40;   /* bootstrap dark secondary-bg (gray-800) */
-  --border:       #495057;   /* bootstrap dark border-color (gray-700) */
-  --border-table: #495057;
-  --border-focus: #6EA8FE;
-  --bg-header:    #343A40;
+  --surface:      #0E2038;   /* Blue 파생 surface */
+  --bg:           #001322;   /* Blue 딥 */
+  --bg-subtle:    #14304D;   /* Blue mid-dark */
+  --border:       #22405F;   /* 블루그레이 */
+  --border-table: #22405F;
+  --border-focus: #00AAD2;
+  --bg-header:    #0E2038;
 
-  --text:         #DEE2E6;   /* bootstrap dark body-color */
-  --text-primary: #DEE2E6;
-  --text-sub:     #E9ECEF;
-  --text-muted:   #ADB5BD;   /* bootstrap gray-500 */
+  --text:         #E4DCD3;   /* Hyundai Sand */
+  --text-primary: #E4DCD3;
+  --text-sub:     #F0EAE3;   /* Sand tint */
+  --text-muted:   #9FB3C4;   /* 블루그레이 중립 */
+
+  --pastel-blue:  rgba(0,170,210,0.16);
+  --pastel-green: rgba(230,51,18,0.20);
+  --pastel-yellow:rgba(163,107,79,0.24);
+  --pastel-red:   rgba(170,202,230,0.16);
 
   --shadow-sm: 0 0 1px rgba(0,0,0,0.5), 0 1px 3px rgba(0,0,0,0.4);
   --shadow-md: 0 2px 8px rgba(0,0,0,0.55), 0 1px 4px rgba(0,0,0,0.4);
@@ -85,7 +103,7 @@
 :root {
   --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
 
-  --radius:      6px;    /* bootstrap --bs-border-radius: 0.375rem 실측 */
+  --radius:      6px;
   --radius-sm:   4px;
   --radius-lg:   10px;
   --radius-btn:  6px;
@@ -94,30 +112,68 @@
   --transition: 0.18s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-/* ─── 지마켓 산스 ─────────────────────────────── */
+/* ─── 현대 HyundaiSans Text (본문) ───────────── */
 @font-face {
-  font-family: 'GmarketSans';
-  font-weight: 300;
+  font-family: 'HyundaiSans';
+  font-weight: 400;
   font-display: swap;
-  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansLight.woff') format('woff');
+  src: url('/fonts/HyundaiSansTextKRRegular.ttf') format('truetype');
 }
 @font-face {
-  font-family: 'GmarketSans';
-  font-weight: 400;   /* Regular → Medium 파일로 매핑 (GmarketSans엔 400이 없음) */
-  font-display: swap;
-  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansMedium.woff') format('woff');
-}
-@font-face {
-  font-family: 'GmarketSans';
+  font-family: 'HyundaiSans';
   font-weight: 500;
   font-display: swap;
-  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansMedium.woff') format('woff');
+  src: url('/fonts/HyundaiSansTextKRMedium.ttf') format('truetype');
 }
 @font-face {
-  font-family: 'GmarketSans';
+  font-family: 'HyundaiSans';
   font-weight: 700;
   font-display: swap;
-  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansBold.woff') format('woff');
+  src: url('/fonts/HyundaiSansTextKRBold.ttf') format('truetype');
+}
+/* ─── 현대 HyundaiSans Head (제목) ───────────── */
+@font-face {
+  font-family: 'HyundaiSansHead';
+  font-weight: 300;
+  font-display: swap;
+  src: url('/fonts/HyundaiSansHeadKRLight.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'HyundaiSansHead';
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/HyundaiSansHeadKRRegular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'HyundaiSansHead';
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/HyundaiSansHeadKRMedium.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'HyundaiSansHead';
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/HyundaiSansHeadKRBold.ttf') format('truetype');
+}
+/* ─── 현대하모니 (KPI 대형 수치·강조) ─────────── */
+@font-face {
+  font-family: 'HyundaiHarmony';
+  font-weight: 300;
+  font-display: swap;
+  src: url('/fonts/HyundaiHarmony-Light.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'HyundaiHarmony';
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/HyundaiHarmony-Medium.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'HyundaiHarmony';
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/HyundaiHarmony-Bold.ttf') format('truetype');
 }
 
 /* ─── Reset ──────────────────────────────────── */
@@ -125,11 +181,15 @@
 
 body {
   background: var(--bg);
-  font-family: 'GmarketSans', 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  font-family: 'HyundaiSans', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
   color: var(--text-primary);
   font-size: 15px;
   transition: background 0.2s ease, color 0.2s ease;
   -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'HyundaiSansHead', 'HyundaiSans', 'Malgun Gothic', sans-serif;
 }
 
 [data-theme="dark"] body {

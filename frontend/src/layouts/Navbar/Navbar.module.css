@@ -12,7 +12,7 @@
   position: sticky;
   top: 0;
   z-index: 100;
-  box-shadow: 0 1px 4px rgba(33,37,41,0.15);
+  box-shadow: 0 1px 4px rgba(0,44,95,0.15);
   overflow: visible;
 }
 
@@ -134,14 +134,14 @@
 /* 활성 */
 .rowIcon.active { opacity: 1; }
 
-/* 달 🌙 — active 시 시안 글로우 */
+/* 달 🌙 — active 시 Active Blue 글로우 */
 .moon.active {
-  filter: drop-shadow(0 0 5px rgba(0, 200, 255, 0.85));
+  filter: drop-shadow(0 0 5px rgba(0, 170, 210, 0.9));
 }
 
-/* 해 ☀ — active 시 골드 글로우 */
+/* 해 ☀ — active 시 Gold 글로우 */
 .sun.active {
-  filter: drop-shadow(0 0 6px rgba(255, 185, 0, 0.95));
+  filter: drop-shadow(0 0 6px rgba(163, 107, 79, 0.95));
 }
 
 .rowText {

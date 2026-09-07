@@ -1,5 +1,56 @@
 # 세션 진행 기록
 
+## [2026-09-07] 현대 브랜드 9색 전면 적용 + UI 텍스트/차트/페이지네이션 정비 + dashboard_manager 재작성
+
+**1. 현대자동차 브랜드 9색 전면 적용**
+- **디자인 토큰 전면 교체** (`index.css`) — 현대 공식 9색(Hyundai Blue/Sand/Light Sand/Gold, White/Black, Active Blue/Sky Blue/Active Red)과 그 파생 톤(투명도·명도)만 사용. 초록·보라·주황 등 팔레트 밖 색조 전부 제거
+  - **재무 의미색 반전**: 이익 = Active Red `#e63312`(빨강=플러스), 손실 = Hyundai Blue `#002c5f`(파랑=마이너스) — 한국 증시 관행. 트렌드 배지 up/down, InsightListCard `.profit`/`.risk`, PerformancePage `.rowLoss` 모두 반영
+  - **다크 모드**: Hyundai Blue 파생 — bg `#001322`, surface `#0e2038`, text Sand `#e4dcd3`, 액센트 Active/Sky Blue. 손실색은 다크에서 Sky Blue로(딥블루가 안 보여서)
+  - **신규 토큰** `--danger`/`--danger-bg`(= Active Red, 에러·위험 UI를 재무 손실색과 분리), `--accent`/`--accent-bg`(= Active Blue 파생)
+  - **`--accent` 미정의 버그 수정**: 14곳(DataTable 스크롤바·정렬 화살표·리사이즈 핸들, KpiRawTable, FinanceCrossCheckPanel, PerformancePage 토글)에서 쓰는데 정의가 없어 조용히 무효였음 → 한 번에 복구
+  - `--purple`(4번째 차트 시리즈·rate 계열)은 보라 제거하고 Blue↔Sky 중간 블루그레이로
+- **차트 팔레트 재매핑** (`chartColors.ts`) — revenue=Hyundai Blue / cost·costDirect=Gold / profit=Active Red / rate=Active Blue shade / costLabor=Active Blue / costOverhead=Sky Blue. `rgba(...,1)` 형식 유지(fadeAlpha 정규식 의존)
+- **컴포넌트 CSS 20여 개 Bootstrap 잔재 제거** — 블러플/빨강/초록/보라/앰버/슬레이트/도넛 기본색 → 전부 팔레트·토큰으로. `#fff`·`rgba(0,0,0,*)` 오버레이는 팔레트 내라 유지. Button `.danger`→`--danger`, `.success`→`--info`; DoughnutChart `DEFAULT_COLORS`; FinanceCrossCheckPanel `STAGE_COLOR`; Navbar 테마토글 글로우; PerformanceChartSection 미래월 페이드 기준선
+
+**2. 차트 수치(datalabel) 잘림 수정**
+- 원인: `ChartCard .root { overflow: hidden }` + 일부 차트에 `layout.padding` 없음 → Chart.js가 캔버스 가장자리에서 라벨을 자름
+- `makeBarOptions`(`chartOptions.ts`)에 side별 최소 여백(`top:30 right:58 bottom:4 left:4`) 강제 — 차트가 자체 padding을 넘기면 큰 쪽 채택(축소 안 함). `usePerformanceChartViewModel` monthlyOptions에 `padding.top` 추가, `DoughnutChart`에 `padding:12`
+
+**3. 정렬 화살표 안 보임 (재수정)**
+- 1차(투명도·색·글리프)로 안 됨 → HyundaiSans/GmarketSans에 화살표 글리프가 없어서. `.sortIdle`/`.sortActive`에 `Segoe UI Symbol` 등 심볼 폰트 강제 + `font-size 11→15px` + opacity 0.75/1
+
+**4. 페이지네이션 블록 방식으로 변경**
+- `Pagination.tsx` — 슬라이딩 윈도우(현재 페이지 항상 가운데) → 블록 방식(1~10 고정, 11페이지 가야 11~20). 기본 `windowSize` 5→10. DataTable·KpiRawTable 공통 적용
+
+**5. 실적현황 KPI 카드 라벨/원가 표시**
+- 라벨: `매출 계획 (최초)`→`매출/원가 계획`, `{월} 실적 집계`→`매출/원가 추정 실적`, `{월} 점검 연간합계`→`매출/원가 누계 실적`, `경상손익`→`경상손익(당해년도 추정)`
+- 라벨에 "원가" 넣었으니 값도 노출: `performance.py` `_build_summary` `total`에 `plan_cost`(=`cost["plan_initial"].sum()`), `jun_cost_actual`(=`cost["jun_actual"].sum()`) 추가. `PerfTotal` 타입 + `usePerformanceViewModel` 카드 `sub`에 `원가 X억원` 표기(카드3 기존 포맷과 통일)
+
+**6. 탭 개편**
+- 탭명: `재무현황`→`경영실적/재무데이터`, `KPI`→`KPI/경영현황`
+- **강사만족도 탭 신규**(플레이스홀더) — `TabId` += `satisfaction`, `TabNav` TABS, `routing.ts` `/satisfaction`, `pages/Satisfaction/`(EmptyState "준비 중"), `TabLayout` keep-mount. 데이터 소스·API 미정
+
+**7. `dashboard_manager.py` 재작성 (schedule_table 패널 "대시보드 서버" 재시작 안 되던 문제)**
+- 원인: `npm run dev`의 껍데기 PID를 저장 → stop()이 진짜 vite 못 죽여 orphan이 :5188 점유 → 재시작 시 새 vite가 strictPort로 기동 실패
+- `netstat`로 :5000·:5188 LISTENING PID를 직접 찾아 트리째 종료. 상태 판단은 pids.json이 아닌 **포트 실제 응답**. start 후 포트 응답까지 폴링(:5000≤25s, :5188≤40s). 실제 stop→start 사이클 검증 완료
+- `jobs.json`/`scheduler_daemon.py`는 수정 불필요
+
+- lint 0 / tsc 0 / vitest 59-59 / build 통과
+
+**재무 데이터 0건 진단 (코드 수정 아님 — 사용자가 재추출로 처리)**
+- 증상: `(협력사 KOICA) ..._제안_미수주.pptx` 가 대시보드 미수주 목록에 없음 → 실제로는 `/api/data`·`/api/summary` 가 **재무 전체 0건** 반환
+- 원인: `data/재무관점 필수 데이터 추출.xlsx` 가 AIP/DRM 암호화(`EncryptedPackage`, `Workbook` 스트림 없음) 상태 + 2026-09-07 10:31 시작한 재추출이 10:36:45 파일 중간에서 크래시(`[완료]` 없음, 최종 `wb.save()` 미실행) → `finance._read_excel_via_com()` 이 빈 결과 → `_empty_df()` 캐시
+- `.bak`(2026-09-04, 평문) 확인: KOICA 행 정상 존재(`project_code='0'`, `note='[미수주] : ...'`), 프론트 `useMissedBidProjects` 필터(`note.includes('[미수주]')`)와도 일치 → **데이터·로직 정상, 파일 로딩만 깨짐**
+- 권장: 좀비 `POWERPNT.EXE`/`EXCEL` 정리 → `extract_financial_ppt.py` 끝까지 재실행(평문 xlsx로 덮임) → `/api/reload`. 재발 방지: 출력 xlsx를 Excel로 열지 말 것(회사 AIP 레이블 자동 적용)
+
+**다음 세션 과제**
+- 브랜드 9색 적용 후 라이트/다크 3탭 육안 QA (특히 Sky Blue 도넛 세그먼트 대비, 손실=파랑이 브랜드색과 혼동되지 않는지)
+- 강사만족도 탭 데이터 파이프라인 (소스 파일·추출·API 미정)
+- `dashboard_update.bat`/`dashboard_update.py`의 하드코딩 PPT 경로가 구 폴더(`기술교육실_프로젝트 보고서 수집`)로 남아있음 — `.is_dir()` 가드로 무시되고 `.env` 새 경로가 쓰이긴 하나 정리 필요
+- 재무 비고 검색 안 됨 문제 (이전 세션 이월, 계속 보류)
+
+---
+
 ## [2026-09-02] 디자인 시스템 재검토 + AdminLTE/Bootstrap5 톤 전면 적용
 
 **배경**

@@ -31,3 +31,12 @@ data/*.csv
 # 로그
 *.log
 scripts/*.log
+
+# 대시보드 서버 런타임 PID (dashboard_manager.py 가 기록)
+dashboard.pids.json
+
+# 현대 브랜드 폰트 (사내 배포, 각자 배치 — frontend/public/fonts/README.md 참고)
+frontend/public/fonts/*.ttf
+frontend/public/fonts/*.otf
+frontend/public/fonts/*.woff
+frontend/public/fonts/*.woff2

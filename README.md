@@ -247,6 +247,11 @@ python scripts/extract_kpi_ppt.py
 python scripts/extract_financial_ppt.py
 ```
 
+**4) 현대 브랜드 폰트 배치** (선택 — 안 넣으면 맑은고딕으로 폴백, 기능은 정상)
+- 사내에서 받은 현대 폰트 `.ttf` 10개를 `frontend/public/fonts/` 에 복사
+- **파일명이 정확히 일치**해야 함 → 목록·규칙은 [`frontend/public/fonts/README.md`](frontend/public/fonts/README.md) 참고
+- 폰트 파일은 라이선스/용량(약 22MB) 때문에 git 에 올리지 않음 (`.gitignore` 처리됨)
+
 > 실적 현황은 엑셀 파일을 직접 읽으므로 추출 스크립트 없음.  
 > `data/` 폴더에 `26년 사업계획 통합관리 파일_*.xlsx`가 있으면 자동 인식.
 

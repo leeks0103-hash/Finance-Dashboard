@@ -255,12 +255,12 @@
   color: #fff;
   font-weight: 700;
   cursor: default;
-  box-shadow: 0 2px 8px rgba(13,110,253,0.30);
+  box-shadow: 0 2px 8px rgba(0,44,95,0.30);
 }
 
 [data-theme="dark"] .pgActive {
   background: var(--brand-mid);
-  box-shadow: 0 2px 8px rgba(110,168,254,0.35);
+  box-shadow: 0 2px 8px rgba(0,170,210,0.35);
 }
 
 [data-theme="dark"] .pgItem {

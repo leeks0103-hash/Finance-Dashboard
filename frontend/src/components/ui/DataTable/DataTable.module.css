@@ -277,11 +277,19 @@
 .table tbody tr:hover { background: var(--brand-bg); }
 /* tr:last-child td border-bottom 제거 안 함 — 테이블 마지막 행 하단 선 유지 */
 
-/* 정렬 */
+/* 정렬 — 화살표는 HyundaiSans에 글리프가 없어 심볼 폰트를 강제해야 보인다 */
 .sortable { cursor: pointer; }
 .sortable:hover { color: var(--brand-mid); }
-.sortIdle   { margin-left: 4px; font-size: 11px; opacity: 0.35; }
-.sortActive { margin-left: 4px; font-size: 11px; color: var(--accent); }
+.sortIdle, .sortActive {
+  display: inline-block;
+  margin-left: 5px;
+  font-family: 'Segoe UI Symbol', 'Apple Symbols', 'Noto Sans Symbols2', system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1;
+  vertical-align: middle;
+}
+.sortIdle   { opacity: 0.75; color: var(--text-sub); }
+.sortActive { opacity: 1;    color: var(--accent); font-weight: 700; }
 
 /* 헤더 클릭 컬럼 하이라이트 */
 .thHighlighted { background: var(--brand-mid) !important; color: #fff !important; }
@@ -291,9 +299,9 @@
 
 /* 행 변형 */
 .loss { box-shadow: inset 3px 0 0 var(--loss) !important; }
-.loss:hover { background: var(--loss-bg, rgba(239,68,68,.08)) !important; }
+.loss:hover { background: var(--loss-bg, rgba(0,44,95,.08)) !important; }
 .warn { box-shadow: inset 2px 0 0 var(--warn) !important; }
-.warn:hover { background: var(--warn-bg, rgba(245,158,11,.08)) !important; }
+.warn:hover { background: var(--warn-bg, rgba(163,107,79,.10)) !important; }
 
 /* Sticky 첫 번째 컬럼 */
 .stickyFirst th:first-child,
