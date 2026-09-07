@@ -61,6 +61,8 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
   const monthlyLength = summary?.monthly.length ?? 12;
 
   const monthlyOptions = useMemo(() => makeBarOptions(showLabels, labelColor, {
+    // 세로 막대 + align:'end'(막대 위) — 최고값 막대의 수치가 캔버스 상단에 잘리지 않게 여백 확보
+    layout: { padding: { top: 24 } },
     plugins: {
       datalabels: {
         anchor: 'end',

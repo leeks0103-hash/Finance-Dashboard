@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/Button';
 import styles from './TabNav.module.css';
 
-export type TabId = 'finance' | 'kpi' | 'performance';
+export type TabId = 'finance' | 'kpi' | 'performance' | 'satisfaction';
 
 interface Tab {
   id: TabId;
@@ -10,8 +10,9 @@ interface Tab {
 
 // 'finance'(구 재무 데이터 탭)는 /finance URL로 직접 접근은 유지하되 네비게이션에서는 제외 — 재무현황(실적 데이터 기반)으로 통합
 const TABS: Tab[] = [
-  { id: 'performance', label: '재무현황' },
-  { id: 'kpi',         label: 'KPI' },
+  { id: 'performance',  label: '경영실적/재무데이터' },
+  { id: 'kpi',          label: 'KPI/경영현황' },
+  { id: 'satisfaction', label: '강사만족도' },
 ];
 
 interface Props {

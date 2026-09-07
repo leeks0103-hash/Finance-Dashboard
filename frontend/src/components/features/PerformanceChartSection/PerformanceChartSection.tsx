@@ -114,9 +114,9 @@ const PerformanceChartSection = () => {
 
   const palette = useMemo(() => getChartPalette(dark), [dark]);
 
-  // "계획" 막대 — palette엔 없는 중립색(실적/원가 계열과 겹치지 않게)
+  // "계획" 막대 — 중립색(실적/원가 계열과 겹치지 않게). Sand/블루그레이 계열
   const planColor = useMemo(
-    () => dark ? 'rgba(148,163,184,0.55)' : 'rgba(100,116,139,0.45)',
+    () => dark ? 'rgba(159,179,196,0.55)' : 'rgba(107,98,87,0.45)',
     [dark],
   );
 

@@ -31,3 +31,6 @@ data/*.csv
 # 로그
 *.log
 scripts/*.log
+
+# 대시보드 서버 런타임 PID (dashboard_manager.py 가 기록)
+dashboard.pids.json

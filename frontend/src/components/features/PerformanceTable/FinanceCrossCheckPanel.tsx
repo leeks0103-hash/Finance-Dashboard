@@ -29,15 +29,16 @@ interface Props {
   onClose:     () => void;
 }
 
+// 현대 브랜드 9색 — 검토계열 Active Blue / 제안 Sky Blue / 계획·착수 Hyundai Blue / 중간 Gold / 완료 Black 파생
 const STAGE_COLOR: Record<string, string> = {
-  '사전검토': '#0dcaf0', '검토': '#0dcaf0',
-  '제안':     '#9ec5fe', '사업계획': '#198754',
-  '착수':     '#198754', '중간': '#ffc107',
-  '완료':     '#6f42c1',
+  '사전검토': '#00aad2', '검토': '#00aad2',
+  '제안':     '#aacae6', '사업계획': '#002c5f',
+  '착수':     '#002c5f', '중간': '#a36b4f',
+  '완료':     '#2b2b2b',
 };
 function stageColor(stage: string) {
   for (const [k, v] of Object.entries(STAGE_COLOR)) if (stage.includes(k)) return v;
-  return '#adb5bd';
+  return '#6b6257';
 }
 
 interface RowProps { r: Project; onCell: (text: string, copyable?: boolean) => void; }

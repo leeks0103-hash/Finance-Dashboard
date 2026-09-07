@@ -168,11 +168,11 @@
 
 /* 적절성 지표 등 소규모 척도인데 값이 비정상적으로 큰 행 — 원본 오입력 의심 경고 */
 .suspicious td:not(.spanCell) {
-  background: rgba(220,53,69,0.16) !important;
+  background: rgba(230,51,18,0.14) !important;
 }
 
 :global([data-theme="dark"]) .suspicious td:not(.spanCell) {
-  background: rgba(234,134,143,0.20) !important;
+  background: rgba(230,51,18,0.22) !important;
 }
 
 /* 프로젝트 구분 — rowspan 셀 배경 (항상 기본색) */

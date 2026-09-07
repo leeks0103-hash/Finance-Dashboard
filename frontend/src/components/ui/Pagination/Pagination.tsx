@@ -6,16 +6,19 @@ interface Props {
   page:           number;
   pageCount:      number;
   onPageChange:   (page: number) => void;
+  /** 한 번에 보여줄 페이지 번호 개수(블록 크기). 예: 10 → 1~10, 11~20 … */
   windowSize?:    number;
 }
 
-const Pagination = ({ page, pageCount, onPageChange, windowSize = 5 }: Props) => {
+const Pagination = ({ page, pageCount, onPageChange, windowSize = 10 }: Props) => {
   const pageIndex = page - 1;
 
+  // 슬라이딩(현재 페이지가 항상 가운데)이 아니라 블록 단위 —
+  // 1~10 페이지에선 항상 1~10만 보이고, 11페이지로 넘어가야 11~20이 보임.
   const pagerNums = useMemo(() => {
-    const half  = Math.floor(windowSize / 2);
-    const start = Math.max(0, Math.min(pageIndex - half, pageCount - windowSize));
-    return Array.from({ length: Math.min(windowSize, pageCount) }, (_, i) => start + i);
+    const start = Math.floor(pageIndex / windowSize) * windowSize;
+    const end   = Math.min(start + windowSize, pageCount);
+    return Array.from({ length: Math.max(0, end - start) }, (_, i) => start + i);
   }, [pageIndex, pageCount, windowSize]);
 
   if (pageCount <= 1) return null;

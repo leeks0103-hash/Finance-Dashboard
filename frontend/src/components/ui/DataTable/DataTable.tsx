@@ -32,7 +32,7 @@ import styles from './DataTable.module.css';
 function sortArrow(sorted: false | 'asc' | 'desc'): string {
   if (sorted === 'asc')  return '↑';
   if (sorted === 'desc') return '↓';
-  return '⇅';
+  return '↕';
 }
 
 // ── 드래그 가능 th — 모듈 스코프에서 정의해야 React가 컴포넌트 정체성 유지 ──

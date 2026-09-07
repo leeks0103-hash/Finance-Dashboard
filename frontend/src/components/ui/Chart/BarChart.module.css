@@ -6,6 +6,6 @@
 /* 다크모드 글로우 — 필요 시 활성화
 :global([data-theme="dark"]) .wrap canvas {
   filter:
-    drop-shadow(0 0 6px rgba(52, 211, 153, 0.45))
-    drop-shadow(0 0 18px rgba(0, 200, 255, 0.20));
+    drop-shadow(0 0 6px rgba(0, 170, 210, 0.40))
+    drop-shadow(0 0 18px rgba(0, 44, 95, 0.20));
 } */

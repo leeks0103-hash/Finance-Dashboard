@@ -120,7 +120,7 @@
   font-weight: 600;
   font-size: 0.84rem;
   text-align: center;
-  border-left: 3px solid var(--stage-color, #94a3b8);
+  border-left: 3px solid var(--stage-color, #6b6257);
   white-space: nowrap;
 }
 

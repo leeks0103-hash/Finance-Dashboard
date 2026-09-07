@@ -365,8 +365,10 @@ def api_perf_summary():
     pos_rate = rev[rev["profit_rate"] > 0]["profit_rate"]
     total = {
         "plan_initial":     float(rev["plan_initial"].sum()),
+        "plan_cost":        float(cost["plan_initial"].sum()),
         "actual_2025":      float(rev["actual_2025"].sum()),
         "jun_actual":       float(rev["jun_actual"].sum()),
+        "jun_cost_actual":  float(cost["jun_actual"].sum()),
         "jun_cost":         float(cost["jun_check_total"].sum()),
         "jun_check_total":  float(rev["jun_check_total"].sum()),
         "operating_profit": float(rev["operating_profit"].sum()),

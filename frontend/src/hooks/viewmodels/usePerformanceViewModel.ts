@@ -152,10 +152,10 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
       : null;
 
     return [
-      { label: '매출 계획 (최초)', value: `${animPlan.toFixed(1)}억원`, sub: `${total.count}개 프로젝트`, accent: 'brand', trendUp: true },
-      { label: `${PERF_MONTH} 실적 집계`,    value: `${animJun.toFixed(1)}억원`,    sub: `달성률 ${achieveRate}%`,          accent: junActualRaw >= planRaw ? 'profit' : 'warn', trendUp: momRevK !== null ? momRevK >= 0 : junActualRaw >= planRaw,  trend: momTag(momRevK) },
-      { label: `${PERF_MONTH} 점검 연간합계`, value: `${animCheck.toFixed(1)}억원`,  sub: `원가 ${formatEok(total.jun_cost)}원`, accent: 'purple', trendUp: true },
-      { label: '경상손익', value: `${animProfit.toFixed(1)}억원`, sub: `손익률 ${animRate.toFixed(1)}%`, accent: profitRaw >= 0 ? 'profit' : 'loss', trendUp: momProfK !== null ? momProfK >= 0 : profitRaw >= 0, trend: momTag(momProfK) },
+      { label: '매출/원가 계획', value: `${animPlan.toFixed(1)}억원`, sub: `원가 ${formatEok(total.plan_cost)}원 · ${total.count}개 프로젝트`, accent: 'brand', trendUp: true },
+      { label: '매출/원가 추정 실적',    value: `${animJun.toFixed(1)}억원`,    sub: `원가 ${formatEok(total.jun_cost_actual)}원 · 달성률 ${achieveRate}%`,          accent: junActualRaw >= planRaw ? 'profit' : 'warn', trendUp: momRevK !== null ? momRevK >= 0 : junActualRaw >= planRaw,  trend: momTag(momRevK) },
+      { label: '매출/원가 누계 실적', value: `${animCheck.toFixed(1)}억원`,  sub: `원가 ${formatEok(total.jun_cost)}원`, accent: 'purple', trendUp: true },
+      { label: '경상손익(당해년도 추정)', value: `${animProfit.toFixed(1)}억원`, sub: `손익률 ${animRate.toFixed(1)}%`, accent: profitRaw >= 0 ? 'profit' : 'loss', trendUp: momProfK !== null ? momProfK >= 0 : profitRaw >= 0, trend: momTag(momProfK) },
     ];
   }, [total, monthly, animPlan, animJun, animCheck, animProfit, animRate, planRaw, junActualRaw, junCheckRaw, profitRaw]);
 
