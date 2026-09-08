@@ -1,5 +1,46 @@
 # 세션 진행 기록
 
+## [2026-09-08] 브랜드 색상 재조정 + 실적현황 datalabel 복구 + 파트 계산 검증
+
+**1. 색상 재조정** (원가구성 갈색이 "안 예쁘다"는 피드백)
+- `costDirect`(원가구성 도넛 직접원가), `rate`(파트별 이익율 막대) — Hyundai Gold/Active Blue shade → **Hyundai Blue**로 통일 (`chartColors.ts`)
+- `PartAchievementBars` 70~100% 구간 — `--warn`(Gold) → **Sky Blue** (신규 토큰 `index.css` `--sky-blue: #AACAE6`, 라이트/다크 공통)
+- **부수 버그 발견·수정**: `DoughnutChart` datalabel이 고정 `labelColor`(다크 텍스트)를 썼는데, `costDirect`가 진한 Hyundai Blue가 되면서 직접원가 세그먼트 위에서 글씨가 안 보이게 됨 → 세그먼트 배경 밝기 기준으로 흰색/어두운색을 자동 선택하는 `arcTextColor()`로 교체
+
+**2. 실적현황 차트 수치(datalabel) 복구**
+- 이전 세션에서 `usePerformanceChartViewModel.ts`(파트별 계획vs실적, 파트별 이익율)와 `PerformanceChartSection.tsx`(이익액 토글뷰) 3곳이 `datalabels: { display: false }`로 **전역 '그래프 수치' 토글과 무관하게 하드코딩 OFF** 되어 있던 것 발견 → 원래 포맷터(`${v}억`/`${v}%`, anchor/align 포함)로 복구해 토글을 다시 따르게 함
+
+**3. 파트별 계산 로직 문서화 + 사용자 수동검증 지원**
+- 재무(`finance.py api_summary`)/실적현황(`performance.py api_perf_summary`) 파트별 집계가 정확히 어떤 엑셀 열(컬럼 인덱스/문자)을 어떻게 집계하는지 컬럼 단위로 설명
+- 실적현황은 프로젝트당 매출행+원가행 2행 구조라, `avg_profit_rate`가 행별 단순평균이 아니라 **금액 가중평균**(`SUM(경상손익)/SUM(점검연간합계)×100`)임을 재확인
+- 사용자가 "PM파트 매출계획 3,291,327" 오차를 직접 필터링해서 검증 — 원인은 K열(구분) 조건 없이 D열(파트)만 필터링해 매출행+원가행 V열이 합산된 것(2,252,630+1,038,697=3,291,327)으로 확인. K열="매출" 조건 추가 후 2,252,630(=대시보드 값)과 정확히 일치 검증 완료
+- 손익률(BG열) 단순평균도 검증: 특정 파트 BG열 114개 값 단순평균은 +0.44%인데 대시보드 가중평균은 -0.4%로 부호까지 다름 — 가중평균 방식이 맞다는 근거로 제시
+
+**4. `paths.py` 신설 — 데이터 경로 단일 관리**
+- 재무/KPI/실적 엑셀 경로 + PPT 원본 폴더 경로를 한 곳에서 관리(.env 우선, 없으면 `data/` 자동탐색). `finance.py`/`kpi.py`/`performance.py`/추출 스크립트가 전부 여기만 참조하도록 정리
+
+**5. 실적현황 시트 자동 최신월 대응**
+- `perfPeriod.ts` `PERF_YEAR`/`PERF_MONTH`를 하드코딩 → 현재월-1로 자동 계산
+- 8월 시트(`ver8.3_260901`) 컬럼맵 추가 (L열 "비딩여부" 신규 삽입으로 이후 컬럼 전체가 +1 밀림 — 시프트 공식 대신 실제 헤더 재확인 후 직접 매핑)
+- `jun_actual`(당월 실적) 계산 보정: 엑셀 원본 AR열이 이름과 달리 "1~12월 전체(미래 추정 포함)" 값이라 경과월(chk_m01~해당월)만 재합산하도록 수정
+
+**6. 파트 표시 순서/이름 통일**
+- `frontend/src/utils/partOrder.ts` 신설(`sortParts`/`sortByPart`) — 차트·테이블·필터 전반에서 파트 정렬 기준 통일
+- 파트 앞 원문자(①~⑦) 제거 로직을 `utils/format.ts`의 `stripPartPrefix`로 통합, 중복 정규식 제거
+
+**7. DataTable — 프로젝트 단위 행 병합 지원**
+- `mergeRowsByKey`(project_code 기준 매출+원가 2행 병합 표시) + `getRowNumber`(그룹 일련번호) + `initialColumnVisibility`(컬럼 기본 숨김) 신규 지원, 실적현황 테이블에 적용
+- 실적현황 라벨 정리: "N월 실적"→"누계 실적(1~N월)", "N월 점검 연간"→"추정 실적(연간)"
+
+**커밋**: `e88c2c5` (push 완료)
+
+**다음 세션 과제**
+- 원가구성 도넛이 이제 Hyundai Blue(직접원가)+Active Blue(인건비)+Sky Blue(관리비) 파랑 계열 3톤이 됨 — 라이트/다크 육안으로 구분감 확인 필요
+- `diagnostic.py`(로컬 PPT 3개 하드코딩 진단 스크립트), `playgrounds/`(참고용 정적 목업) — 이번에도 커밋 제외, 필요 여부 정리 검토
+- 재무 비고 검색 안 됨 문제 (여러 세션째 이월, 계속 보류)
+
+---
+
 ## [2026-09-07] 현대 브랜드 9색 전면 적용 + UI 텍스트/차트/페이지네이션 정비 + dashboard_manager 재작성
 
 **1. 현대자동차 브랜드 9색 전면 적용**
