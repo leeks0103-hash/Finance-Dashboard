@@ -123,7 +123,7 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
     const monthly = summary.monthly;
     const parts   = sortParts(Object.keys(summary.by_part));
     const total   = summary.total;
-    const progressEntries = sortProgress(Object.keys(summary.by_progress));
+    const progressEntries = sortProgress(Object.keys(summary.by_progress ?? {}));
 
     return {
       isEmpty: parts.length === 0 && monthly.length === 0,

@@ -27,7 +27,7 @@ const PartAchievementBars = ({ rows, month, info }: Props) => {
   return (
     <div className={styles.sectionGroup}>
       <div className={styles.header}>
-        <span className={styles.title}>파트별 달성 현황 ({month} 기준)</span>
+        <span className={styles.title}>파트별 매출 달성 현황 ({month}기준)</span>
         {info && <InfoButton>{info}</InfoButton>}
         <span className={styles.legend}>
           {RATE_BANDS.map(b => (

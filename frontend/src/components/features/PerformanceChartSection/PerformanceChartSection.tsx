@@ -96,7 +96,7 @@ const PerformanceChartSection = () => {
   const dark = theme === 'dark';
 
   // 파트별 이익율 카드 — 토글 켜면 이익율(%) 대신 이익액(억원) 표시
-  const [showProfitAmount, setShowProfitAmount] = useState(false);
+  const [showProfitAmount, setShowProfitAmount] = useState(true);
 
   const { labelColor, gridColor, tickColor } = getChartTheme(dark);
 
@@ -236,9 +236,9 @@ const PerformanceChartSection = () => {
     profitRate: () => (
       <ChartCard>
         <ChartCard.Title>
-          <span className={styles.chartTitle}>파트별 이익율(%)<InfoButton>{INFO_PROFIT_RATE}</InfoButton></span>
+          <span className={styles.chartTitle}>파트별 경상이익<InfoButton>{INFO_PROFIT_RATE}</InfoButton></span>
           <span className={styles.toggleGroup}>
-            <span className={styles.badge}>{showProfitAmount ? '이익액' : '이익율'}</span>
+            <span className={styles.badge}>{showProfitAmount ? '경상이익' : '평균 이익율'}</span>
             <Toggle checked={showProfitAmount} onChange={() => setShowProfitAmount(v => !v)} danger={showProfitAmount} />
           </span>
         </ChartCard.Title>
@@ -257,7 +257,7 @@ const PerformanceChartSection = () => {
     ),
     costBreakdown: () => (
       <ChartCard>
-        <ChartCard.Title><span className={styles.chartTitle}>원가 구성<InfoButton>{INFO_COST_BREAKDOWN}</InfoButton></span></ChartCard.Title>
+        <ChartCard.Title><span className={styles.chartTitle}>프로젝트 평균 원가비율<InfoButton>{INFO_COST_BREAKDOWN}</InfoButton></span></ChartCard.Title>
         <ChartCard.Body>
           <DoughnutChart
             labels={vm.costBreakdown.labels}
