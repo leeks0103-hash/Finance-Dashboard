@@ -87,7 +87,8 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
   }), [showLabels, labelColor]);
 
   const profitRateOptions = useMemo(() => makeBarOptions(showLabels, labelColor, {
-    layout: { padding: { top: 24 } },
+    // bottom — 마이너스 막대는 수치가 막대 아래에 찍히므로 잘리지 않게 여백 확보
+    layout: { padding: { top: 24, bottom: 24 } },
     plugins: {
       datalabels: {
         anchor: 'end',

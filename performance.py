@@ -441,8 +441,20 @@ def api_perf_data():
 
     # 묶음(프로젝트) 일련번호 — 매출/원가 2행이 한 묶음이라 행 번호로는 NO.가 어긋난다.
     # 페이지를 자르기 **전에** 전체 기준으로 매겨야 2페이지에서도 번호가 이어짐.
+    # project_code 단독 비교는 "생성예정"/"드롭"/"미생성" 같은 placeholder 코드가 서로
+    # 다른 프로젝트끼리 같은 텍스트를 공유해서(같은 파트 안에 연달아 있으면 특히) 엉뚱하게
+    # 한 묶음으로 잡히는 문제가 있음 — 그래서 placeholder 코드만 project_name까지 같이 본다.
+    #
+    # 반대로 정식 코드(영문 1자 + 숫자 10자 이상)에 project_name까지 묶으면, 원본 엑셀에서
+    # 매출행/원가행 프로젝트명이 한 글자라도 다르게 입력된 경우(예: H093600126020002 —
+    # "…홍보 자료 개발" vs "…안내 자료 개발") 같은 프로젝트가 두 묶음으로 쪼개진다.
+    # 정식 코드를 공유하는 서로 다른 프로젝트(E078600126010001 등 4건)는 시트에서 멀리
+    # 떨어져 있고, 묶음은 **연속된 행**끼리만 만들어지므로 코드만으로 묶어도 섞이지 않는다.
     if len(rows):
-        rows["_group_no"] = (rows["project_code"] != rows["project_code"].shift()).cumsum()
+        code = rows["project_code"].astype(str).str.strip()
+        is_real_code = code.str.fullmatch(r"[A-Za-z]\d{10,}").fillna(False)
+        group_key = code.where(is_real_code, code + "␟" + rows["project_name"].astype(str))
+        rows["_group_no"] = (group_key != group_key.shift()).cumsum()
 
     try:
         page      = max(1, int(request.args.get("page", 1)))

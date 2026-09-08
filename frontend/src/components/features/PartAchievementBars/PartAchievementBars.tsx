@@ -15,7 +15,7 @@ interface Props {
 const RATE_BANDS = [
   { min: 100, color: 'var(--profit)', label: '100% 이상' },
   { min: 70,  color: 'var(--sky-blue)', label: '70~100%' },
-  { min: -Infinity, color: 'var(--loss)', label: '70% 미만' },
+  { min: -Infinity, color: 'var(--warn)', label: '70% 미만' },   // Hyundai Gold (PMS 876C)
 ];
 
 const barColor = (rate: number) =>

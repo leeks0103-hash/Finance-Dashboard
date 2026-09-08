@@ -124,7 +124,7 @@
   text-align: right;
   font-weight: 600;
   color: var(--text-muted);
-  background: var(--bg);
+  background: var(--bg-header);
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
 }
@@ -146,7 +146,7 @@
 
 .table tbody tr:last-child td { border-bottom: none; }
 
-.table tbody tr:hover { background: var(--bg); }
+.table tbody tr:hover { background: var(--bg-subtle); }
 
 .partCell {
   text-align: left !important;
@@ -191,7 +191,7 @@
   transition: background 0.12s ease;
 }
 .partRow:last-child { border-bottom: none; }
-.partRow:hover { background: var(--bg); }
+.partRow:hover { background: var(--bg-subtle); }
 
 .partRowLoss { box-shadow: inset 3px 0 0 var(--loss); }
 
@@ -228,7 +228,7 @@
   grid-template-columns: 160px repeat(6, 1fr) 50px;
   gap: 0;
   padding: 7px 20px;
-  background: var(--bg);
+  background: var(--bg-header);
   border-bottom: 2px solid var(--border);
 }
 

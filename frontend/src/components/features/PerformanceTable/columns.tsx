@@ -112,14 +112,7 @@ export const PERF_VISIBLE: string[] = [
   'chk_cost_rate', 'chk_course', 'chk_session', 'chk_participant', 'change_note',
 ];
 
-// 아직 오지 않은 달(달력 기준)의 월별 컬럼은 기본 숨김 — 매월 자동으로 한 칸씩 열림
-const CURRENT_MONTH = new Date().getMonth() + 1;
-const _visibleSet = new Set(
-  PERF_VISIBLE.filter(id => {
-    const m = /^chk_m(\d{2})$/.exec(id);
-    return m ? Number(m[1]) <= CURRENT_MONTH : true;
-  }),
-);
+const _visibleSet = new Set(PERF_VISIBLE);
 
 const _colId = (c: unknown) => (c as { accessorKey: string }).accessorKey;
 

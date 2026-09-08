@@ -20,6 +20,17 @@ import {
 } from '@/utils/infoTexts';
 import styles from './PerformancePage.module.css';
 
+// 프로젝트 병합 키 — 백엔드 performance.py `_group_no` 와 같은 규칙을 유지해야 함.
+// 정식 코드(영문 1자 + 숫자 10자 이상)는 코드만으로 묶는다: 매출행/원가행 프로젝트명이
+// 원본 엑셀에서 다르게 입력된 경우(H093600126020002 "홍보 자료" vs "안내 자료")에도 한 묶음이 되도록.
+// 정식 코드가 아닌 placeholder("생성예정"/"드롭"/"미생성" 등)는 서로 다른 프로젝트가 같은
+// 텍스트를 공유하므로 project_name까지 함께 봐야 한다.
+const REAL_CODE = /^[A-Za-z]\d{10,}$/;
+const perfGroupKey = (row: PerfProject) => {
+  const code = String(row.project_code ?? '').trim();
+  return REAL_CODE.test(code) ? code : `${code}␟${row.project_name}`;
+};
+
 // 파트별 실적 컬럼 — 모듈 스코프에서 한 번만 생성 (stable reference)
 const hp = createColumnHelper<PerfPartRow>();
 const byPartColumns = [
@@ -145,7 +156,8 @@ const PerformancePage = () => {
             }
             hideableColumns={PERF_HIDEABLE_COLS}
             initialColumnVisibility={PERF_DEFAULT_HIDDEN}
-            mergeRowsByKey={(row) => row.project_code}
+            // 백엔드 _group_no와 반드시 같은 규칙이어야 병합 묶음과 NO.가 어긋나지 않음
+            mergeRowsByKey={perfGroupKey}
             getRowNumber={(row) => row._group_no}
             hint="행의 아무 셀이나 더블클릭하면 해당 프로젝트의 재무 데이터가 아래에 펼쳐집니다."
             serverPagination={vm.serverPagination}

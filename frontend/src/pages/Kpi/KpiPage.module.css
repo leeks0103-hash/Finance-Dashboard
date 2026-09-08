@@ -21,7 +21,7 @@
 .path  {
   display: inline-block;
   padding: 8px 16px;
-  background: var(--bg);
+  background: var(--bg-subtle);
   border: 1px solid var(--border);
   border-radius: 8px;
   font-size: 12px;
@@ -118,7 +118,7 @@
   text-align: right;
   font-weight: 600;
   color: var(--text-muted);
-  background: var(--bg);
+  background: var(--bg-header);
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
 }
@@ -131,7 +131,7 @@
   color: var(--text);
 }
 .table tbody tr:last-child td { border-bottom: none; }
-.table tbody tr:hover { background: var(--bg); }
+.table tbody tr:hover { background: var(--bg-subtle); }
 
 .cellProfit { color: var(--profit); font-weight: 600; }
 .cellWarn   { color: var(--warn); }

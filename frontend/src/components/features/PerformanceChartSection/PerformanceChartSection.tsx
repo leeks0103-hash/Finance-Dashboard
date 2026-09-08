@@ -26,6 +26,16 @@ const LS_CHART_ORDER = 'performance-chart-order';
 // 항상 한 줄 전체를 차지하는 차트 — 드래그로 순서가 바뀌어도 이 카드가 위치한 줄은 전체 폭 유지
 const FULL_ROW_ID = 'monthly';
 
+// 파트별 이익율 카드 — 이익율(%)·이익액(억) 두 모드가 완전히 같은 라벨 스타일을 쓰도록 한 곳에서 관리.
+// align을 부호에 따라 뒤집어(플러스=막대 위 / 마이너스=막대 아래) 라벨이 막대 위에 얹혀
+// 진한 글씨가 진한 막대색에 묻히는 것을 방지 — 항상 카드 배경 위에 그려진다
+const PROFIT_LABEL = {
+  anchor: 'end' as const,
+  align:  (ctx: { dataset: { data: unknown[] }; dataIndex: number }) =>
+    (Number(ctx.dataset.data[ctx.dataIndex]) >= 0 ? 'top' : 'bottom'),
+  offset: 2,
+};
+
 // 팔레트의 rgba(...) 문자열 알파값만 교체 — 미래 월/보조 계열 흐림 처리용
 const fadeAlpha = (rgba: string, alpha: number) => rgba.replace(/[\d.]+\)$/, `${alpha})`);
 
@@ -150,7 +160,12 @@ const PerformanceChartSection = () => {
 
   const profitRateOptions = useMemo(() => ({
     ...vm.profitRate.options,
-    plugins: { ...vm.profitRate.options.plugins, legend: { display: false } },
+    plugins: {
+      ...vm.profitRate.options.plugins,
+      legend: { display: false },
+      // 이익율/이익액 두 모드가 같은 라벨 스타일·위치를 쓰도록 통일 (색은 makeBarOptions의 labelColor)
+      datalabels: { ...vm.profitRate.options.plugins?.datalabels, ...PROFIT_LABEL },
+    },
     scales: {
       ...vm.profitRate.options.scales,
       y: {
@@ -163,15 +178,10 @@ const PerformanceChartSection = () => {
 
   const profitAmountOptions = useMemo(() => ({
     ...makeBarOptions(vm.showLabels, labelColor, {
-      layout: { padding: { top: 24 } },
+      layout: { padding: { top: 24, bottom: 24 } },
       plugins: {
         legend: { display: false },
-        datalabels: {
-          anchor: 'end',
-          align:  'top',
-          offset: 2,
-          formatter: (v: number) => `${v}억`,
-        },
+        datalabels: { ...PROFIT_LABEL, formatter: (v: number) => `${v}억` },
       },
     }),
     scales: { ...scaleOverride, y: { ...scaleOverride.y, ticks: { ...scaleOverride.y.ticks, callback: (v: string | number) => v + '억' } } },

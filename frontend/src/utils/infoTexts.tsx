@@ -119,7 +119,7 @@ export const INFO_ACHIEVEMENT_BARS = (
   <InfoTable rows={[
     ['출처',   '실적현황 엑셀'],
     ['계산',   `${PERF_COL.actualRange} ÷ ${PERF_COL.planInitial}열(매출 계획) × 100`],
-    ['색상',   '100% 이상 초록 / 70~99% 보라 / 70% 미만 빨강'],
+    ['색상',   '100% 이상 Hyundai Blue / 70~100% Sky Blue / 70% 미만 Hyundai Gold'],
     ['필터',   '파트 · 팀 필터 적용'],
   ]} />
 );

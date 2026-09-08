@@ -28,10 +28,10 @@
   --purple:       #5A7C9E;   /* 4번째 시리즈·rate 계열 — Blue↔Sky 중간 블루그레이 (보라 아님) */
   --purple-bg:    rgba(90,124,158,0.12);
 
-  --surface:      #FFFFFF;   /* White */
-  --bg:           #F6F3F2;   /* Hyundai Light Sand */
-  --bg-subtle:    #E4DCD3;   /* Hyundai Sand */
-  --bg-header:    #E4DCD3;   /* Hyundai Sand */
+  --surface:      #FFFFFF;   /* White — 카드 */
+  --bg:           #FFFFFF;   /* White — 페이지 배경 */
+  --bg-subtle:    #EDE8E4;   /* Light Sand↔Sand 파생 — 행 호버·칩·합계행 */
+  --bg-header:    #F6F3F2;   /* Hyundai Light Sand (PMS Warm Gray 1C 30%) — 테이블 헤더 */
   --border:       #D9CEC1;   /* Sand 파생 — 어둡게 */
   --border-table: #E0D7CC;   /* Sand 파생 */
   --border-focus: #002C5F;
