@@ -1,7 +1,7 @@
 import { Doughnut } from 'react-chartjs-2';
 import { Chart, ArcElement, Tooltip, Legend } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
-import styles from './BarChart.module.css'; // wrap 클래스 공유
+import styles from './DoughnutChart.module.css';
 
 Chart.register(ArcElement, Tooltip, Legend, ChartDataLabels);
 
@@ -10,7 +10,6 @@ interface Props {
   data:         number[];
   colors?:      string[];
   showLabels?:  boolean;
-  labelColor?:  string;
 }
 
 // 현대 브랜드 9색 — Hyundai Blue / Active Blue / Sky Blue / Gold
@@ -37,64 +36,62 @@ const DoughnutChart = ({
   data,
   colors = DEFAULT_COLORS,
   showLabels = false,
-  labelColor = '#1a1a1a',
-}: Props) => (
-  <div className={styles.wrap}>
-  <Doughnut
-    data={{
-      labels,
-      datasets: [{ data, backgroundColor: colors, borderWidth: 0 }],
-    }}
-    options={{
-      responsive: true,
-      maintainAspectRatio: false,
-      animation: { duration: 700, easing: 'easeInOutQuart' },
-      // 얇은 세그먼트의 % 라벨이 캔버스 밖으로 나가 잘리지 않도록 여백 확보 (ChartCard가 overflow:hidden)
-      layout: { padding: 12 },
-      plugins: {
-        legend: {
-          position: 'bottom',
-          labels: {
-            color: labelColor,
-            font: { size: 13 },
-            generateLabels: (chart) => {
-              const ds   = chart.data.datasets[0];
-              const nums = ds.data as number[];
-              const total = nums.reduce((a, b) => a + b, 0);
-              const bgs   = ds.backgroundColor as string[];
-              return (chart.data.labels as string[]).map((label, i) => ({
-                text:        `${label}  ${total > 0 ? ((nums[i] / total) * 100).toFixed(1) : 0}%`,
-                fillStyle:   bgs[i],
-                strokeStyle: bgs[i],
-                fontColor:   labelColor,  // generateLabels에서 텍스트 색 직접 지정
-                lineWidth:   0,
-                hidden:      false,
-                index:       i,
-                datasetIndex: 0,
-              }));
+}: Props) => {
+  const total = data.reduce((a, b) => a + b, 0);
+
+  return (
+    <div className={styles.wrap}>
+      <div className={styles.canvasBox}>
+        <Doughnut
+          data={{
+            labels,
+            datasets: [{ data, backgroundColor: colors, borderWidth: 0 }],
+          }}
+          options={{
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 700, easing: 'easeInOutQuart' },
+            // 얇은 세그먼트의 % 라벨이 캔버스 밖으로 나가 잘리지 않도록 여백 확보 (ChartCard가 overflow:hidden)
+            layout: { padding: 12 },
+            plugins: {
+              // 범례는 아래 2열 그리드로 직접 그린다 (Chart.js 기본 범례는 개수에 따라 줄이 어긋남)
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: (ctx) => `${ctx.label}: ${(ctx.parsed as number).toFixed(1)}억원`,
+                },
+              },
+              datalabels: {
+                display: showLabels,
+                color:   (ctx) => arcTextColor((ctx.dataset.backgroundColor as string[])[ctx.dataIndex]),
+                font:    { size: 12, weight: 'bold' },
+                textAlign: 'center',
+                formatter: (value: number, ctx) => {
+                  const sum = (ctx.dataset.data as number[]).reduce((a, b) => a + b, 0);
+                  if (!sum || value === 0) return '';
+                  return `${((value / sum) * 100).toFixed(1)}%`;
+                },
+              },
             },
-          },
-        },
-        tooltip: {
-          callbacks: {
-            label: (ctx) => `${ctx.label}: ${(ctx.parsed as number).toFixed(1)}억원`,
-          },
-        },
-        datalabels: {
-          display: showLabels,
-          color:   (ctx) => arcTextColor((ctx.dataset.backgroundColor as string[])[ctx.dataIndex]),
-          font:    { size: 12, weight: 'bold' },
-          textAlign: 'center',
-          formatter: (value: number, ctx) => {
-            const total = (ctx.dataset.data as number[]).reduce((a, b) => a + b, 0);
-            if (!total || value === 0) return '';
-            return `${((value / total) * 100).toFixed(1)}%`;
-          },
-        },
-      },
-    }}
-  />
-  </div>
-);
+          }}
+        />
+      </div>
+
+      {labels.length > 0 && (
+        <ul className={styles.legend}>
+          {labels.map((label, i) => (
+            <li key={label} className={styles.item}>
+              <i className={styles.dot} style={{ background: (colors[i] ?? DEFAULT_COLORS[i % DEFAULT_COLORS.length]) }} />
+              <span className={styles.name} title={label}>{label}</span>
+              <span className={styles.pct}>
+                {total > 0 ? ((data[i] / total) * 100).toFixed(1) : '0.0'}%
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+};
 
 export default DoughnutChart;

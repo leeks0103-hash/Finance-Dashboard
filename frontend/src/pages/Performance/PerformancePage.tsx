@@ -159,7 +159,9 @@ const PerformancePage = () => {
             // 백엔드 _group_no와 반드시 같은 규칙이어야 병합 묶음과 NO.가 어긋나지 않음
             mergeRowsByKey={perfGroupKey}
             getRowNumber={(row) => row._group_no}
-            hint="행의 아무 셀이나 더블클릭하면 해당 프로젝트의 재무 데이터가 아래에 펼쳐집니다."
+            // 20자 넘는 셀은 클릭 시 전체 내용 팝업(오버레이)이 먼저 떠서 더블클릭이 td까지 도달하지 못함 —
+            // 안내 문구도 실제 동작(짧은 셀만 펼침)에 맞춰 적어 둔다
+            hint="프로젝트코드·담당자처럼 짧은 셀을 더블클릭하면 해당 프로젝트의 재무 데이터가 아래에 펼쳐집니다. (프로젝트명·비고처럼 글이 긴 셀은 클릭하면 전체 내용 팝업이 열립니다)"
             serverPagination={vm.serverPagination}
             serverSearch={vm.serverSearch}
             searchPlaceholder="프로젝트코드·이름·담당자 검색…"
@@ -167,6 +169,8 @@ const PerformancePage = () => {
             emptyTitle="검색 결과 없음"
             emptyDescription="다른 검색어나 필터 조건을 시도해보세요."
             storageKey="performance-project"
+            // 글씨 많은 컬럼(프로젝트명·사유·중복점검 등) 기본 폭을 넓히면서 저장된 폭 1회 무효화
+            sizeVersion={2}
             expandableRow={{
               getKey: (row) => String(row._row_num),
               excludeColumns: ['filename'],
