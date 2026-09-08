@@ -26,14 +26,20 @@ const LS_CHART_ORDER = 'performance-chart-order';
 // 항상 한 줄 전체를 차지하는 차트 — 드래그로 순서가 바뀌어도 이 카드가 위치한 줄은 전체 폭 유지
 const FULL_ROW_ID = 'monthly';
 
-// 파트별 이익율 카드 — 이익율(%)·이익액(억) 두 모드가 완전히 같은 라벨 스타일을 쓰도록 한 곳에서 관리.
+// 파트별 경상이익 카드 전용 여백 — 그래프 면적을 최대한 넓게 쓰기 위해 직접 지정한다.
+// makeBarOptions의 최소 여백(right 58 / top 30)은 가로 막대 차트가 막대 오른쪽에 수치를 찍기
+// 위한 값이라 세로 막대인 이 차트에서는 낭비된다. resolvePadding이 max()로만 키우므로 여기서 덮어씀.
+// bottom은 마이너스 막대의 수치가 막대 아래에 찍히는 것만 감당하면 되므로 최소로 둔다.
+const PROFIT_PADDING = { top: 22, right: 12, bottom: 12, left: 4 };
+
+// 이익율(%)·이익액(억) 두 모드가 완전히 같은 라벨 스타일을 쓰도록 한 곳에서 관리.
 // align을 부호에 따라 뒤집어(플러스=막대 위 / 마이너스=막대 아래) 라벨이 막대 위에 얹혀
 // 진한 글씨가 진한 막대색에 묻히는 것을 방지 — 항상 카드 배경 위에 그려진다
 const PROFIT_LABEL = {
   anchor: 'end' as const,
   align:  (ctx: { dataset: { data: unknown[] }; dataIndex: number }) =>
     (Number(ctx.dataset.data[ctx.dataIndex]) >= 0 ? 'top' : 'bottom'),
-  offset: 2,
+  offset: 6,   // 막대 끝과 수치 사이 간격 — 2는 붙어 보여서 키움 (위/아래 동일 적용)
 };
 
 // 팔레트의 rgba(...) 문자열 알파값만 교체 — 미래 월/보조 계열 흐림 처리용
@@ -160,6 +166,7 @@ const PerformanceChartSection = () => {
 
   const profitRateOptions = useMemo(() => ({
     ...vm.profitRate.options,
+    layout: { padding: PROFIT_PADDING },
     plugins: {
       ...vm.profitRate.options.plugins,
       legend: { display: false },
@@ -178,12 +185,12 @@ const PerformanceChartSection = () => {
 
   const profitAmountOptions = useMemo(() => ({
     ...makeBarOptions(vm.showLabels, labelColor, {
-      layout: { padding: { top: 24, bottom: 24 } },
       plugins: {
         legend: { display: false },
         datalabels: { ...PROFIT_LABEL, formatter: (v: number) => `${v}억` },
       },
     }),
+    layout: { padding: PROFIT_PADDING },   // makeBarOptions의 최소 여백을 통째로 대체
     scales: { ...scaleOverride, y: { ...scaleOverride.y, ticks: { ...scaleOverride.y.ticks, callback: (v: string | number) => v + '억' } } },
   }), [vm.showLabels, labelColor, scaleOverride]);
 
