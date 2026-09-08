@@ -1,0 +1,62 @@
+/* 도넛 + 커스텀 범례 — Chart.js 기본 범례는 항목이 한 줄로 흐르면서
+   개수에 따라 3+1처럼 어긋나 보여서, 2열 그리드로 직접 그린다 */
+.wrap {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.canvasBox {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.legend {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 18px;
+  margin: 10px 2px 0;
+  padding: 10px 2px 0;
+  border-top: 1px solid var(--border);
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  font-size: 0.78rem;
+  line-height: 1.3;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.name {
+  flex: 1;
+  min-width: 0;
+  color: var(--text-sub);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pct {
+  flex-shrink: 0;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 카드가 좁아지면 1열로 — 이름이 잘리는 것보다 세로로 쌓이는 편이 읽기 좋다 */
+@media (max-width: 480px) {
+  .legend { grid-template-columns: 1fr; }
+}

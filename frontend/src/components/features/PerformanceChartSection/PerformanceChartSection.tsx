@@ -267,7 +267,6 @@ const PerformanceChartSection = () => {
             data={vm.costBreakdown.values}
             colors={doughnutColors}
             showLabels={vm.showLabels}
-            labelColor={labelColor}
           />
         </ChartCard.Body>
       </ChartCard>
