@@ -6,11 +6,11 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import PerformanceChartSection from '@/components/features/PerformanceChartSection/PerformanceChartSection';
 import PerformanceInsightSection from '@/components/features/PerformanceInsightSection';
 import PartAchievementBars from '@/components/features/PartAchievementBars/PartAchievementBars';
-import { perfColumns, PERF_HIDEABLE_COLS } from '@/components/features/PerformanceTable/columns';
+import { perfColumns, PERF_HIDEABLE_COLS, PERF_DEFAULT_HIDDEN } from '@/components/features/PerformanceTable/columns';
 import FinanceCrossCheckPanel from '@/components/features/PerformanceTable/FinanceCrossCheckPanel';
 import FinanceSearchResults from '@/components/features/PerformanceTable/FinanceSearchResults';
 import type { PerfProject } from '@/types/performance.types';
-import { PERF_YEAR, PERF_MONTH } from '@/utils';
+import { PERF_YEAR, PERF_MONTH, stripPartPrefix } from '@/utils';
 import {
   INFO_ACHIEVEMENT_BARS,
   INFO_PART_TABLE,
@@ -25,13 +25,13 @@ const hp = createColumnHelper<PerfPartRow>();
 const byPartColumns = [
   hp.accessor('part', {
     header: '파트', enableSorting: true,
-    cell: i => i.getValue().replace(/^[①-⑦]\s*/, ''),
+    cell: i => stripPartPrefix(i.getValue()),
   }),
   hp.accessor('planInitial',   { header: '매출 계획',    enableSorting: true }),
-  hp.accessor('junActual',     { header: `${PERF_MONTH} 실적`,     enableSorting: true }),
-  hp.accessor('junCost',       { header: `${PERF_MONTH} 원가` }),
+  hp.accessor('junActual',     { header: `누계 실적 (1~${PERF_MONTH})`, enableSorting: true }),
+  hp.accessor('junCost',       { header: `누계 원가 (1~${PERF_MONTH})` }),
   hp.accessor('costRateStr',   { header: '원가율' }),
-  hp.accessor('junCheckTotal', { header: `${PERF_MONTH} 점검 연간` }),
+  hp.accessor('junCheckTotal', { header: '추정 실적 (연간)' }),
   hp.accessor('operatingProfit', {
     header: '경상손익',
     cell: i => {
@@ -138,9 +138,16 @@ const PerformancePage = () => {
             isFetching={vm.isFetching}
             stickyFirstCol
             getRowVariant={(row) =>
-              row.operating_profit < 0 ? 'loss' : row.profit_rate < 5 ? 'warn' : ''
+              // 손익 지표는 매출 행에만 있음 — 원가 행은 0이라 그냥 두면 전부 warn으로 칠해짐
+              row.category !== '매출' ? ''
+                : row.operating_profit < 0 ? 'loss'
+                : row.profit_rate < 5 ? 'warn' : ''
             }
             hideableColumns={PERF_HIDEABLE_COLS}
+            initialColumnVisibility={PERF_DEFAULT_HIDDEN}
+            mergeRowsByKey={(row) => row.project_code}
+            getRowNumber={(row) => row._group_no}
+            hint="행의 아무 셀이나 더블클릭하면 해당 프로젝트의 재무 데이터가 아래에 펼쳐집니다."
             serverPagination={vm.serverPagination}
             serverSearch={vm.serverSearch}
             searchPlaceholder="프로젝트코드·이름·담당자 검색…"

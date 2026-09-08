@@ -21,10 +21,10 @@ perf_bp = Blueprint("performance", __name__)
 _BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 _DATA_DIR  = os.path.join(_BASE_DIR, "data")
 
-PERF_EXCEL_PATH = os.environ.get(
-    "PERF_EXCEL_PATH",
-    os.path.join(_DATA_DIR, "26년 사업계획 통합관리 파일_ver7.11_260805_실적 추정 요청_종합1_피드백_20260811.xlsx"),
-)
+# 실적 엑셀 경로는 paths.py 한 곳에서 관리 (.env: PERF_EXCEL_PATH, 없으면 data/ 최신 자동)
+from paths import resolve_perf_excel
+
+PERF_EXCEL_PATH = resolve_perf_excel()
 
 _PERF_SHEET_RE = re.compile(r"^(\d{4})년 \((\d+)월 (추정|집계)\)$")
 
@@ -135,9 +135,87 @@ _PERF_COL_MAP_JUL = {
 _PERF_COL_MAP_JUL[40] = "jun_actual"
 _PERF_COL_MAP_JUL[41] = "jun_cost_rate"
 
+# 8월 시트(ver8.3_260901): L열 "비딩여부"가 신규 삽입돼 K 이후가 통째로 +1 밀림 →
+# 시프트 공식으로 유도하지 말고 실제 헤더를 그대로 옮겨 적는다.
+# (scripts/check_perf_headers.py 또는 헤더 덤프로 검증 — 2026-09-07)
+_PERF_COL_MAP_AUG = {
+    1:  "tech_category",      # B 미래기술 분류
+    2:  "team",               # C 팀
+    3:  "part",               # D 파트
+    4:  "use_yn",             # E 2026년 사용여부
+    5:  "biz_division",       # F 사업 분류
+    6:  "biz_type",           # G 사업구분
+    7:  "customer_type",      # H 고객구분
+    8:  "biz_plan",           # I 사업계획
+    9:  "progress",           # J 진행
+    10: "category",           # K 구분(매출/원가)
+    # 11(L) "비딩여부" — 8월 시트 신규 컬럼, 대시보드 미사용
+    12: "edu_type",           # M 교육형태
+    13: "budget_code",        # N 예산코드
+    14: "project_code",       # O 프로젝트코드
+    15: "biz_type2",          # P 사업유형
+    16: "budget_unit",        # Q 예산단위
+    17: "project_name",       # R 26년 프로젝트명
+    19: "manager",            # T 담당자
+    20: "actual_2025",        # U 2025년
+    21: "plan_initial",       # V 최초사업계획
+    22: "plan_cost_rate",     # W (원가율)
+    23: "course_count",       # X 과정
+    24: "session_count",      # Y 차수
+    25: "participant_count",  # Z 인원
+    41: "jun_est",            # AP 7월 기준 실적 집계 현황
+    42: "jun_est_rate",       # AQ (원가율)
+    43: "jun_actual",         # AR 8월 결산 기준 실적 집계 현황 ← 최신월
+    44: "jun_cost_rate",      # AS (원가율)
+    45: "cost_rate_diff",     # AT 원가율 차이 (전월비)
+    47: "est_vs_actual",      # AV 당월 추정 대비 실적
+    48: "cost_rate_reason",   # AW 원가율 차이 사유
+    49: "plan_diff_amount",   # AX 차이금액 (최초 계획 vs 연간 추정)
+    50: "plan_diff_rate",     # AY 증감율
+    51: "plan_diff_reason",   # AZ 사유
+    52: "profit_gross",       # BA 매출이익
+    53: "cost_direct",        # BB 직접원가
+    54: "cost_labor",         # BC 인건비
+    55: "cost_overhead",      # BD 공통원가
+    56: "cost_mgmt",          # BE 관리비
+    57: "operating_profit",   # BF 경상손익
+    58: "profit_rate_raw",    # BG 손익률
+    59: "jun_check_total",    # BH 8월 점검 / 합계
+    60: "chk_m01", 61: "chk_m02", 62: "chk_m03", 63: "chk_m04",   # BI~BL
+    64: "chk_m05", 65: "chk_m06", 66: "chk_m07", 67: "chk_m08",   # BM~BP
+    68: "chk_m09", 69: "chk_m10", 70: "chk_m11", 71: "chk_m12",   # BQ~BT
+    72: "chk_cost_rate",      # BU (원가율)
+    73: "chk_course",         # BV 과정
+    74: "chk_session",        # BW 차수
+    75: "chk_participant",    # BX 인원
+    76: "change_note",        # BY 변동 검토의견
+    79: "balance_amount",     # CB 대차금액
+    80: "balance_rate",       # CC 대차비율
+    82: "dup_check",          # CE 중복 코드 점검
+    83: "ref_code",           # CF 참조 코드
+    86: "sa_direct_total",    # CI 직접원가 소계
+    87: "sa_instructor",      # CJ 강사비
+    88: "sa_sub_instructor",  # CK 보조강사비
+    89: "sa_venue",           # CL 강의장
+    90: "sa_practice",        # CM 실습비
+    91: "sa_textbook",        # CN 교재비
+    92: "sa_other_direct",    # CO 기타
+    93: "sa_overhead_total",  # CP 공통원가 소계
+    94: "sa_refreshment",     # CQ 다과비
+    95: "sa_edu_venue",       # CR 교육장
+    96: "sa_parking",         # CS 주차비
+    97: "sa_sw_practice",     # CT 실습비(SW·교보재)
+    98: "sa_intern",          # CU 인턴/파견 인건비
+    99: "sa_labor_total",     # CV 인건비 소계
+    100: "sa_regular",        # CW 정규직
+    101: "sa_overhead_cost",  # CX 제경비
+    103: "note",              # CZ 비고
+}
+
 _PERF_COL_MAPS = {
     "2026년 (6월 집계)": _PERF_COL_MAP_JUN,
     "2026년 (7월 추정)": _PERF_COL_MAP_JUL,
+    "2026년 (8월 추정)": _PERF_COL_MAP_AUG,
 }
 
 
@@ -167,7 +245,9 @@ def _resolve_perf_sheet(sheet_names):
 
 def load_perf_excel():
     """_perf_cache_lock 보유 상태에서만 호출."""
-    global _perf_cached_df, _perf_last_loaded, _perf_cached_mtime
+    global _perf_cached_df, _perf_last_loaded, _perf_cached_mtime, PERF_EXCEL_PATH
+    # 새 ver 파일을 data/ 에 넣고 reload 만 해도 잡히도록 매 로드마다 재탐색
+    PERF_EXCEL_PATH = resolve_perf_excel()
     if not os.path.exists(PERF_EXCEL_PATH):
         logger.warning("PERF_EXCEL_PATH 없음: %s", PERF_EXCEL_PATH)
         _perf_cached_df   = pd.DataFrame()
@@ -301,6 +381,19 @@ def apply_perf_filters(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def _weighted_profit_rate(group) -> float:
+    """손익률 = 경상손익 합계 / 매출 합계 × 100.
+
+    ⚠️ 이전에는 profit_rate > 0 인 행만 골라 단순평균해서 **구조적으로 음수가 나올 수 없었다**
+       (경상손익이 마이너스인 파트도 이익율은 플러스로 표시되던 버그).
+       금액 기준으로 집계해야 이익액 부호와 항상 일치한다.
+    """
+    base = float(group["jun_check_total"].sum())
+    if not base:
+        return 0.0
+    return round(float(group["operating_profit"].sum()) / base * 100, 1)
+
+
 def _bil_perf(v) -> str:
     """실적현황 데이터는 천원 단위 저장 — 억원 단위 문자열로 변환."""
     return f"{v / 100_000:.1f}".replace("-0.0", "0.0") + "억원"
@@ -325,24 +418,32 @@ def api_perf_data():
     df = apply_perf_filters(get_perf_df())
     if df.empty:
         return jsonify({"data": [], "total": 0})
-    rev = df[df["category"] == "매출"].copy()
-    rev["_row_num"] = rev.index
+    # 매출 행 + 원가 행 둘 다 반환 (프로젝트코드당 2행) — 프론트에서 '구분' 컬럼으로 구분하고
+    # 값이 같은 컬럼은 세로 병합해서 보여준다. 집계(summary)는 계속 rev/cost를 분리해 사용.
+    rows = df.copy()
+    rows["_row_num"] = rows.index
 
     search   = request.args.get("search", "").strip()
     field    = request.args.get("field", "").strip()
     str_cols = ["project_code", "project_name", "manager", "part", "team"]
     if search:
         s = search.lower()
-        if field in str_cols and field in rev.columns:
-            mask = rev[field].astype(str).str.lower().str.contains(s, regex=False, na=False)
+        if field in str_cols and field in rows.columns:
+            mask = rows[field].astype(str).str.lower().str.contains(s, regex=False, na=False)
         else:
-            mask = pd.Series([False] * len(rev), index=rev.index)
+            mask = pd.Series([False] * len(rows), index=rows.index)
             for col in str_cols:
-                if col in rev.columns:
-                    mask |= rev[col].astype(str).str.lower().str.contains(s, regex=False, na=False)
-        rev = rev[mask]
+                if col in rows.columns:
+                    mask |= rows[col].astype(str).str.lower().str.contains(s, regex=False, na=False)
+        rows = rows[mask]
 
-    total = len(rev)
+    total = len(rows)
+
+    # 묶음(프로젝트) 일련번호 — 매출/원가 2행이 한 묶음이라 행 번호로는 NO.가 어긋난다.
+    # 페이지를 자르기 **전에** 전체 기준으로 매겨야 2페이지에서도 번호가 이어짐.
+    if len(rows):
+        rows["_group_no"] = (rows["project_code"] != rows["project_code"].shift()).cumsum()
+
     try:
         page      = max(1, int(request.args.get("page", 1)))
         page_size = min(200, max(1, int(request.args.get("page_size", 30))))
@@ -350,7 +451,7 @@ def api_perf_data():
         page, page_size = 1, 30
 
     start = (page - 1) * page_size
-    return jsonify({"data": rev.iloc[start:start + page_size].to_dict(orient="records"), "total": total})
+    return jsonify({"data": rows.iloc[start:start + page_size].to_dict(orient="records"), "total": total})
 
 
 @perf_bp.route("/api/performance/summary")
@@ -362,7 +463,6 @@ def api_perf_summary():
     rev  = df[df["category"] == "매출"]
     cost = df[df["category"] == "원가"]
 
-    pos_rate = rev[rev["profit_rate"] > 0]["profit_rate"]
     total = {
         "plan_initial":     float(rev["plan_initial"].sum()),
         "plan_cost":        float(cost["plan_initial"].sum()),
@@ -377,21 +477,20 @@ def api_perf_summary():
         "cost_labor":       float(rev["cost_labor"].sum()),
         "cost_overhead":    float(rev["cost_overhead"].sum()),
         "cost_mgmt":        float(rev["cost_mgmt"].sum()),
-        "avg_profit_rate":  round(float(pos_rate.mean()), 1) if not pos_rate.empty else 0,
+        "avg_profit_rate":  _weighted_profit_rate(rev),
         "count":            int(len(rev)),
     }
 
     by_part = {}
     for part_name, rev_grp in rev.groupby("part"):
         cost_grp = cost[cost["part"] == part_name]
-        pos = rev_grp[rev_grp["profit_rate"] > 0]["profit_rate"]
         by_part[part_name] = {
             "plan_initial":     float(rev_grp["plan_initial"].sum()),
             "jun_actual":       float(rev_grp["jun_actual"].sum()),
             "jun_cost":         float(cost_grp["jun_actual"].sum()),
             "jun_check_total":  float(rev_grp["jun_check_total"].sum()),
             "operating_profit": float(rev_grp["operating_profit"].sum()),
-            "avg_profit_rate":  round(float(pos.mean()), 1) if not pos.empty else 0,
+            "avg_profit_rate":  _weighted_profit_rate(rev_grp),
             "count":            int(len(rev_grp)),
         }
 

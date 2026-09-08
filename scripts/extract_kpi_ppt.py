@@ -27,6 +27,10 @@ load_dotenv()  # .env 파일이 있으면 환경변수로 로드 (없으면 무�
 # 환경변수 EXTRACT_KPI_ROOT_DIR 우선 사용 (.env 또는 compare_and_update.py가 자동 주입)
 # CLI 인수로도 덮어쓰기 가능: python extract_kpi_ppt.py "C:\새폴더경로"
 import sys as _sys
+
+import sys as _sys_boot, os as _os_boot
+_sys_boot.path.insert(0, _os_boot.path.dirname(_os_boot.path.dirname(_os_boot.path.abspath(__file__))))
+import paths as _paths
 RETRY_MODE = "--retry" in _sys.argv
 ROOT_DIR = Path(os.environ.get(
     "EXTRACT_KPI_ROOT_DIR",
@@ -36,11 +40,12 @@ if not RETRY_MODE and len(_sys.argv) > 1 and Path(_sys.argv[1]).is_dir():
     ROOT_DIR = Path(_sys.argv[1])
 
 # 출력 엑셀: 프로젝트 data/ 폴더로 저장
-_DATA_DIR = Path(__file__).resolve().parent.parent / "data"
-_DATA_DIR.mkdir(exist_ok=True)
-AIP_FAILED_FILE = _DATA_DIR / "kpi_aip_failed.txt"  # AIP 실패 기록
+_DATA_DIR = Path(_paths.DATA_DIR)
+  # data/ 생성은 paths.py 가 담당
+AIP_FAILED_FILE = Path(_paths.KPI_AIP_FAILED)  # AIP 실패 기록
 
-TARGET_EXCEL_NAME = "KPI 지표 데이터 추출.xlsx"
+TARGET_EXCEL_PATH = Path(_paths.KPI_EXCEL_PATH)   # paths.py 단일 관리 (.env: KPI_EXCEL_PATH)
+TARGET_EXCEL_NAME = TARGET_EXCEL_PATH.name
 DATA_SHEET_NAME = "취합"
 HISTORY_SHEET_NAME = "처리 이력"
 SUMMARY_SHEET_NAME = "kpi 집계"
@@ -1109,7 +1114,7 @@ def main():
         print(f"[ERROR] 대상 폴더가 존재하지 않습니다: {ROOT_DIR}")
         return
 
-    excel_path = _DATA_DIR / TARGET_EXCEL_NAME
+    excel_path = TARGET_EXCEL_PATH
 
     wb = load_or_create_workbook(excel_path)
     data_ws = get_or_create_sheet(wb, DATA_SHEET_NAME)

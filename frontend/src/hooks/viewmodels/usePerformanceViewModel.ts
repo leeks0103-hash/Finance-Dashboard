@@ -8,6 +8,7 @@ import { useCountUp } from '@/hooks/useCountUp';
 import { usePerfStore } from '@/store/perf.store';
 import { useQuickSearchStore } from '@/store/quickSearch.store';
 import { formatEok, PERF_MONTH } from '@/utils';
+import { partRank } from '@/utils/partOrder';
 import { getProjects } from '@/api/finance.api';
 import { STALE_5MIN, GC_10MIN } from '@/hooks/queryClient';
 import type { PerfProject } from '@/types/performance.types';
@@ -153,8 +154,10 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
 
     return [
       { label: '매출/원가 계획', value: `${animPlan.toFixed(1)}억원`, sub: `원가 ${formatEok(total.plan_cost)}원 · ${total.count}개 프로젝트`, accent: 'brand', trendUp: true },
-      { label: '매출/원가 추정 실적',    value: `${animJun.toFixed(1)}억원`,    sub: `원가 ${formatEok(total.jun_cost_actual)}원 · 달성률 ${achieveRate}%`,          accent: junActualRaw >= planRaw ? 'profit' : 'warn', trendUp: momRevK !== null ? momRevK >= 0 : junActualRaw >= planRaw,  trend: momTag(momRevK) },
-      { label: '매출/원가 누계 실적', value: `${animCheck.toFixed(1)}억원`,  sub: `원가 ${formatEok(total.jun_cost)}원`, accent: 'purple', trendUp: true },
+      // ⚠️ jun_actual = 1~현재월 실제 실적 누계 / jun_check_total = chk_m01~m12 연간 전체(미래월 추정 포함)
+      //    이전에 두 라벨이 서로 반대로 붙어 있었음 (performance.py load_perf_excel 주석 참고)
+      { label: `매출/원가 누계 실적 (1~${PERF_MONTH})`, value: `${animJun.toFixed(1)}억원`,    sub: `원가 ${formatEok(total.jun_cost_actual)}원 · 계획 대비 ${achieveRate}%`, accent: junActualRaw >= planRaw ? 'profit' : 'warn', trendUp: momRevK !== null ? momRevK >= 0 : junActualRaw >= planRaw,  trend: momTag(momRevK) },
+      { label: '매출/원가 추정 실적 (연간)', value: `${animCheck.toFixed(1)}억원`,  sub: `원가 ${formatEok(total.jun_cost)}원`, accent: 'purple', trendUp: true },
       { label: '경상손익(당해년도 추정)', value: `${animProfit.toFixed(1)}억원`, sub: `손익률 ${animRate.toFixed(1)}%`, accent: profitRaw >= 0 ? 'profit' : 'loss', trendUp: momProfK !== null ? momProfK >= 0 : profitRaw >= 0, trend: momTag(momProfK) },
     ];
   }, [total, monthly, animPlan, animJun, animCheck, animProfit, animRate, planRaw, junActualRaw, junCheckRaw, profitRaw]);
@@ -162,7 +165,7 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
   const byPart = useMemo((): PerfPartRow[] => {
     if (!summary?.by_part) return [];
     return Object.entries(summary.by_part)
-      .sort((a, b) => b[1].jun_actual - a[1].jun_actual)
+      .sort((a, b) => partRank(a[0]) - partRank(b[0]))   // 담당자 지정 고정 순서
       .map(([part, s]) => {
         const planInitialNum = toEokNum(s.plan_initial);
         const junActualNum   = toEokNum(s.jun_actual);

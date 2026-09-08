@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 from dotenv import load_dotenv
 from flask import Blueprint, jsonify, request
+import paths
 
 load_dotenv()
 
@@ -18,10 +19,8 @@ kpi_bp = Blueprint("kpi", __name__)
 _BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 _DATA_DIR  = os.path.join(_BASE_DIR, "data")
 
-KPI_EXCEL_PATH = os.environ.get(
-    "KPI_EXCEL_PATH",
-    os.path.join(_DATA_DIR, "KPI 지표 데이터 추출.xlsx"),
-)
+# 경로는 paths.py 한 곳에서 관리 (.env: KPI_EXCEL_PATH)
+KPI_EXCEL_PATH = paths.KPI_EXCEL_PATH
 
 _kpi_cache_lock   = threading.Lock()
 _kpi_cached_mtime = None

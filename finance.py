@@ -14,6 +14,7 @@ from flask import Blueprint, jsonify, request, make_response
 from markupsafe import escape as html_escape
 
 from shared import is_ranked_valid_code
+import paths
 
 load_dotenv()
 
@@ -24,10 +25,8 @@ finance_bp = Blueprint("finance", __name__)
 _BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 _DATA_DIR  = os.path.join(_BASE_DIR, "data")
 
-EXCEL_PATH = os.environ.get(
-    "EXCEL_PATH",
-    os.path.join(_DATA_DIR, "재무관점 필수 데이터 추출.xlsx"),
-)
+# 경로는 paths.py 한 곳에서 관리 (.env: EXCEL_PATH)
+EXCEL_PATH = paths.FINANCE_EXCEL_PATH
 
 EXCEL_COLS = [
     "project_code", "year", "part", "stage",

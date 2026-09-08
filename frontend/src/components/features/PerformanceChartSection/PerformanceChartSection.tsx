@@ -14,13 +14,14 @@ import { getChartPalette, getChartTheme } from '@/utils/chartColors';
 import { ChartCard, BarChart, DoughnutChart, Toggle, useTableDndSensors, InfoButton } from '@/components/ui';
 import {
   INFO_MONTHLY, INFO_PROFIT_RATE, INFO_COST_BREAKDOWN,
-  INFO_PLAN_VS_ACTUAL, INFO_PROGRESS,
+  INFO_PLAN_VS_ACTUAL,
 } from '@/utils/infoTexts';
 import type { ChartOptions } from 'chart.js';
 import styles from './PerformanceChartSection.module.css';
 
 // 레이아웃: 월별 실적 추이(전체 너비 1줄) → 파트별 이익율+원가구성(1줄) → 파트별 계획vs실적+진행단계(1줄)
-const DEFAULT_CHART_ORDER = ['monthly', 'profitRate', 'costBreakdown', 'planVsActual', 'progress'];
+// 'progress'(진행단계별 매출/원가)는 요청에 따라 비활성 — 되살리려면 배열에 다시 넣고 아래 렌더러 주석 해제
+const DEFAULT_CHART_ORDER = ['monthly', 'profitRate', 'costBreakdown', 'planVsActual'];
 const LS_CHART_ORDER = 'performance-chart-order';
 // 항상 한 줄 전체를 차지하는 차트 — 드래그로 순서가 바뀌어도 이 카드가 위치한 줄은 전체 폭 유지
 const FULL_ROW_ID = 'monthly';
@@ -121,14 +122,17 @@ const PerformanceChartSection = () => {
   );
 
   const profitColors = useMemo(() => vm.profitRate.isProfit.map(ok =>
-    ok ? palette.rate : palette.cost
+    ok ? palette.rate : palette.loss
   ), [vm.profitRate.isProfit, palette]);
 
   const doughnutColors = useMemo(() => [palette.costDirect, palette.costLabor, palette.costOverhead], [palette]);
 
+  // grace: 최댓값 위(아래)로 여유를 둬서 막대가 축 천장에 딱 붙지 않게 함
+  // (예: 최대 5억 → 축 상한 6억). 값 축이 세로/가로 어느 쪽이든 잡히도록 x·y 둘 다 지정 —
+  // 카테고리 축에서는 grace 가 무시되므로 부작용 없음
   const scaleOverride = useMemo(() => ({
-    x: { grid: { color: gridColor }, ticks: { color: tickColor } },
-    y: { grid: { color: gridColor }, ticks: { color: tickColor } },
+    x: { grace: '15%', grid: { color: gridColor }, ticks: { color: tickColor } },
+    y: { grace: '15%', grid: { color: gridColor }, ticks: { color: tickColor } },
   }), [gridColor, tickColor]);
 
   const monthlyOptions = useMemo(() => ({
@@ -173,10 +177,11 @@ const PerformanceChartSection = () => {
     scales: { ...scaleOverride, y: { ...scaleOverride.y, ticks: { ...scaleOverride.y.ticks, callback: (v: string | number) => v + '억' } } },
   }), [vm.showLabels, labelColor, scaleOverride]);
 
-  const progressOptions = useMemo(
-    () => withUnstackedTheme(vm.progress.options, scaleOverride),
-    [vm.progress.options, scaleOverride],
-  );
+  // progress 차트 비활성으로 미사용 — 복구 시 함께 주석 해제
+  // const progressOptions = useMemo(
+  //   () => withUnstackedTheme(vm.progress.options, scaleOverride),
+  //   [vm.progress.options, scaleOverride],
+  // );
 
   const chartRenderers: Record<string, () => ReactNode | null> = {
     monthly: () => (
@@ -231,7 +236,8 @@ const PerformanceChartSection = () => {
           <BarChart
             labels={vm.profitRate.labels}
             datasets={[showProfitAmount
-              ? { label: '이익액(억)', data: vm.profitRate.profits, backgroundColor: palette.cost }
+              // 이익율/이익액 둘 다 마이너스면 빨강 — profitColors 가 부호별 색을 담고 있음
+              ? { label: '이익액(억)', data: vm.profitRate.profits, backgroundColor: profitColors }
               : { label: '이익율(%)',  data: vm.profitRate.rates,   backgroundColor: profitColors }
             ]}
             options={showProfitAmount ? profitAmountOptions : profitRateOptions}
@@ -253,22 +259,23 @@ const PerformanceChartSection = () => {
         </ChartCard.Body>
       </ChartCard>
     ),
-    progress: () => vm.progress.labels.length > 0 ? (
-      <ChartCard>
-        <ChartCard.Title><span className={styles.chartTitle}>진행단계별 매출/원가<InfoButton>{INFO_PROGRESS}</InfoButton></span></ChartCard.Title>
-        <ChartCard.Body>
-          <BarChart
-            horizontal
-            labels={vm.progress.labels}
-            datasets={[
-              { label: '매출(억)', data: vm.progress.revenues,     backgroundColor: palette.revenue },
-              { label: '원가(억)', data: vm.progress.expenditures, backgroundColor: palette.cost    },
-            ]}
-            options={progressOptions}
-          />
-        </ChartCard.Body>
-      </ChartCard>
-    ) : null,
+    // ── 진행단계별 매출/원가 — 비활성(주석 처리). DEFAULT_CHART_ORDER 에 'progress' 추가하면 복구 ──
+    // progress: () => vm.progress.labels.length > 0 ? (
+    //   <ChartCard>
+    //     <ChartCard.Title><span className={styles.chartTitle}>진행단계별 매출/원가<InfoButton>{INFO_PROGRESS}</InfoButton></span></ChartCard.Title>
+    //     <ChartCard.Body>
+    //       <BarChart
+    //         horizontal
+    //         labels={vm.progress.labels}
+    //         datasets={[
+    //           { label: '매출(억)', data: vm.progress.revenues,     backgroundColor: palette.revenue },
+    //           { label: '원가(억)', data: vm.progress.expenditures, backgroundColor: palette.cost    },
+    //         ]}
+    //         options={progressOptions}
+    //       />
+    //     </ChartCard.Body>
+    //   </ChartCard>
+    // ) : null,
   };
 
   const visibleCharts = chartOrder

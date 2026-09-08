@@ -10,6 +10,10 @@ import win32com.client
 from dotenv import load_dotenv
 from openpyxl import Workbook, load_workbook
 
+import sys as _sys_boot, os as _os_boot
+_sys_boot.path.insert(0, _os_boot.path.dirname(_os_boot.path.dirname(_os_boot.path.abspath(__file__))))
+import paths as _paths
+
 load_dotenv()  # .env 파일이 있으면 환경변수로 로드 (없으면 무시)
 
 # =========================
@@ -28,16 +32,16 @@ if not RETRY_MODE and len(sys.argv) > 1 and os.path.isdir(sys.argv[1]):
 
 # 출력 엑셀: 프로젝트 data/ 폴더로 저장
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-_DATA_DIR   = os.path.join(os.path.dirname(_SCRIPT_DIR), "data")
+_DATA_DIR   = _paths.DATA_DIR
 os.makedirs(_DATA_DIR, exist_ok=True)
 
-TARGET_EXCEL  = os.path.join(_DATA_DIR, "재무관점 필수 데이터 추출.xlsx")
+TARGET_EXCEL  = _paths.FINANCE_EXCEL_PATH   # paths.py 단일 관리 (.env: EXCEL_PATH)
 TARGET_SHEET  = "취합"
 HISTORY_SHEET = "처리이력"
 TITLE_KEYWORD = "[내부용①] 재무관점 필수 데이터"
 SUPPORTED_EXTENSIONS = {".ppt", ".pptx"}
-LOG_FILE       = os.path.join(_DATA_DIR, "extract_financial_ppt.log")
-AIP_FAILED_FILE = os.path.join(_DATA_DIR, "aip_failed.txt")  # AIP 실패 기록
+LOG_FILE       = _paths.FINANCE_LOG_FILE
+AIP_FAILED_FILE = _paths.FINANCE_AIP_FAILED  # AIP 실패 기록
 
 EXCLUDE_FILENAMES = {
     "테스트 입니다.pptx",

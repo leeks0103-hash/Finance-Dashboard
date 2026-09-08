@@ -1,5 +1,7 @@
 import { useEffect } from 'react';
 import { usePerformanceOptions } from '@/hooks/usePerformanceData';
+import { stripPartPrefix } from '@/utils';
+import { sortParts } from '@/utils/partOrder';
 import { usePerfStore } from '@/store/perf.store';
 import { FilterChip, MultiSelectDropdown } from '@/components/ui';
 import { isAllSelected } from '@/utils/array';
@@ -14,7 +16,7 @@ const PerformanceFilterBar = () => {
   const initialized        = usePerfStore(s => s.initialized);
   const initializeDefaults = usePerfStore(s => s.initializeDefaults);
 
-  const parts = (options?.parts ?? []).map((p: string) => p.replace(/^[①-⑦]\s*/, ''));
+  const parts = sortParts((options?.parts ?? []).map(stripPartPrefix));
   const teams = options?.teams ?? [];
 
   // 최초 방문 시 한 번만 — 파트 전체 선택 상태로 시작

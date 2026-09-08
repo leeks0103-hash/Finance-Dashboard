@@ -3,6 +3,7 @@ import { useSummary } from '@/hooks/useSummary';
 import { useUiStore } from '@/store';
 import { useTheme } from '@/hooks/useTheme';
 import { makeBarOptions } from '@/utils/chartOptions';
+import { sortParts } from '@/utils/partOrder';
 import { getChartTheme } from '@/utils/chartColors';
 import { sortStages } from '@/utils/stageOrder';
 import type { ChartOptions } from 'chart.js';
@@ -77,7 +78,7 @@ export const useChartViewModel = (): ChartViewModel => {
 
   const chartData = useMemo(() => {
     if (!data || isLoading) return null;
-    const parts   = Object.keys(data.by_part);
+    const parts   = sortParts(Object.keys(data.by_part));
     const cb      = data.cost_breakdown;
     const byStage = data.by_stage ?? {};
     const stages  = sortStages(Object.keys(byStage));

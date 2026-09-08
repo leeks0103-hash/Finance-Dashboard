@@ -170,8 +170,6 @@
 }
 
 /* 행 색상 */
-.rowLoss { background: rgba(0, 44, 95, 0.06); }
-.rowWarn { background: rgba(163, 107, 79, 0.08); }
 
 .cellLoss { color: var(--loss) !important; font-weight: 600; }
 .cellWarn { color: var(--warn) !important; }

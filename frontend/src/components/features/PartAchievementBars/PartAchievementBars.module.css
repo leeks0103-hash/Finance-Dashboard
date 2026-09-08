@@ -7,7 +7,8 @@
 .header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
+  gap: 6px;
   padding: 0 10px;
 }
 
@@ -110,4 +111,31 @@
     grid-template-columns: 100px 1fr 56px;
   }
   .vals { display: none; }
+}
+
+/* 달성률 구간 색 범례 */
+.legend {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.legendDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+@media (max-width: 700px) {
+  .legend { display: none; }
 }

@@ -1,8 +1,8 @@
 /* ─── 현대자동차 공식 9색 팔레트 (파생 톤만 허용, 새 색조 금지) ──────────
  *   Hyundai Blue #002c5f · Sand #e4dcd3 · Light Sand #f6f3f2 · Gold #a36b4f
  *   White #ffffff · Black #000000 · Active Blue #00aad2 · Sky Blue #aacae6 · Active Red #e63312
- *   재무 의미색: 이익=Active Red(빨강=플러스) / 손실=Hyundai Blue(파랑=마이너스) — 한국 증시 관행
- *   에러·위험 UI는 재무 손실색과 별개 축 → --danger (= Active Red)
+ *   재무 의미색: 이익·증가·좋음 = Hyundai Blue(파랑) / 손실·감소·나쁨 = Active Red(빨강) — 증시 반대 개념
+ *   에러·위험 UI(--danger)도 Active Red — 손실색과 일관
  * ────────────────────────────────────────────────────────────────── */
 :root,
 [data-theme="light"] {
@@ -13,11 +13,11 @@
   --brand-light:  #00AAD2;   /* Active Blue */
   --brand-bg:     rgba(0,44,95,0.08);
 
-  --profit:       #E63312;   /* 이익 = Active Red (빨강=플러스) */
-  --profit-bg:    rgba(230,51,18,0.10);
-  --loss:         #002C5F;   /* 손실 = Hyundai Blue (파랑=마이너스) */
-  --loss-bg:      rgba(0,44,95,0.10);
-  --danger:       #E63312;   /* 에러·위험 UI (재무 손실색과 별개) — Active Red */
+  --profit:       #002C5F;   /* 이익·증가 = Hyundai Blue (파랑=플러스) */
+  --profit-bg:    rgba(0,44,95,0.10);
+  --loss:         #E63312;   /* 손실·감소 = Active Red (빨강=마이너스) */
+  --loss-bg:      rgba(230,51,18,0.10);
+  --danger:       #E63312;   /* 에러·위험 UI — Active Red (손실색과 동일 계열) */
   --danger-bg:    rgba(230,51,18,0.10);
   --warn:         #A36B4F;   /* Hyundai Gold PMS 876C */
   --warn-bg:      rgba(163,107,79,0.12);
@@ -41,11 +41,11 @@
   --text-sub:     #33322F;   /* Black 파생 (웜) */
   --text-muted:   #6B6257;   /* Sand 계열 mid-tone */
 
-  /* 레거시 이름 — 값은 방향색 의미로 재매핑 (소비처 거의 없음) */
+  /* 레거시 이름 — 값은 방향색 의미로 재매핑 (green=플러스, red=마이너스, 소비처 거의 없음) */
   --pastel-blue:  rgba(0,170,210,0.10);
-  --pastel-green: rgba(230,51,18,0.10);
+  --pastel-green: rgba(0,44,95,0.10);
   --pastel-yellow:rgba(163,107,79,0.12);
-  --pastel-red:   rgba(0,44,95,0.10);
+  --pastel-red:   rgba(230,51,18,0.10);
 
   --shadow-sm: 0 0 1px rgba(0,44,95,0.08), 0 1px 3px rgba(0,44,95,0.12);
   --shadow-md: 0 2px 6px rgba(0,44,95,0.12), 0 1px 4px rgba(0,44,95,0.08);
@@ -61,10 +61,10 @@
   --brand-light:  #AACAE6;   /* Sky Blue */
   --brand-bg:     rgba(0,170,210,0.16);
 
-  --profit:       #FF6A4D;   /* 이익 = Active Red tint (다크에서 완화) */
-  --profit-bg:    rgba(230,51,18,0.20);
-  --loss:         #AACAE6;   /* 손실 = Sky Blue (#002C5F는 다크 배경서 안 보임) */
-  --loss-bg:      rgba(170,202,230,0.16);
+  --profit:       #AACAE6;   /* 이익·증가 = Sky Blue (#002C5F는 다크 배경서 안 보임) */
+  --profit-bg:    rgba(170,202,230,0.16);
+  --loss:         #FF6A4D;   /* 손실·감소 = Active Red tint (다크에서 완화) */
+  --loss-bg:      rgba(230,51,18,0.20);
   --danger:       #FF6A4D;   /* Active Red tint */
   --danger-bg:    rgba(230,51,18,0.22);
   --warn:         #C79471;   /* Gold tint */
@@ -90,9 +90,9 @@
   --text-muted:   #9FB3C4;   /* 블루그레이 중립 */
 
   --pastel-blue:  rgba(0,170,210,0.16);
-  --pastel-green: rgba(230,51,18,0.20);
+  --pastel-green: rgba(170,202,230,0.16);
   --pastel-yellow:rgba(163,107,79,0.24);
-  --pastel-red:   rgba(170,202,230,0.16);
+  --pastel-red:   rgba(230,51,18,0.20);
 
   --shadow-sm: 0 0 1px rgba(0,0,0,0.5), 0 1px 3px rgba(0,0,0,0.4);
   --shadow-md: 0 2px 8px rgba(0,0,0,0.55), 0 1px 4px rgba(0,0,0,0.4);
@@ -101,6 +101,8 @@
 
 /* ─── 공통 토큰 ──────────────────────────────── */
 :root {
+  --sky-blue: #AACAE6;   /* Sky Blue PMS 277C — 라이트/다크 동일(이미 옅은 톤이라 다크 보정 불필요) */
+
   --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
 
   --radius:      6px;

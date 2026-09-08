@@ -34,3 +34,11 @@ export const formatPctRaw = (v: number): string =>
 /** 숫자 → 로컬 형식 표시. 0이면 '-' */
 export const formatNum = (v: number): string =>
   v ? v.toLocaleString() : '-';
+
+/**
+ * 파트명 앞의 원문자 번호 제거 — "② SW" → "SW".
+ * 엑셀 원본이 정렬용으로 붙여둔 접두어라 화면에는 노출하지 않는다.
+ * (필터·집계 키로는 원본 문자열을 그대로 써야 하므로 표시할 때만 사용할 것)
+ */
+export const stripPartPrefix = (part: string): string =>
+  String(part ?? '').replace(/^[①-⑳]\s*/, '');

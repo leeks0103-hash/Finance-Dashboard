@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useSummary } from '@/hooks/useSummary';
+import { partRank } from '@/utils/partOrder';
 import { formatBillion, formatRate } from '@/utils';
 
 export interface PartTableRow {
@@ -26,7 +27,7 @@ export const usePartTableViewModel = (): PartTableViewModel => {
   const rows = useMemo((): PartTableRow[] => {
     if (!data?.by_part) return [];
     return Object.entries(data.by_part)
-      .sort((a, b) => b[1].revenue - a[1].revenue)
+      .sort((a, b) => partRank(a[0]) - partRank(b[0]))   // 담당자 지정 고정 순서
       .map(([part, s]) => ({
         part,
         revenue:         formatBillion(s.revenue),

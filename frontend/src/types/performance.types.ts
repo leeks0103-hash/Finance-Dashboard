@@ -83,6 +83,7 @@ export interface PerfProject {
   note:              string;
   filename:          string;
   _row_num:          number;   // 고유 key 용 행 번호
+  _group_no:         number;   // 묶음(프로젝트) 일련번호 — 전체 기준, 페이지 넘어가도 연속
 }
 
 export interface PerfPartStats {

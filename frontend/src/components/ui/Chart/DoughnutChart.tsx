@@ -21,6 +21,17 @@ const DEFAULT_COLORS = [
   'rgba(163,107,79,0.9)',
 ];
 
+// 세그먼트 배경색 밝기에 맞춰 라벨을 흰색/어두운색으로 자동 대비 —
+// costDirect가 Hyundai Blue(어두운 톤)로 바뀌면서 고정 labelColor(다크 텍스트)로는
+// 어두운 세그먼트 위에서 안 보이는 문제가 생겨 세그먼트별 판단으로 교체
+const arcTextColor = (bg: string): string => {
+  const m = bg.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+  if (!m) return '#ffffff';
+  const [r, g, b] = m.slice(1, 4).map(Number);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.6 ? '#1a1a1a' : '#ffffff';
+};
+
 const DoughnutChart = ({
   labels,
   data,
@@ -71,7 +82,7 @@ const DoughnutChart = ({
         },
         datalabels: {
           display: showLabels,
-          color:   labelColor,
+          color:   (ctx) => arcTextColor((ctx.dataset.backgroundColor as string[])[ctx.dataIndex]),
           font:    { size: 12, weight: 'bold' },
           textAlign: 'center',
           formatter: (value: number, ctx) => {
