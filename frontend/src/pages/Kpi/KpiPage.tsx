@@ -21,8 +21,10 @@ function CountCell({ value }: { value: string }) {
 const sh = createColumnHelper<KpiSummaryRow>();
 const summaryColumns = [
   sh.accessor('name',       { header: 'KPI 항목', size: 420 }),
-  sh.accessor('agg',        { header: '집계방식', size: 120 }),
-  sh.accessor('targetStr',  { header: '26년 목표', size: 220, enableSorting: true,
+  sh.accessor('agg',        { header: '집계방식', size: 110 }),
+  // 사업계획 목표는 고정값(ViewModel PLAN_TARGETS) — 프로젝트 목표와 구분되도록 헤더에 명시
+  sh.accessor('planTarget', { header: '26년 목표(사업계획)', size: 170 }),
+  sh.accessor('targetStr',  { header: '26년 목표(프로젝트)', size: 190, enableSorting: true,
     cell: i => { const v = i.getValue() as string; return /신규/.test(v) ? <CountCell value={v} /> : <>{v}</>; },
   }),
   sh.accessor('actual',     { header: '26년 실적', size: 220, enableSorting: true,
@@ -136,7 +138,7 @@ const KpiPage = () => {
             compact
             defaultPageSize={10}
             pageSizeOptions={[10]}
-            storageKey="kpi-summary"
+            storageKey="kpi-summary-v2"   /* 컬럼 추가 — 저장된 순서·폭 1회 초기화 */
           />
         </ErrorBoundary>
       </div>
