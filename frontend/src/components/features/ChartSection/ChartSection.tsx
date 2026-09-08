@@ -212,7 +212,7 @@ const ChartSection = () => {
     costBreakdown: () => (
       <ChartCard>
         <ChartCard.Title>
-          <span>프로젝트 평균 원가비율</span>
+          <span>프로젝트 합계 원가비율</span>
           <span className={styles.stageBadge}>{stageLabel}</span>
         </ChartCard.Title>
         <ChartCard.Body>

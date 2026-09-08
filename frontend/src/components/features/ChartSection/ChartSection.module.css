@@ -45,7 +45,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr 1fr 1fr;
   gap: 12px;
-  height: 400px;
+  height: 440px;   /* 4열 유지하면서 높이만 키움 */
   /* 로딩/에러/empty → 실제 차트로 바뀔 때(그리고 테마 전환으로 key가 바뀌어 리마운트될 때) 재생 */
   animation: contentFadeIn 0.3s ease;
 }

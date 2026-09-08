@@ -257,7 +257,7 @@ const PerformanceChartSection = () => {
     ),
     costBreakdown: () => (
       <ChartCard>
-        <ChartCard.Title><span className={styles.chartTitle}>프로젝트 평균 원가비율<InfoButton>{INFO_COST_BREAKDOWN}</InfoButton></span></ChartCard.Title>
+        <ChartCard.Title><span className={styles.chartTitle}>프로젝트 합계 원가비율<InfoButton>{INFO_COST_BREAKDOWN}</InfoButton></span></ChartCard.Title>
         <ChartCard.Body>
           <DoughnutChart
             labels={vm.costBreakdown.labels}
