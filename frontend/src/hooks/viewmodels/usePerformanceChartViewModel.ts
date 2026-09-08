@@ -144,8 +144,8 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
         isProfit: parts.map(p => summary.by_part[p].operating_profit >= 0),
       },
       costBreakdown: {
-        labels: ['직접원가', '인건비', '공통원가'],
-        values: [total.cost_direct, total.cost_labor, total.cost_overhead].map(toEokNum),
+        labels: ['직접원가', '인건비', '공통원가', '관리비'],
+        values: [total.cost_direct, total.cost_labor, total.cost_overhead, total.cost_mgmt].map(toEokNum),
       },
       progress: {
         labels:       progressEntries,

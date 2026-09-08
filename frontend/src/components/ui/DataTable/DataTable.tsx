@@ -184,6 +184,11 @@ interface Props<T> {
   initialColumnVisibility?: Record<string, boolean>;
   /** localStorage 저장 키 — 제공 시 컬럼 순서 DnD + 새로고침 유지 */
   storageKey?: string;
+  /**
+   * 컬럼 기본 너비를 바꿨을 때 올리는 값 — 저장된 폭만 무효화한다(컬럼 순서는 유지).
+   * 안 올리면 이미 저장된 localStorage 폭이 이겨서 새 기본값이 화면에 반영되지 않음.
+   */
+  sizeVersion?: string | number;
   /** 툴바 우측에 추가 렌더링할 요소 (뷰 전환 토글 등) */
   toolbarExtra?: ReactNode;
   /** 제목 옆 ⓘ 버튼 — 클릭 시 데이터 기준 설명 팝오버 */
@@ -235,6 +240,7 @@ const DataTable = <T extends object>({
   infiniteLoadMore,
   initialColumnVisibility = {},
   storageKey,
+  sizeVersion,
   toolbarExtra,
   info,
   searchOnDblClick,
@@ -249,7 +255,7 @@ const DataTable = <T extends object>({
 
   // ── 컬럼 순서 (DnD + localStorage) ────────────────────────────
   const lsKey      = storageKey ? `dnd-cols-${storageKey}`   : null;
-  const lsSizeKey  = storageKey ? `col-sizes-${storageKey}`  : null;
+  const lsSizeKey  = storageKey ? `col-sizes-${storageKey}${sizeVersion ? `-v${sizeVersion}` : ''}` : null;
 
   const [colOrder, setColOrder] = useState<string[]>(() => {
     if (!lsKey) return [];

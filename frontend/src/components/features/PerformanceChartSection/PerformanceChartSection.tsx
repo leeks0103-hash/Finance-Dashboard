@@ -135,7 +135,10 @@ const PerformanceChartSection = () => {
     ok ? palette.rate : palette.loss
   ), [vm.profitRate.isProfit, palette]);
 
-  const doughnutColors = useMemo(() => [palette.costDirect, palette.costLabor, palette.costOverhead], [palette]);
+  const doughnutColors = useMemo(
+    () => [palette.costDirect, palette.costLabor, palette.costOverhead, palette.costMgmt],
+    [palette],
+  );
 
   // grace: 최댓값 위(아래)로 여유를 둬서 막대가 축 천장에 딱 붙지 않게 함
   // (예: 최대 5억 → 축 상한 6억). 값 축이 세로/가로 어느 쪽이든 잡히도록 x·y 둘 다 지정 —

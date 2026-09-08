@@ -167,6 +167,8 @@ const PerformancePage = () => {
             emptyTitle="검색 결과 없음"
             emptyDescription="다른 검색어나 필터 조건을 시도해보세요."
             storageKey="performance-project"
+            // 글씨 많은 컬럼(프로젝트명·사유·중복점검 등) 기본 폭을 넓히면서 저장된 폭 1회 무효화
+            sizeVersion={2}
             expandableRow={{
               getKey: (row) => String(row._row_num),
               excludeColumns: ['filename'],
