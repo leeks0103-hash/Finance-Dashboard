@@ -77,6 +77,16 @@
   overflow: visible;  /* 드롭다운이 잘리지 않도록 */
 }
 
+.toolbarHint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .toolbarLeft {
   display: flex;
   align-items: center;
@@ -271,7 +281,8 @@
 /* border-right는 모든 셀에 유지 — wrapper overflow:hidden 이 우측 클리핑 담당
    :last-child 제거 → DnD 컬럼 순서 변경 후에도 일관성 유지 */
 
-.table td:first-child { text-align: left; }
+/* 병합(rowSpan) 시 뒤 행은 셀을 건너뛰므로 :first-child 대신 실제 첫 컬럼 클래스로 지정 */
+.table td.firstCol { text-align: left; }
 
 .table tbody tr { transition: background 0.14s ease; }
 .table tbody tr:hover { background: var(--brand-bg); }
@@ -287,9 +298,18 @@
   font-size: 15px;
   line-height: 1;
   vertical-align: middle;
+  /* 심볼 글리프가 자체 여백 때문에 아래로 쳐져 보여서 위로 보정 */
+  position: relative;
+  top: -1.5px;
 }
 .sortIdle   { opacity: 0.75; color: var(--text-sub); }
 .sortActive { opacity: 1;    color: var(--accent); font-weight: 700; }
+
+/* mergeRowsByKey — 그룹 내 값이 같아 세로 병합된 셀 */
+.spanCell {
+  vertical-align: middle;
+  background: var(--surface);
+}
 
 /* 헤더 클릭 컬럼 하이라이트 */
 .thHighlighted { background: var(--brand-mid) !important; color: #fff !important; }
@@ -299,21 +319,21 @@
 
 /* 행 변형 */
 .loss { box-shadow: inset 3px 0 0 var(--loss) !important; }
-.loss:hover { background: var(--loss-bg, rgba(0,44,95,.08)) !important; }
+.loss:hover { background: var(--loss-bg, rgba(230,51,18,.08)) !important; }
 .warn { box-shadow: inset 2px 0 0 var(--warn) !important; }
 .warn:hover { background: var(--warn-bg, rgba(163,107,79,.10)) !important; }
 
 /* Sticky 첫 번째 컬럼 */
-.stickyFirst th:first-child,
-.stickyFirst td:first-child {
+.stickyFirst th.firstCol,
+.stickyFirst td.firstCol {
   position: sticky;
   left: 0;
   z-index: 2;
 }
-.stickyFirst th:first-child { background: var(--bg-header); }
-.stickyFirst td:first-child  { background: var(--surface); }
-.stickyFirst .loss td:first-child,
-.stickyFirst .warn td:first-child { background: var(--surface) !important; }
+.stickyFirst th.firstCol { background: var(--bg-header); }
+.stickyFirst td.firstCol  { background: var(--surface); }
+.stickyFirst .loss td.firstCol,
+.stickyFirst .warn td.firstCol { background: var(--surface) !important; }
 
 /* 합계(tfoot) 행 */
 .footerRow td {
@@ -433,18 +453,29 @@
 }
 
 /* expandableRow — 더블클릭으로 펼친 콘텐츠 행, 연한 하늘색 */
+/* 2뎁스 펼침 패널 컨테이너 — 패널 안 테이블이 자체 스타일을 갖고 있어
+   여기서 색을 입히면 겹쳐 보인다. 배경은 중립(surface)으로 두고 경계선만 표시 */
 .expandedRow > td {
-  background: var(--info-bg);
-  border-left: 3px solid var(--info);
+  background: var(--surface);
+  border-left: 3px solid var(--border);
   padding: 0;
 }
 
 /* expandableRow로 펼쳐진 원본 행 — 어느 행을 클릭해서 열었는지 표시 */
-.rowExpanded > td {
-  background: var(--info-bg);
-}
+/* 펼쳐진 행 하이라이트 — 병합 셀(.spanCell)과 sticky 첫 컬럼은 자체 배경이 있어
+   따로 지정해주지 않으면 그 칸만 안 칠해져서 행이 끊겨 보인다 */
+.rowExpanded > td,
+.rowExpanded > td.spanCell { background: var(--brand-bg); }
+.loss.rowExpanded > td,
+.loss.rowExpanded > td.spanCell { background: var(--loss-bg); }
+.warn.rowExpanded > td,
+.warn.rowExpanded > td.spanCell { background: var(--warn-bg); }
 
-/* NO. 인덱스 컬럼 가운데 정렬 — :first-child 규칙보다 명시도 높게 */
+.stickyFirst .rowExpanded > td.firstCol      { background: var(--brand-bg) !important; }
+.stickyFirst .loss.rowExpanded > td.firstCol { background: var(--loss-bg)  !important; }
+.stickyFirst .warn.rowExpanded > td.firstCol { background: var(--warn-bg)  !important; }
+
+/* NO. 인덱스 컬럼 가운데 정렬 — .firstCol 규칙보다 뒤에 와서 우선 적용 */
 .table td.indexCell,
 .table th.indexCell {
   text-align: center;

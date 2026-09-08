@@ -8,12 +8,16 @@ from openpyxl.styles import (
 )
 from openpyxl.utils import get_column_letter
 
+import sys as _sys_boot, os as _os_boot
+_sys_boot.path.insert(0, _os_boot.path.dirname(_os_boot.path.dirname(_os_boot.path.abspath(__file__))))
+import paths as _paths
+
 # ============================================================
 # 📁 경로 설정
 # ============================================================
 NAS_PATH   = r"X:"       # 기존 파일
 LOCAL_PATH = r"D:\24.기술교육사업기획팀\23. 표준 템플릿 데이터 추출 프로젝트\(기술교육실)프로젝트 보고서 수집"   # 새 파일
-EXCEL_PATH = r"D:\ngv_dashbord\Finance-Dashboard\data\compare_report.xlsx"  # 결과 저장
+EXCEL_PATH = _paths.COMPARE_REPORT_XLSX  # 결과 저장 (paths.py 단일 관리)
 
 # ============================================================
 # ⚙️ 옵션 설정

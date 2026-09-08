@@ -40,9 +40,10 @@ interface DraggableThProps<T> {
   header:        Header<T, unknown>;
   isDraggable:   boolean;
   isHighlighted: boolean;
+  isFirst:       boolean;
   onHeaderClick: (columnId: string) => void;
 }
-function DraggableTh<T>({ header, isDraggable, isHighlighted, onHeaderClick }: DraggableThProps<T>) {
+function DraggableTh<T>({ header, isDraggable, isHighlighted, isFirst, onHeaderClick }: DraggableThProps<T>) {
   const toggleSort = header.column.getToggleSortingHandler();
   return (
     <SortableHeaderCell
@@ -51,6 +52,7 @@ function DraggableTh<T>({ header, isDraggable, isHighlighted, onHeaderClick }: D
       isHighlighted={isHighlighted}
       highlightedClassName={styles.thHighlighted}
       className={[
+        isFirst ? styles.firstCol : '',
         header.column.getCanSort() ? styles.sortable : '',
         header.column.id === '__index' ? styles.indexCell : '',
       ].join(' ')}
@@ -190,6 +192,14 @@ interface Props<T> {
   searchOnDblClick?: string[];
   /** 더블클릭 시 행 바로 아래에 콘텐츠를 펼치는 기능 — searchOnDblClick과 동시 사용 시 이쪽이 우선 */
   expandableRow?: ExpandableRow<T>;
+  /** 연속된 행을 이 키로 묶어, 그룹 안에서 값이 같은 컬럼은 세로 병합(rowSpan)
+   *  (예: 매출/원가 2행짜리 프로젝트 → 프로젝트코드·이름 등은 한 칸으로) */
+  mergeRowsByKey?: (row: T) => string | number;
+  /** NO. 컬럼 값을 직접 지정 — 서버가 내려준 묶음 일련번호처럼 페이지를 넘어 연속돼야 할 때 사용
+   *  (미지정 시 화면상 행 위치로 자동 계산) */
+  getRowNumber?: (row: T) => number | string;
+  /** 툴바에 흐린 글씨로 띄우는 사용법 안내 (예: "코드 더블클릭 시 재무 데이터") */
+  hint?: ReactNode;
   /** 정렬 컬럼 변경 시 콜백 — columnId(정렬중) 또는 null(정렬 해제) */
   onSortChange?: (columnId: string | null) => void;
 }
@@ -229,6 +239,9 @@ const DataTable = <T extends object>({
   info,
   searchOnDblClick,
   expandableRow,
+  mergeRowsByKey,
+  getRowNumber,
+  hint,
   onSortChange,
 }: Props<T>) => {
   const isServerMode   = !!serverPagination;
@@ -269,15 +282,30 @@ const DataTable = <T extends object>({
     cell: ({ row, table: t }) => {
       // row.index는 원본 data 배열 기준 고정값이라 정렬 후에는 화면 위치와 어긋남 —
       // 반드시 현재 렌더링(정렬 반영)된 rows에서의 위치를 id로 다시 찾아야 함
-      const posInPage = t.getRowModel().rows.findIndex(r => r.id === row.id);
+      // 서버가 묶음 번호를 내려준 경우 그대로 사용 (페이지 간 연속성 보장)
+      if (getRowNumber) return getRowNumber(row.original);
+
+      const pageRows  = t.getRowModel().rows;
+      const posInPage = pageRows.findIndex(r => r.id === row.id);
       const idx = posInPage >= 0 ? posInPage : row.index;
+
+      // 병합 모드: 행이 아니라 "묶음" 단위로 번호를 매긴다 (매출/원가 2행 = 한 프로젝트 = 1번)
+      // 페이지 내 순번이라 페이지를 넘기면 다시 1부터 시작한다.
+      if (mergeRowsByKey) {
+        let ordinal = 0;
+        for (let i = 1; i <= idx && i < pageRows.length; i++) {
+          if (mergeRowsByKey(pageRows[i].original) !== mergeRowsByKey(pageRows[i - 1].original)) ordinal++;
+        }
+        return ordinal + 1;
+      }
+
       if (isServerMode) {
         return (spPage - 1) * spPageSize + idx + 1;
       }
       const { pageIndex, pageSize } = t.getState().pagination;
       return pageIndex * pageSize + idx + 1;
     },
-  }), [isServerMode, spPage, spPageSize]);
+  }), [isServerMode, spPage, spPageSize, mergeRowsByKey, getRowNumber]);
 
   const columnsWithIndex = useMemo<ColumnDef<T>[]>(
     () => [indexCol, ...columns],
@@ -435,6 +463,21 @@ const DataTable = <T extends object>({
   }, [data]);
 
   const rows     = table.getRowModel().rows;
+  // 병합(rowSpan) 시 뒤 행은 셀을 건너뛰어 :first-child 가 엉뚱한 컬럼에 걸림 →
+  // 실제 첫 번째 보이는 컬럼 id 로 클래스를 붙여서 정렬/sticky 를 고정한다
+  const firstColId = table.getVisibleLeafColumns()[0]?.id;
+
+  // mergeRowsByKey 지정 시 연속된 같은 키 행끼리 묶는다 (미지정이면 1행 = 1그룹 → 기존 동작 그대로)
+  const rowGroups = useMemo(() => {
+    if (!mergeRowsByKey) return rows.map(r => [r]);
+    const out: (typeof rows)[] = [];
+    for (const r of rows) {
+      const last = out[out.length - 1];
+      if (last && mergeRowsByKey(last[0].original) === mergeRowsByKey(r.original)) last.push(r);
+      else out.push([r]);
+    }
+    return out;
+  }, [rows, mergeRowsByKey]);
   const filtered = isServerMode ? null : table.getFilteredRowModel().rows;
 
   // ── 서버/클라이언트 페이지네이션 통합 — 아래로는 이 값들만 쓰고 isServerMode를 다시 안 봄 ──
@@ -500,7 +543,7 @@ const DataTable = <T extends object>({
   const showSearch = searchable || !!serverSearch;
   const hasToolbarContent = pageSizeOptions.length > 1 ||
     (hideableColumns && hideableColumns.length > 0) ||
-    showSearch;
+    showSearch || !!hint;
 
   const tableCard = (
     <div
@@ -546,6 +589,8 @@ const DataTable = <T extends object>({
               </div>
             )}
           </div>
+
+          {hint && <span className={styles.toolbarHint}>{hint}</span>}
 
           {/* 오른쪽: 검색 + 툴바 추가 요소 */}
           {showSearch && (
@@ -617,6 +662,7 @@ const DataTable = <T extends object>({
                           key={h.id}
                           header={h}
                           isDraggable={!!storageKey && h.id !== '__index'}
+                          isFirst={h.column.id === firstColId}
                           isHighlighted={highlightedCol === h.column.id}
                           onHeaderClick={setHighlight}
                         />
@@ -627,46 +673,78 @@ const DataTable = <T extends object>({
             </thead>
 
             <tbody>
-              {rows.map(row => {
-                const variant = getRowVariant?.(row.original) ?? '';
-                const expandKey = expandableRow?.getKey(row.original);
-                const isExpanded = !!expandableRow && expandedKey === expandKey;
+              {rowGroups.map(group => {
+                // 그룹 안에서 모든 행의 값이 같은 컬럼 → 첫 행에만 rowSpan으로 한 칸 병합
+                const mergedCols = group.length > 1
+                  ? new Set(
+                      group[0].getVisibleCells()
+                        .filter(c => {
+                          // NO.는 묶음당 하나 — 값 비교와 무관하게 항상 병합
+                          if (c.column.id === '__index') return true;
+                          const first = String(group[0].getValue(c.column.id) ?? '');
+                          return group.every(r => String(r.getValue(c.column.id) ?? '') === first);
+                        })
+                        .map(c => c.column.id),
+                    )
+                  : new Set<string>();
+                // 그룹 내 펼쳐진 행 — 펼침 패널은 그룹 마지막 행 뒤에 붙여야 rowSpan과 충돌하지 않음
+                const expandedInGroup = expandableRow
+                  ? group.find(r => expandableRow.getKey(r.original) === expandedKey)
+                  : undefined;
+                // 묶음의 손익 상태는 매출 행에만 있으므로 묶음 내 첫 비어있지 않은 variant를
+                // 전체 행에 적용 — 좌측 바·하이라이트가 프로젝트 단위로 일관되게 보이도록
+                const groupVariant = group.length > 1
+                  ? (group.map(r => getRowVariant?.(r.original) ?? '').find(v => v) ?? '')
+                  : '';
                 return (
-                <Fragment key={row.id}>
-                  <tr className={[variant ? styles[variant] : '', isExpanded ? styles.rowExpanded : ''].join(' ') || undefined}>
-                    {row.getVisibleCells().map(cell => {
-                      const raw = cell.getValue();
-                      const text = raw != null && raw !== '' ? String(raw) : '';
-                      const isLong = text.length > 20;
-                      const canExpand = !!expandableRow && !expandableRow.excludeColumns?.includes(cell.column.id);
-                      return (
-                        <td
-                          key={cell.id}
-                          title={text || undefined}
-                          onClick={isLong ? () => openPopup(text, true) : undefined}
-                          onDoubleClick={
-                            canExpand
-                              ? () => setExpandedKey(k => k === expandKey ? null : expandKey!)
-                              : searchOnDblClick?.includes(cell.column.id) && text
-                                ? () => tableSearch.fillFromCell(text)
-                                : undefined
-                          }
-                          className={[
-                            isLong ? styles.clickable : '',
-                            (canExpand || searchOnDblClick?.includes(cell.column.id)) ? styles.dblClickable : '',
-                            cell.column.id === '__index' ? styles.indexCell : '',
-                            highlightedCol === cell.column.id ? styles.tdHighlighted : '',
-                          ].join(' ') || undefined}
-                        >
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                  {isExpanded && (
+                <Fragment key={group[0].id}>
+                  {group.map((row, i) => {
+                    const variant = groupVariant || (getRowVariant?.(row.original) ?? '');
+                    const expandKey = expandableRow?.getKey(row.original);
+                    // 병합 묶음은 하이라이트도 묶음 전체에 — 2번째 행만 안 칠해지는 문제 방지
+                    const isExpanded = !!expandedInGroup;
+                    return (
+                      <tr key={row.id} className={[variant ? styles[variant] : '', isExpanded ? styles.rowExpanded : ''].join(' ') || undefined}>
+                        {row.getVisibleCells().map(cell => {
+                          const isMerged = mergedCols.has(cell.column.id);
+                          if (isMerged && i > 0) return null;   // 병합된 컬럼은 첫 행에서만 렌더
+                          const raw = cell.getValue();
+                          const text = raw != null && raw !== '' ? String(raw) : '';
+                          const isLong = text.length > 20;
+                          const canExpand = !!expandableRow && !expandableRow.excludeColumns?.includes(cell.column.id);
+                          return (
+                            <td
+                              key={cell.id}
+                              rowSpan={isMerged ? group.length : undefined}
+                              title={text || undefined}
+                              onClick={isLong ? () => openPopup(text, true) : undefined}
+                              onDoubleClick={
+                                canExpand
+                                  ? () => setExpandedKey(k => k === expandKey ? null : expandKey!)
+                                  : searchOnDblClick?.includes(cell.column.id) && text
+                                    ? () => tableSearch.fillFromCell(text)
+                                    : undefined
+                              }
+                              className={[
+                                cell.column.id === firstColId ? styles.firstCol : '',
+                                isMerged ? styles.spanCell : '',
+                                isLong ? styles.clickable : '',
+                                (canExpand || searchOnDblClick?.includes(cell.column.id)) ? styles.dblClickable : '',
+                                cell.column.id === '__index' ? styles.indexCell : '',
+                                highlightedCol === cell.column.id ? styles.tdHighlighted : '',
+                              ].join(' ') || undefined}
+                            >
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  })}
+                  {expandedInGroup && (
                     <tr ref={expandedRowRef} className={styles.expandedRow}>
                       <td colSpan={table.getVisibleLeafColumns().length}>
-                        {expandableRow!.renderContent(row.original, closeExpanded)}
+                        {expandableRow!.renderContent(expandedInGroup.original, closeExpanded)}
                       </td>
                     </tr>
                   )}

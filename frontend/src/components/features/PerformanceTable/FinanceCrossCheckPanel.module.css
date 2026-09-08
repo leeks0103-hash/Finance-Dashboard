@@ -67,7 +67,7 @@
   color: var(--text-muted);
   padding: 8px 12px;
   text-align: center;
-  background: var(--bg);
+  background: var(--bg-header);
   border-bottom: 2px solid var(--border);
   white-space: nowrap;
   user-select: none;

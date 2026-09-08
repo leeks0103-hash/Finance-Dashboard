@@ -12,7 +12,8 @@ interface Tab {
 const TABS: Tab[] = [
   { id: 'performance',  label: '경영실적/재무데이터' },
   { id: 'kpi',          label: 'KPI/경영현황' },
-  { id: 'satisfaction', label: '강사만족도' },
+  // 데이터 소스·파이프라인 미정이라 네비게이션에서 잠시 내림 (아래 한 줄 주석 해제하면 복구)
+  // { id: 'satisfaction', label: '강사만족도' },
 ];
 
 interface Props {

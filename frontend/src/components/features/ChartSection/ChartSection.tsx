@@ -115,16 +115,19 @@ const ChartSection = () => {
 
   // 이익율 바: 흑자=퍼플(비율 지표 고유색), 적자=레드
   const profitColors = useMemo(() => vm.profitRate.isProfit.map(ok =>
-    ok ? palette.rate : palette.cost
+    ok ? palette.rate : palette.loss
   ), [vm.profitRate.isProfit, palette]);
 
   // 도넛: 원가구성 세부 — 전부 "원가"이므로 레드 계열 톤 변주로 한 가족임을 드러냄
   const doughnutColors = useMemo(() => [palette.costDirect, palette.costLabor, palette.costOverhead], [palette]);
 
   // 차트 옵션에 grid/tick 색상 직접 주입 — Chart.defaults 의존 없이 React prop만으로 업데이트
+  // grace: 최댓값 위(아래)로 여유를 둬서 막대가 축 천장에 딱 붙지 않게 함
+  // (예: 최대 5억 → 축 상한 6억). 값 축이 세로/가로 어느 쪽이든 잡히도록 x·y 둘 다 지정 —
+  // 카테고리 축에서는 grace 가 무시되므로 부작용 없음
   const scaleOverride = useMemo(() => ({
-    x: { grid: { color: gridColor }, ticks: { color: tickColor } },
-    y: { grid: { color: gridColor }, ticks: { color: tickColor } },
+    x: { grace: '15%', grid: { color: gridColor }, ticks: { color: tickColor } },
+    y: { grace: '15%', grid: { color: gridColor }, ticks: { color: tickColor } },
   }), [gridColor, tickColor]);
 
   const revExpOptions = useMemo(
@@ -182,7 +185,7 @@ const ChartSection = () => {
           <BarChart
             labels={vm.profitRate.labels}
             datasets={[showProfitAmount
-              ? { label: '이익액(억)', data: vm.revExp.profits,  backgroundColor: palette.cost }
+              ? { label: '이익액(억)', data: vm.revExp.profits,  backgroundColor: palette.profit }
               : { label: '이익율(%)',  data: vm.profitRate.rates, backgroundColor: profitColors }
             ]}
             options={showProfitAmount ? profitAmountOptions : profitRateOptions}

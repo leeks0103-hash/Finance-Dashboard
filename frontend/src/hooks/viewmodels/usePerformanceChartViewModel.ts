@@ -5,7 +5,8 @@ import { useTheme } from '@/hooks/useTheme';
 import { makeBarOptions } from '@/utils/chartOptions';
 import { getChartTheme } from '@/utils/chartColors';
 import { sortProgress } from '@/utils/progressOrder';
-import { PERF_MONTH } from '@/utils';
+import { sortParts } from '@/utils/partOrder';
+import { PERF_MONTH, stripPartPrefix } from '@/utils';
 import type { ChartOptions } from 'chart.js';
 
 const toEokNum = (v: number) => +(v / 100_000).toFixed(1);
@@ -86,7 +87,8 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
   }), [showLabels, labelColor]);
 
   const profitRateOptions = useMemo(() => makeBarOptions(showLabels, labelColor, {
-    layout: { padding: { top: 24 } },
+    // bottom — 마이너스 막대는 수치가 막대 아래에 찍히므로 잘리지 않게 여백 확보
+    layout: { padding: { top: 24, bottom: 24 } },
     plugins: {
       datalabels: {
         anchor: 'end',
@@ -118,7 +120,7 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
     if (!summary || isLoading) return null;
 
     const monthly = summary.monthly;
-    const parts   = Object.keys(summary.by_part);
+    const parts   = sortParts(Object.keys(summary.by_part));
     const total   = summary.total;
     const progressEntries = sortProgress(Object.keys(summary.by_progress ?? {}));
 
@@ -131,12 +133,12 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
         isFuture: monthly.map(m => isFutureMonth(m.month)),
       },
       planVsActual: {
-        labels:      parts,
+        labels:      parts.map(stripPartPrefix),
         planInitial: parts.map(p => toEokNum(summary.by_part[p].plan_initial)),
         junActual:   parts.map(p => toEokNum(summary.by_part[p].jun_actual)),
       },
       profitRate: {
-        labels:   parts,
+        labels:   parts.map(stripPartPrefix),
         rates:    parts.map(p => summary.by_part[p].avg_profit_rate),
         profits:  parts.map(p => toEokNum(summary.by_part[p].operating_profit)),
         isProfit: parts.map(p => summary.by_part[p].operating_profit >= 0),

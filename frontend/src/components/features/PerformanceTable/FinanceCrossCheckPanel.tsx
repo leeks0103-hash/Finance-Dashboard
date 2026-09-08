@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
-import { Button, Spinner } from '@/components/ui';
+import { Button, Spinner, CopyText } from '@/components/ui';
 import { useClipboardPopup } from '@/components/ui/DataTable/useClipboardPopup';
 import { CellPopup }         from '@/components/ui/DataTable/CellPopup';
 import { useFinanceCrossCheckViewModel } from '@/hooks/viewmodels';
@@ -175,7 +175,8 @@ const FinanceCrossCheckPanel = ({ projectCode, onClose }: Props) => {
         <div className={styles.header}>
           <div className={styles.headerLeft}>
             <span className={styles.title}>재무 이력</span>
-            <span className={styles.code}>{projectCode}</span>
+            {/* 프로젝트코드 클릭 → 클립보드 복사 (1depth 테이블과 동일 동작) */}
+            <CopyText text={projectCode} className={styles.code} />
           </div>
           <Button unstyled className={styles.closeBtn} onClick={onClose} aria-label="닫기">×</Button>
         </div>

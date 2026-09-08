@@ -12,11 +12,15 @@ from openpyxl import Workbook
 from openpyxl.styles import PatternFill, Font, Alignment
 from openpyxl.utils import get_column_letter
 
+import sys as _sys_boot, os as _os_boot
+_sys_boot.path.insert(0, _os_boot.path.dirname(_os_boot.path.dirname(_os_boot.path.abspath(__file__))))
+import paths as _paths
+
 sys.stdout.reconfigure(encoding='utf-8')
 
 # ─── 경로 설정 ────────────────────────────────────────────────────────────────
 PPT_ROOT = r'C:\Users\aaa\Desktop\기술교육실_프로젝트 보고서 수집'
-EXCEL_PATH = r'C:\Users\aaa\coding\dashboard\data\재무관점 필수 데이터 추출.xlsx'
+EXCEL_PATH = _paths.FINANCE_EXCEL_PATH   # paths.py 단일 관리
 OUTPUT_PATH = r'C:\Users\aaa\coding\dashboard\data\품질감사_보고서.xlsx'
 
 # ─── 판별 기준 ────────────────────────────────────────────────────────────────

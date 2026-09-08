@@ -14,33 +14,57 @@ const num = (v: number) => formatNum(v);
 const txt = (i: { getValue: () => unknown; table: { options: { meta?: { searchQuery?: string } } } }) =>
   <HighlightText text={String(i.getValue() ?? '')} query={i.table.options.meta?.searchQuery} />;
 
+// 점검 월별 컬럼(chk_m01~chk_m12) — 1월~12월
+const MONTH_COLS = Array.from({ length: 12 }, (_, i) => {
+  const mm = String(i + 1).padStart(2, '0');
+  return h.accessor(`chk_m${mm}` as keyof PerfProject & string, {
+    header: `${i + 1}월`, size: 68, cell: c => eok(c.getValue() as number),
+  });
+});
+
 export const perfColumns = [
-  // 식별 — 프로젝트코드 제일 앞 (sticky 첫 번째 컬럼) — 더블클릭 시 재무 데이터 교차조회로 대체, 클릭 복사 제거
+  // ── 기본 표시 (사용자 지정 32개) — 프로젝트코드는 sticky 첫 컬럼이라 맨 앞 유지 ──
   h.accessor('project_code', {
     header: '프로젝트코드', size: 164,
     enableSorting: true,
     cell: txt,
   }),
+  h.accessor('progress',     { header: '진행',       size: 78,  cell: txt }),
+  h.accessor('category',     { header: '매출/원가',  size: 84,  cell: txt }),
+  h.accessor('project_name', { header: '프로젝트명', size: 200, cell: txt }),
+  h.accessor('manager',      { header: '담당자',     size: 78,  cell: txt }),
+  h.accessor('plan_initial',      { header: '최초사업계획', size: 96, enableSorting: true, cell: i => eok(i.getValue()) }),
+  h.accessor('plan_diff_amount',  { header: '계획 대비 추정 실적 차이 금액', size: 180, cell: i => eok(i.getValue()) }),
+  h.accessor('plan_diff_rate',    { header: '증감율', size: 76, cell: i => i.getValue() ? `${((i.getValue() as number)*100).toFixed(1)}%` : '-' }),
+  h.accessor('cost_direct',       { header: '직접원가', size: 84, cell: i => eok(i.getValue()) }),
+  h.accessor('cost_labor',        { header: '인건비',   size: 76, cell: i => eok(i.getValue()) }),
+  h.accessor('cost_overhead',     { header: '공통원가', size: 84, cell: i => eok(i.getValue()) }),
+  h.accessor('cost_mgmt',         { header: '관리비',   size: 76, cell: i => eok(i.getValue()) }),
+  h.accessor('operating_profit',  { header: '경상손익', size: 84, enableSorting: true, cell: i => eok(i.getValue()) }),
+  h.accessor('profit_rate',       { header: '손익율',   size: 76, enableSorting: true, cell: i => i.getValue() ? `${(Math.round((i.getValue() as number) * 100) / 100).toFixed(2)}%` : '-' }),
+  h.accessor('jun_check_total',   { header: '합계',     size: 96, cell: i => eok(i.getValue()) }),
+  ...MONTH_COLS,
+  h.accessor('chk_cost_rate',   { header: '원가율', size: 78, cell: i => pct(i.getValue()) }),
+  h.accessor('chk_course',      { header: '과정',   size: 66, cell: i => num(i.getValue()) }),
+  h.accessor('chk_session',     { header: '차수',   size: 66, cell: i => num(i.getValue()) }),
+  h.accessor('chk_participant', { header: '인원',   size: 66, cell: i => num(i.getValue()) }),
+  h.accessor('change_note',     { header: '변동 검토의견', size: 200, cell: txt }),
+
+  // ── 기본 숨김 (컬럼 메뉴에서 체크하면 표시) ──
   h.accessor('part',         { header: '파트',         size: 100, cell: txt }),
   h.accessor('team',         { header: '팀',           size: 100, cell: txt }),
-  h.accessor('project_name', { header: '프로젝트명',   size: 200, cell: txt }),
-  h.accessor('manager',      { header: '담당자',       size: 78,  cell: txt }),
   h.accessor('tech_category',{ header: '미래기술분류', size: 108, cell: txt }),
   h.accessor('biz_type',     { header: '사업구분',     size: 100, cell: txt }),
   h.accessor('customer_type',{ header: '고객구분',     size: 100, cell: txt }),
   h.accessor('biz_plan',     { header: '사업계획',     size: 88,  cell: txt }),
-  h.accessor('progress',     { header: '진행',         size: 78,  cell: txt }),
   h.accessor('edu_type',     { header: '교육형태',     size: 88,  cell: txt }),
   h.accessor('biz_type2',    { header: '사업유형',     size: 88,  cell: txt }),
   h.accessor('budget_code',  { header: '예산코드',     size: 88,  cell: txt }),
-  // 재무
   h.accessor('actual_2025',       { header: '25년 실적',  size: 84, enableSorting: true, cell: i => eok(i.getValue()) }),
-  h.accessor('plan_initial',      { header: '최초계획',   size: 84, enableSorting: true, cell: i => eok(i.getValue()) }),
   h.accessor('plan_cost_rate',    { header: '계획원가율', size: 80, cell: i => pct(i.getValue()) }),
-  h.accessor('course_count',      { header: '과정',       size: 66, cell: i => num(i.getValue()) }),
-  h.accessor('session_count',     { header: '차수',       size: 66, cell: i => num(i.getValue()) }),
-  h.accessor('participant_count', { header: '인원',       size: 66, cell: i => num(i.getValue()) }),
-  // N월 집계 (PERF_MONTH — 매달 utils/perfPeriod.ts 갱신)
+  h.accessor('course_count',      { header: '계획과정',   size: 74, cell: i => num(i.getValue()) }),
+  h.accessor('session_count',     { header: '계획차수',   size: 74, cell: i => num(i.getValue()) }),
+  h.accessor('participant_count', { header: '계획인원',   size: 74, cell: i => num(i.getValue()) }),
   h.accessor('jun_est',        { header: `${PERF_MONTH} 추정`,   size: 84, cell: i => eok(i.getValue()) }),
   h.accessor('jun_est_rate',   { header: `${PERF_MONTH} 추정율`, size: 80, cell: i => pct(i.getValue()) }),
   h.accessor('jun_actual',     { header: `${PERF_MONTH} 실적`,   size: 84, enableSorting: true, cell: i => eok(i.getValue()) }),
@@ -48,25 +72,8 @@ export const perfColumns = [
   h.accessor('cost_rate_diff', { header: '원가율 차이', size: 84, cell: i => i.getValue() ? `${((i.getValue() as number) * 100).toFixed(1)}%p` : '-' }),
   h.accessor('est_vs_actual',  { header: '추정 대비',   size: 84, cell: i => eok(i.getValue()) }),
   h.accessor('cost_rate_reason',{ header: '원가율 사유', size: 110, cell: txt }),
-  // 차이분석
-  h.accessor('plan_diff_amount', { header: '차이금액', size: 84, cell: i => eok(i.getValue()) }),
-  h.accessor('plan_diff_rate',   { header: '증감율',   size: 76, cell: i => i.getValue() ? `${((i.getValue() as number)*100).toFixed(1)}%` : '-' }),
   h.accessor('plan_diff_reason', { header: '사유',     size: 110, cell: txt }),
-  // 손익 점검
   h.accessor('profit_gross',      { header: '매출이익',  size: 84, cell: i => eok(i.getValue()) }),
-  h.accessor('cost_direct',       { header: '직접원가',  size: 84, cell: i => eok(i.getValue()) }),
-  h.accessor('cost_labor',        { header: '인건비',    size: 76, cell: i => eok(i.getValue()) }),
-  h.accessor('cost_overhead',     { header: '공통원가',  size: 84, cell: i => eok(i.getValue()) }),
-  h.accessor('cost_mgmt',         { header: '관리비',    size: 76, cell: i => eok(i.getValue()) }),
-  h.accessor('operating_profit',  { header: '경상손익',  size: 84, enableSorting: true, cell: i => eok(i.getValue()) }),
-  h.accessor('profit_rate',       { header: '손익률',    size: 76, enableSorting: true, cell: i => i.getValue() ? `${(Math.round((i.getValue() as number) * 100) / 100).toFixed(2)}%` : '-' }),
-  // N월 점검 — 월별 상세는 차트에서 표시하므로 연간합계만
-  h.accessor('jun_check_total', { header: `${PERF_MONTH} 점검 연간`, size: 104, cell: i => eok(i.getValue()) }),
-  h.accessor('chk_cost_rate',   { header: '점검원가율', size: 84,  cell: i => pct(i.getValue()) }),
-  h.accessor('chk_course',      { header: '점검과정',   size: 74,  cell: i => num(i.getValue()) }),
-  h.accessor('chk_session',     { header: '점검차수',   size: 74,  cell: i => num(i.getValue()) }),
-  h.accessor('chk_participant', { header: '점검인원',   size: 74,  cell: i => num(i.getValue()) }),
-  // 대차·참조
   h.accessor('balance_amount', { header: '대차금액', size: 84,  cell: i => eok(i.getValue()) }),
   h.accessor('balance_rate',   { header: '대차비율', size: 76,  cell: i => i.getValue() ? `${((i.getValue() as number)*100).toFixed(1)}%` : '-' }),
   h.accessor('dup_check',      { header: '중복점검', size: 88,  cell: txt }),
@@ -91,66 +98,30 @@ export const perfColumns = [
   h.accessor('sa_regular',         { header: '정규직',      cell: i => num(i.getValue()) }),
   h.accessor('sa_overhead_cost',   { header: '제경비',      cell: i => num(i.getValue()) }),
   // 기타
-  h.accessor('change_note', { header: '변동 검토의견', cell: txt }),
   h.accessor('note',        { header: '비고', size: 280, cell: txt }),
   h.accessor('filename',    { header: '원본파일명',    cell: txt }),
 ];
 
-/**
- * 숨김 가능 컬럼 목록 — perfColumns와 함께 관리
- * 컬럼 추가/삭제 시 여기도 함께 업데이트
- */
-export const PERF_HIDEABLE_COLS: HideableColumn[] = [
-  // 식별 보조
-  { id: 'tech_category',    label: '미래기술분류' },
-  { id: 'biz_type',         label: '사업구분' },
-  { id: 'customer_type',    label: '고객구분' },
-  { id: 'edu_type',         label: '교육형태' },
-  { id: 'biz_type2',        label: '사업유형' },
-  { id: 'budget_code',      label: '예산코드' },
-  // 추정·차이분석
-  { id: 'jun_est',          label: `${PERF_MONTH} 추정` },
-  { id: 'jun_est_rate',     label: `${PERF_MONTH} 추정율` },
-  { id: 'cost_rate_diff',   label: '원가율 차이' },
-  { id: 'est_vs_actual',    label: '추정 대비' },
-  { id: 'cost_rate_reason', label: '원가율 사유' },
-  { id: 'plan_diff_amount', label: '차이금액' },
-  { id: 'plan_diff_rate',   label: '증감율' },
-  { id: 'plan_diff_reason', label: '사유' },
-  // 손익 세부
-  { id: 'profit_gross',     label: '매출이익' },
-  { id: 'cost_direct',      label: '직접원가' },
-  { id: 'cost_labor',       label: '인건비' },
-  { id: 'cost_overhead',    label: '공통원가' },
-  { id: 'cost_mgmt',        label: '관리비' },
-  // 6월 점검 세부
-  { id: 'chk_cost_rate',    label: '점검원가율' },
-  { id: 'chk_course',       label: '점검과정' },
-  { id: 'chk_session',      label: '점검차수' },
-  { id: 'chk_participant',  label: '점검인원' },
-  // 대차·참조
-  { id: 'balance_amount',   label: '대차금액' },
-  { id: 'balance_rate',     label: '대차비율' },
-  { id: 'dup_check',        label: '중복점검' },
-  { id: 'ref_code',         label: '참조코드' },
-  // 신사업 원가 세부
-  { id: 'sa_direct_total',  label: '직접원가 소계' },
-  { id: 'sa_instructor',    label: '강사비' },
-  { id: 'sa_sub_instructor',label: '보조강사비' },
-  { id: 'sa_venue',         label: '강의장' },
-  { id: 'sa_practice',      label: '실습비' },
-  { id: 'sa_textbook',      label: '교재비' },
-  { id: 'sa_other_direct',  label: '기타직접' },
-  { id: 'sa_overhead_total',label: '공통원가 소계' },
-  { id: 'sa_refreshment',   label: '다과비' },
-  { id: 'sa_edu_venue',     label: '교육장' },
-  { id: 'sa_parking',       label: '주차비' },
-  { id: 'sa_sw_practice',   label: '실습비SW' },
-  { id: 'sa_intern',        label: '인턴인건비' },
-  { id: 'sa_labor_total',   label: '인건비 소계' },
-  { id: 'sa_regular',       label: '정규직' },
-  { id: 'sa_overhead_cost', label: '제경비' },
-  { id: 'change_note',      label: '변동 검토의견' },
-  { id: 'note',             label: '비고' },
-  { id: 'filename',         label: '원본파일명' },
+/** 기본 표시 컬럼 — 이 목록에 없는 컬럼은 전부 기본 숨김(컬럼 메뉴에서 체크하면 표시) */
+export const PERF_VISIBLE: string[] = [
+  'project_code', 'progress', 'category', 'project_name', 'manager',
+  'plan_initial', 'plan_diff_amount', 'plan_diff_rate',
+  'cost_direct', 'cost_labor', 'cost_overhead', 'cost_mgmt',
+  'operating_profit', 'profit_rate', 'jun_check_total',
+  ...Array.from({ length: 12 }, (_, i) => `chk_m${String(i + 1).padStart(2, '0')}`),
+  'chk_cost_rate', 'chk_course', 'chk_session', 'chk_participant', 'change_note',
 ];
+
+const _visibleSet = new Set(PERF_VISIBLE);
+
+const _colId = (c: unknown) => (c as { accessorKey: string }).accessorKey;
+
+/** DataTable initialColumnVisibility 용 — 기본 숨김 컬럼을 false로 */
+export const PERF_DEFAULT_HIDDEN: Record<string, boolean> = Object.fromEntries(
+  perfColumns.map(_colId).filter(id => !_visibleSet.has(id)).map(id => [id, false]),
+);
+
+/** 숨김/표시 토글 가능한 컬럼 — perfColumns에서 자동 파생(프로젝트코드는 항상 표시) */
+export const PERF_HIDEABLE_COLS: HideableColumn[] = perfColumns
+  .map(c => ({ id: _colId(c), label: String((c as { header?: unknown }).header ?? '') }))
+  .filter(c => c.id !== 'project_code');
