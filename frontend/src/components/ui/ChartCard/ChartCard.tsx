@@ -1,4 +1,6 @@
-import { Children, type ReactNode } from 'react';
+import { Children, useEffect, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
+import { Button } from '@/components/ui/Button';
 import styles from './ChartCard.module.css';
 
 // 마커 컴포넌트 — 실제 렌더링(클래스·배치)은 Root가 전담. 호출부 가독성을 위한 자리 표시자.
@@ -10,28 +12,90 @@ interface RootProps {
   children: ReactNode;
   /** true(기본) — 제목이 카드 테두리 안에 작게 표시. false — 카드 바깥 위에 제목이 표시 */
   compact?: boolean;
+  /** true(기본) — 제목줄 우측에 확대 버튼 표시, 클릭 시 모달로 크게 보기 */
+  expandable?: boolean;
 }
 
-const Root = ({ children, compact = true }: RootProps) => {
+const Root = ({ children, compact = true, expandable = true }: RootProps) => {
   const [title, body] = Children.toArray(children);
+  const [expanded, setExpanded] = useState(false);
+
+  // 모달 열림 동안 ESC 닫기 + 배경 스크롤 잠금
+  useEffect(() => {
+    if (!expanded) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setExpanded(false); };
+    const prevOverflow = document.body.style.overflow;
+    document.addEventListener('keydown', onKey);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [expanded]);
+
+  // 제목줄 — 기존 제목(+토글 등)은 그대로 두고 우측 끝에 확대 버튼만 덧붙인다
+  const titleRow = (className: string) => (
+    <div className={className}>
+      <div className={styles.titleContent}>{title}</div>
+      {expandable && (
+        <Button
+          unstyled
+          className={styles.expandBtn}
+          onClick={() => setExpanded(true)}
+          aria-label="차트 확대"
+          title="크게 보기"
+        >
+          ⤢
+        </Button>
+      )}
+    </div>
+  );
+
+  // 카드와 같은 title/body를 그대로 재사용 — 모달 안에서는 더 큰 영역에 다시 그려진다
+  const modal = expanded && createPortal(
+    <div className={styles.modalOverlay} onClick={() => setExpanded(false)} role="presentation">
+      <div
+        className={styles.modalCard}
+        role="dialog"
+        aria-modal="true"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className={styles.modalHeader}>
+          <div className={styles.titleContent}>{title}</div>
+          <Button
+            unstyled
+            className={styles.modalClose}
+            onClick={() => setExpanded(false)}
+            aria-label="닫기"
+          >
+            ×
+          </Button>
+        </div>
+        <div className={styles.modalBody}>{body}</div>
+      </div>
+    </div>,
+    document.body,
+  );
 
   if (compact) {
     return (
       <div className={styles.group}>
         <div className={styles.root}>
-          <div className={styles.titleCompact}>{title}</div>
+          {titleRow(styles.titleCompact)}
           <div className={styles.body}>{body}</div>
         </div>
+        {modal}
       </div>
     );
   }
 
   return (
     <div className={styles.group}>
-      <div className={styles.title}>{title}</div>
+      {titleRow(styles.title)}
       <div className={styles.root}>
         <div className={styles.body}>{body}</div>
       </div>
+      {modal}
     </div>
   );
 };

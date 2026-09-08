@@ -13,6 +13,7 @@
  *   costLabor    — 원가구성 도넛: 인건비 (Active Blue)
  *   costOverhead — 원가구성 도넛: 공통원가 (Sky Blue)
  *   costMgmt     — 원가구성 도넛: 관리비 (Hyundai Gold — 파랑 3톤과 구분되는 유일한 브랜드색)
+ *   plan         — 계획·목표 등 비교 기준선 계열 (Sand/블루그레이 중립 — 실적 계열과 겹치지 않게)
  */
 export interface ChartPalette {
   revenue:      string;
@@ -24,6 +25,7 @@ export interface ChartPalette {
   costLabor:    string;
   costOverhead: string;
   costMgmt:     string;
+  plan:         string;
 }
 
 /** 데이터 시리즈 색과 별개로, 축 눈금·격자선·데이터라벨 텍스트에 쓰는 차트 "크롬" 색 — 3탭 공용 */
@@ -59,6 +61,7 @@ export const getChartPalette = (dark: boolean): ChartPalette => dark ? {
   costLabor:    'rgba(0,170,210,1)',    /* Active Blue */
   costOverhead: 'rgba(170,202,230,1)',  /* Sky Blue */
   costMgmt:     'rgba(199,148,113,1)',  /* Hyundai Gold tint */
+  plan:         'rgba(159,179,196,0.55)', /* 블루그레이 중립 — 계획·목표 */
 } : {
   revenue:      'rgba(0,44,95,1)',      /* Hyundai Blue */
   cost:         'rgba(163,107,79,1)',   /* Hyundai Gold */
@@ -69,4 +72,5 @@ export const getChartPalette = (dark: boolean): ChartPalette => dark ? {
   costLabor:    'rgba(0,170,210,1)',    /* Active Blue */
   costOverhead: 'rgba(170,202,230,1)',  /* Sky Blue */
   costMgmt:     'rgba(163,107,79,1)',   /* Hyundai Gold */
+  plan:         'rgba(107,98,87,0.45)',  /* Sand 계열 중립 — 계획·목표 */
 };

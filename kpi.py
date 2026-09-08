@@ -179,6 +179,13 @@ def get_kpi_df() -> pd.DataFrame:
     return _kpi_raw_df
 
 
+# 합계형 지표 — 건수·매출액처럼 프로젝트별 값을 더해야 의미가 있는 항목.
+# 만족도·적절성 같은 척도(0~5, NPS) 지표만 평균으로 집계한다.
+# ※ 추출 스크립트 update_summary_sheet()의 calc_sum/calc_avg 배치와 반드시 일치시킬 것 —
+#   어긋나면 'kpi 집계' 시트 값과 대시보드 카드/차트 값이 서로 달라진다.
+_SUM_KEYWORDS = ("건수", "매출액", "금액")
+
+
 def _load_kpi_items_from_cache() -> list:
     if _kpi_agg_df.empty:
         return []
@@ -210,7 +217,7 @@ def _load_kpi_items_from_cache() -> list:
             continue
 
         target_val = row[target_col] if target_col else None
-        agg = "sum" if "건수" in name else "avg"
+        agg = "sum" if any(k in name for k in _SUM_KEYWORDS) else "avg"
 
         if isinstance(target_val, str) and target_val.strip():
             target = target_val.strip()

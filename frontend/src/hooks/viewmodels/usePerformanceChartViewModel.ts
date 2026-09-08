@@ -29,9 +29,10 @@ export interface PerformanceChartViewModel {
     options:  ChartOptions<'bar'>;
   };
   planVsActual: {
-    labels:      string[];
-    planInitial: number[];
-    junActual:   number[];
+    labels:        string[];
+    planInitial:   number[];
+    /** 연간 추정 실적(BE열) — 계획이 연간 기준이라 누계 실적(1~N월) 대신 같은 기간끼리 비교 */
+    junCheckTotal: number[];
     options:     ChartOptions<'bar'>;
   };
   profitRate: {
@@ -133,9 +134,9 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
         isFuture: monthly.map(m => isFutureMonth(m.month)),
       },
       planVsActual: {
-        labels:      parts.map(stripPartPrefix),
-        planInitial: parts.map(p => toEokNum(summary.by_part[p].plan_initial)),
-        junActual:   parts.map(p => toEokNum(summary.by_part[p].jun_actual)),
+        labels:        parts.map(stripPartPrefix),
+        planInitial:   parts.map(p => toEokNum(summary.by_part[p].plan_initial)),
+        junCheckTotal: parts.map(p => toEokNum(summary.by_part[p].jun_check_total)),
       },
       profitRate: {
         labels:   parts.map(stripPartPrefix),
@@ -159,7 +160,7 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
     return {
       isLoading, isError, isEmpty: false, showLabels, labelColor,
       monthly:       { labels: [], revenues: [], costs: [], isFuture: [], options: monthlyOptions },
-      planVsActual:  { labels: [], planInitial: [], junActual: [], options: planVsActualOptions },
+      planVsActual:  { labels: [], planInitial: [], junCheckTotal: [], options: planVsActualOptions },
       profitRate:    { labels: [], rates: [], profits: [], isProfit: [], options: profitRateOptions },
       costBreakdown: { labels: [], values: [] },
       progress:      { labels: [], revenues: [], expenditures: [], options: progressOptions },

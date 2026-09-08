@@ -459,6 +459,55 @@ def cleanup_deleted_files(data_ws, processed_filenames: set) -> int:
     return len(rows_to_delete)
 
 
+def cleanup_stale_rows(data_ws, all_records: List[List]) -> int:
+    """PPT 안의 값(프로젝트코드·수행연도·보고단계)이 수정되면 새 키로 행이 하나 더 생기고
+    옛 키 행은 그대로 남는다 — 파일명은 그대로라 cleanup_deleted_files()가 못 잡는다.
+    (예: 코드가 H095600126040001 → H095600126050002 로 정정된 제안 보고서)
+
+    그래서 **이번 실행에서 실제로 레코드가 나온 파일**에 한해, 이번 실행이 쓰지 않은
+    (파일명, 코드, 연도, 단계) 행을 제거한다. 추출이 실패했거나 KPI 표가 없어서
+    레코드가 하나도 안 나온 파일은 손대지 않는다 — 일시적 파싱 실패로 기존 데이터가
+    통째로 날아가는 것을 막기 위함.
+    """
+    written_keys = set()
+    files_with_records = set()
+    for row_data in all_records:
+        fname = normalize_text(row_data[44]) if len(row_data) > 44 else ""
+        if not fname:
+            continue
+        files_with_records.add(fname)
+        written_keys.add((
+            fname,
+            normalize_text(row_data[0]),   # 프로젝트코드
+            normalize_text(row_data[1]),   # 수행연도
+            normalize_text(row_data[3]),   # 보고단계
+        ))
+
+    rows_to_delete = []
+    for row_idx in range(2, data_ws.max_row + 1):
+        fname = normalize_text(data_ws.cell(row=row_idx, column=FILENAME_COL).value)
+        if fname not in files_with_records:
+            continue
+        key = (
+            fname,
+            normalize_text(data_ws.cell(row=row_idx, column=1).value),
+            normalize_text(data_ws.cell(row=row_idx, column=2).value),
+            normalize_text(data_ws.cell(row=row_idx, column=4).value),
+        )
+        if key not in written_keys:
+            rows_to_delete.append(row_idx)
+            logger.info(
+                f"[정리] 옛 키 행 제거 예정: 행={row_idx}, 코드={key[1]}, 연도={key[2]}, "
+                f"단계={key[3]}, 파일={fname}"
+            )
+
+    for row_idx in reversed(rows_to_delete):
+        data_ws.delete_rows(row_idx)
+    if rows_to_delete:
+        logger.info(f"[정리] 취합 시트 {len(rows_to_delete)}행 제거 (PPT 안에서 값이 바뀐 옛 키)")
+    return len(rows_to_delete)
+
+
 def upsert_data_rows(ws, rows: List[List]) -> Tuple[int, int]:
     inserted = 0
     updated = 0
@@ -1204,6 +1253,8 @@ def main():
     if not RETRY_MODE:
         processed_filenames = {meta["파일명"] for _, meta in all_target_files}
         cleanup_deleted_files(data_ws, processed_filenames)
+        # 파일은 그대로인데 PPT 안의 코드/연도/단계가 바뀐 경우 남는 옛 행도 정리
+        cleanup_stale_rows(data_ws, all_records)
 
     update_summary_sheet(summary_ws, data_ws)
 

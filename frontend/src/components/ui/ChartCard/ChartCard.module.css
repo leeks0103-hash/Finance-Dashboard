@@ -59,6 +59,111 @@
   min-height: 0;
 }
 
+/* 제목줄 안쪽 — 기존 제목/토글 배치(space-between)를 그대로 유지하고,
+   확대 버튼만 제목줄 맨 오른쪽에 따로 붙인다 */
+.titleContent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.expandBtn {
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 2px 5px;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  line-height: 1;
+  opacity: 0.5;
+  transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.root:hover .expandBtn,
+.expandBtn:focus-visible { opacity: 1; }
+
+.expandBtn:hover {
+  background: var(--brand-bg);
+  color: var(--brand-mid);
+  opacity: 1;
+}
+
+/* ── 확대 모달 ─────────────────────────────── */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 600;   /* 셀 팝업(500)보다 위 */
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: chartModalIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modalCard {
+  width: min(1280px, 94vw);
+  height: min(820px, 88vh);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 16px 22px 20px;
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.modalClose {
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 1.5rem;
+  line-height: 1;
+  padding: 0 4px;
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  transition: color 0.15s ease, background 0.15s ease;
+}
+.modalClose:hover { color: var(--text-primary); background: var(--bg-subtle); }
+
+.modalBody {
+  flex: 1;
+  min-height: 0;
+}
+
+@keyframes chartModalIn {
+  from { opacity: 0; transform: scale(0.985); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modalOverlay { animation: none; }
+}
+
+@media (max-width: 600px) {
+  .modalOverlay { padding: 10px; }
+  .modalCard { width: 100%; height: 92vh; padding: 12px 14px 16px; }
+}
+
 @media (max-width: 900px) {
   .root { min-height: 240px; }
 }

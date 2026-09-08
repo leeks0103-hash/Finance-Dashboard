@@ -125,11 +125,8 @@ const PerformanceChartSection = () => {
 
   const palette = useMemo(() => getChartPalette(dark), [dark]);
 
-  // "계획" 막대 — 중립색(실적/원가 계열과 겹치지 않게). Sand/블루그레이 계열
-  const planColor = useMemo(
-    () => dark ? 'rgba(159,179,196,0.55)' : 'rgba(107,98,87,0.45)',
-    [dark],
-  );
+  // "계획" 막대 — 중립색(실적/원가 계열과 겹치지 않게). KPI "26년 목표" 막대와 같은 값
+  const planColor = palette.plan;
 
   const profitColors = useMemo(() => vm.profitRate.isProfit.map(ok =>
     ok ? palette.rate : palette.loss
@@ -222,14 +219,14 @@ const PerformanceChartSection = () => {
     ),
     planVsActual: () => (
       <ChartCard>
-        <ChartCard.Title><span className={styles.chartTitle}>파트별 계획 vs 실적<InfoButton>{INFO_PLAN_VS_ACTUAL}</InfoButton></span></ChartCard.Title>
+        <ChartCard.Title><span className={styles.chartTitle}>파트별 계획 vs 추정 실적<InfoButton>{INFO_PLAN_VS_ACTUAL}</InfoButton></span></ChartCard.Title>
         <ChartCard.Body>
           <BarChart
             horizontal
             labels={vm.planVsActual.labels}
             datasets={[
               { label: '계획(억)', data: vm.planVsActual.planInitial, backgroundColor: planColor },
-              { label: '실적(억)', data: vm.planVsActual.junActual,   backgroundColor: palette.revenue },
+              { label: '추정 실적(억)', data: vm.planVsActual.junCheckTotal, backgroundColor: palette.revenue },
             ]}
             options={planVsActualOptions}
           />
