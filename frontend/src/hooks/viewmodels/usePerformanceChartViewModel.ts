@@ -144,6 +144,10 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
         profits:  parts.map(p => toEokNum(summary.by_part[p].operating_profit)),
         isProfit: parts.map(p => summary.by_part[p].operating_profit >= 0),
       },
+      // ⚠️ 카드 제목은 "프로젝트 평균 원가비율"이지만 계산은 **전체 합계 구성비**(금액 가중)다.
+      //    프로젝트별 비율의 단순평균이 아니다 — 2026-09-08 담당자 확인 후 합계 유지로 확정.
+      //    (실측 차이: 직접원가 합계 67.5% vs 프로젝트 단순평균 56.7%)
+      //    ⓘ 설명(INFO_COST_BREAKDOWN)에는 "전체 합산 후 항목별 구성비"로 정확히 안내 중.
       costBreakdown: {
         labels: ['직접원가', '인건비', '공통원가', '관리비'],
         values: [total.cost_direct, total.cost_labor, total.cost_overhead, total.cost_mgmt].map(toEokNum),
