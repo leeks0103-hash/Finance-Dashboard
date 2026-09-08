@@ -8,8 +8,11 @@ import styles from './BarChart.module.css';
 
 Chart.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend, ChartDataLabels);
 
-// Chart.js는 CSS font-family를 무시 — 전역 폰트 직접 주입
-Chart.defaults.font.family = "'GmarketSans', 'Pretendard', 'Apple SD Gothic Neo', sans-serif";
+// Chart.js는 CSS font-family를 무시 — 전역 폰트 직접 주입.
+// GmarketSans/Pretendard는 이 프로젝트에 로드되지 않아(=@font-face·폰트 파일 없음) 실제로는
+// 시스템 sans-serif(맑은 고딕)로 떨어졌고, 굵은 글씨가 번져 보이는 원인이었음 —
+// body와 같은 HyundaiSans로 통일(700 실제 굵기 파일이 있어 가짜 볼드가 생기지 않음)
+Chart.defaults.font.family = "'HyundaiSans', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif";
 Chart.defaults.font.size   = 13;
 
 interface Props {
