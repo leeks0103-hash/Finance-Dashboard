@@ -15,13 +15,13 @@ const PerformanceInsightSection = () => {
   // 미수주는 실적현황엔 없고 재무(PPT)에만 있는 데이터라 Project 원본으로 직접 컬럼 구성 —
   // 코드 컬럼만 CopyText(클릭 복사/더블클릭 검색) 담당, 나머지 셀 더블클릭은 expandableRow가 담당
   const missedBidColumns = useMemo(() => [
-    h.accessor('project_code', {
-      header: '코드',
-      size: 120,
-      // 여긴 실적현황(다른 데이터셋) 검색창을 채우는 용도라 재무 교차조회(FinanceCrossCheckPanel)와
-      // 달리 placeholder 코드라도 그냥 검색 시도 — 못 찾으면 "결과 없음"이 뜰 뿐 잘못된 매칭이 아님
-      cell: i => <CopyText text={i.getValue()} onSearch={setPerfSearch} />,
-    }),
+    // h.accessor('project_code', {
+    //   header: '코드',
+    //   size: 120,
+    //   // 여긴 실적현황(다른 데이터셋) 검색창을 채우는 용도라 재무 교차조회(FinanceCrossCheckPanel)와
+    //   // 달리 placeholder 코드라도 그냥 검색 시도 — 못 찾으면 "결과 없음"이 뜰 뿐 잘못된 매칭이 아님
+    //   cell: i => <CopyText text={i.getValue()} onSearch={setPerfSearch} />,
+    // }),
     h.accessor('part', { header: '파트', size: 70 }),
     h.accessor('note', { header: '비고', cell: i => <span title={i.getValue()}>{i.getValue() || '-'}</span> }),
     h.accessor('missed_bid_reason', {

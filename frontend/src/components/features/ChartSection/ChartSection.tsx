@@ -82,7 +82,7 @@ const ChartSection = () => {
   const stageLabel = stages.length > 0 && !isAllSelected(stages, allStages) ? stages.join('·') : '전체';
 
   // 파트별 이익율 카드 — 토글 켜면 이익율(%) 대신 이익액(억원) 표시
-  const [showProfitAmount, setShowProfitAmount] = useState(false);
+  const [showProfitAmount, setShowProfitAmount] = useState(true);
 
   const { labelColor, gridColor, tickColor } = getChartTheme(dark);
 
@@ -175,9 +175,9 @@ const ChartSection = () => {
     profitRate: () => (
       <ChartCard>
         <ChartCard.Title>
-          <span>파트별 이익율(%)</span>
+          <span>파트별 경상이익</span>
           <span className={styles.toggleGroup}>
-            <span className={styles.stageBadge}>{showProfitAmount ? '이익액' : '이익율'}</span>
+            <span className={styles.stageBadge}>{showProfitAmount ? '경상이익' : '평균 이익율'}</span>
             <Toggle checked={showProfitAmount} onChange={() => setShowProfitAmount(v => !v)} danger={showProfitAmount} />
           </span>
         </ChartCard.Title>
@@ -212,7 +212,7 @@ const ChartSection = () => {
     costBreakdown: () => (
       <ChartCard>
         <ChartCard.Title>
-          <span>원가 구성</span>
+          <span>프로젝트 평균 원가비율</span>
           <span className={styles.stageBadge}>{stageLabel}</span>
         </ChartCard.Title>
         <ChartCard.Body>
