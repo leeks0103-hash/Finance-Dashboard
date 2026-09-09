@@ -24,7 +24,8 @@ KPI_EXCEL_PATH = paths.KPI_EXCEL_PATH
 
 _kpi_cache_lock   = threading.Lock()
 _kpi_cached_mtime = None
-_kpi_raw_df: pd.DataFrame = pd.DataFrame()
+_kpi_raw_df: pd.DataFrame = pd.DataFrame()   # 취합 전체 (테이블 표시용)
+_kpi_dedup_df: pd.DataFrame = pd.DataFrame() # 프로젝트별 최우선 단계 1건 (집계용)
 _kpi_agg_df: pd.DataFrame = pd.DataFrame()
 _kpi_last_loaded  = None
 
@@ -127,12 +128,44 @@ def _post_process_raw(df: pd.DataFrame) -> pd.DataFrame:
     return df.fillna(0)
 
 
+# 보고단계 우선순위 (높을수록 우선)
+_STAGE_PRIORITY = {"완료": 5, "중간": 4, "착수": 3, "제안": 2, "사전검토": 1}
+
+
+def _dedup_by_stage_priority(df: pd.DataFrame) -> pd.DataFrame:
+    """프로젝트코드+연도별로 최우선 보고단계 1건만 남김 (완료>중간>착수>제안)."""
+    if df.empty:
+        return df
+
+    code_col  = next((c for c in df.columns if "프로젝트코드" in str(c)), None)
+    stage_col = next((c for c in df.columns if "보고단계"   in str(c)), None)
+    year_col  = next((c for c in df.columns if "수행연도"   in str(c)), None)
+
+    if code_col is None or stage_col is None:
+        logger.warning("_dedup_by_stage_priority: 프로젝트코드 또는 보고단계 컬럼 없음")
+        return df
+
+    df = df.copy()
+    df["_stage_rank"] = df[stage_col].map(lambda s: _STAGE_PRIORITY.get(str(s).strip(), 0))
+
+    subset = [code_col, year_col] if year_col else [code_col]
+    df = (
+        df.sort_values("_stage_rank", ascending=False)
+          .drop_duplicates(subset=subset, keep="first")
+          .drop(columns=["_stage_rank"])
+          .reset_index(drop=True)
+    )
+    logger.info("보고단계 중복 제거 후 행 수: %d", len(df))
+    return df
+
+
 def load_kpi_excel():
     """_kpi_cache_lock 보유 상태에서만 호출."""
-    global _kpi_raw_df, _kpi_agg_df, _kpi_last_loaded, _kpi_cached_mtime
+    global _kpi_raw_df, _kpi_dedup_df, _kpi_agg_df, _kpi_last_loaded, _kpi_cached_mtime
     if not os.path.exists(KPI_EXCEL_PATH):
         logger.warning("KPI_EXCEL_PATH 없음 — 추출 스크립트 실행 필요: %s", KPI_EXCEL_PATH)
         _kpi_raw_df       = pd.DataFrame()
+        _kpi_dedup_df     = pd.DataFrame()
         _kpi_agg_df       = pd.DataFrame()
         _kpi_last_loaded  = None
         _kpi_cached_mtime = None
@@ -146,18 +179,22 @@ def load_kpi_excel():
         raw_df, agg_df = _load_kpi_via_com()
         if raw_df.empty and agg_df.empty:
             logger.error("KPI COM 읽기 실패")
-            _kpi_raw_df = pd.DataFrame()
-            _kpi_agg_df = pd.DataFrame()
+            _kpi_raw_df   = pd.DataFrame()
+            _kpi_dedup_df = pd.DataFrame()
+            _kpi_agg_df   = pd.DataFrame()
             return
-        _kpi_raw_df = _post_process_raw(raw_df)
-        _kpi_agg_df = agg_df
+        _kpi_raw_df   = _post_process_raw(raw_df)
+        _kpi_dedup_df = _dedup_by_stage_priority(_kpi_raw_df)
+        _kpi_agg_df   = agg_df
     else:
         wb = pd.ExcelFile(KPI_EXCEL_PATH, engine="openpyxl")
         sheet_names = wb.sheet_names
-        _kpi_raw_df = _post_process_raw(wb.parse("취합", header=0)) if "취합" in sheet_names else pd.DataFrame()
-        _kpi_agg_df = wb.parse("kpi 집계", header=0) if "kpi 집계" in sheet_names else pd.DataFrame()
+        _kpi_raw_df   = _post_process_raw(wb.parse("취합", header=0)) if "취합" in sheet_names else pd.DataFrame()
+        _kpi_dedup_df = _dedup_by_stage_priority(_kpi_raw_df)
+        _kpi_agg_df   = wb.parse("kpi 집계", header=0) if "kpi 집계" in sheet_names else pd.DataFrame()
 
-    logger.info("KPI 취합 %d행 / 집계 %d행 로드 완료", len(_kpi_raw_df), len(_kpi_agg_df))
+    logger.info("KPI 취합 %d행 / 집계(중복제거) %d행 / kpi집계 %d행 로드 완료",
+                len(_kpi_raw_df), len(_kpi_dedup_df), len(_kpi_agg_df))
     _kpi_last_loaded  = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     _kpi_cached_mtime = _safe_mtime(KPI_EXCEL_PATH)
 
@@ -210,7 +247,7 @@ def _load_kpi_items_from_cache() -> list:
             continue
 
         target_val = row[target_col] if target_col else None
-        agg = "sum" if "건수" in name else "avg"
+        agg = "sum" if ("건수" in name or "매출액" in name) else "avg"
 
         if isinstance(target_val, str) and target_val.strip():
             target = target_val.strip()
@@ -235,16 +272,17 @@ def _parse_new_old_count(value) -> tuple:
 
 
 def _aggregate_kpi_col(kpi_items: list, col_keyword: str) -> list:
-    if _kpi_raw_df.empty:
+    df = _kpi_dedup_df if not _kpi_dedup_df.empty else _kpi_raw_df
+    if df.empty:
         return [0.0] * len(kpi_items)
 
     target_cols = [
-        c for c in _kpi_raw_df.columns
+        c for c in df.columns
         if col_keyword in re.sub(r"\s+", "", str(c))
     ]
     if not target_cols:
         logger.warning("_aggregate_kpi_col: '%s' 컬럼 없음. 헤더: %s",
-                       col_keyword, list(_kpi_raw_df.columns[:10]))
+                       col_keyword, list(df.columns[:10]))
         return [0.0] * len(kpi_items)
 
     if len(target_cols) != len(kpi_items):
@@ -262,20 +300,27 @@ def _aggregate_kpi_col(kpi_items: list, col_keyword: str) -> list:
         if is_count_type:
             new_total = 0
             old_total = 0
-            for raw_val in _kpi_raw_df[col]:
+            for raw_val in df[col]:
                 if raw_val is None:
                     continue
                 val_str = str(raw_val).strip()
-                if "신규" in val_str:
+                if val_str in ("N", "nan", "", "0", "0.0"):
+                    continue
+                if ":" in val_str:
+                    # "신규:N건/기존:N건" 형식
                     m_new = re.search(r"신규\s*:\s*(\d+)건", val_str)
                     m_old = re.search(r"기존\s*:\s*(\d+)건", val_str)
                     if m_new: new_total += int(m_new.group(1))
                     if m_old: old_total += int(m_old.group(1))
+                elif val_str == "신규":
+                    new_total += 1
+                elif val_str == "기존":
+                    old_total += 1
             result.append(f"신규:{new_total}건/기존:{old_total}건")
             continue
 
         values = []
-        for raw_val in _kpi_raw_df[col]:
+        for raw_val in df[col]:
             if raw_val is None:
                 continue
             val_str = str(raw_val).strip()
@@ -322,12 +367,14 @@ def _compute_achieve_rates(kpi_items: list) -> list:
     평균형 KPI: 프로젝트별 actual_i/target_i * 100 의 평균 — 부서별 목표가 달라도 올바른 집계.
     합계형 KPI: sum(actual_i) / sum(target_i) * 100.
     신규/기존 건수 타입: None 반환 (호출부에서 별도 계산).
+    집계는 프로젝트별 최우선 단계 1건만 사용 (완료>중간>착수>제안).
     """
-    if _kpi_raw_df.empty:
+    df = _kpi_dedup_df if not _kpi_dedup_df.empty else _kpi_raw_df
+    if df.empty:
         return [None] * len(kpi_items)
 
-    actual_cols = [c for c in _kpi_raw_df.columns if "PJ실적" in re.sub(r"\s+", "", str(c))]
-    target_cols = [c for c in _kpi_raw_df.columns if "PJ목표" in re.sub(r"\s+", "", str(c))]
+    actual_cols = [c for c in df.columns if "PJ실적" in re.sub(r"\s+", "", str(c))]
+    target_cols = [c for c in df.columns if "PJ목표" in re.sub(r"\s+", "", str(c))]
 
     result = []
     for i, kpi in enumerate(kpi_items):
@@ -343,7 +390,7 @@ def _compute_achieve_rates(kpi_items: list) -> list:
             continue
 
         pairs = []
-        for _, row in _kpi_raw_df.iterrows():
+        for _, row in df.iterrows():
             a_str = str(row[a_col]).strip()
             t_str = str(row[t_col]).strip()
             if a_str in _SKIP_VALS or t_str in _SKIP_VALS:
@@ -438,19 +485,22 @@ def api_kpi_summary():
 
     try:
         kpi_items     = _load_kpi_items_from_cache()
+        # 목표/실적/유사 모두 dedup 기준으로 집계 (프로젝트별 최우선 단계 1건)
+        targets       = _aggregate_kpi_col(kpi_items, "PJ목표")
         actuals       = _aggregate_kpi_col(kpi_items, "PJ실적")
         prevs         = _aggregate_kpi_col(kpi_items, "PJ유사")
         achieve_rates = _compute_achieve_rates(kpi_items)
 
         result = []
         for i, kpi in enumerate(kpi_items):
-            target  = kpi["target"]
+            is_count_type = isinstance(kpi.get("target", 0), str) and "신규" in str(kpi.get("target", ""))
+            # 신규/기존 건수 타입은 kpi 집계 시트 목표 그대로 사용 (per-project PJ목표가 "N"으로 저장됨)
+            target  = kpi["target"] if is_count_type else (targets[i] if i < len(targets) else kpi["target"])
             actual  = actuals[i] if i < len(actuals) else 0.0
             prev    = prevs[i]   if i < len(prevs)   else 0.0
-            # 프로젝트별 페어가 있으면 per-project avg 사용, 없으면 집계 기반 폴백
             achieve = achieve_rates[i]
             if achieve is None and not isinstance(target, str):
-                target_num = float(target)
+                target_num = float(target) if target else 0.0
                 achieve = round(actual / target_num * 100, 1) if target_num != 0 else 0.0
 
             if isinstance(target, str) and "신규" in target:
