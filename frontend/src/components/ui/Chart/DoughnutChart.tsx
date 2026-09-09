@@ -1,6 +1,8 @@
+import { useRef, useState } from 'react';
 import { Doughnut } from 'react-chartjs-2';
 import { Chart, ArcElement, Tooltip, Legend } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
+import { Button } from '@/components/ui/Button';
 import styles from './DoughnutChart.module.css';
 
 Chart.register(ArcElement, Tooltip, Legend, ChartDataLabels);
@@ -39,10 +41,28 @@ const DoughnutChart = ({
 }: Props) => {
   const total = data.reduce((a, b) => a + b, 0);
 
+  // 범례 텍스트 클릭 시 해당 세그먼트 숨김/복원 — Chart.js 기본 범례가 하던 토글을
+  // 커스텀 HTML 범례(2열 그리드)로 바꾸면서 빠졌던 동작. toggleDataVisibility로 재구현
+  const chartRef = useRef<Chart<'doughnut', number[], string> | null>(null);
+  const [hiddenIdx, setHiddenIdx] = useState<Set<number>>(new Set());
+
+  const toggleSegment = (i: number) => {
+    const chart = chartRef.current;
+    if (!chart) return;
+    chart.toggleDataVisibility(i);
+    chart.update();
+    setHiddenIdx(prev => {
+      const next = new Set(prev);
+      if (next.has(i)) next.delete(i); else next.add(i);
+      return next;
+    });
+  };
+
   return (
     <div className={styles.wrap}>
       <div className={styles.canvasBox}>
         <Doughnut
+          ref={chartRef}
           data={{
             labels,
             datasets: [{ data, backgroundColor: colors, borderWidth: 0 }],
@@ -80,12 +100,20 @@ const DoughnutChart = ({
       {labels.length > 0 && (
         <ul className={styles.legend}>
           {labels.map((label, i) => (
-            <li key={label} className={styles.item}>
-              <i className={styles.dot} style={{ background: (colors[i] ?? DEFAULT_COLORS[i % DEFAULT_COLORS.length]) }} />
-              <span className={styles.name} title={label}>{label}</span>
-              <span className={styles.pct}>
-                {total > 0 ? ((data[i] / total) * 100).toFixed(1) : '0.0'}%
-              </span>
+            <li key={label}>
+              <Button
+                unstyled
+                className={`${styles.item} ${hiddenIdx.has(i) ? styles.itemHidden : ''}`}
+                onClick={() => toggleSegment(i)}
+                aria-pressed={!hiddenIdx.has(i)}
+                title={`${label} ${hiddenIdx.has(i) ? '표시' : '숨기기'}`}
+              >
+                <i className={styles.dot} style={{ background: (colors[i] ?? DEFAULT_COLORS[i % DEFAULT_COLORS.length]) }} />
+                <span className={styles.name} title={label}>{label}</span>
+                <span className={styles.pct}>
+                  {total > 0 ? ((data[i] / total) * 100).toFixed(1) : '0.0'}%
+                </span>
+              </Button>
             </li>
           ))}
         </ul>

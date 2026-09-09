@@ -26,6 +26,13 @@
   border-radius: var(--radius-sm);
 }
 
+/* «‹›» 글리프 — HyundaiSans/GmarketSans엔 이 문자가 없어(정렬 화살표와 같은 문제)
+   심볼 폰트로 폴백해야 실제로 보임 */
+.arrow {
+  font-family: 'Segoe UI Symbol', 'Apple Symbols', 'Noto Sans Symbols2', system-ui, sans-serif;
+  font-size: 0.95rem;
+}
+
 .active {
   background: var(--brand-mid) !important;
   border-color: transparent !important;

@@ -71,7 +71,9 @@ const Root = ({ children, compact = true, expandable = true }: RootProps) => {
             ×
           </Button>
         </div>
-        <div className={styles.modalBody}>{body}</div>
+        {/* chartcard-modal-body — 고정(비해시) 클래스. 페이지별 CSS 모듈이 "모달 안에서만"
+            자기 차트 높이를 채우도록 :global()로 걸 수 있는 표식 (예: KpiPage.module.css) */}
+        <div className={`${styles.modalBody} chartcard-modal-body`}>{body}</div>
       </div>
     </div>,
     document.body,

@@ -65,7 +65,7 @@ function Chips({ items }: { items: string[] }) {
 export const INFO_MONTHLY = (
   <InfoTable rows={[
     ['출처',   '실적현황 엑셀'],
-    ['컬럼',   <Chips items={['BF~BQ열 (1~12월 점검)']} />],
+    ['컬럼',   <Chips items={[`${PERF_COL.chkFullYearRange}열 (1~12월 점검)`]} />],
     ['대상',   '카테고리 = 매출 행'],
     ['계산',   '월별 합계 (천원 → 억원)'],
     ['표시',   '현재 월 이후는 흐리게 처리'],

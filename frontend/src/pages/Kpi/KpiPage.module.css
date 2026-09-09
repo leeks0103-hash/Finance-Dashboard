@@ -29,9 +29,17 @@
 }
 
 /* 차트 */
-/* 기본값 — min-height는 KPI 항목 수에 비례해 인라인 스타일로 늘어남(막대·숫자 겹침 방지).
-   height:100%는 인라인에서 지정 — 확대 모달처럼 실제 높이가 있는 부모를 만나면 꽉 채움 */
-.chartWrap { min-height: 320px; }
+/* 기본값 — 실제 높이는 KPI 항목 수에 비례해 인라인 스타일로 늘어남(막대·숫자 겹침 방지) */
+.chartWrap { height: 320px; }
+
+/* 확대 모달 안에서만 꽉 채우기 — ChartCard가 compact 카드와 모달에 같은 엘리먼트를
+   그대로 재사용하기 때문에, 평소 보기에 쓰는 인라인 height를 직접 바꾸면 거기까지 깨진다
+   (실제로 한 번 그렇게 했다가 평소 화면이 찌부러지는 회귀 발생 — 되돌림).
+   대신 ChartCard가 모달에만 붙여주는 표식 클래스(chartcard-modal-body)로 범위를 좁혀서
+   !important로만 모달 안의 chartWrap 높이를 덮어쓴다 */
+:global(.chartcard-modal-body) .chartWrap {
+  height: 100% !important;
+}
 
 /* ── KPI 취합 섹션 (토글 포함) ─────────── */
 .rawSection {

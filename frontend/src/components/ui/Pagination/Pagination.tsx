@@ -27,8 +27,10 @@ const Pagination = ({ page, pageCount, onPageChange, windowSize = 10 }: Props) =
     <div className={styles.bar}>
       <span className={styles.spacer} />
       <nav className={styles.nav}>
-        <Button variant="ghost" size="sm" className={styles.item}
-          onClick={() => onPageChange(page - 1)} disabled={page <= 1}>이전</Button>
+        <Button variant="ghost" size="sm" className={`${styles.item} ${styles.arrow}`}
+          onClick={() => onPageChange(1)} disabled={page <= 1} aria-label="첫 페이지" title="첫 페이지">«</Button>
+        <Button variant="ghost" size="sm" className={`${styles.item} ${styles.arrow}`}
+          onClick={() => onPageChange(page - 1)} disabled={page <= 1} aria-label="이전 페이지" title="이전 페이지">‹</Button>
         {pagerNums.map(idx => (
           <Button key={idx}
             variant={idx === pageIndex ? 'primary' : 'ghost'} size="sm"
@@ -38,7 +40,9 @@ const Pagination = ({ page, pageCount, onPageChange, windowSize = 10 }: Props) =
           </Button>
         ))}
         <Button variant="ghost" size="sm" className={styles.item}
-          onClick={() => onPageChange(page + 1)} disabled={page >= pageCount}>다음</Button>
+          onClick={() => onPageChange(page + 1)} disabled={page >= pageCount} aria-label="다음 페이지" title="다음 페이지">›</Button>
+        <Button variant="ghost" size="sm" className={styles.item}
+          onClick={() => onPageChange(pageCount)} disabled={page >= pageCount} aria-label="마지막 페이지" title="마지막 페이지">»</Button>
       </nav>
       <span className={styles.label}>{page} / {pageCount}</span>
     </div>
