@@ -25,6 +25,9 @@ KPI_EXCEL_PATH = paths.KPI_EXCEL_PATH
 _kpi_cache_lock   = threading.Lock()
 _kpi_cached_mtime = None
 _kpi_raw_df: pd.DataFrame = pd.DataFrame()
+# 프로젝트당 한 단계만 남긴 집계용 뷰 — 취합 표(_kpi_raw_df)는 전체 행을 그대로 보여주고,
+# 목표·실적 집계만 이 뷰를 쓴다 (_latest_stage_df 참조)
+_kpi_stage_df: pd.DataFrame = pd.DataFrame()
 _kpi_agg_df: pd.DataFrame = pd.DataFrame()
 _kpi_last_loaded  = None
 
@@ -129,10 +132,11 @@ def _post_process_raw(df: pd.DataFrame) -> pd.DataFrame:
 
 def load_kpi_excel():
     """_kpi_cache_lock 보유 상태에서만 호출."""
-    global _kpi_raw_df, _kpi_agg_df, _kpi_last_loaded, _kpi_cached_mtime
+    global _kpi_raw_df, _kpi_stage_df, _kpi_agg_df, _kpi_last_loaded, _kpi_cached_mtime
     if not os.path.exists(KPI_EXCEL_PATH):
         logger.warning("KPI_EXCEL_PATH 없음 — 추출 스크립트 실행 필요: %s", KPI_EXCEL_PATH)
         _kpi_raw_df       = pd.DataFrame()
+        _kpi_stage_df     = pd.DataFrame()
         _kpi_agg_df       = pd.DataFrame()
         _kpi_last_loaded  = None
         _kpi_cached_mtime = None
@@ -146,8 +150,9 @@ def load_kpi_excel():
         raw_df, agg_df = _load_kpi_via_com()
         if raw_df.empty and agg_df.empty:
             logger.error("KPI COM 읽기 실패")
-            _kpi_raw_df = pd.DataFrame()
-            _kpi_agg_df = pd.DataFrame()
+            _kpi_raw_df   = pd.DataFrame()
+            _kpi_stage_df = pd.DataFrame()
+            _kpi_agg_df   = pd.DataFrame()
             return
         _kpi_raw_df = _post_process_raw(raw_df)
         _kpi_agg_df = agg_df
@@ -157,6 +162,7 @@ def load_kpi_excel():
         _kpi_raw_df = _post_process_raw(wb.parse("취합", header=0)) if "취합" in sheet_names else pd.DataFrame()
         _kpi_agg_df = wb.parse("kpi 집계", header=0) if "kpi 집계" in sheet_names else pd.DataFrame()
 
+    _kpi_stage_df = _latest_stage_df(_kpi_raw_df)
     logger.info("KPI 취합 %d행 / 집계 %d행 로드 완료", len(_kpi_raw_df), len(_kpi_agg_df))
     _kpi_last_loaded  = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     _kpi_cached_mtime = _safe_mtime(KPI_EXCEL_PATH)
@@ -242,16 +248,18 @@ def _parse_new_old_count(value) -> tuple:
 
 
 def _aggregate_kpi_col(kpi_items: list, col_keyword: str) -> list:
-    if _kpi_raw_df.empty:
+    # 프로젝트당 한 단계만 반영 (완료 → 중간 → 착수 → 제안)
+    src = _kpi_stage_df if not _kpi_stage_df.empty else _kpi_raw_df
+    if src.empty:
         return [0.0] * len(kpi_items)
 
     target_cols = [
-        c for c in _kpi_raw_df.columns
+        c for c in src.columns
         if col_keyword in re.sub(r"\s+", "", str(c))
     ]
     if not target_cols:
         logger.warning("_aggregate_kpi_col: '%s' 컬럼 없음. 헤더: %s",
-                       col_keyword, list(_kpi_raw_df.columns[:10]))
+                       col_keyword, list(src.columns[:10]))
         return [0.0] * len(kpi_items)
 
     if len(target_cols) != len(kpi_items):
@@ -269,7 +277,7 @@ def _aggregate_kpi_col(kpi_items: list, col_keyword: str) -> list:
         if is_count_type:
             new_total = 0
             old_total = 0
-            for raw_val in _kpi_raw_df[col]:
+            for raw_val in src[col]:
                 if raw_val is None:
                     continue
                 val_str = str(raw_val).strip()
@@ -282,7 +290,7 @@ def _aggregate_kpi_col(kpi_items: list, col_keyword: str) -> list:
             continue
 
         values = []
-        for raw_val in _kpi_raw_df[col]:
+        for raw_val in src[col]:
             if raw_val is None:
                 continue
             val_str = str(raw_val).strip()
@@ -312,6 +320,58 @@ def _aggregate_kpi_col(kpi_items: list, col_keyword: str) -> list:
 
 _SKIP_VALS = {"0", "0.0", "nan", "", "-", "N", "TBD", "n/a", "N/A"}
 
+# ── 보고서 참조 순서 ────────────────────────────────────────────────
+# 한 프로젝트가 제안·착수·중간·완료를 모두 보고하면 취합 시트에 단계별로 행이 쌓인다.
+# 집계는 프로젝트당 **가장 진행된 단계 한 건만** 참조한다 (담당자 지정):
+#   완료 → 중간 → 착수 → 제안  (그 앞 단계는 폴백으로만 사용)
+_STAGE_PRIORITY = ["완료", "중간", "착수", "제안", "사전검토", "검토", "사업계획"]
+_STAGE_RANK = {name: i for i, name in enumerate(_STAGE_PRIORITY)}
+
+# 프로젝트코드가 이 값이면 미배정 — 서로 다른 프로젝트가 같은 값을 공유하므로
+# 파일명(단계 표시 제거)으로 프로젝트를 구분한다
+_PLACEHOLDER_CODES = {"", "0", "nan", "생성예정", "미정", "tbd", "(생성 필요)", "선정 시 생성 예정"}
+_STAGE_SUFFIX_RE = re.compile(
+    r"[_\[\(]?(?:" + "|".join(_STAGE_PRIORITY) + r")[\]\)]?(?:_수정|_최종)?$"
+)
+
+
+def _project_key(code: str, year: str, filename: str) -> tuple:
+    code = str(code).strip()
+    if code.lower() in _PLACEHOLDER_CODES:
+        base = re.sub(r"\.pptx?$", "", str(filename).strip(), flags=re.I)
+        return (_STAGE_SUFFIX_RE.sub("", base).strip(), str(year).strip())
+    return (code, str(year).strip())
+
+
+def _latest_stage_df(df: pd.DataFrame) -> pd.DataFrame:
+    """프로젝트별로 _STAGE_PRIORITY 상 가장 앞선 단계의 행만 남긴다.
+
+    같은 프로젝트의 여러 단계 보고가 전부 집계에 들어가면 건수는 부풀고 평균은 흔들린다.
+    (실측: 172행 → 116 프로젝트, 47개 프로젝트가 2단계 이상 보고)
+    """
+    if df.empty:
+        return df
+    need = {"프로젝트코드", "수행연도", "보고단계", "파일명"}
+    if not need.issubset(set(df.columns)):
+        logger.warning("_latest_stage_df: 필요한 컬럼 없음 — 전체 행으로 집계. 헤더=%s",
+                       list(df.columns[:8]))
+        return df
+
+    work = df.copy()
+    work["_pkey"] = [
+        _project_key(c, y, f)
+        for c, y, f in zip(work["프로젝트코드"], work["수행연도"], work["파일명"])
+    ]
+    # 목록에 없는 단계는 맨 뒤로 (가장 낮은 우선순위)
+    work["_rank"] = [
+        _STAGE_RANK.get(str(s).strip(), len(_STAGE_PRIORITY)) for s in work["보고단계"]
+    ]
+    picked = (work.sort_values("_rank", kind="stable")
+                  .drop_duplicates(subset="_pkey", keep="first")
+                  .drop(columns=["_pkey", "_rank"]))
+    logger.info("KPI 집계 대상: 취합 %d행 → 프로젝트 %d건 (단계 중복 제거)", len(df), len(picked))
+    return picked
+
 
 def _parse_col_num(val_str: str) -> float | None:
     cleaned = re.sub(r"[^\d.\-]", "", val_str.replace(",", ""))
@@ -330,11 +390,13 @@ def _compute_achieve_rates(kpi_items: list) -> list:
     합계형 KPI: sum(actual_i) / sum(target_i) * 100.
     신규/기존 건수 타입: None 반환 (호출부에서 별도 계산).
     """
-    if _kpi_raw_df.empty:
+    # 집계와 같은 기준 — 프로젝트당 한 단계만
+    src = _kpi_stage_df if not _kpi_stage_df.empty else _kpi_raw_df
+    if src.empty:
         return [None] * len(kpi_items)
 
-    actual_cols = [c for c in _kpi_raw_df.columns if "PJ실적" in re.sub(r"\s+", "", str(c))]
-    target_cols = [c for c in _kpi_raw_df.columns if "PJ목표" in re.sub(r"\s+", "", str(c))]
+    actual_cols = [c for c in src.columns if "PJ실적" in re.sub(r"\s+", "", str(c))]
+    target_cols = [c for c in src.columns if "PJ목표" in re.sub(r"\s+", "", str(c))]
 
     result = []
     for i, kpi in enumerate(kpi_items):
@@ -350,7 +412,7 @@ def _compute_achieve_rates(kpi_items: list) -> list:
             continue
 
         pairs = []
-        for _, row in _kpi_raw_df.iterrows():
+        for _, row in src.iterrows():
             a_str = str(row[a_col]).strip()
             t_str = str(row[t_col]).strip()
             if a_str in _SKIP_VALS or t_str in _SKIP_VALS:
@@ -445,13 +507,17 @@ def api_kpi_summary():
 
     try:
         kpi_items     = _load_kpi_items_from_cache()
+        # 목표도 실적과 같은 기준(프로젝트당 한 단계)으로 취합에서 직접 집계한다.
+        # 'kpi 집계' 시트의 목표 열은 단계 중복이 섞인 값이라 실적과 기준이 어긋난다.
+        targets       = _aggregate_kpi_col(kpi_items, "PJ목표")
         actuals       = _aggregate_kpi_col(kpi_items, "PJ실적")
         prevs         = _aggregate_kpi_col(kpi_items, "PJ유사")
         achieve_rates = _compute_achieve_rates(kpi_items)
 
         result = []
         for i, kpi in enumerate(kpi_items):
-            target  = kpi["target"]
+            # 신규/기존 건수 행이면 집계 결과도 "신규:N건/기존:N건" 문자열이라 타입이 유지된다
+            target  = targets[i] if i < len(targets) else kpi["target"]
             actual  = actuals[i] if i < len(actuals) else 0.0
             prev    = prevs[i]   if i < len(prevs)   else 0.0
             # 프로젝트별 페어가 있으면 per-project avg 사용, 없으면 집계 기반 폴백
