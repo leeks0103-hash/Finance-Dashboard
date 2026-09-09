@@ -501,6 +501,10 @@ def api_perf_summary():
             "jun_actual":       float(rev_grp["jun_actual"].sum()),
             "jun_cost":         float(cost_grp["jun_actual"].sum()),
             "jun_check_total":  float(rev_grp["jun_check_total"].sum()),
+            # 연간 추정 원가 — 위 jun_cost(누계 원가)와 짝이 아니라 jun_check_total(연간 추정 매출)의 짝.
+            # total 쪽은 같은 값을 "jun_cost"라는 이름으로 쓰고 있어 이름이 어긋나므로(누계=jun_cost_actual)
+            # by_part에서는 혼동을 피하려 별도 키로 추가한다.
+            "jun_cost_check":   float(cost_grp["jun_check_total"].sum()),
             "operating_profit": float(rev_grp["operating_profit"].sum()),
             "avg_profit_rate":  _weighted_profit_rate(rev_grp),
             "count":            int(len(rev_grp)),

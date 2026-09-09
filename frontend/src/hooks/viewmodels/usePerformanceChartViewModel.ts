@@ -40,7 +40,7 @@ export interface PerformanceChartViewModel {
     rates:    number[];
     profits:  number[];
     isProfit: boolean[];
-    // 파트별 경상이익 카드 — 토글 제거 후 매출/원가 2계열 고정 표시용 (담당자 지정)
+    // "파트별 추정 매출/원가" 카드용 — 연간 추정 매출/원가 2계열 (담당자 지정)
     revenues: number[];
     costs:    number[];
     options:  ChartOptions<'bar'>;
@@ -146,8 +146,9 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
         rates:    parts.map(p => summary.by_part[p].avg_profit_rate),
         profits:  parts.map(p => toEokNum(summary.by_part[p].operating_profit)),
         isProfit: parts.map(p => summary.by_part[p].operating_profit >= 0),
-        revenues: parts.map(p => toEokNum(summary.by_part[p].jun_actual)),
-        costs:    parts.map(p => toEokNum(summary.by_part[p].jun_cost)),
+        // "파트별 추정 매출/원가" — 누계(jun_actual/jun_cost)가 아니라 연간 추정치 기준
+        revenues: parts.map(p => toEokNum(summary.by_part[p].jun_check_total)),
+        costs:    parts.map(p => toEokNum(summary.by_part[p].jun_cost_check)),
       },
       // 카드 제목 "프로젝트 합계 원가비율" 그대로 — 전체 합계 구성비(금액 가중)를 그린다.
       //    프로젝트별 비율의 단순평균이 아니다 (실측 차이: 직접원가 합계 67.5% vs 단순평균 56.7%).

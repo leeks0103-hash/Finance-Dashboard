@@ -88,9 +88,14 @@ export interface PerfProject {
 
 export interface PerfPartStats {
   plan_initial:     number;
+  /** 누계 매출 (1~기준월) */
   jun_actual:       number;
+  /** 누계 원가 (1~기준월) */
   jun_cost:         number;
+  /** 연간 추정 매출 */
   jun_check_total:  number;
+  /** 연간 추정 원가 — jun_check_total(추정 매출)의 짝 */
+  jun_cost_check:   number;
   operating_profit: number;
   avg_profit_rate:  number;
   count:            number;

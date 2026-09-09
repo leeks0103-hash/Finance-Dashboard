@@ -257,7 +257,7 @@ const PerformanceChartSection = () => {
     profitRate: () => (
       <ChartCard>
         <ChartCard.Title>
-          <span className={styles.chartTitle}>파트별 경상이익<InfoButton>{INFO_PROFIT_RATE}</InfoButton></span>
+          <span className={styles.chartTitle}>파트별 추정 매출/원가<InfoButton>{INFO_PROFIT_RATE}</InfoButton></span>
           {/* 이익율/이익액 토글 비활성화(담당자 지정) — 매출/원가 2계열 고정 표시로 대체. 복구 시 주석 해제
           <span className={styles.toggleGroup}>
             <span className={styles.badge}>{showProfitAmount ? '경상이익' : '평균 이익율'}</span>

@@ -159,9 +159,9 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
     return [
       // 카드 순서는 담당자 지정 — 계획 → 추정 실적(연간) → 매출 이익 → 경상손익 → 누계 실적
       { id: 'plan',     label: '매출/원가 계획', value: `${animPlan.toFixed(1)}억원`, sub: `원가 ${formatEok(total.plan_cost)}원 · ${total.count}개 프로젝트`, accent: 'brand', trendUp: true },
-      { id: 'junCheck', label: '매출/원가 추정 실적 (연간)', value: `${animCheck.toFixed(1)}억원`,  sub: `원가 ${formatEok(total.jun_cost)}원`, accent: 'purple', trendUp: true },
+      { id: 'junCheck', label: '매출/원가 추정 실적', value: `${animCheck.toFixed(1)}억원`,  sub: `원가 ${formatEok(total.jun_cost)}원`, accent: 'purple', trendUp: true },
       // 매출이익 = 매출 - 직접원가 (엑셀 BA열 그대로 사용, 인건비/공통원가/관리비 차감 전 — 경상손익과 구분됨)
-      { id: 'grossProfit', label: '매출 이익', value: `${animGross.toFixed(1)}억원`, sub: '직접원가 제외', accent: grossRaw >= 0 ? 'profit' : 'loss', trendUp: grossRaw >= 0 },
+      { id: 'grossProfit', label: '매출이익(당해년도 추정)', value: `${animGross.toFixed(1)}억원`, sub: '직접원가 제외', accent: grossRaw >= 0 ? 'profit' : 'loss', trendUp: grossRaw >= 0 },
       { id: 'profit',   label: '경상손익(당해년도 추정)', value: `${animProfit.toFixed(1)}억원`, sub: `손익률 ${animRate.toFixed(1)}%`, accent: profitRaw >= 0 ? 'profit' : 'loss', trendUp: momProfK !== null ? momProfK >= 0 : profitRaw >= 0, trend: momTag(momProfK) },
       // ⚠️ jun_actual = 1~현재월 실제 실적 누계 / jun_check_total = chk_m01~m12 연간 전체(미래월 추정 포함)
       //    이전에 두 라벨이 서로 반대로 붙어 있었음 (performance.py load_perf_excel 주석 참고)

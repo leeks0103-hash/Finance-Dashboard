@@ -76,9 +76,9 @@ export const INFO_MONTHLY = (
 export const INFO_PROFIT_RATE = (
   <InfoTable rows={[
     ['출처',   '실적현황 엑셀'],
-    ['컬럼',   <Chips items={[`${PERF_COL.profitRate}열 (손익률)`]} />],
-    ['대상',   '카테고리 = 매출 행'],
-    ['계산',   '파트별 평균 이익율 (%)'],
+    ['매출',   <Chips items={[`${PERF_COL.checkTotal}열 (연간 추정 합계, category=매출)`]} />],
+    ['원가',   <Chips items={[`${PERF_COL.checkTotal}열 (연간 추정 합계, category=원가)`]} />],
+    ['계산',   '파트별 합계 (천원 → 억원) — 누계 실적이 아닌 연간 추정치'],
     ['필터',   '파트 · 팀 필터 적용'],
   ]} />
 );
