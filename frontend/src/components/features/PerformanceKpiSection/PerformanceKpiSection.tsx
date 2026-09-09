@@ -11,9 +11,10 @@ import { KpiCard, useTableDndSensors } from '@/components/ui';
 import type { PerfKpiCard } from '@/hooks/viewmodels/usePerformanceViewModel';
 import styles from './PerformanceKpiSection.module.css';
 
-// usePerformanceViewModel의 카드 id와 동일해야 함 (plan/junActual/junCheck/profit)
-const DEFAULT_KPI_ORDER = ['plan', 'junActual', 'junCheck', 'profit'];
-const LS_KPI_ORDER = 'performance-kpi-order';
+// usePerformanceViewModel의 카드 id와 동일해야 함 — 계획 → 추정 실적(연간) → 매출 이익 → 경상손익 → 누계 실적
+const DEFAULT_KPI_ORDER = ['plan', 'junCheck', 'grossProfit', 'profit', 'junActual'];
+// v2 — 카드 순서 재배치 + 매출 이익 카드 추가로 기존 저장값(4개 id) 무효화
+const LS_KPI_ORDER = 'performance-kpi-order-v2';
 
 interface Props {
   cards: PerfKpiCard[];

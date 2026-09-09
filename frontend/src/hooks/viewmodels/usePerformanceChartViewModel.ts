@@ -40,6 +40,9 @@ export interface PerformanceChartViewModel {
     rates:    number[];
     profits:  number[];
     isProfit: boolean[];
+    // 파트별 경상이익 카드 — 토글 제거 후 매출/원가 2계열 고정 표시용 (담당자 지정)
+    revenues: number[];
+    costs:    number[];
     options:  ChartOptions<'bar'>;
   };
   costBreakdown: {
@@ -143,6 +146,8 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
         rates:    parts.map(p => summary.by_part[p].avg_profit_rate),
         profits:  parts.map(p => toEokNum(summary.by_part[p].operating_profit)),
         isProfit: parts.map(p => summary.by_part[p].operating_profit >= 0),
+        revenues: parts.map(p => toEokNum(summary.by_part[p].jun_actual)),
+        costs:    parts.map(p => toEokNum(summary.by_part[p].jun_cost)),
       },
       // 카드 제목 "프로젝트 합계 원가비율" 그대로 — 전체 합계 구성비(금액 가중)를 그린다.
       //    프로젝트별 비율의 단순평균이 아니다 (실측 차이: 직접원가 합계 67.5% vs 단순평균 56.7%).
@@ -164,7 +169,7 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
       isLoading, isError, isEmpty: false, showLabels, labelColor,
       monthly:       { labels: [], revenues: [], costs: [], isFuture: [], options: monthlyOptions },
       planVsActual:  { labels: [], planInitial: [], junCheckTotal: [], options: planVsActualOptions },
-      profitRate:    { labels: [], rates: [], profits: [], isProfit: [], options: profitRateOptions },
+      profitRate:    { labels: [], rates: [], profits: [], isProfit: [], revenues: [], costs: [], options: profitRateOptions },
       costBreakdown: { labels: [], values: [] },
       progress:      { labels: [], revenues: [], expenditures: [], options: progressOptions },
     };

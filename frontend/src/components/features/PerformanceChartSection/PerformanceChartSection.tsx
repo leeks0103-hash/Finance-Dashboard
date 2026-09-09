@@ -11,7 +11,8 @@ import { usePerformanceChartViewModel } from '@/hooks/viewmodels';
 import { useTheme } from '@/hooks';
 import { makeBarOptions } from '@/utils/chartOptions';
 import { getChartPalette, getChartTheme } from '@/utils/chartColors';
-import { ChartCard, BarChart, DoughnutChart, Toggle, useTableDndSensors, InfoButton } from '@/components/ui';
+// Toggle — 파트별 경상이익 토글 비활성화로 미사용(주석 처리). 복구 시 함께 import
+import { ChartCard, BarChart, DoughnutChart, useTableDndSensors, InfoButton } from '@/components/ui';
 import {
   INFO_MONTHLY, INFO_PROFIT_RATE, INFO_COST_BREAKDOWN,
   INFO_PLAN_VS_ACTUAL,
@@ -32,15 +33,14 @@ const FULL_ROW_ID = 'monthly';
 // bottom은 마이너스 막대의 수치가 막대 아래에 찍히는 것만 감당하면 되므로 최소로 둔다.
 const PROFIT_PADDING = { top: 22, right: 12, bottom: 12, left: 4 };
 
-// 이익율(%)·이익액(억) 두 모드가 완전히 같은 라벨 스타일을 쓰도록 한 곳에서 관리.
-// align을 부호에 따라 뒤집어(플러스=막대 위 / 마이너스=막대 아래) 라벨이 막대 위에 얹혀
-// 진한 글씨가 진한 막대색에 묻히는 것을 방지 — 항상 카드 배경 위에 그려진다
-const PROFIT_LABEL = {
-  anchor: 'end' as const,
-  align:  (ctx: { dataset: { data: unknown[] }; dataIndex: number }) =>
-    (Number(ctx.dataset.data[ctx.dataIndex]) >= 0 ? 'top' : 'bottom'),
-  offset: 6,   // 막대 끝과 수치 사이 간격 — 2는 붙어 보여서 키움 (위/아래 동일 적용)
-};
+// 이익율/이익액 토글 비활성화로 미사용(주석 처리) — 매출/원가는 항상 0 이상이라 부호 분기 불필요.
+// 복구 시 profitRateOptions/profitAmountOptions와 함께 해제
+// const PROFIT_LABEL = {
+//   anchor: 'end' as const,
+//   align:  (ctx: { dataset: { data: unknown[] }; dataIndex: number }) =>
+//     (Number(ctx.dataset.data[ctx.dataIndex]) >= 0 ? 'top' : 'bottom'),
+//   offset: 6,   // 막대 끝과 수치 사이 간격 — 2는 붙어 보여서 키움 (위/아래 동일 적용)
+// };
 
 // 팔레트의 rgba(...) 문자열 알파값만 교체 — 미래 월/보조 계열 흐림 처리용
 const fadeAlpha = (rgba: string, alpha: number) => rgba.replace(/[\d.]+\)$/, `${alpha})`);
@@ -101,8 +101,8 @@ const PerformanceChartSection = () => {
   const { theme } = useTheme();
   const dark = theme === 'dark';
 
-  // 파트별 이익율 카드 — 토글 켜면 이익율(%) 대신 이익액(억원) 표시
-  const [showProfitAmount, setShowProfitAmount] = useState(true);
+  // 파트별 경상이익 카드 — 매출/원가 2계열 고정 표시로 변경(담당자 지정) — 토글 비활성화, 복구 시 아래 주석 해제
+  // const [showProfitAmount, setShowProfitAmount] = useState(true);
 
   const { labelColor, gridColor, tickColor } = getChartTheme(dark);
 
@@ -134,9 +134,10 @@ const PerformanceChartSection = () => {
   // "계획" 막대 — 중립색(실적/원가 계열과 겹치지 않게). KPI "26년 목표" 막대와 같은 값
   const planColor = palette.plan;
 
-  const profitColors = useMemo(() => vm.profitRate.isProfit.map(ok =>
-    ok ? palette.rate : palette.loss
-  ), [vm.profitRate.isProfit, palette]);
+  // 이익율/이익액 토글 비활성화로 미사용(주석 처리) — 복구 시 함께 해제
+  // const profitColors = useMemo(() => vm.profitRate.isProfit.map(ok =>
+  //   ok ? palette.rate : palette.loss
+  // ), [vm.profitRate.isProfit, palette]);
 
   const doughnutColors = useMemo(
     () => [palette.costDirect, palette.costLabor, palette.costOverhead, palette.costMgmt],
@@ -164,33 +165,46 @@ const PerformanceChartSection = () => {
     [vm.planVsActual.options, scaleOverride],
   );
 
-  const profitRateOptions = useMemo(() => ({
-    ...vm.profitRate.options,
-    layout: { padding: PROFIT_PADDING },
-    plugins: {
-      ...vm.profitRate.options.plugins,
-      legend: { display: false },
-      // 이익율/이익액 두 모드가 같은 라벨 스타일·위치를 쓰도록 통일 (색은 makeBarOptions의 labelColor)
-      datalabels: { ...vm.profitRate.options.plugins?.datalabels, ...PROFIT_LABEL },
-    },
-    scales: {
-      ...vm.profitRate.options.scales,
-      y: {
-        ...scaleOverride.y,
-        type: 'linear' as const,
-        ticks: { ...scaleOverride.y.ticks, callback: (v: string | number) => v + '%' },
-      },
-    },
-  }), [vm.profitRate.options, scaleOverride]);
+  // 이익율/이익액 토글 비활성화로 미사용(주석 처리) — 복구 시 PROFIT_LABEL과 함께 해제
+  // const profitRateOptions = useMemo(() => ({
+  //   ...vm.profitRate.options,
+  //   layout: { padding: PROFIT_PADDING },
+  //   plugins: {
+  //     ...vm.profitRate.options.plugins,
+  //     legend: { display: false },
+  //     // 이익율/이익액 두 모드가 같은 라벨 스타일·위치를 쓰도록 통일 (색은 makeBarOptions의 labelColor)
+  //     datalabels: { ...vm.profitRate.options.plugins?.datalabels, ...PROFIT_LABEL },
+  //   },
+  //   scales: {
+  //     ...vm.profitRate.options.scales,
+  //     y: {
+  //       ...scaleOverride.y,
+  //       type: 'linear' as const,
+  //       ticks: { ...scaleOverride.y.ticks, callback: (v: string | number) => v + '%' },
+  //     },
+  //   },
+  // }), [vm.profitRate.options, scaleOverride]);
 
-  const profitAmountOptions = useMemo(() => ({
-    ...makeBarOptions(vm.showLabels, labelColor, {
+  // const profitAmountOptions = useMemo(() => ({
+  //   ...makeBarOptions(vm.showLabels, labelColor, {
+  //     plugins: {
+  //       legend: { display: false },
+  //       datalabels: { ...PROFIT_LABEL, formatter: (v: number) => `${v}억` },
+  //     },
+  //   }),
+  //   layout: { padding: PROFIT_PADDING },   // makeBarOptions의 최소 여백을 통째로 대체
+  //   scales: { ...scaleOverride, y: { ...scaleOverride.y, ticks: { ...scaleOverride.y.ticks, callback: (v: string | number) => v + '억' } } },
+  // }), [vm.showLabels, labelColor, scaleOverride]);
+
+  // 파트별 경상이익 카드 — 매출/원가 2계열(모두 0 이상)이라 월별 실적 추이 차트와 같은 방식으로
+  // 표시(anchor/align 'end', 부호 분기 불필요). 그룹형 막대라 stacked 해제
+  const partRevCostOptions = useMemo(() => ({
+    ...withUnstackedTheme(makeBarOptions(vm.showLabels, labelColor, {
+      layout: { padding: PROFIT_PADDING },
       plugins: {
-        legend: { display: false },
-        datalabels: { ...PROFIT_LABEL, formatter: (v: number) => `${v}억` },
+        datalabels: { anchor: 'end', align: 'end', formatter: (v: number) => `${v}억` },
       },
-    }),
-    layout: { padding: PROFIT_PADDING },   // makeBarOptions의 최소 여백을 통째로 대체
+    }), scaleOverride),
     scales: { ...scaleOverride, y: { ...scaleOverride.y, ticks: { ...scaleOverride.y.ticks, callback: (v: string | number) => v + '억' } } },
   }), [vm.showLabels, labelColor, scaleOverride]);
 
@@ -244,20 +258,21 @@ const PerformanceChartSection = () => {
       <ChartCard>
         <ChartCard.Title>
           <span className={styles.chartTitle}>파트별 경상이익<InfoButton>{INFO_PROFIT_RATE}</InfoButton></span>
+          {/* 이익율/이익액 토글 비활성화(담당자 지정) — 매출/원가 2계열 고정 표시로 대체. 복구 시 주석 해제
           <span className={styles.toggleGroup}>
             <span className={styles.badge}>{showProfitAmount ? '경상이익' : '평균 이익율'}</span>
             <Toggle checked={showProfitAmount} onChange={() => setShowProfitAmount(v => !v)} danger={showProfitAmount} />
           </span>
+          */}
         </ChartCard.Title>
         <ChartCard.Body>
           <BarChart
             labels={vm.profitRate.labels}
-            datasets={[showProfitAmount
-              // 이익율/이익액 둘 다 마이너스면 빨강 — profitColors 가 부호별 색을 담고 있음
-              ? { label: '이익액(억)', data: vm.profitRate.profits, backgroundColor: profitColors }
-              : { label: '이익율(%)',  data: vm.profitRate.rates,   backgroundColor: profitColors }
+            datasets={[
+              { label: '매출', data: vm.profitRate.revenues, backgroundColor: palette.revenue },
+              { label: '원가', data: vm.profitRate.costs,    backgroundColor: palette.cost },
             ]}
-            options={showProfitAmount ? profitAmountOptions : profitRateOptions}
+            options={partRevCostOptions}
           />
         </ChartCard.Body>
       </ChartCard>

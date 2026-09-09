@@ -102,7 +102,10 @@ const KpiPage = () => {
           <ChartCard compact={false}>
             <ChartCard.Title>KPI 목표 vs 실적 (2026년)</ChartCard.Title>
             <ChartCard.Body>
-              <div className={styles.chartWrap} style={{ height: Math.max(320, vm.chart.labels.length * 40) }}>
+              {/* minHeight(항목 수 비례) + height:100% — 평소엔 minHeight가 사실상의 높이가 되고,
+                  확대 모달 안에서는 모달이 제공하는 실제 높이(min(820px,88vh))를 꽉 채운다.
+                  height를 고정 px로만 두면 모달에서 커진 공간을 못 채우던 문제(사용자 리포트) 수정 */}
+              <div className={styles.chartWrap} style={{ minHeight: Math.max(320, vm.chart.labels.length * 40), height: '100%' }}>
                 <BarChart
                   labels={vm.chart.labels}
                   datasets={vm.chart.datasets}

@@ -1,9 +1,13 @@
+/* 카드 5개(계획/추정 실적/매출 이익/경상손익/누계 실적) — 5열 유지, 좁아지면 단계적으로 축소 */
 .kpiGrid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 16px;
 }
 
+@media (max-width: 1200px) {
+  .kpiGrid { grid-template-columns: repeat(3, 1fr); }
+}
 @media (max-width: 900px) {
   .kpiGrid { grid-template-columns: repeat(2, 1fr); }
 }

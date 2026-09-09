@@ -40,10 +40,12 @@
 .dragHandle:hover  { opacity: 0.9; background: var(--bg-subtle); }
 .dragHandle:active { cursor: grabbing; }
 
-/* 월별 실적 추이(전체 폭 1줄) + 파트별 이익율·원가구성·계획vs실적 3개가 한 줄 */
+/* 월별 실적 추이(전체 폭 1줄) + 파트별 이익율·원가구성·계획vs실적 3개가 한 줄.
+   두 번째 줄 3칸 비율을 담당자 요청으로 불균등하게 — 파트별 경상이익(1번째 칸) 확대,
+   원가구성 도넛(2번째 칸) 축소. 3번째 칸(계획vs추정실적)은 기존 폭 그대로 유지 */
 .grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: 1.4fr 0.7fr 1fr;
   grid-auto-rows: 430px;   /* 한 줄 3개 유지하면서 카드 높이만 키움 */
   gap: 16px;
   animation: contentFadeIn 0.3s ease;
