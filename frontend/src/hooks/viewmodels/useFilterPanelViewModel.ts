@@ -25,15 +25,15 @@ export const useFilterPanelViewModel = (): FilterPanelViewModel => {
   const { years, parts, stages }                          = useFilterOptions();
   const { prefetch }                                      = usePrefetch();
 
-  const initialized        = useFilterStore(s => s.initialized);
-  const initializeDefaults = useFilterStore(s => s.initializeDefaults);
+  const syncOptions = useFilterStore(s => s.syncOptions);
 
-  // 최초 방문 시 한 번만 — 연도=올해, 파트/보고단계=전체 선택 상태로 시작
+  // 최초 방문 — 연도=올해, 파트/보고단계=전체 선택으로 시작. 이후엔 옵션이 바뀔 때마다
+  // 그동안 없던 새 값만 자동으로 선택에 추가 — 기존 선택은 그대로 유지
   useEffect(() => {
-    if (!initialized && years.length && parts.length && stages.length) {
-      initializeDefaults(years, parts, stages);
+    if (years.length && parts.length && stages.length) {
+      syncOptions(years, parts, stages);
     }
-  }, [initialized, years, parts, stages, initializeDefaults]);
+  }, [years, parts, stages, syncOptions]);
 
   return {
     filters,

@@ -21,18 +21,18 @@ export const useKpiFilterPanelViewModel = (): KpiFilterPanelViewModel => {
   const toggleYear  = useKpiFilterStore(s => s.toggleYear);
   const togglePart  = useKpiFilterStore(s => s.togglePart);
   const toggleStage = useKpiFilterStore(s => s.toggleStage);
-  const initialized         = useKpiFilterStore(s => s.initialized);
-  const initializeDefaults  = useKpiFilterStore(s => s.initializeDefaults);
+  const syncOptions = useKpiFilterStore(s => s.syncOptions);
 
   const { data: options } = useKpiFilterOptions();
 
-  // 최초 방문 시 한 번만 — 연도=올해, 파트/보고단계=전체 선택 상태로 시작
+  // 최초 방문 — 연도=올해, 파트/보고단계=전체 선택으로 시작. 이후엔 옵션이 바뀔 때마다
+  // 그동안 없던 새 값(예: KPI 파트 "-")만 자동으로 선택에 추가 — 기존 선택은 그대로 유지
   useEffect(() => {
     const opts = options;
-    if (!initialized && opts?.years.length && opts?.parts.length && opts?.stages.length) {
-      initializeDefaults(opts.years, opts.parts, opts.stages);
+    if (opts?.years.length && opts?.parts.length && opts?.stages.length) {
+      syncOptions(opts.years, opts.parts, opts.stages);
     }
-  }, [initialized, options, initializeDefaults]);
+  }, [options, syncOptions]);
 
   return {
     filters: { years, parts, stages },

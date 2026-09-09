@@ -63,19 +63,7 @@
 
 .reset:hover { color: var(--text); }
 
-/* KPI 카드 */
-.kpiGrid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-}
-
-@media (max-width: 900px) {
-  .kpiGrid { grid-template-columns: repeat(2, 1fr); }
-}
-@media (max-width: 480px) {
-  .kpiGrid { grid-template-columns: 1fr; }
-}
+/* KPI 카드 그리드는 PerformanceKpiSection.module.css로 이동 (드래그 정렬 도입) */
 
 
 /* 차트 */

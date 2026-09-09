@@ -1,0 +1,40 @@
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 900px) {
+  .kpiGrid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
+  .kpiGrid { grid-template-columns: 1fr; }
+}
+
+.sortable {
+  position: relative;
+  height: 100%;
+}
+
+/* KPI 카드 드래그 핸들 — 차트 카드와 같은 아이콘·스타일, 위치만 우측 상단(사용자 지정) */
+.dragHandle {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 5;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  color: var(--text-muted);
+  opacity: 0.3;
+  font-size: 13px;
+  line-height: 1;
+  border-radius: 4px;
+  user-select: none;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+.dragHandle:hover  { opacity: 0.9; background: var(--bg-subtle); }
+.dragHandle:active { cursor: grabbing; }

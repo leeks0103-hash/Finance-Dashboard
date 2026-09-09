@@ -55,6 +55,7 @@ function DraggableTh<T>({ header, isDraggable, isHighlighted, isFirst, onHeaderC
         isFirst ? styles.firstCol : '',
         header.column.getCanSort() ? styles.sortable : '',
         header.column.id === '__index' ? styles.indexCell : '',
+        header.column.columnDef.meta?.staticCol ? styles.staticCol : '',
       ].join(' ')}
       width={header.getSize()}
       onClick={e => { toggleSort?.(e); onHeaderClick(header.column.id); }}
@@ -207,6 +208,8 @@ interface Props<T> {
   hint?: ReactNode;
   /** 정렬 컬럼 변경 시 콜백 — columnId(정렬중) 또는 null(정렬 해제) */
   onSortChange?: (columnId: string | null) => void;
+  /** ColumnMeta.staticCol 음영 강도 — 'soft'는 절반 알파 (기본 음영이 진하다는 피드백 있는 테이블용) */
+  staticColShade?: 'default' | 'soft';
 }
 
 const DEFAULT_PAGE_SIZES = [10, 20, 30, 50, 100];
@@ -249,6 +252,7 @@ const DataTable = <T extends object>({
   getRowNumber,
   hint,
   onSortChange,
+  staticColShade    = 'default',
 }: Props<T>) => {
   const isServerMode   = !!serverPagination;
   const isInfiniteMode = !!infiniteLoadMore;
@@ -652,6 +656,7 @@ const DataTable = <T extends object>({
               styles.table,
               storageKey ? styles.tableFixed : '',
               stickyFirstCol ? styles.stickyFirst : '',
+              staticColShade === 'soft' ? styles.staticColSoft : '',
             ].filter(Boolean).join(' ')}
             style={storageKey ? { width: table.getTotalSize() } : undefined}
           >
@@ -737,6 +742,7 @@ const DataTable = <T extends object>({
                                 isLong ? styles.clickable : '',
                                 (canExpand || searchOnDblClick?.includes(cell.column.id)) ? styles.dblClickable : '',
                                 cell.column.id === '__index' ? styles.indexCell : '',
+                                cell.column.columnDef.meta?.staticCol ? styles.staticCol : '',
                                 highlightedCol === cell.column.id ? styles.tdHighlighted : '',
                               ].join(' ') || undefined}
                             >

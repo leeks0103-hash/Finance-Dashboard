@@ -22,11 +22,32 @@ export const sortKpiRawCols = (rows: KpiRawRow[]): string[] => {
   return [...front, ...rest, ...tail];
 };
 
-/** KPI 취합 셀 값 정규화 — 미입력/0은 "-", 명시적 해당없음(N/n)은 "N" */
-export const cellVal = (v: unknown): string => {
+/**
+ * 화면 표기 교정 — 엑셀 원본 컬럼명의 오기를 표시용으로만 바로잡는다.
+ * 키 자체를 고치려면 extract_kpi_ppt.py + 기존 엑셀 데이터까지 마이그레이션해야 해서
+ * (재추출 필요) 데이터는 그대로 두고 헤더 문자열만 치환한다.
+ */
+const COL_LABEL_FIXES: [RegExp, string][] = [
+  [/신사업_매출억/, '신사업_매출액'],   // "억"은 단위지 지표명이 아님
+];
+
+/** KPI 취합 flat 뷰 헤더 표기 — 원본 컬럼명에 오기가 있으면 교정해서 반환 */
+export const kpiColLabel = (col: string): string =>
+  COL_LABEL_FIXES.reduce((s, [re, to]) => s.replace(re, to), col);
+
+/**
+ * KPI 취합 셀 값 정규화 — 미입력/0은 "-", 명시적 해당없음(N/n)은 "N".
+ * metricKey가 "_적절성"(0~5 척도) 지표면 한 자리 수 점수를 소수점 첫째 자리까지 통일 표시
+ * (예: 평균이 딱 4로 떨어지면 "4"가 아니라 "4.0") — 다른 행의 "4.33" 같은 표기와 자릿수를 맞춘다.
+ */
+export const cellVal = (v: unknown, metricKey?: string): string => {
   if (v === null || v === undefined || v === '' || v === 0 || v === '0') return '-';
   const s = String(v).trim();
   if (s === 'N' || s === 'n') return 'N';
+  if (metricKey?.endsWith('_적절성')) {
+    const n = Number(v);
+    if (Number.isFinite(n) && Math.abs(n) < 10) return n.toFixed(1);
+  }
   return s;
 };
 

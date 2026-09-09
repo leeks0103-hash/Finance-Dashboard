@@ -22,6 +22,8 @@ const toEokNum = (v: number) => +(v / 100_000).toFixed(1);
 const CURRENT_MONTH_NUM = parseInt(PERF_MONTH, 10);
 
 export interface PerfKpiCard {
+  /** 드래그 순서 저장용 안정 키 — label 텍스트와 무관하게 고정 */
+  id:      string;
   label:   string;
   value:   string;
   sub:     string;
@@ -153,13 +155,13 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
       : null;
 
     return [
-      // 카드 순서는 담당자 지정 — 계획 → 경상손익 → 누계 실적 → 추정 실적
-      { label: '매출/원가 계획', value: `${animPlan.toFixed(1)}억원`, sub: `원가 ${formatEok(total.plan_cost)}원 · ${total.count}개 프로젝트`, accent: 'brand', trendUp: true },
-      { label: '경상손익(당해년도 추정)', value: `${animProfit.toFixed(1)}억원`, sub: `손익률 ${animRate.toFixed(1)}%`, accent: profitRaw >= 0 ? 'profit' : 'loss', trendUp: momProfK !== null ? momProfK >= 0 : profitRaw >= 0, trend: momTag(momProfK) },
+      // 카드 순서는 담당자 지정 — 계획 → 누계 실적 → 추정 실적(연간) → 경상손익
+      { id: 'plan',     label: '매출/원가 계획', value: `${animPlan.toFixed(1)}억원`, sub: `원가 ${formatEok(total.plan_cost)}원 · ${total.count}개 프로젝트`, accent: 'brand', trendUp: true },
       // ⚠️ jun_actual = 1~현재월 실제 실적 누계 / jun_check_total = chk_m01~m12 연간 전체(미래월 추정 포함)
       //    이전에 두 라벨이 서로 반대로 붙어 있었음 (performance.py load_perf_excel 주석 참고)
-      { label: `매출/원가 누계 실적 (1~${PERF_MONTH})`, value: `${animJun.toFixed(1)}억원`,    sub: `원가 ${formatEok(total.jun_cost_actual)}원 · 계획 대비 ${achieveRate}%`, accent: junActualRaw >= planRaw ? 'profit' : 'warn', trendUp: momRevK !== null ? momRevK >= 0 : junActualRaw >= planRaw,  trend: momTag(momRevK) },
-      { label: '매출/원가 추정 실적 (연간)', value: `${animCheck.toFixed(1)}억원`,  sub: `원가 ${formatEok(total.jun_cost)}원`, accent: 'purple', trendUp: true },
+      { id: 'junActual', label: `매출/원가 누계 실적 (1~${PERF_MONTH})`, value: `${animJun.toFixed(1)}억원`,    sub: `원가 ${formatEok(total.jun_cost_actual)}원 · 계획 대비 ${achieveRate}%`, accent: junActualRaw >= planRaw ? 'profit' : 'warn', trendUp: momRevK !== null ? momRevK >= 0 : junActualRaw >= planRaw,  trend: momTag(momRevK) },
+      { id: 'junCheck', label: '매출/원가 추정 실적 (연간)', value: `${animCheck.toFixed(1)}억원`,  sub: `원가 ${formatEok(total.jun_cost)}원`, accent: 'purple', trendUp: true },
+      { id: 'profit',   label: '경상손익(당해년도 추정)', value: `${animProfit.toFixed(1)}억원`, sub: `손익률 ${animRate.toFixed(1)}%`, accent: profitRaw >= 0 ? 'profit' : 'loss', trendUp: momProfK !== null ? momProfK >= 0 : profitRaw >= 0, trend: momTag(momProfK) },
     ];
   }, [total, monthly, animPlan, animJun, animCheck, animProfit, animRate, planRaw, junActualRaw, junCheckRaw, profitRaw]);
 

@@ -17,6 +17,7 @@ export interface KpiChartDataset {
   data:            number[];
   backgroundColor: string;
   borderRadius:    number;
+  barPercentage:   number;
 }
 
 export interface KpiChartData {
@@ -55,6 +56,11 @@ export interface KpiPageViewModel {
 }
 
 const fmtNum = (v: number) => v !== 0 ? v.toLocaleString() : '0';
+
+// "(교육 내용 구성 적절성)" 항목(전략기술과정_적절성 · AI교육_적절성)은 0~5 척도라
+// 프로젝트 목표 평균이 4.3333… 식으로 길게 찍힘 — 소수점 한 자리로 고정 (담당자 지정)
+const isScoreItem = (name: string) => name.includes('적절성');
+const fmtScore    = (v: number) => v.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
 // 26년 목표(사업계획) — 담당자 지정 고정값. 엑셀 'kpi 집계' D열에도 값이 있지만 PPT 원본
 // 오입력이 섞여 있어(적절성 칸에 인원수가 들어간 사례 등) 화면에는 이 값을 그대로 노출한다.
@@ -103,7 +109,12 @@ export const useKpiPageViewModel = (): KpiPageViewModel => {
       datalabels: {
         anchor: 'end',
         align:  'end',
-        formatter: (v: number) => v.toLocaleString(),
+        // "적절성"(0~5 척도) 막대는 값이 정수로 떨어져도 "4.0"처럼 소수점 첫째 자리까지 표시 —
+        // 다른 항목 막대의 "4.33" 같은 표기와 자릿수를 맞춘다 (표 targetStr/actual과 동일 기준)
+        formatter: (v: number, ctx) => {
+          const label = String(ctx.chart.data.labels?.[ctx.dataIndex] ?? '');
+          return isScoreItem(label) && Math.abs(v) < 10 ? fmtScore(v) : v.toLocaleString();
+        },
       },
     },
   }), [showLabels, labelColor]);
@@ -116,8 +127,10 @@ export const useKpiPageViewModel = (): KpiPageViewModel => {
     return {
       labels, targets, actuals, options: chartOptions, tickColor: labelColor,
       datasets: [
-        { label: '26년 목표', data: targets, backgroundColor: palette.plan,    borderRadius: 4 },   // 비교 기준선이라 중립 회색
-        { label: '26년 실적', data: actuals, backgroundColor: palette.revenue, borderRadius: 4 },
+        // borderRadius 0 — 막대 끝을 각지게 (담당자 지정)
+        // barPercentage 기본값(0.9)은 목표/실적 막대가 거의 붙어 보여 소폭 낮춰 사이 간격 확보
+        { label: '26년 목표', data: targets, backgroundColor: palette.plan,    borderRadius: 0, barPercentage: 0.82 },   // 비교 기준선이라 중립 회색
+        { label: '26년 실적', data: actuals, backgroundColor: palette.revenue, borderRadius: 0, barPercentage: 0.82 },
       ],
     };
   }, [items, chartOptions, palette, labelColor]);
@@ -130,15 +143,17 @@ export const useKpiPageViewModel = (): KpiPageViewModel => {
         name:       it.name,
         agg:        it.agg === 'sum' ? '합계' : '평균',
         planTarget: PLAN_TARGETS[idx] ?? '-',
-        targetStr:  typeof it.target_2026 === 'number' ? fmtNum(it.target_2026) : String(it.target_2026),
+        targetStr:  typeof it.target_2026 === 'number'
+          ? (isScoreItem(it.name) ? fmtScore(it.target_2026) : fmtNum(it.target_2026))
+          : String(it.target_2026),
         targetNum:  typeof it.target_2026 === 'number' ? it.target_2026 : 0,
         // 신규/기존 타입: API가 이미 "신규:N건/기존:N건" 문자열 반환 → 그대로 사용
         actual:     isCountRow
           ? (it.actual_2026 != null && it.actual_2026 !== 0 ? String(it.actual_2026) : '신규:0건/기존:0건')
-          : (it.actual_2026 ? fmtNum(it.actual_2026) : '-'),
+          : (it.actual_2026 ? (isScoreItem(it.name) ? fmtScore(it.actual_2026) : fmtNum(it.actual_2026)) : '-'),
         prevActual: isCountRow
           ? (it.prev_actual != null && it.prev_actual !== 0 ? String(it.prev_actual) : '신규:0건/기존:0건')
-          : (it.prev_actual ? fmtNum(it.prev_actual) : '-'),
+          : (it.prev_actual ? (isScoreItem(it.name) ? fmtScore(it.prev_actual) : fmtNum(it.prev_actual)) : '-'),
         achieveRate: it.achieve_rate !== null && it.achieve_rate !== undefined ? `${it.achieve_rate}%` : '-',
         isGood: (it.achieve_rate ?? 0) >= 100,
       };

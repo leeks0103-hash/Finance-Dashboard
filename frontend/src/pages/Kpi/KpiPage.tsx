@@ -4,6 +4,7 @@ import { useKpiPageViewModel } from '@/hooks/viewmodels/useKpiPageViewModel';
 import { ChartCard, BarChart, DataTable, CopyText, HighlightText, Button } from '@/components/ui';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import KpiRawTable from '@/components/features/KpiRawTable/KpiRawTable';
+import { kpiColLabel } from '@/utils/kpiColumns';
 import type { KpiRawRow } from '@/types/kpi.types';
 import type { KpiSummaryRow } from '@/hooks/viewmodels/useKpiPageViewModel';
 import styles from './KpiPage.module.css';
@@ -20,10 +21,11 @@ function CountCell({ value }: { value: string }) {
 // KPI 집계 컬럼 — 모듈 스코프 (stable)
 const sh = createColumnHelper<KpiSummaryRow>();
 const summaryColumns = [
-  sh.accessor('name',       { header: 'KPI 항목', size: 420 }),
-  sh.accessor('agg',        { header: '집계방식', size: 110 }),
+  // KPI 항목·사업계획 목표는 필터와 무관한 고정값 — staticCol 음영으로 변동 컬럼과 구분
+  sh.accessor('name',       { header: 'KPI 항목', size: 420, meta: { staticCol: true } }),
   // 사업계획 목표는 고정값(ViewModel PLAN_TARGETS) — 프로젝트 목표와 구분되도록 헤더에 명시
-  sh.accessor('planTarget', { header: '26년 목표(사업계획)', size: 170 }),
+  sh.accessor('planTarget', { header: '26년 목표(사업계획)', size: 170, meta: { staticCol: true } }),
+  sh.accessor('agg',        { header: '집계방식', size: 110 }),
   sh.accessor('targetStr',  { header: '26년 목표(프로젝트)', size: 190, enableSorting: true,
     cell: i => { const v = i.getValue() as string; return /신규/.test(v) ? <CountCell value={v} /> : <>{v}</>; },
   }),
@@ -46,7 +48,7 @@ const KpiPage = () => {
   const rawColumns = useMemo(
     () => vm.rawCols.map(col =>
       rh.accessor(col as keyof KpiRawRow, {
-        header: col,
+        header: kpiColLabel(col),
         cell: i => {
           const v = i.getValue();
           if (v === null || v === undefined || v === 0 || v === '') return '-';
@@ -64,10 +66,10 @@ const KpiPage = () => {
   const rawHideableCols = useMemo(() => [
     ...vm.rawCols
       .filter(c => /PJ유사|사업계획/.test(c))
-      .map(c => ({ id: c, label: c })),
+      .map(c => ({ id: c, label: kpiColLabel(c) })),
     ...vm.rawCols
       .filter(c => /처리일시|최종수정/.test(c))
-      .map(c => ({ id: c, label: c })),
+      .map(c => ({ id: c, label: kpiColLabel(c) })),
   ], [vm.rawCols]);
 
   const rawInitialHidden = useMemo(() =>
@@ -136,9 +138,10 @@ const KpiPage = () => {
             title="KPI 집계"
             hideCount
             compact
+            staticColShade="soft"
             defaultPageSize={10}
             pageSizeOptions={[10]}
-            storageKey="kpi-summary-v2"   /* 컬럼 추가 — 저장된 순서·폭 1회 초기화 */
+            storageKey="kpi-summary-v3"   /* 컬럼 순서 변경 — 저장된 순서·폭 1회 초기화 */
           />
         </ErrorBoundary>
       </div>

@@ -31,6 +31,7 @@
   --surface:      #FFFFFF;   /* White — 카드 */
   --bg:           #FFFFFF;   /* White — 페이지 배경 */
   --bg-subtle:    #EDE8E4;   /* Light Sand↔Sand 파생 — 행 호버·칩·합계행 */
+  --bg-subtle-soft: rgba(237,232,228,0.5);   /* bg-subtle 절반 알파 — 고정값 컬럼처럼 은은하게만 표시할 때 */
   --bg-header:    #F6F3F2;   /* Hyundai Light Sand (PMS Warm Gray 1C 30%) — 테이블 헤더 */
   --border:       #D9CEC1;   /* Sand 파생 — 어둡게 */
   --border-table: #E0D7CC;   /* Sand 파생 */
@@ -79,6 +80,7 @@
   --surface:      #0E2038;   /* Blue 파생 surface */
   --bg:           #001322;   /* Blue 딥 */
   --bg-subtle:    #14304D;   /* Blue mid-dark */
+  --bg-subtle-soft: rgba(20,48,77,0.5);   /* bg-subtle 절반 알파 — 고정값 컬럼처럼 은은하게만 표시할 때 */
   --border:       #22405F;   /* 블루그레이 */
   --border-table: #22405F;
   --border-focus: #00AAD2;

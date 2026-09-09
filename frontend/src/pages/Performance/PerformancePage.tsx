@@ -1,9 +1,10 @@
 import { createColumnHelper } from '@tanstack/react-table';
 import { usePerformanceViewModel } from '@/hooks/viewmodels/usePerformanceViewModel';
 import type { PerfPartRow } from '@/hooks/viewmodels/usePerformanceViewModel';
-import { DataTable, KpiCard, InfoButton } from '@/components/ui';
+import { DataTable, InfoButton } from '@/components/ui';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import PerformanceChartSection from '@/components/features/PerformanceChartSection/PerformanceChartSection';
+import PerformanceKpiSection from '@/components/features/PerformanceKpiSection/PerformanceKpiSection';
 import PerformanceInsightSection from '@/components/features/PerformanceInsightSection';
 import PartAchievementBars from '@/components/features/PartAchievementBars/PartAchievementBars';
 import { perfColumns, PERF_HIDEABLE_COLS, PERF_DEFAULT_HIDDEN } from '@/components/features/PerformanceTable/columns';
@@ -39,7 +40,7 @@ const byPartColumns = [
     cell: i => stripPartPrefix(i.getValue()),
   }),
   hp.accessor('planInitial',   { header: '매출 계획',    enableSorting: true }),
-  hp.accessor('junActual',     { header: `누계 실적 (1~${PERF_MONTH})`, enableSorting: true }),
+  hp.accessor('junActual',     { header: `누계매출 (1~${PERF_MONTH})`, enableSorting: true }),
   hp.accessor('junCost',       { header: `누계 원가 (1~${PERF_MONTH})` }),
   hp.accessor('costRateStr',   { header: '원가율' }),
   hp.accessor('junCheckTotal', { header: '추정 실적 (연간)' }),
@@ -67,19 +68,7 @@ const PerformancePage = () => {
       {/* KPI 카드 */}
       <div className="fadeUp" style={{ animationDelay: '0ms' }}>
         <ErrorBoundary>
-          <div className={styles.kpiGrid}>
-            {vm.kpiCards.map(card => (
-              <KpiCard
-                key={card.label}
-                label={card.label}
-                value={card.value}
-                accent={card.accent}
-                sub={card.sub}
-                trendUp={card.trendUp}
-                trend={card.trend}
-              />
-            ))}
-          </div>
+          <PerformanceKpiSection cards={vm.kpiCards} />
         </ErrorBoundary>
       </div>
 

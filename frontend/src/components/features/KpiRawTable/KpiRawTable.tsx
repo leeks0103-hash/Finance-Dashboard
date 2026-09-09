@@ -42,10 +42,10 @@ const COLS: ColDef[] = [
   { id: 'part',        header: '파트명',              rowspan: true,  defaultWidth: 80,  getValue: r => String(r['파트명'] ?? '') },
   { id: 'stage',       header: '보고단계',            rowspan: true,  defaultWidth: 80,  getValue: r => String(r['보고단계'] ?? '') },
   { id: 'label',       header: '구분',                rowspan: false, defaultWidth: 290, getValue: (_, k) => KPI_METRICS.find(m => m.key === k)?.label ?? '' },
-  { id: 'plan',        header: "'26년 목표\n(사업계획)", rowspan: false, defaultWidth: 90, getValue: (r, k) => cellVal(r[`${k}_사업계획`]) },
-  { id: 'target',      header: "'26년 목표\n(프로젝트)", rowspan: false, defaultWidth: 90, getValue: (r, k) => cellVal(r[`${k}_PJ목표`]) },
-  { id: 'actual',      header: "'26년 실적\n(프로젝트)", rowspan: false, defaultWidth: 90, getValue: (r, k) => cellVal(r[`${k}_PJ실적`]) },
-  { id: 'similar',     header: "'25년 실적\n(유사)",    rowspan: false, defaultWidth: 90,  getValue: (r, k) => cellVal(r[`${k}_PJ유사`]) },
+  { id: 'plan',        header: "'26년 목표\n(사업계획)", rowspan: false, defaultWidth: 90, getValue: (r, k) => cellVal(r[`${k}_사업계획`], k) },
+  { id: 'target',      header: "'26년 목표\n(프로젝트)", rowspan: false, defaultWidth: 90, getValue: (r, k) => cellVal(r[`${k}_PJ목표`], k) },
+  { id: 'actual',      header: "'26년 실적\n(프로젝트)", rowspan: false, defaultWidth: 90, getValue: (r, k) => cellVal(r[`${k}_PJ실적`], k) },
+  { id: 'similar',     header: "'25년 실적\n(유사)",    rowspan: false, defaultWidth: 90,  getValue: (r, k) => cellVal(r[`${k}_PJ유사`], k) },
   { id: 'note',        header: '비고',                 rowspan: false, defaultWidth: 200, getValue: (r, k) => {
     const v = r[`${k}_비고`];
     return (v === null || v === undefined || v === '' || v === 0) ? '' : String(v);
