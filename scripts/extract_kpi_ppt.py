@@ -31,6 +31,7 @@ import sys as _sys
 import sys as _sys_boot, os as _os_boot
 _sys_boot.path.insert(0, _os_boot.path.dirname(_os_boot.path.dirname(_os_boot.path.abspath(__file__))))
 import paths as _paths
+from shared import strip_stage_suffix as _shared_strip_stage_suffix
 RETRY_MODE = "--retry" in _sys.argv
 ROOT_DIR = Path(os.environ.get(
     "EXTRACT_KPI_ROOT_DIR",
@@ -404,17 +405,14 @@ def append_history(ws, file_meta: Dict[str, str], status: str, message: str):
 # 프로젝트 코드가 이 값이면 "미배정" 상태로 간주 — 서로 다른 프로젝트가 같은 값을
 # 공유해도 충돌(덮어쓰기)하지 않도록 중복 판별 키에 파일명을 추가로 사용
 PLACEHOLDER_CODES = {"", "0", "생성예정", "미정", "tbd", "(생성 필요)", "선정 시 생성 예정"}
-_STAGE_SUFFIXES = ["사전검토", "착수", "중간", "완료", "제안"]
 FILENAME_COL = 45  # '취합' 시트 파일명 컬럼(1-based)
+# strip_stage_suffix()는 shared.py로 이동 — kpi.py(대시보드 집계 dedup)와 기준을 공유하기 위함.
+# 정식 코드도 서로 다른 프로젝트가 우연히 같은 코드를 쓰는 사례가 있어(예: E158600126060001)
+# kpi.py 쪽은 placeholder 여부와 무관하게 이 기준명을 전부 dedup 키에 넣는다.
 
 
 def strip_stage_suffix(filename: str) -> str:
-    """파일명에서 착수/완료/제안 등 단계 표시를 제거 — 같은 프로젝트의 다른 단계 파일인지
-    비교하기 위한 휴리스틱 (완전한 판별은 아니고 충돌 경고용)."""
-    name = os.path.splitext(normalize_text(filename))[0]
-    for suf in _STAGE_SUFFIXES:
-        name = re.sub(rf"[_\[\(]?{re.escape(suf)}[\]\)]?(_수정|_최종)?$", "", name).strip()
-    return name
+    return _shared_strip_stage_suffix(normalize_text(filename))
 
 
 def find_existing_data_row(ws, key1: str, key2: str, key4: str, filename: str = "") -> Optional[int]:

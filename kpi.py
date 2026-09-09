@@ -9,6 +9,7 @@ import pandas as pd
 from dotenv import load_dotenv
 from flask import Blueprint, jsonify, request
 import paths
+from shared import strip_stage_suffix
 
 load_dotenv()
 
@@ -133,13 +134,25 @@ _STAGE_PRIORITY = {"완료": 5, "중간": 4, "착수": 3, "제안": 2, "사전�
 
 
 def _dedup_by_stage_priority(df: pd.DataFrame) -> pd.DataFrame:
-    """프로젝트코드+연도별로 최우선 보고단계 1건만 남김 (완료>중간>착수>제안)."""
+    """
+    프로젝트코드+연도별로 최우선 보고단계 1건만 남김 (완료>중간>착수>제안).
+
+    프로젝트코드만으로 묶으면 서로 다른 프로젝트가 우연히 같은 코드를 공유하는 경우
+    (placeholder 코드 "생성예정"/"미정" 등은 물론, 실제로 "정식 코드" 형식인데도 데이터
+    입력 실수로 겹치는 사례 — 예: E158600126060001 이 서로 무관한 두 프로젝트에 붙어 있던
+    사례 — 실측 46개 다건 그룹 중 10개, 약 22%가 이런 충돌이었음)에 전혀 다른 프로젝트의
+    행이 "같은 프로젝트의 다른 단계"로 오인돼 dedup에서 통째로 사라진다.
+    파일명에서 보고단계 표시를 뗀 기준명(strip_stage_suffix, shared.py — extract_kpi_ppt.py의
+    placeholder 충돌 방지 로직과 동일 기준)을 dedup 키에 추가해, 코드가 같아도 실제로는 다른
+    프로젝트면 별도로 취급되게 한다.
+    """
     if df.empty:
         return df
 
     code_col  = next((c for c in df.columns if "프로젝트코드" in str(c)), None)
     stage_col = next((c for c in df.columns if "보고단계"   in str(c)), None)
     year_col  = next((c for c in df.columns if "수행연도"   in str(c)), None)
+    file_col  = next((c for c in df.columns if "파일명"     in str(c)), None)
 
     if code_col is None or stage_col is None:
         logger.warning("_dedup_by_stage_priority: 프로젝트코드 또는 보고단계 컬럼 없음")
@@ -148,11 +161,15 @@ def _dedup_by_stage_priority(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     df["_stage_rank"] = df[stage_col].map(lambda s: _STAGE_PRIORITY.get(str(s).strip(), 0))
 
-    subset = [code_col, year_col] if year_col else [code_col]
+    subset = [code_col] + ([year_col] if year_col else [])
+    if file_col is not None:
+        df["_base_name"] = df[file_col].map(strip_stage_suffix)
+        subset = subset + ["_base_name"]
+
     df = (
         df.sort_values("_stage_rank", ascending=False)
           .drop_duplicates(subset=subset, keep="first")
-          .drop(columns=["_stage_rank"])
+          .drop(columns=[c for c in ("_stage_rank", "_base_name") if c in df.columns])
           .reset_index(drop=True)
     )
     logger.info("보고단계 중복 제거 후 행 수: %d", len(df))
