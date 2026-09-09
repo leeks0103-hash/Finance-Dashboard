@@ -29,9 +29,10 @@ export interface PerformanceChartViewModel {
     options:  ChartOptions<'bar'>;
   };
   planVsActual: {
-    labels:      string[];
-    planInitial: number[];
-    junActual:   number[];
+    labels:        string[];
+    planInitial:   number[];
+    /** 연간 추정 실적(BE열) — 계획이 연간 기준이라 누계 실적(1~N월) 대신 같은 기간끼리 비교 */
+    junCheckTotal: number[];
     options:     ChartOptions<'bar'>;
   };
   profitRate: {
@@ -133,9 +134,9 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
         isFuture: monthly.map(m => isFutureMonth(m.month)),
       },
       planVsActual: {
-        labels:      parts.map(stripPartPrefix),
-        planInitial: parts.map(p => toEokNum(summary.by_part[p].plan_initial)),
-        junActual:   parts.map(p => toEokNum(summary.by_part[p].jun_actual)),
+        labels:        parts.map(stripPartPrefix),
+        planInitial:   parts.map(p => toEokNum(summary.by_part[p].plan_initial)),
+        junCheckTotal: parts.map(p => toEokNum(summary.by_part[p].jun_check_total)),
       },
       profitRate: {
         labels:   parts.map(stripPartPrefix),
@@ -143,6 +144,9 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
         profits:  parts.map(p => toEokNum(summary.by_part[p].operating_profit)),
         isProfit: parts.map(p => summary.by_part[p].operating_profit >= 0),
       },
+      // 카드 제목 "프로젝트 합계 원가비율" 그대로 — 전체 합계 구성비(금액 가중)를 그린다.
+      //    프로젝트별 비율의 단순평균이 아니다 (실측 차이: 직접원가 합계 67.5% vs 단순평균 56.7%).
+      //    2026-09-08 담당자 확인 후 계산은 합계로 확정, 제목도 "평균"→"합계"로 정정함.
       costBreakdown: {
         labels: ['직접원가', '인건비', '공통원가', '관리비'],
         values: [total.cost_direct, total.cost_labor, total.cost_overhead, total.cost_mgmt].map(toEokNum),
@@ -159,7 +163,7 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
     return {
       isLoading, isError, isEmpty: false, showLabels, labelColor,
       monthly:       { labels: [], revenues: [], costs: [], isFuture: [], options: monthlyOptions },
-      planVsActual:  { labels: [], planInitial: [], junActual: [], options: planVsActualOptions },
+      planVsActual:  { labels: [], planInitial: [], junCheckTotal: [], options: planVsActualOptions },
       profitRate:    { labels: [], rates: [], profits: [], isProfit: [], options: profitRateOptions },
       costBreakdown: { labels: [], values: [] },
       progress:      { labels: [], revenues: [], expenditures: [], options: progressOptions },

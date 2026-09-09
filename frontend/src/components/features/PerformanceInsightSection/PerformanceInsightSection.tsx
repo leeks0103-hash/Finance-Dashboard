@@ -1,7 +1,9 @@
 import { useMemo } from 'react';
 import { createColumnHelper } from '@tanstack/react-table';
 import { usePerformanceInsightViewModel } from '@/hooks/viewmodels';
-import { CopyText, DataTable } from '@/components/ui';
+// 아래 코드 컬럼 cell(주석 처리됨)을 되살릴 때 CopyText 도 다시 import 할 것 —
+// 쓰지 않는 import 가 남아 있으면 build(noUnusedLocals)가 실패한다
+import { DataTable } from '@/components/ui';
 import { useQuickSearchStore } from '@/store/quickSearch.store';
 import FinanceDetailPanel from './FinanceDetailPanel';
 import type { Project } from '@/types';

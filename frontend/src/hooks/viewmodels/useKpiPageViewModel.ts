@@ -31,6 +31,8 @@ export interface KpiChartData {
 export interface KpiSummaryRow {
   name:        string;
   agg:         string;
+  /** 26년 목표(사업계획) — 담당자 지정 고정값 (PLAN_TARGETS) */
+  planTarget:  string;
   targetStr:   string;
   targetNum:   number;
   actual:      string;
@@ -53,6 +55,12 @@ export interface KpiPageViewModel {
 }
 
 const fmtNum = (v: number) => v !== 0 ? v.toLocaleString() : '0';
+
+// 26년 목표(사업계획) — 담당자 지정 고정값. 엑셀 'kpi 집계' D열에도 값이 있지만 PPT 원본
+// 오입력이 섞여 있어(적절성 칸에 인원수가 들어간 사례 등) 화면에는 이 값을 그대로 노출한다.
+// 순서는 'kpi 집계' 시트 행 순서(2~9행)와 동일 — 항목이 추가/삭제되면 여기도 같이 고칠 것.
+//   NPS / 전략기술 건수 / 전략기술 적절성 / 특화체계 건수 / AI 고객사 건수 / AI 적절성 / 신사업 매출액 / 신사업 신규기존
+const PLAN_TARGETS = ['62', '15', '4.0', '12', '10', '4.0', '60.3', '10'];
 
 const SEARCH_FIELD_OPTIONS = [
   { value: '',        label: '전체' },
@@ -108,19 +116,20 @@ export const useKpiPageViewModel = (): KpiPageViewModel => {
     return {
       labels, targets, actuals, options: chartOptions, tickColor: labelColor,
       datasets: [
-        { label: '26년 목표', data: targets, backgroundColor: palette.cost,    borderRadius: 4 },
+        { label: '26년 목표', data: targets, backgroundColor: palette.plan,    borderRadius: 4 },   // 비교 기준선이라 중립 회색
         { label: '26년 실적', data: actuals, backgroundColor: palette.revenue, borderRadius: 4 },
       ],
     };
   }, [items, chartOptions, palette, labelColor]);
 
   const summaryRows = useMemo((): KpiSummaryRow[] =>
-    items.map(it => {
+    items.map((it, idx) => {
       // 신규/기존 건수 행 여부 — target이 문자열 "신규:N건/기존:N건" 형식이면 해당
       const isCountRow = typeof it.target_2026 === 'string' && /신규/.test(it.target_2026);
       return {
         name:       it.name,
         agg:        it.agg === 'sum' ? '합계' : '평균',
+        planTarget: PLAN_TARGETS[idx] ?? '-',
         targetStr:  typeof it.target_2026 === 'number' ? fmtNum(it.target_2026) : String(it.target_2026),
         targetNum:  typeof it.target_2026 === 'number' ? it.target_2026 : 0,
         // 신규/기존 타입: API가 이미 "신규:N건/기존:N건" 문자열 반환 → 그대로 사용

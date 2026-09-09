@@ -98,9 +98,9 @@ export const INFO_COST_BREAKDOWN = (
 export const INFO_PLAN_VS_ACTUAL = (
   <InfoTable rows={[
     ['출처',   '실적현황 엑셀'],
-    ['계획',   <Chips items={[`${PERF_COL.planInitial}열 (매출 계획)`]} />],
-    ['실적',   <Chips items={[PERF_COL.actualRange]} />],
-    ['계산',   '파트별 합계 비교'],
+    ['계획',      <Chips items={[`${PERF_COL.planInitial}열 (매출 계획)`]} />],
+    ['추정 실적', <Chips items={[`${PERF_COL.checkTotal}열 (연간 추정 합계)`]} />],
+    ['계산',      '파트별 합계 비교 — 계획이 연간 기준이라 누계 실적이 아닌 연간 추정과 비교'],
     ['필터',   '파트 · 팀 필터 적용'],
   ]} />
 );
