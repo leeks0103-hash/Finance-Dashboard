@@ -484,24 +484,36 @@ def api_kpi_summary():
         return jsonify({"available": False, "message": "kpi 집계 시트를 읽을 수 없습니다."})
 
     try:
-        kpi_items     = _load_kpi_items_from_cache()
+        kpi_items = _load_kpi_items_from_cache()
         # 목표/실적/유사 모두 dedup 기준으로 집계 (프로젝트별 최우선 단계 1건)
-        targets       = _aggregate_kpi_col(kpi_items, "PJ목표")
-        actuals       = _aggregate_kpi_col(kpi_items, "PJ실적")
-        prevs         = _aggregate_kpi_col(kpi_items, "PJ유사")
-        achieve_rates = _compute_achieve_rates(kpi_items)
+        targets = _aggregate_kpi_col(kpi_items, "PJ목표")
+        actuals = _aggregate_kpi_col(kpi_items, "PJ실적")
+        prevs   = _aggregate_kpi_col(kpi_items, "PJ유사")
+        # avg 타입 달성률: 프로젝트별 (실적/목표*100) 평균 — dedup 기준
+        avg_achieve_rates = _compute_achieve_rates(kpi_items)
 
         result = []
         for i, kpi in enumerate(kpi_items):
             is_count_type = isinstance(kpi.get("target", 0), str) and "신규" in str(kpi.get("target", ""))
             # 신규/기존 건수 타입은 kpi 집계 시트 목표 그대로 사용 (per-project PJ목표가 "N"으로 저장됨)
-            target  = kpi["target"] if is_count_type else (targets[i] if i < len(targets) else kpi["target"])
-            actual  = actuals[i] if i < len(actuals) else 0.0
-            prev    = prevs[i]   if i < len(prevs)   else 0.0
-            achieve = achieve_rates[i]
-            if achieve is None and not isinstance(target, str):
+            target = kpi["target"] if is_count_type else (targets[i] if i < len(targets) else kpi["target"])
+            actual = actuals[i] if i < len(actuals) else 0.0
+            prev   = prevs[i]   if i < len(prevs)   else 0.0
+
+            # 달성률: sum 타입은 집계된 actual/target으로 직접 계산, avg 타입은 프로젝트별 평균
+            if is_count_type:
+                achieve = None  # 신규/기존 건수는 아래에서 개별 처리
+            elif not isinstance(target, str):
                 target_num = float(target) if target else 0.0
-                achieve = round(actual / target_num * 100, 1) if target_num != 0 else 0.0
+                if kpi["agg"] == "sum":
+                    actual_num = float(actual) if not isinstance(actual, str) else 0.0
+                    achieve = round(actual_num / target_num * 100, 1) if target_num != 0 else 0.0
+                else:
+                    achieve = avg_achieve_rates[i]
+                    if achieve is None:
+                        achieve = round(float(actual) / target_num * 100, 1) if target_num != 0 else 0.0
+            else:
+                achieve = None
 
             if isinstance(target, str) and "신규" in target:
                 target_new, target_old = _parse_new_old_count(target)
