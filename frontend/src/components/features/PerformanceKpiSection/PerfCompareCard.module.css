@@ -61,19 +61,19 @@
   gap: 7px;
   flex-wrap: wrap;
 }
-/* 계획·추정 두 값은 같은 크기 — 구분은 색으로만 (계획 muted / 추정 accent) */
+/* 계획·추정 두 값은 같은(큰) 크기 — 구분은 색으로만 (계획 muted / 추정 accent) */
 .plan,
 .est {
   font-family: 'HyundaiHarmony', 'HyundaiSansHead', sans-serif;
-  font-size: 1.3rem;
+  font-size: 1.7rem;
   font-weight: 700;
   letter-spacing: -0.03em;
-  line-height: 1.15;
+  line-height: 1.1;
   white-space: nowrap;
 }
 .plan { color: var(--text-muted); }
 .est  { color: var(--text-primary); }
-.slash { color: var(--border); font-size: 1.2rem; font-weight: 400; }
+.slash { color: var(--border); font-size: 1.5rem; font-weight: 400; }
 .brand  .est { color: var(--brand-mid); }
 .profit .est { color: var(--profit); }
 .loss   .est { color: var(--loss); }

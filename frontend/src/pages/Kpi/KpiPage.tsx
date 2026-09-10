@@ -4,7 +4,7 @@ import { useKpiPageViewModel } from '@/hooks/viewmodels/useKpiPageViewModel';
 import { useKpiFilterOptions } from '@/hooks/useKpiFilterOptions';
 import { useKpiFilterStore } from '@/store/kpiFilter.store';
 import { sortStages } from '@/utils/stageOrder';
-import { ChartCard, BarChart, DataTable, CopyText, HighlightText, Button } from '@/components/ui';
+import { ChartCard, BarChart, DataTable, CopyText, HighlightText, Button, Spinner } from '@/components/ui';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import KpiRawTable from '@/components/features/KpiRawTable/KpiRawTable';
 import KpiBreakdownModal from '@/components/features/KpiBreakdownModal/KpiBreakdownModal';
@@ -111,6 +111,11 @@ const KpiPage = () => {
         .map(c => [c, false])
     ),
   [vm.rawCols]);
+
+  // 아직 로딩 중이면 "데이터 없음" 스텁 대신 로딩 스피너 (탭 첫 진입 시 스텁이 깜빡이던 문제)
+  if (vm.isLoading && !vm.available) {
+    return <main className={styles.main}><Spinner label="KPI 데이터 불러오는 중…" /></main>;
+  }
 
   if (!vm.available) {
     return (
