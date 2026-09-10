@@ -25,13 +25,9 @@
   font-weight: 500;
   border-radius: var(--radius-sm);
 }
-
-/* «‹›» 글리프 — HyundaiSans/GmarketSans엔 이 문자가 없어(정렬 화살표와 같은 문제)
-   심볼 폰트로 폴백해야 실제로 보임 */
-.arrow {
-  font-family: 'Segoe UI Symbol', 'Apple Symbols', 'Noto Sans Symbols2', system-ui, sans-serif;
-  font-size: 0.95rem;
-}
+/* «‹›» 4개 버튼은 전부 기본 폰트로 통일 — 앞의 두 개(첫/이전)만 심볼 폰트로 키워뒀더니
+   글리프 세로 위치가 달라져 이전 버튼이 아래로 처져 보였음(정렬 화살표와는 다르게
+   기본 폰트로도 이 글리프들은 정상 표시됨) */
 
 .active {
   background: var(--brand-mid) !important;

@@ -1,6 +1,6 @@
 .panel {
   padding: 10px 14px 14px;
-  width: 1400px;
+  width: 1520px;   /* 1400px + 120px */
   max-width: 100%;
 }
 

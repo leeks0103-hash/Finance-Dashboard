@@ -16,6 +16,8 @@ interface Props {
   /** 다운로드 URL 생성 — 호출부가 API 경로를 정한다(ui는 경로를 모름) */
   hrefOf:    (key: string) => string;
   isLoading?: boolean;
+  /** 버튼 표시 텍스트 — 탭마다 무엇을 받는지 바로 알 수 있도록 호출부가 지정 */
+  buttonLabel?: string;
 }
 
 const fmtSize = (bytes: number) =>
@@ -25,7 +27,7 @@ const fmtSize = (bytes: number) =>
  * 엑셀 원본 다운로드 메뉴 — 버튼 하나로 접어두고 클릭 시 파일 목록을 펼친다.
  * 항목은 <a download> 라서 브라우저가 그대로 받아준다(서버가 그 시점 디스크 파일을 내보냄).
  */
-export const DownloadMenu = ({ items, hrefOf, isLoading = false }: Props) => {
+export const DownloadMenu = ({ items, hrefOf, isLoading = false, buttonLabel = '↓ 엑셀' }: Props) => {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -47,7 +49,7 @@ export const DownloadMenu = ({ items, hrefOf, isLoading = false }: Props) => {
   return (
     <div className={styles.wrap} ref={ref}>
       <Button variant="success" size="sm" onClick={() => setOpen(o => !o)} disabled={isLoading}>
-        ↓ 엑셀
+        {buttonLabel}
       </Button>
 
       {open && (

@@ -12,6 +12,7 @@ const KpiActionBar = () => {
       items={files ?? []}
       isLoading={isLoading}
       hrefOf={key => `/api/download/${key}`}
+      buttonLabel="↓ KPI 다운로드"
     />
   );
 };

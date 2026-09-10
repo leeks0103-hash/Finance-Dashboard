@@ -23,6 +23,7 @@ const PerformanceActionBar = () => {
         items={files ?? []}
         isLoading={isLoading}
         hrefOf={key => `/api/download/${key}`}
+        buttonLabel="↓ 재무데이터 다운로드"
       />
       {displayTs && (
         <span className={styles.lastLoaded} title="데이터 최종 업데이트">
