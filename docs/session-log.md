@@ -1,5 +1,43 @@
 # 세션 진행 기록
 
+## [2026-09-10 오후] 차트 막대 클릭 → 산출 근거 드릴다운 모달 + 네브바/UI 정비
+
+**1. 드릴다운 모달 (KPI · 실적현황)** — "이 막대 값이 어떤 프로젝트 행들을 합/평균해서 나왔는지" 표로
+- 백엔드 신규: `GET /api/kpi/summary/breakdown?name=&metric=`, `GET /api/performance/summary/breakdown?chart=&series=&key=`
+  - 집계(`_kpi_dedup_df` / `api_perf_summary`)와 **동일한 필터·엑셀 필드**로 합산 → 반환 `total`이 막대값과 정확히 일치
+  - KPI: 항목명 → 컬럼 index 매핑(신규/기존 건수는 하위구분 자동 해석). Perf: `_PERF_BREAKDOWN`에 chart×series → (category, 엑셀필드) 매핑
+  - `_PART_PREFIX_RE` 범위를 프론트 `stripPartPrefix`(`①~⑳`)와 일치시킴
+- 프론트: `useKpiBreakdownViewModel` / `usePerfBreakdownViewModel` + `KpiBreakdownModal` / `PerfBreakdownModal`
+  - 프로젝트별 표(코드·파트·단계|팀·값) + 합계행 + "↓ 이 목록 CSV"
+  - **"이 값이 어떻게 만들어지나" 안내 박스** (툴팁 느낌) — 그 막대가 쓰는 엑셀 열 + 집계 방식
+  - 실적 모달은 **매출이익·경상손익·손익률 계산식 용어** 접이식(`_PERF_CALC_GLOSSARY`, session-log 검증식 기준)
+  - 모달 폭 720 → 920px, 코드·프로젝트명 칸만 줄바꿈 허용(나머지 컬럼 항상 노출)
+- `BarChart` `onClick(label, datasetIndex)`로 확장 + **축 라벨(카테고리명) 영역 클릭·포인터 커서** (`catLabelHit`) — 막대 클릭인 줄 모른다는 피드백 대응. 축 라벨 클릭은 시리즈 미지정(-1) → KPI는 실적, Perf는 series 0
+
+**2. DataTable — 리사이즈 테이블에서 컬럼 폭 조절이 안 먹던 문제**
+- `.table td { max-width: 260px }`가 `table-layout: fixed`(=`storageKey` 리사이즈 테이블)에도 걸려서, 핸들을 260px 넘게 끌어도 셀 텍스트가 안 늘어 "폭 조절 안 됨"처럼 보였음 (미수주 프로젝트 표에서 특히 — 비고/미수사유/파일명이 다 긴 텍스트)
+- `max-width: 260px` → `.table:not(.tableFixed) td`로 한정. 미수주 표 컬럼 `size` 명시 + `sizeVersion={2}`
+
+**3. 네브바 재구성**
+- `.header` > `.inner` 분리 — 배경/보더/그림자는 전체 폭, 콘텐츠는 `max-width:1900px`로 본문과 정렬
+- 3분할 그리드(제목 좌 / 탭 중앙 / 설정 우), 우측 "기술교육사업기획팀" 텍스트(`.team`) 삭제
+- 제목 워드마크화(1.15rem / weight 800 / 자간 -0.03em), 탭은 대비되게 얇게(400)·자간 +0.03em, 활성 탭 600
+- ⚙ 버튼 글리프(U+2699)가 위로 떠 보이던 것 위 패딩 1px 보정, 0.9→0.95rem
+- (라이트 바 시안 만들었다가 "배경색 있는 게 낫다"고 해서 다크 바로 되돌림 — 색 관련은 원복, 구조/타이포만 유지)
+
+**4. 기타**
+- 페이지네이션 `«‹›»` 화살표 `font-size`만 1.05rem로 키움 (폰트 패밀리는 기본 유지 → 세로 정렬 어긋남 없음)
+- KPI 뷰 토글(목록/KPI 상세)이 흰 툴바에 묻혀 안 보이던 것 — 샌드 배경(`--bg-subtle`)+테두리, 활성 버튼 브랜드색 채움
+
+tsc·build·vitest(61/61) 통과. 커밋 `4c37dfd` (push 완료)
+
+⚠️ **`kpi.py`·`performance.py` 변경 → Flask 서버 재시작 필요** (reload는 엑셀만, 새 라우트는 재시작해야 등록)
+
+**다음 세션 과제**
+- 드릴다운: 원가구성 도넛은 제외됨(DoughnutChart는 onClick 동작이 다름) — 필요 시 추가
+- KPI 신규/기존 건수의 **목표** 막대 클릭 시엔 per-project PJ목표가 "N"이라 행이 비어 note만 표시됨 — 시트 고정값이라 정상이나 UX 아쉬움
+- 재무 비고 검색 안 됨 문제 (여러 세션째 이월)
+
 ## [2026-09-10] 다운로드 버튼 라벨 구분 + 페이지네이션 화살표 정렬 수정
 
 - `DownloadMenu`에 `buttonLabel` prop 추가 — 기본값 `↓ 엑셀`. KPI 탭은 `↓ KPI 다운로드`,
