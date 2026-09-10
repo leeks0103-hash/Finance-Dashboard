@@ -29,7 +29,16 @@ export interface KpiChartData {
   datasets:    KpiChartDataset[];
   options:     ChartOptions<'bar'>;
   tickColor:   string;
+  /** 값 축 상한 — 최댓값보다 살짝 위, 5 단위로 올림 (막대·수치가 축 끝에 딱 붙지 않게) */
+  xMax:        number | undefined;
 }
+
+// 최댓값 위로 약간 여유를 두고 5 단위로 올림. 값이 없거나 0이면 undefined(자동)
+const niceAxisMax = (vals: number[]): number | undefined => {
+  const m = Math.max(0, ...vals.filter(v => Number.isFinite(v)));
+  if (m <= 0) return undefined;
+  return Math.ceil((m * 1.05) / 5) * 5;
+};
 
 export interface KpiSummaryRow {
   name:        string;
@@ -137,6 +146,7 @@ export const useKpiPageViewModel = (summaryPart = ''): KpiPageViewModel => {
     const actuals = items.map(it => typeof it.actual_2026 === 'number' ? it.actual_2026 : 0);
     return {
       labels, planTargets, targets, actuals, options: chartOptions, tickColor: labelColor,
+      xMax: niceAxisMax([...planTargets, ...targets, ...actuals]),
       datasets: [
         // borderRadius 0 — 막대 끝을 각지게 (담당자 지정).
         // 3계열 한 세트 — categoryPercentage 0.66으로 세트 사이 간격 확보,

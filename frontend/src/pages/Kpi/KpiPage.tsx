@@ -161,7 +161,10 @@ const KpiPage = () => {
                     indexAxis: 'y',
                     ...vm.chart.options,
                     scales: {
-                      x: { ticks: { color: vm.chart.tickColor, callback: v => Number(v).toLocaleString() } },
+                      x: {
+                        max: vm.chart.xMax,   // 최댓값보다 살짝 위, 5 단위로 올림 (막대·수치가 축 끝에 안 붙게)
+                        ticks: { color: vm.chart.tickColor, callback: v => Number(v).toLocaleString() },
+                      },
                       y: { ticks: {
                         color: vm.chart.tickColor,
                         callback: function (this: { chart: { width: number } }, _value: unknown, index: number) {
