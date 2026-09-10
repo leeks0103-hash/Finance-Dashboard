@@ -1,15 +1,17 @@
-/* 카드 5개(계획/추정 실적/매출 이익/경상손익/누계 실적) — 5열 유지, 좁아지면 단계적으로 축소 */
+/* 카드 5개(매출/원가/매출이익 비교 + 경상손익/누계 실적) — 5열 유지.
+   minmax(0,1fr)로 트랙이 내용 최소폭 아래로도 줄어들게 → 넓은 비교카드가 있어도
+   가로 오버플로로 카드가 화면 밖으로 밀리지 않음 */
 .kpiGrid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 16px;
 }
 
-@media (max-width: 1200px) {
-  .kpiGrid { grid-template-columns: repeat(3, 1fr); }
+@media (max-width: 1280px) {
+  .kpiGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
-@media (max-width: 900px) {
-  .kpiGrid { grid-template-columns: repeat(2, 1fr); }
+@media (max-width: 820px) {
+  .kpiGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 480px) {
   .kpiGrid { grid-template-columns: 1fr; }
