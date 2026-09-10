@@ -1,6 +1,10 @@
-import { usePerfExport } from '@/hooks/usePerfExport';
+// usePerfExport(CSV 내보내기) — 담당자 지정으로 CSV 버튼을 내리고 엑셀 원본 다운로드로 대체.
+// 복구하려면 아래 import와 <CsvExportBar> 한 줄을 함께 되살릴 것.
+// import { usePerfExport } from '@/hooks/usePerfExport';
+// import { CsvExportBar } from '@/components/ui';
 import { usePerformanceSummary } from '@/hooks/usePerformanceSummary';
-import { CsvExportBar } from '@/components/ui';
+import { useDownloadFiles } from '@/hooks/useDownloadFiles';
+import { DownloadMenu } from '@/components/ui';
 import styles from './PerformanceActionBar.module.css';
 
 function fmtTs(raw: string | null | undefined): string {
@@ -9,13 +13,17 @@ function fmtTs(raw: string | null | undefined): string {
 }
 
 const PerformanceActionBar = () => {
-  const { exportPerfCsv } = usePerfExport();
-  const { data: sum }     = usePerformanceSummary();
+  const { data: sum }   = usePerformanceSummary();
+  const { data: files, isLoading } = useDownloadFiles();
   const displayTs = fmtTs(sum?.loaded_at);
 
   return (
     <div className={styles.bar}>
-      <CsvExportBar onExport={exportPerfCsv} />
+      <DownloadMenu
+        items={files ?? []}
+        isLoading={isLoading}
+        hrefOf={key => `/api/download/${key}`}
+      />
       {displayTs && (
         <span className={styles.lastLoaded} title="데이터 최종 업데이트">
           업데이트 {displayTs}

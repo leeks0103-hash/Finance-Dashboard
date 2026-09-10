@@ -9,6 +9,7 @@ export * from './EmptyState';
 export * from './Chart';
 export * from './Button';
 export * from './CsvExportBar';
+export * from './DownloadMenu';
 export * from './InsightListCard';
 export * from './InsightSectionView';
 export * from './ProjectRankRow';
