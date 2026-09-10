@@ -27,22 +27,23 @@ const Root = ({ children, compact = true, expandable = true }: RootProps) => {
   // ESC 닫기 — 모달을 겹쳐 열었을 땐 맨 위 것만 닫힌다
   useEscToClose(() => setExpanded(false), expanded);
 
-  // 제목줄 — 기존 제목(+토글 등)은 그대로 두고 우측 끝에 확대 버튼만 덧붙인다
   const titleRow = (className: string) => (
     <div className={className}>
       <div className={styles.titleContent}>{title}</div>
-      {expandable && (
-        <Button
-          unstyled
-          className={styles.expandBtn}
-          onClick={() => setExpanded(true)}
-          aria-label="차트 확대"
-          title="크게 보기"
-        >
-          ⤢
-        </Button>
-      )}
     </div>
+  );
+
+  // 확대 버튼 — 제목줄이 아니라 카드(.root) 우측 상단에 절대배치
+  const expandButton = expandable && (
+    <Button
+      unstyled
+      className={styles.expandBtn}
+      onClick={() => setExpanded(true)}
+      aria-label="차트 확대"
+      title="크게 보기"
+    >
+      ⤢
+    </Button>
   );
 
   // 카드와 같은 title/body를 그대로 재사용 — 모달 안에서는 더 큰 영역에 다시 그려진다
@@ -77,6 +78,7 @@ const Root = ({ children, compact = true, expandable = true }: RootProps) => {
     return (
       <div className={styles.group}>
         <div className={styles.root}>
+          {expandButton}
           {titleRow(styles.titleCompact)}
           <div className={styles.body}>{body}</div>
         </div>
@@ -89,6 +91,7 @@ const Root = ({ children, compact = true, expandable = true }: RootProps) => {
     <div className={styles.group}>
       {titleRow(styles.title)}
       <div className={styles.root}>
+        {expandButton}
         <div className={styles.body}>{body}</div>
       </div>
       {modal}

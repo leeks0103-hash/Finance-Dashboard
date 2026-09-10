@@ -9,8 +9,8 @@ export interface KpiOptions {
   stages: string[];
 }
 
-export const getKpiSummary = (): Promise<KpiSummary> =>
-  client.get<KpiSummary>('/kpi/summary').then(r => r.data);
+export const getKpiSummary = (part = ''): Promise<KpiSummary> =>
+  client.get<KpiSummary>('/kpi/summary', { params: part ? { part } : undefined }).then(r => r.data);
 
 export const getKpiOptions = (): Promise<KpiOptions> =>
   client.get<KpiOptions>('/kpi/options').then(r => r.data);

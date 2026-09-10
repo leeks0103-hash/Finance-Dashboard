@@ -5,10 +5,8 @@ import { pathToTab } from '@/utils/routing';
 import { useBackgroundPrefetch } from '@/hooks/useBackgroundPrefetch';
 import FilterPanel  from '@/components/features/FilterPanel';
 import ActionBar    from '@/components/features/ActionBar';
-import KpiActionBar from '@/components/features/KpiActionBar';
 import PerformanceActionBar from '@/components/features/PerformanceActionBar';
 import PerfFilter   from '@/layouts/PerformanceFilterBar/PerformanceFilterBar';
-import KpiFilterBar from '@/components/features/KpiFilterBar/KpiFilterBar';
 import styles from './TabLayout.module.css';
 
 import type { TabId } from '@/components/ui/TabNav/TabNav';
@@ -42,12 +40,14 @@ const TabLayout = () => {
 
   return (
     <>
-      {/* filterGroup — 항상 렌더해서 높이 고정, 탭별 내용만 조건부 */}
-      <div className={styles.filterGroup}>
-        {isFinance && <><FilterPanel /><ActionBar /></>}
-        {isKpi && <><KpiFilterBar /><KpiActionBar /></>}
-        {isPerformance && <><PerfFilter /><PerformanceActionBar /></>}
-      </div>
+      {/* filterGroup — 재무·실적만. KPI는 칩 필터바 제거(파트/보고단계 셀렉트는 KpiPage 안으로),
+          다운로드 버튼은 Navbar로 이동 → KPI 탭에선 이 바 자체를 렌더하지 않음 */}
+      {!isKpi && (
+        <div className={styles.filterGroup}>
+          {isFinance && <><FilterPanel /><ActionBar /></>}
+          {isPerformance && <><PerfFilter /><PerformanceActionBar /></>}
+        </div>
+      )}
 
       {/* ── 재무현황(구 실적 현황) — 항상 마운트, 랜딩 탭 ── */}
       <div className={styles.pageContent} style={show('performance')}>

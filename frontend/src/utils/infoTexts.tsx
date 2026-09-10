@@ -119,6 +119,11 @@ export const INFO_ACHIEVEMENT_BARS = (
   <InfoTable rows={[
     ['출처',   '실적현황 엑셀'],
     ['계산',   `${PERF_COL.actualRange} ÷ ${PERF_COL.planInitial}열(매출 계획) × 100`],
+    ['기준선', <>
+      분자는 <b>N개월 누계</b>인데 분모는 <b>연간 계획</b>이라, 경과 시점(예: 8월 = 66.7%)까지는
+      100%에 못 미치는 게 정상입니다. 트랙 위 세로선이 그 <b>정상 페이스 위치</b> —
+      막대가 이 선을 넘으면 계획보다 앞선 것입니다.
+    </>],
     ['색상',   '100% 이상 Hyundai Blue / 70~100% Sky Blue / 70% 미만 Hyundai Gold'],
     ['필터',   '파트 · 팀 필터 적용'],
   ]} />

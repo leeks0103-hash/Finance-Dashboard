@@ -192,6 +192,8 @@ interface Props<T> {
   sizeVersion?: string | number;
   /** 툴바 우측에 추가 렌더링할 요소 (뷰 전환 토글 등) */
   toolbarExtra?: ReactNode;
+  /** 검색행 안, 검색범위 셀렉트와 입력창 사이에 끼워 넣을 요소 (파트/보고단계 필터 등) */
+  searchExtra?: ReactNode;
   /** 제목 옆 ⓘ 버튼 — 클릭 시 데이터 기준 설명 팝오버 */
   info?: ReactNode;
   /** 더블클릭 시 검색바에 해당 셀 값을 자동 입력할 컬럼 id 목록 (예: project_code) */
@@ -247,6 +249,7 @@ const DataTable = <T extends object>({
   storageKey,
   sizeVersion,
   toolbarExtra,
+  searchExtra,
   info,
   searchOnDblClick,
   expandableRow,
@@ -620,6 +623,7 @@ const DataTable = <T extends object>({
                   ))}
                 </select>
               )}
+              {searchExtra}
               <input
                 className={styles.search}
                 placeholder={searchPlaceholder}

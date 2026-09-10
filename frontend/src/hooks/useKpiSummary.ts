@@ -5,10 +5,10 @@ import { STALE_5MIN, GC_10MIN } from './queryClient';
 
 const EMPTY_FILTERS: Filters = { years: [], parts: [], stages: [] };
 
-export const useKpiSummary = () =>
+export const useKpiSummary = (part = '') =>
   useQuery({
-    queryKey:          ['kpi-summary'],
-    queryFn:           getKpiSummary,
+    queryKey:          ['kpi-summary', part],
+    queryFn:           () => getKpiSummary(part),
     structuralSharing: true,
     staleTime:         STALE_5MIN,
     gcTime:            GC_10MIN,
