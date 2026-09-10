@@ -181,16 +181,16 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
       const d = +(e - p).toFixed(1);
       return {
         kind: 'compare', id, label, accent,
-        planStr: `${p.toFixed(1)}억`, estStr: `${e.toFixed(1)}억`,
+        planStr: `${p.toFixed(1)}억원`, estStr: `${e.toFixed(1)}억원`,
         planNum: p, estNum: e,
-        diffStr: `${d >= 0 ? '+' : ''}${d.toFixed(1)}억`, diffUp: d >= 0,
+        diffStr: `${d >= 0 ? '+' : ''}${d.toFixed(1)}억원`, diffUp: d >= 0,
       };
     };
 
     return [
-      mk('revenue',     '매출 (계획 → 추정)', 'brand',  total.plan_initial,   total.jun_check_total),
-      mk('cost',        '원가 (계획 → 추정)', 'purple', total.plan_cost,      total.jun_cost),
-      mk('grossProfit', '매출이익 (계획 → 추정)',
+      mk('revenue',     '매출 (계획/추정)', 'brand',  total.plan_initial,   total.jun_check_total),
+      mk('cost',        '원가 (계획/추정)', 'purple', total.plan_cost,      total.jun_cost),
+      mk('grossProfit', '매출이익 (계획/추정)',
          (total.jun_check_total - total.jun_cost) >= 0 ? 'profit' : 'loss',
          total.plan_initial - total.plan_cost, total.jun_check_total - total.jun_cost),
       // ↓ 언급 안 한 2개 카드는 그대로 유지 (경상손익 · 누계 실적)
