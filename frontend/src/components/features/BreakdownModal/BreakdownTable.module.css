@@ -1,0 +1,63 @@
+.wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+
+/* 헤더 — 클릭 정렬 */
+.table th {
+  text-align: left;
+  padding: 7px 10px;
+  background: var(--bg-header);
+  color: var(--text-muted);
+  font-weight: 600;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border);   /* 세로 구분선 */
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.12s, background 0.12s;
+}
+.table th:last-child { border-right: none; }
+.table th:hover  { color: var(--text-primary); background: var(--bg-subtle); }
+.table th.active { color: var(--text-primary); }
+
+.sortIcon {
+  margin-left: 4px;
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  opacity: 0.5;
+}
+.table th.active .sortIcon { opacity: 1; color: var(--brand-mid); }
+
+.table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border);   /* 세로 구분선 */
+  color: var(--text);
+  white-space: nowrap;
+}
+.table td:last-child { border-right: none; }
+.table tbody tr:last-child td { border-bottom: none; }
+.table tbody tr:hover td { background: var(--bg-subtle); }
+
+/* 코드·프로젝트명 칸만 줄바꿈 허용 — 나머지 컬럼(정렬·값)이 항상 보이도록 */
+.table td:first-child { white-space: normal; word-break: break-word; }
+
+.right { text-align: right; font-variant-numeric: tabular-nums; }
+.table td.right { font-weight: 600; }
+
+.totalRow td {
+  background: var(--bg-subtle);
+  font-weight: 800;
+  color: var(--text-primary);
+  border-top: 2px solid var(--border);
+}
+.totalRow td:last-child { border-right: none; }
+.totalRow:hover td { background: var(--bg-subtle); }

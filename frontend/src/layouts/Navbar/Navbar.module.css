@@ -41,9 +41,9 @@
   min-width: 0;
 }
 
-/* Hyundai NGV 로고 — N·G·V 글자만 뽑아 간격 좁힌 SVG(currentColor). 다크 바 위 흰색 */
+/* Hyundai NGV 락업 SVG — HYUNDAI 워드마크 + NGV 세로 2단(currentColor). 다크 바 위 흰색 */
 .logo {
-  height: 19px;
+  height: 32px;
   width: auto;
   display: block;
   flex-shrink: 0;

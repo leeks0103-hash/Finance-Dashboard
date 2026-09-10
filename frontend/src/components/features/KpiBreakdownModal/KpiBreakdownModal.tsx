@@ -5,6 +5,8 @@ import { useEscToClose } from '@/hooks/useEscToClose';
 import { useKpiBreakdownViewModel } from '@/hooks/viewmodels/useKpiBreakdownViewModel';
 import { downloadCsvFile } from '@/hooks/useExport';
 import { stripPartPrefix } from '@/utils/format';
+import type { KpiBreakdownRow } from '@/api/kpi.api';
+import BreakdownTable, { type BreakdownColumn } from '@/components/features/BreakdownModal/BreakdownTable';
 import styles from './KpiBreakdownModal.module.css';
 
 interface Props {
@@ -57,35 +59,31 @@ const KpiBreakdownModal = ({ name, metric, onClose }: Props) => {
           {vm.note && <p className={styles.explainSub}>{vm.note}</p>}
         </div>
 
-        <div className={styles.tableWrap}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>프로젝트코드</th>
-                <th>파트</th>
-                <th>보고단계</th>
-                <th className={styles.numCol}>{vm.column || '값'}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {vm.rows.map((r, i) => (
-                <tr key={`${r.project_code}-${r.file}-${i}`}>
-                  <td>
-                    {r.project_code || '—'}
-                    {r.project_name && <span className={styles.pname}> · {r.project_name}</span>}
-                  </td>
-                  <td>{stripPartPrefix(r.part) || '—'}</td>
-                  <td>{r.stage || '—'}</td>
-                  <td className={styles.numCol}>{Number.isInteger(r.value) ? r.value.toLocaleString() : r.value}</td>
-                </tr>
-              ))}
-              <tr className={styles.totalRow}>
-                <td colSpan={3}>{vm.aggLabel} ({vm.count}건)</td>
-                <td className={styles.numCol}>{vm.totalStr}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <BreakdownTable
+          columns={[
+            {
+              key: 'code', header: '프로젝트코드',
+              sortValue: r => r.project_code,
+              render: r => (
+                <>
+                  {r.project_code || '—'}
+                  {r.project_name && <span className={styles.pname}> · {r.project_name}</span>}
+                </>
+              ),
+            },
+            { key: 'part',  header: '파트',     sortValue: r => stripPartPrefix(r.part), render: r => stripPartPrefix(r.part) || '—' },
+            { key: 'stage', header: '보고단계', sortValue: r => r.stage, render: r => r.stage || '—' },
+            {
+              key: 'value', header: vm.column || '값', align: 'right',
+              sortValue: r => r.value,
+              render: r => (Number.isInteger(r.value) ? r.value.toLocaleString() : r.value),
+            },
+          ] satisfies BreakdownColumn<KpiBreakdownRow>[]}
+          rows={vm.rows}
+          totalLabel={`${vm.aggLabel} (${vm.count}건)`}
+          totalValue={vm.totalStr}
+          totalSpan={3}
+        />
 
         <div className={styles.foot}>
           <span className={styles.count}>프로젝트당 최우선 보고단계 1건 기준</span>

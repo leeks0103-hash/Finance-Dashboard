@@ -8,6 +8,8 @@ import {
 } from '@/hooks/viewmodels/usePerfBreakdownViewModel';
 import { downloadCsvFile } from '@/hooks/useExport';
 import { stripPartPrefix } from '@/utils/format';
+import type { PerfBreakdownRow } from '@/api/performance.api';
+import BreakdownTable, { type BreakdownColumn } from '@/components/features/BreakdownModal/BreakdownTable';
 import styles from './PerfBreakdownModal.module.css';
 
 interface Props {
@@ -40,6 +42,26 @@ const PerfBreakdownModal = ({ target, onClose }: Props) => {
     if (!vm.available) return <div className={styles.state}>{vm.message ?? '표시할 데이터가 없습니다.'}</div>;
     if (!vm.rows.length) return <div className={styles.state}>이 막대에 집계된 프로젝트 행이 없습니다.</div>;
 
+    const cols: BreakdownColumn<PerfBreakdownRow>[] = [
+      {
+        key: 'code', header: '프로젝트코드',
+        sortValue: r => r.project_code,
+        render: r => (
+          <>
+            {r.project_code || '—'}
+            {r.project_name && <span className={styles.pname}> · {r.project_name}</span>}
+          </>
+        ),
+      },
+      { key: 'part', header: '파트', sortValue: r => stripPartPrefix(r.part), render: r => stripPartPrefix(r.part) || '—' },
+      { key: 'team', header: '팀',   sortValue: r => r.team, render: r => r.team || '—' },
+      {
+        key: 'value', header: `값 (${vm.unit})`, align: 'right',
+        sortValue: r => r.value,
+        render: r => (Number.isInteger(r.value) ? r.value.toLocaleString() : r.value),
+      },
+    ];
+
     return (
       <>
         {(vm.fieldDesc || vm.aggDesc) && (
@@ -53,35 +75,13 @@ const PerfBreakdownModal = ({ target, onClose }: Props) => {
           </div>
         )}
 
-        <div className={styles.tableWrap}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>프로젝트코드</th>
-                <th>파트</th>
-                <th>팀</th>
-                <th className={styles.numCol}>값 ({vm.unit})</th>
-              </tr>
-            </thead>
-            <tbody>
-              {vm.rows.map((r, i) => (
-                <tr key={`${r.project_code}-${i}`}>
-                  <td>
-                    {r.project_code || '—'}
-                    {r.project_name && <span className={styles.pname}> · {r.project_name}</span>}
-                  </td>
-                  <td>{stripPartPrefix(r.part) || '—'}</td>
-                  <td>{r.team || '—'}</td>
-                  <td className={styles.numCol}>{Number.isInteger(r.value) ? r.value.toLocaleString() : r.value}</td>
-                </tr>
-              ))}
-              <tr className={styles.totalRow}>
-                <td colSpan={3}>합계 ({vm.count}건)</td>
-                <td className={styles.numCol}>{vm.totalStr}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <BreakdownTable
+          columns={cols}
+          rows={vm.rows}
+          totalLabel={`합계 (${vm.count}건)`}
+          totalValue={vm.totalStr}
+          totalSpan={3}
+        />
 
         <div className={styles.foot}>
           <span className={styles.count}>매출/원가 행 기준 합산 · 막대값과 동일</span>
