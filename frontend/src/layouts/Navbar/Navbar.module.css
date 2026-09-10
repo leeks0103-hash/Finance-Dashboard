@@ -61,11 +61,10 @@
    글자 높이를 옆 로고(.logo height)에 맞춰 키운다 */
 .brand {
   margin: 0;
-  font-family: 'HyundaiSansHead', 'HyundaiSans', 'Malgun Gothic', sans-serif;
-  font-size: 1.4rem;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 700;
   line-height: 1;
-  color: #fff;
+  color: #FF9E1B;
   letter-spacing: -0.01em;
   white-space: nowrap;
 }
