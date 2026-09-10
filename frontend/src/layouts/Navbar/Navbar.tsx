@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Toggle, Button } from '@/components/ui';
 import TabNav from '@/components/ui/TabNav/TabNav';
 import type { TabId } from '@/components/ui/TabNav/TabNav';
+import KpiActionBar from '@/components/features/KpiActionBar';
 import NgvLogo from './NgvLogo';
 import { useTheme } from '@/hooks';
 import { useUiStore } from '@/store';
@@ -42,8 +43,10 @@ const Navbar = () => {
           <TabNav active={activeTab} onChange={setTab} />
         </nav>
 
-        {/* 우측 — 설정 */}
+        {/* 우측 — (KPI 탭) 다운로드 + 설정 */}
         <div className={styles.right}>
+          {activeTab === 'kpi' && <KpiActionBar />}
+
           <div className={styles.settings} ref={ref}>
           <Button unstyled
             className={styles.settingsBtn}

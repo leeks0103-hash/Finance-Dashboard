@@ -291,8 +291,18 @@ def _parse_new_old_count(value) -> tuple:
     )
 
 
-def _aggregate_kpi_col(kpi_items: list, col_keyword: str) -> list:
-    df = _kpi_dedup_df if not _kpi_dedup_df.empty else _kpi_raw_df
+def _filter_part(df: pd.DataFrame, part: str | None) -> pd.DataFrame:
+    """집계 대상 df를 특정 파트로 한정 (part=None/''이면 그대로)."""
+    if not part or df.empty:
+        return df
+    pcol = next((c for c in df.columns if "파트명" in str(c)), None)
+    if pcol is None:
+        return df
+    return df[df[pcol].astype(str).str.strip() == part]
+
+
+def _aggregate_kpi_col(kpi_items: list, col_keyword: str, part: str | None = None) -> list:
+    df = _filter_part(_kpi_dedup_df if not _kpi_dedup_df.empty else _kpi_raw_df, part)
     if df.empty:
         return [0.0] * len(kpi_items)
 
@@ -382,14 +392,14 @@ def _parse_col_num(val_str: str) -> float | None:
         return None
 
 
-def _compute_achieve_rates(kpi_items: list) -> list:
+def _compute_achieve_rates(kpi_items: list, part: str | None = None) -> list:
     """
     평균형 KPI: 프로젝트별 actual_i/target_i * 100 의 평균 — 부서별 목표가 달라도 올바른 집계.
     합계형 KPI: sum(actual_i) / sum(target_i) * 100.
     신규/기존 건수 타입: None 반환 (호출부에서 별도 계산).
     집계는 프로젝트별 최우선 단계 1건만 사용 (완료>중간>착수>제안).
     """
-    df = _kpi_dedup_df if not _kpi_dedup_df.empty else _kpi_raw_df
+    df = _filter_part(_kpi_dedup_df if not _kpi_dedup_df.empty else _kpi_raw_df, part)
     if df.empty:
         return [None] * len(kpi_items)
 
@@ -503,20 +513,27 @@ def api_kpi_summary():
     if _kpi_agg_df.empty:
         return jsonify({"available": False, "message": "kpi 집계 시트를 읽을 수 없습니다."})
 
+    part = request.args.get("part", "").strip() or None
+
     try:
         kpi_items = _load_kpi_items_from_cache()
-        # 목표/실적/유사 모두 dedup 기준으로 집계 (프로젝트별 최우선 단계 1건)
-        targets = _aggregate_kpi_col(kpi_items, "PJ목표")
-        actuals = _aggregate_kpi_col(kpi_items, "PJ실적")
-        prevs   = _aggregate_kpi_col(kpi_items, "PJ유사")
+        # 목표/실적/유사 모두 dedup 기준으로 집계 (프로젝트별 최우선 단계 1건). part 지정 시 그 파트만
+        targets = _aggregate_kpi_col(kpi_items, "PJ목표", part)
+        actuals = _aggregate_kpi_col(kpi_items, "PJ실적", part)
+        prevs   = _aggregate_kpi_col(kpi_items, "PJ유사", part)
         # avg 타입 달성률: 프로젝트별 (실적/목표*100) 평균 — dedup 기준
-        avg_achieve_rates = _compute_achieve_rates(kpi_items)
+        avg_achieve_rates = _compute_achieve_rates(kpi_items, part)
 
         result = []
         for i, kpi in enumerate(kpi_items):
             is_count_type = isinstance(kpi.get("target", 0), str) and "신규" in str(kpi.get("target", ""))
-            # 신규/기존 건수 타입은 kpi 집계 시트 목표 그대로 사용 (per-project PJ목표가 "N"으로 저장됨)
-            target = kpi["target"] if is_count_type else (targets[i] if i < len(targets) else kpi["target"])
+            # 신규/기존 건수 타입: 파트 필터 없으면 kpi 집계 시트 목표 그대로(per-project PJ목표가 "N"),
+            # 파트 필터가 있으면 그 파트의 per-project 집계값을 사용(시트값은 파트 구분 불가)
+            target = (
+                (targets[i] if (part and i < len(targets)) else kpi["target"])
+                if is_count_type
+                else (targets[i] if i < len(targets) else kpi["target"])
+            )
             actual = actuals[i] if i < len(actuals) else 0.0
             prev   = prevs[i]   if i < len(prevs)   else 0.0
 

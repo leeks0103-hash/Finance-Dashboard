@@ -91,6 +91,16 @@
   transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* 경과 기준선 — 트랙 위 세로 점선 (N개월 경과 시점 = 정상 페이스 위치). 데이터가 아니라 가이드라 점선 */
+.paceMark {
+  position: absolute;
+  top: -5px;
+  bottom: -5px;
+  width: 0;
+  border-left: 1.5px dashed var(--text-muted);
+  pointer-events: none;
+}
+
 /* 100% 초과 시 끝부분에 작은 삼각 노치 */
 .overMark {
   position: absolute;
@@ -148,6 +158,13 @@
   width: 9px;
   height: 9px;
   border-radius: 2px;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.paceDot {
+  width: 0;
+  height: 11px;
+  border-left: 1.5px dashed var(--text-muted);
   display: inline-block;
   flex-shrink: 0;
 }

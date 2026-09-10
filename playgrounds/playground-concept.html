@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Concept Map — Finance Dashboard</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#0f0f0f;color:#e5e5e5;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+header{padding:10px 18px;border-bottom:1px solid #222;display:flex;align-items:center;gap:10px;font-size:13px;color:#666;flex-shrink:0}
+header strong{color:#e5e5e5;font-size:14px}
+.main{display:grid;grid-template-columns:1fr 240px;flex:1;overflow:hidden}
+.canvas-wrap{position:relative;overflow:hidden;background:#0d1117}
+canvas{display:block}
+.hint-box{position:absolute;top:12px;left:12px;background:#111;border:1px solid #222;padding:6px 10px;border-radius:6px;font-size:10px;color:#555;line-height:1.8}
+.toolbar{position:absolute;bottom:12px;left:12px;display:flex;gap:6px}
+.tool-btn{background:#1a1a1a;border:1px solid #2a2a2a;color:#888;padding:5px 10px;border-radius:6px;font-size:11px;cursor:pointer}
+.tool-btn:hover{background:#252525;color:#ccc}
+.tool-btn.active-tool{background:#6366f1;border-color:#6366f1;color:#fff}
+.sidebar{background:#111;border-left:1px solid #222;display:grid;grid-template-rows:auto 1fr 140px;overflow:hidden}
+.sidebar-top{padding:14px;border-bottom:1px solid #1e1e1e;overflow-y:auto;max-height:300px}
+.section-label{font-size:10px;font-weight:700;color:#444;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px}
+.node-list{display:flex;flex-direction:column;gap:3px}
+.node-row{display:flex;align-items:center;gap:6px;padding:4px 6px;border-radius:5px;cursor:pointer;font-size:11px;transition:background .1s}
+.node-row:hover{background:#1a1a1a}
+.node-name{flex:1;color:#aaa}
+.level-btn{font-size:9px;padding:2px 6px;border-radius:3px;border:none;cursor:pointer;font-weight:700;transition:all .15s}
+.level-know{background:#10b981;color:#fff}
+.level-fuzzy{background:#f97316;color:#fff}
+.level-unknown{background:#ef4444;color:#fff}
+.conn-type-select{width:100%;background:#1a1a1a;border:1px solid #2a2a2a;color:#ccc;padding:5px 8px;border-radius:6px;font-size:11px;cursor:pointer;margin-bottom:8px}
+.edge-list{display:flex;flex-direction:column;gap:3px;max-height:100px;overflow-y:auto}
+.edge-item{font-size:10px;color:#666;padding:2px 0;display:flex;align-items:center;gap:4px}
+.edge-del{background:none;border:none;color:#333;cursor:pointer;font-size:12px;margin-left:auto}
+.edge-del:hover{color:#ef4444}
+.prompt-area{background:#111;border-top:1px solid #222;padding:12px;display:flex;flex-direction:column;gap:6px}
+.prompt-label{font-size:10px;color:#444;text-transform:uppercase;letter-spacing:.1em}
+.prompt-text{font-family:Consolas,monospace;font-size:11px;color:#a5b4fc;line-height:1.4;flex:1;overflow-y:auto;white-space:pre-wrap}
+.copy-btn{align-self:flex-start;background:#6366f1;color:#fff;border:none;padding:4px 12px;border-radius:6px;font-size:11px;cursor:pointer}
+.copy-btn:hover{background:#4f46e5}
+.copy-btn.ok{background:#10b981}
+</style>
+</head>
+<body>
+<header>
+  <strong>Concept Map</strong><span>—</span>
+  <span>Finance Dashboard · 개념 학습 플레이그라운드</span>
+</header>
+<div class="main">
+  <div class="canvas-wrap" id="cwrap">
+    <canvas id="c"></canvas>
+    <div class="hint-box">
+      드래그: 노드 이동<br>
+      노드 클릭: 지식 수준 변경<br>
+      연결 모드: 노드 → 노드 클릭
+    </div>
+    <div class="toolbar">
+      <button class="tool-btn active-tool" id="tool-drag" onclick="setTool('drag')">이동</button>
+      <button class="tool-btn" id="tool-connect" onclick="setTool('connect')">연결</button>
+      <button class="tool-btn" onclick="autoLayout()">자동 배치</button>
+      <button class="tool-btn" onclick="clearEdges()">연결 초기화</button>
+    </div>
+  </div>
+  <div class="sidebar">
+    <div class="sidebar-top">
+      <div class="section-label">개념 목록 (클릭: 지식수준 변경)</div>
+      <div class="node-list" id="node-list"></div>
+      <div style="margin-top:12px">
+        <div class="section-label">연결 타입</div>
+        <select class="conn-type-select" id="conn-type">
+          <option value="calls">calls (호출)</option>
+          <option value="depends">depends on (의존)</option>
+          <option value="contains">contains (포함)</option>
+          <option value="reads">reads from (읽기)</option>
+          <option value="provides">provides (제공)</option>
+        </select>
+        <div class="section-label" style="margin-top:8px">연결 목록</div>
+        <div class="edge-list" id="edge-list"></div>
+      </div>
+    </div>
+    <div style="flex:1"></div>
+    <div class="prompt-area">
+      <div class="prompt-label">생성된 프롬프트</div>
+      <div class="prompt-text" id="prompt"></div>
+      <button class="copy-btn" id="cpybtn" onclick="copy()">복사</button>
+    </div>
+  </div>
+</div>
+<script>
+const LEVELS=['know','fuzzy','unknown'];
+const LEVEL_COLORS={know:'#10b981',fuzzy:'#f97316',unknown:'#ef4444'};
+const LEVEL_LABELS={know:'알고 있음',fuzzy:'어렴풋이',unknown:'모름'};
+
+const NODES=[
+  {id:'flask',label:'Flask',desc:'Python 웹 프레임워크 · app.py',x:160,y:100,level:'fuzzy'},
+  {id:'pandas',label:'pandas',desc:'엑셀 데이터 파싱 · pd.read_excel',x:320,y:60,level:'know'},
+  {id:'excel',label:'Excel 파일',desc:'재무 원본 데이터 · 취합 시트',x:500,y:60,level:'know'},
+  {id:'waitress',label:'waitress',desc:'Python WSGI 서버',x:100,y:200,level:'unknown'},
+  {id:'reportlab',label:'reportlab',desc:'PDF 생성 라이브러리',x:280,y:200,level:'unknown'},
+  {id:'react',label:'React',desc:'UI 라이브러리 · 컴포넌트 기반',x:160,y:320,level:'fuzzy'},
+  {id:'ts',label:'TypeScript',desc:'타입 안전성 · 인터페이스 정의',x:320,y:280,level:'know'},
+  {id:'vite',label:'Vite',desc:'번들러 · 개발 서버',x:480,y:280,level:'know'},
+  {id:'zustand',label:'Zustand',desc:'클라이언트 전역 상태 · filter/theme',x:100,y:420,level:'fuzzy'},
+  {id:'tanstack',label:'TanStack Query',desc:'서버 상태 캐싱 · useQuery',x:280,y:400,level:'fuzzy'},
+  {id:'chartjs',label:'Chart.js',desc:'차트 렌더링',x:460,y:380,level:'know'},
+  {id:'viewmodel',label:'ViewModel 패턴',desc:'hooks/viewmodels · 데이터 변환',x:160,y:520,level:'unknown'},
+  {id:'axios',label:'axios/fetch',desc:'HTTP 클라이언트',x:340,y:500,level:'know'},
+  {id:'filterbar',label:'FilterBar',desc:'연도·파트·단계 필터 UI',x:520,y:480,level:'know'},
+];
+
+const DEFAULT_EDGES=[
+  {from:'pandas',to:'excel',type:'reads'},
+  {from:'flask',to:'pandas',type:'calls'},
+  {from:'waitress',to:'flask',type:'contains'},
+  {from:'reportlab',to:'flask',type:'provides'},
+  {from:'react',to:'flask',type:'calls'},
+  {from:'tanstack',to:'flask',type:'calls'},
+  {from:'zustand',to:'filterbar',type:'provides'},
+  {from:'tanstack',to:'viewmodel',type:'provides'},
+  {from:'viewmodel',to:'react',type:'provides'},
+  {from:'ts',to:'react',type:'contains'},
+  {from:'vite',to:'react',type:'provides'},
+  {from:'chartjs',to:'react',type:'contains'},
+  {from:'axios',to:'tanstack',type:'provides'},
+];
+
+let edges=[...DEFAULT_EDGES.map(e=>({...e,id:Math.random()}))];
+let dragging=null,dragOX=0,dragOY=0;
+let tool='drag';
+let connectFrom=null;
+let scale=1;
+
+const canvas=document.getElementById('c');
+const ctx=canvas.getContext('2d');
+const wrap=document.getElementById('cwrap');
+
+function resize(){
+  canvas.width=wrap.clientWidth;
+  canvas.height=wrap.clientHeight;
+  draw();
+}
+
+function nodeAt(mx,my){
+  return NODES.slice().reverse().find(n=>{
+    const hw=50,hh=22;
+    return mx>n.x-hw&&mx<n.x+hw&&my>n.y-hh&&my<n.y+hh;
+  });
+}
+
+function draw(){
+  const W=canvas.width,H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+
+  // Draw edges
+  edges.forEach(e=>{
+    const fn=NODES.find(n=>n.id===e.from);
+    const tn=NODES.find(n=>n.id===e.to);
+    if(!fn||!tn)return;
+    ctx.save();
+    ctx.strokeStyle='#444';ctx.lineWidth=1.5;
+    ctx.setLineDash([4,3]);
+    ctx.beginPath();
+    ctx.moveTo(fn.x,fn.y);
+    const cx=(fn.x+tn.x)/2,cy=(fn.y+tn.y)/2-30;
+    ctx.quadraticCurveTo(cx,cy,tn.x,tn.y);
+    ctx.stroke();
+    // Arrow
+    const dx=tn.x-cx,dy=tn.y-cy;
+    const len=Math.sqrt(dx*dx+dy*dy);
+    const ux=dx/len,uy=dy/len;
+    const ax=tn.x-ux*22,ay=tn.y-uy*22;
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(ax+uy*5,ay-ux*5);
+    ctx.lineTo(tn.x-ux*20,tn.y-uy*20);
+    ctx.lineTo(ax-uy*5,ay+ux*5);
+    ctx.fillStyle='#444';ctx.fill();
+    // Label
+    ctx.setLineDash([]);
+    ctx.font='9px system-ui';ctx.fillStyle='#555';ctx.textAlign='center';
+    ctx.fillText(e.type,cx,cy-4);
+    ctx.restore();
+  });
+
+  // Draw nodes
+  NODES.forEach(n=>{
+    const isConnFrom=connectFrom&&connectFrom.id===n.id;
+    const col=LEVEL_COLORS[n.level];
+    ctx.save();
+    // Shadow
+    ctx.shadowColor=col;ctx.shadowBlur=isConnFrom?16:0;
+    // Card
+    const hw=50,hh=22;
+    ctx.beginPath();
+    ctx.roundRect(n.x-hw,n.y-hh,hw*2,hh*2,8);
+    ctx.fillStyle=`${col}18`;
+    ctx.fill();
+    ctx.strokeStyle=isConnFrom?col:`${col}66`;
+    ctx.lineWidth=isConnFrom?2:1;
+    ctx.stroke();
+    ctx.shadowBlur=0;
+    // Label
+    ctx.font='bold 12px system-ui';ctx.fillStyle='#e5e5e5';ctx.textAlign='center';
+    ctx.fillText(n.label,n.x,n.y+2);
+    // Level dot
+    ctx.beginPath();ctx.arc(n.x+hw-8,n.y-hh+8,4,0,Math.PI*2);
+    ctx.fillStyle=col;ctx.fill();
+    ctx.restore();
+  });
+}
+
+// Mouse
+canvas.addEventListener('mousedown',e=>{
+  const rect=canvas.getBoundingClientRect();
+  const mx=e.clientX-rect.left,my=e.clientY-rect.top;
+  const n=nodeAt(mx,my);
+  if(tool==='drag'){
+    if(n){dragging=n;dragOX=mx-n.x;dragOY=my-n.y;}
+  }else if(tool==='connect'){
+    if(n){
+      if(!connectFrom){connectFrom=n;draw();}
+      else if(n.id!==connectFrom.id){
+        const type=document.getElementById('conn-type').value;
+        edges.push({from:connectFrom.id,to:n.id,type,id:Math.random()});
+        connectFrom=null;draw();renderEdgeList();buildPrompt();
+      }else{connectFrom=null;draw();}
+    }else{connectFrom=null;draw();}
+  }
+});
+canvas.addEventListener('mousemove',e=>{
+  if(!dragging)return;
+  const rect=canvas.getBoundingClientRect();
+  dragging.x=e.clientX-rect.left-dragOX;
+  dragging.y=e.clientY-rect.top-dragOY;
+  draw();
+});
+canvas.addEventListener('mouseup',()=>{dragging=null;});
+canvas.addEventListener('click',e=>{
+  if(tool!=='drag')return;
+  const rect=canvas.getBoundingClientRect();
+  const n=nodeAt(e.clientX-rect.left,e.clientY-rect.top);
+  if(n){
+    const idx=LEVELS.indexOf(n.level);
+    n.level=LEVELS[(idx+1)%LEVELS.length];
+    draw();renderNodeList();buildPrompt();
+  }
+});
+
+function setTool(t){
+  tool=t;connectFrom=null;draw();
+  document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active-tool'));
+  document.getElementById('tool-'+t).classList.add('active-tool');
+}
+
+function autoLayout(){
+  const CX=canvas.width/2||400,CY=canvas.height/2||280;
+  const n=NODES.length;
+  NODES.forEach((node,i)=>{
+    const a=(i/n)*Math.PI*2-Math.PI/2;
+    node.x=CX+Math.cos(a)*200;
+    node.y=CY+Math.sin(a)*160;
+  });
+  draw();
+}
+
+function clearEdges(){edges=[];renderEdgeList();draw();buildPrompt();}
+
+function renderNodeList(){
+  document.getElementById('node-list').innerHTML=NODES.map(n=>`
+    <div class="node-row" onclick="cycleLevel('${n.id}')">
+      <span class="node-name">${n.label}</span>
+      <button class="level-btn level-${n.level}" onclick="cycleLevel('${n.id}');event.stopPropagation()">${LEVEL_LABELS[n.level]}</button>
+    </div>`).join('');
+}
+
+function cycleLevel(id){
+  const n=NODES.find(x=>x.id===id);
+  if(!n)return;
+  n.level=LEVELS[(LEVELS.indexOf(n.level)+1)%LEVELS.length];
+  renderNodeList();draw();buildPrompt();
+}
+
+function renderEdgeList(){
+  document.getElementById('edge-list').innerHTML=edges.map(e=>{
+    const fn=NODES.find(n=>n.id===e.from),tn=NODES.find(n=>n.id===e.to);
+    if(!fn||!tn)return'';
+    return`<div class="edge-item"><span>${fn.label}</span><span style="color:#555">→</span><span>${tn.label}</span><span style="color:#6366f1;font-size:9px">${e.type}</span><button class="edge-del" onclick="delEdge(${e.id})">×</button></div>`;
+  }).join('');
+}
+
+function delEdge(id){edges=edges.filter(e=>e.id!==id);renderEdgeList();draw();buildPrompt();}
+
+function buildPrompt(){
+  const know=NODES.filter(n=>n.level==='know').map(n=>n.label);
+  const fuzzy=NODES.filter(n=>n.level==='fuzzy').map(n=>n.label);
+  const unknown=NODES.filter(n=>n.level==='unknown').map(n=>n.label);
+
+  let text='Finance Dashboard를 학습 중입니다.\n\n';
+  if(know.length) text+=`이미 알고 있는 것: ${know.join(', ')}.\n`;
+  if(fuzzy.length) text+=`어렴풋이 알지만 명확하지 않은 것: ${fuzzy.join(', ')}.\n`;
+  if(unknown.length) text+=`잘 모르는 것: ${unknown.join(', ')}.\n`;
+
+  if(edges.length){
+    text+='\n이해하고 싶은 관계:\n';
+    edges.forEach(e=>{
+      const fn=NODES.find(n=>n.id===e.from),tn=NODES.find(n=>n.id===e.to);
+      if(fn&&tn) text+=`• ${fn.label} → ${tn.label} (${e.type})\n`;
+    });
+  }
+
+  const needHelp=[...fuzzy,...unknown];
+  if(needHelp.length){
+    text+=`\n${needHelp.join(', ')}에 대해 쉽게 설명해 주세요. 이미 알고 있는 개념(${know.join(', ') || '없음'})과 연결지어 설명하고, 실제 코드 예시를 포함해 주세요.`;
+  }
+
+  document.getElementById('prompt').textContent=text;
+}
+
+function copy(){
+  navigator.clipboard.writeText(document.getElementById('prompt').textContent).then(()=>{
+    const b=document.getElementById('cpybtn');b.textContent='복사됨!';b.classList.add('ok');
+    setTimeout(()=>{b.textContent='복사';b.classList.remove('ok');},1500);
+  });
+}
+
+// Init
+resize();
+window.addEventListener('resize',resize);
+renderNodeList();
+renderEdgeList();
+buildPrompt();
+</script>
+</body>
+</html>

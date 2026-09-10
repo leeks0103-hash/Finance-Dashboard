@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ngx-admin 스타일 클론 — Finance Dashboard</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        fontFamily: { sans: ['Pretendard', 'Apple SD Gothic Neo', 'system-ui', 'sans-serif'] },
+        colors: {
+          // nebular-src(akveo/nebular) 로컬 clone → _default.scss/_dark.scss grep으로 실측 확인한 값
+          primary:  '#3366FF',
+          success:  '#00D68F',
+          warning:  '#FFAA00',
+          danger:   '#FF3D71',
+          info:     '#0095FF',
+          // dark 테마: background-basic-color-1(카드/헤더/사이드바)=#222B45, -3(페이지 배경)=#151A30, border-basic-color-4=#101426
+          navy: { 950: '#101426', 900: '#151A30', 700: '#222B45', 500: '#8F9BB3' },
+        },
+      },
+    },
+  }
+</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  body { -webkit-font-smoothing: antialiased; }
+  .sidebar-item.active { position: relative; }
+  .sidebar-item.active::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:#3366FF; }
+</style>
+</head>
+<!-- 라이트 = nebular "default" 테마(사이드바/헤더/카드 전부 흰색, 페이지 배경만 회색) / 다크 = "dark" 테마 (실측: background-basic-color-1=#222B45) -->
+<body class="font-sans bg-[#EDF1F7] dark:bg-navy-900 text-[#222B45] dark:text-white transition-colors duration-200 flex">
+
+<!-- ── Sidebar (light: 흰색 / dark: navy-700 — nebular sidebar-background-color = background-basic-color-1 실측 반영) ─────────── -->
+<aside class="w-64 shrink-0 bg-white dark:bg-navy-700 border-r border-[#E4E9F2] dark:border-navy-950 min-h-screen flex flex-col">
+  <div class="h-[4.75rem] flex items-center gap-2 px-5 border-b border-[#E4E9F2] dark:border-navy-950">
+    <div class="w-7 h-7 rounded bg-primary flex items-center justify-center text-white text-[0.9375rem] font-semibold">F</div>
+    <span class="text-[#222B45] dark:text-white font-bold text-[15px] tracking-tight">FINANCE ADMIN</span>
+  </div>
+  <nav class="flex-1 py-3">
+    <div class="sidebar-item active flex items-center gap-3 px-5 py-2.5 bg-primary/[0.08] dark:bg-white/[0.06] text-[#222B45] dark:text-white text-sm font-medium">
+      <span class="w-4 text-center">▦</span> 대시보드
+    </div>
+    <div class="sidebar-item flex items-center gap-3 px-5 py-2.5 text-navy-500 hover:text-[#222B45] dark:hover:text-white hover:bg-black/[0.03] dark:hover:bg-white/[0.04] text-sm transition">
+      <span class="w-4 text-center">₩</span> 재무현황
+    </div>
+    <div class="sidebar-item flex items-center gap-3 px-5 py-2.5 text-navy-500 hover:text-[#222B45] dark:hover:text-white hover:bg-black/[0.03] dark:hover:bg-white/[0.04] text-sm transition">
+      <span class="w-4 text-center">◈</span> KPI 현황
+    </div>
+    <div class="sidebar-item flex items-center gap-3 px-5 py-2.5 text-navy-500 hover:text-[#222B45] dark:hover:text-white hover:bg-black/[0.03] dark:hover:bg-white/[0.04] text-sm transition">
+      <span class="w-4 text-center">▲</span> 실적현황
+    </div>
+    <div class="mt-4 px-5 pt-4 pb-1 text-[10px] font-bold text-navy-500 tracking-widest border-t border-[#E4E9F2] dark:border-navy-950">관리</div>
+    <div class="sidebar-item flex items-center gap-3 px-5 py-2.5 text-navy-500 hover:text-[#222B45] dark:hover:text-white hover:bg-black/[0.03] dark:hover:bg-white/[0.04] text-sm transition">
+      <span class="w-4 text-center">⚙</span> 설정
+    </div>
+  </nav>
+</aside>
+
+<div class="flex-1 min-h-screen flex flex-col">
+  <!-- ── Header ─────────────────────────────────────────── -->
+  <header class="h-[4.75rem] flex items-center justify-between px-6 bg-white dark:bg-navy-700 border-b border-[#E4E9F2] dark:border-navy-950">
+    <div class="flex items-center gap-4">
+      <button class="text-navy-500 text-lg">☰</button>
+      <span class="text-sm text-navy-500">재무 · KPI · 실적 통합 대시보드</span>
+    </div>
+    <div class="flex items-center gap-4">
+      <button onclick="document.documentElement.classList.toggle('dark')" class="w-9 h-9 rounded-full border border-[#E4E9F2] dark:border-navy-950 flex items-center justify-center text-navy-500 hover:text-primary transition">
+        <svg class="w-4 h-4 hidden dark:block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        <svg class="w-4 h-4 dark:hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+      </button>
+      <div class="flex items-center gap-2 pl-4 border-l border-[#E4E9F2] dark:border-navy-950">
+        <div class="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">관리</div>
+        <span class="text-sm font-medium hidden sm:inline">담당자</span>
+        <span class="text-navy-500 text-xs">▾</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 pt-[2.25rem] px-6 pb-6 flex flex-col gap-[1.875rem] max-w-[1500px]">
+
+    <!-- ── KPI 카드 (실제 ngx-admin e-commerce/earning-card 구조 그대로: 라벨 → h6 숫자 → 하단 구분) ── -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[1.875rem]">
+
+      <div class="rounded-[0.25rem] border border-[#E4E9F2] dark:border-navy-950 bg-white dark:bg-navy-700 p-4">
+        <div class="text-[0.8125rem] text-navy-500">총 매출</div>
+        <div id="stat-revenue" class="text-[1.125rem] font-bold leading-tight mt-1">…</div>
+      </div>
+
+      <div class="rounded-[0.25rem] border border-[#E4E9F2] dark:border-navy-950 bg-white dark:bg-navy-700 p-4">
+        <div class="text-[0.8125rem] text-navy-500">총 지출</div>
+        <div id="stat-expenditure" class="text-[1.125rem] font-bold leading-tight mt-1">…</div>
+      </div>
+
+      <div class="rounded-[0.25rem] border border-[#E4E9F2] dark:border-navy-950 bg-white dark:bg-navy-700 p-4">
+        <div class="text-[0.8125rem] text-navy-500">경상이익</div>
+        <div id="stat-profit" class="text-[1.125rem] font-bold leading-tight mt-1">…</div>
+      </div>
+
+      <div class="rounded-[0.25rem] border border-[#E4E9F2] dark:border-navy-950 bg-white dark:bg-navy-700 p-4">
+        <div class="text-[0.8125rem] text-navy-500">평균 이익율</div>
+        <div id="stat-rate" class="text-[1.125rem] font-bold leading-tight mt-1">…</div>
+      </div>
+    </div>
+
+    <!-- ── 차트 위젯 행 ───────────────────────────────────── -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-[1.875rem]">
+
+      <div class="lg:col-span-2 bg-white dark:bg-navy-700 rounded-[0.25rem] border border-[#E4E9F2] dark:border-navy-950 p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-[0.9375rem] font-semibold">파트별 매출 현황</h3>
+          <span class="text-[11px] text-navy-500">단위: 억원 · 실데이터</span>
+        </div>
+        <div id="part-bars" class="flex items-end justify-between gap-3 h-40 px-1">
+          <span class="text-xs text-navy-500 m-auto">불러오는 중…</span>
+        </div>
+      </div>
+
+      <div class="bg-white dark:bg-navy-700 rounded-[0.25rem] border border-[#E4E9F2] dark:border-navy-950 p-5 flex flex-col">
+        <h3 class="text-[0.9375rem] font-semibold mb-3">원가구성</h3>
+        <div class="flex-1 flex items-center justify-center relative">
+          <div id="donut-circle" class="w-28 h-28 rounded-full" style="background: conic-gradient(#e4e9f2 0% 100%)"></div>
+          <div id="donut-total" class="absolute w-16 h-16 rounded-full bg-white dark:bg-navy-700 flex items-center justify-center text-[0.9375rem] font-semibold">…</div>
+        </div>
+        <div class="flex justify-between text-[11px] text-navy-500 mt-3">
+          <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-primary inline-block"></span>직접원가 <b id="cost-direct" class="ml-0.5">-</b></span>
+          <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-success inline-block"></span>인건비 <b id="cost-labor" class="ml-0.5">-</b></span>
+          <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-warning inline-block"></span>관리비 <b id="cost-overhead" class="ml-0.5">-</b></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 테이블 위젯 ────────────────────────────────────── -->
+    <div class="bg-white dark:bg-navy-700 rounded-[0.25rem] border border-[#E4E9F2] dark:border-navy-950 overflow-hidden">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-[#E4E9F2] dark:border-navy-950">
+        <h3 class="text-[0.9375rem] font-semibold">최근 재무 데이터</h3>
+        <input placeholder="검색…" class="text-sm bg-[#F7F9FC] dark:bg-navy-900 border border-[#E4E9F2] dark:border-navy-950 rounded px-3 py-1.5 w-52 placeholder:text-navy-500">
+      </div>
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-left text-[11px] uppercase tracking-wide text-navy-500 bg-[#F7F9FC] dark:bg-navy-900/60">
+            <th class="px-5 py-2.5 font-semibold">프로젝트</th>
+            <th class="px-5 py-2.5 font-semibold">파트</th>
+            <th class="px-5 py-2.5 font-semibold">단계</th>
+            <th class="px-5 py-2.5 font-semibold text-right">매출</th>
+            <th class="px-5 py-2.5 font-semibold text-right">이익율</th>
+          </tr>
+        </thead>
+        <tbody id="data-tbody" class="divide-y divide-[#EDF1F7] dark:divide-navy-950">
+          <tr><td colspan="5" class="px-5 py-6 text-center text-navy-500 text-xs">불러오는 중…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ── 인사이트 위젯 (실데이터) ───────────────────────── -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-[1.875rem] pb-4">
+      <div class="bg-white dark:bg-navy-700 rounded-[0.25rem] border border-[#E4E9F2] dark:border-navy-950 p-5">
+        <h3 class="text-[0.9375rem] font-semibold mb-3 flex items-center gap-1.5"><span class="text-success">▲</span> 이익율 상위 프로젝트</h3>
+        <div id="top-list" class="flex flex-col gap-2.5 text-sm">
+          <span class="text-xs text-navy-500">불러오는 중…</span>
+        </div>
+      </div>
+      <div class="bg-white dark:bg-navy-700 rounded-[0.25rem] border border-[#E4E9F2] dark:border-navy-950 p-5">
+        <h3 class="text-[0.9375rem] font-semibold mb-3 flex items-center gap-1.5"><span class="text-danger">!</span> 손실 / 저수익 경고</h3>
+        <div id="risk-list" class="flex flex-col gap-2.5 text-sm">
+          <span class="text-xs text-navy-500">불러오는 중…</span>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+  const bil = (won) => (won / 1e8);
+  const fmtBil = (won) => bil(won).toFixed(1) + '억';
+  const STAGE_BADGE = {
+    '완료': 'bg-info/10 text-info', '중간': 'bg-warning/10 text-warning',
+    '착수': 'bg-navy-500/10 text-navy-500', '제안': 'bg-primary/10 text-primary',
+    '사업계획': 'bg-success/10 text-success', '검토': 'bg-danger/10 text-danger',
+    '사전검토': 'bg-danger/10 text-danger',
+  };
+  const badgeClass = (stage) => STAGE_BADGE[stage] || 'bg-navy-500/10 text-navy-500';
+  const initials = (part) => (part || '').replace(/[①②③④⑤⑥⑦⑧⑨]/g, '').trim().slice(0, 2) || '·';
+
+  async function loadSummary() {
+    try {
+      const r = await fetch('/api/summary');
+      const d = await r.json();
+      document.getElementById('stat-revenue').textContent = fmtBil(d.total_revenue || 0);
+      document.getElementById('stat-expenditure').textContent = fmtBil(d.total_expenditure || 0);
+      document.getElementById('stat-profit').textContent = fmtBil(d.total_profit || 0);
+      document.getElementById('stat-rate').textContent = (d.avg_profit_rate ?? 0) + '%';
+
+      // 파트별 매출 막대
+      const parts = Object.entries(d.by_part || {}).sort((a, b) => b[1].revenue - a[1].revenue).slice(0, 6);
+      const maxRev = Math.max(1, ...parts.map(([, v]) => v.revenue));
+      const barsEl = document.getElementById('part-bars');
+      barsEl.innerHTML = parts.map(([part, v]) => `
+        <div class="flex-1 min-w-0 flex flex-col items-center gap-2" title="${part}">
+          <span class="text-[10px] text-navy-500">${fmtBil(v.revenue)}</span>
+          <div class="w-full rounded-t bg-primary" style="height:${Math.max(6, (v.revenue / maxRev) * 100)}%"></div>
+          <span class="text-[11px] text-navy-500 truncate w-full text-center px-0.5">${part}</span>
+        </div>`).join('') || '<span class="text-xs text-navy-500 m-auto">데이터 없음</span>';
+
+      // 원가구성 도넛
+      const cb = d.cost_breakdown || { direct_cost: 0, labor_cost: 0, overhead: 0 };
+      const total = cb.direct_cost + cb.labor_cost + cb.overhead;
+      const pct = (v) => total ? Math.round((v / total) * 100) : 0;
+      const p1 = pct(cb.direct_cost), p2 = pct(cb.labor_cost), p3 = 100 - p1 - p2;
+      document.getElementById('donut-circle').style.background =
+        `conic-gradient(#3366FF 0% ${p1}%, #00D68F ${p1}% ${p1 + p2}%, #FFAA00 ${p1 + p2}% 100%)`;
+      document.getElementById('donut-total').textContent = fmtBil(total);
+      document.getElementById('cost-direct').textContent = p1 + '%';
+      document.getElementById('cost-labor').textContent = p2 + '%';
+      document.getElementById('cost-overhead').textContent = p3 + '%';
+    } catch (e) {
+      console.error('summary 로드 실패', e);
+    }
+  }
+
+  async function loadTable() {
+    try {
+      const r = await fetch('/api/data?page=1&page_size=6');
+      const { data } = await r.json();
+      const tbody = document.getElementById('data-tbody');
+      if (!data || !data.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="px-5 py-6 text-center text-navy-500 text-xs">데이터 없음</td></tr>';
+        return;
+      }
+      tbody.innerHTML = data.map(row => {
+        const isLoss = row.operating_profit < 0;
+        return `
+        <tr class="hover:bg-[#F7F9FC] dark:hover:bg-white/[0.03] transition">
+          <td class="px-5 py-3 flex items-center gap-2.5">
+            <span class="w-7 h-7 rounded-full bg-primary/10 text-primary text-[11px] font-bold flex items-center justify-center">${initials(row.part)}</span>
+            ${row.project_code ?? '-'}
+          </td>
+          <td class="px-5 py-3">${row.part ?? '-'}</td>
+          <td class="px-5 py-3"><span class="px-2 py-0.5 rounded text-[11px] font-medium ${badgeClass(row.stage)}">${row.stage ?? '-'}</span></td>
+          <td class="px-5 py-3 text-right tabular-nums">${fmtBil(row.revenue || 0)}</td>
+          <td class="px-5 py-3 text-right tabular-nums font-semibold ${isLoss ? 'text-danger' : 'text-success'}">${isLoss ? '손실 ' + fmtBil(row.operating_profit) : (row.profit_rate ?? 0) + '%'}</td>
+        </tr>`;
+      }).join('');
+    } catch (e) {
+      console.error('data 로드 실패', e);
+    }
+  }
+
+  async function loadInsights() {
+    try {
+      const r = await fetch('/api/insights');
+      const d = await r.json();
+      const topEl = document.getElementById('top-list');
+      const riskEl = document.getElementById('risk-list');
+      const rankRow = (rank, code, valueHtml) => `
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2.5"><span class="w-5 h-5 rounded-full bg-navy-500/10 text-navy-500 text-[11px] font-bold flex items-center justify-center">${rank}</span>${code}</div>
+          ${valueHtml}
+        </div>`;
+      topEl.innerHTML = (d.top || []).slice(0, 5).map((row, i) =>
+        rankRow(i + 1, row.project_code, `<span class="font-semibold text-success tabular-nums">${row.profit_rate}%</span>`)
+      ).join('') || '<span class="text-xs text-navy-500">데이터 없음</span>';
+      riskEl.innerHTML = (d.risk || []).slice(0, 5).map((row, i) => {
+        const isLoss = row.operating_profit < 0;
+        return rankRow(i + 1, row.project_code,
+          `<span class="font-semibold text-danger tabular-nums">${isLoss ? '손실 ' + fmtBil(row.operating_profit) : row.profit_rate + '%'}</span>`);
+      }).join('') || '<span class="text-xs text-navy-500">데이터 없음</span>';
+    } catch (e) {
+      console.error('insights 로드 실패', e);
+    }
+  }
+
+  loadSummary();
+  loadTable();
+  loadInsights();
+</script>
+</body>
+</html>

@@ -8,13 +8,14 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { KpiCard, useTableDndSensors } from '@/components/ui';
+import PerfCompareCard from './PerfCompareCard';
 import type { PerfKpiCard } from '@/hooks/viewmodels/usePerformanceViewModel';
 import styles from './PerformanceKpiSection.module.css';
 
-// usePerformanceViewModel의 카드 id와 동일해야 함 — 계획 → 추정 실적(연간) → 매출 이익 → 경상손익 → 누계 실적
-const DEFAULT_KPI_ORDER = ['plan', 'junCheck', 'grossProfit', 'profit', 'junActual'];
-// v2 — 카드 순서 재배치 + 매출 이익 카드 추가로 기존 저장값(4개 id) 무효화
-const LS_KPI_ORDER = 'performance-kpi-order-v2';
+// usePerformanceViewModel의 카드 id와 동일해야 함 — 매출 → 원가 → 매출이익 (계획→추정 비교) → 경상손익 → 누계 실적
+const DEFAULT_KPI_ORDER = ['revenue', 'cost', 'grossProfit', 'profit', 'junActual'];
+// v3 — 매출/원가 분리 + 계획→추정 비교 카드로 재편, 기존 저장값 무효화
+const LS_KPI_ORDER = 'performance-kpi-order-v3';
 
 interface Props {
   cards: PerfKpiCard[];
@@ -78,14 +79,18 @@ const PerformanceKpiSection = ({ cards }: Props) => {
         <div className={styles.kpiGrid}>
           {sortedCards.map(card => (
             <SortableCard key={card.id} id={card.id}>
-              <KpiCard
-                label={card.label}
-                value={card.value}
-                accent={card.accent}
-                sub={card.sub}
-                trendUp={card.trendUp}
-                trend={card.trend}
-              />
+              {card.kind === 'compare' ? (
+                <PerfCompareCard card={card} />
+              ) : (
+                <KpiCard
+                  label={card.label}
+                  value={card.value}
+                  accent={card.accent}
+                  sub={card.sub}
+                  trendUp={card.trendUp}
+                  trend={card.trend}
+                />
+              )}
             </SortableCard>
           ))}
         </div>

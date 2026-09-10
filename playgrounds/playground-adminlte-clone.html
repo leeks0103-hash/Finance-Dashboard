@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="ko" data-bs-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AdminLTE 클론 — Finance Dashboard</title>
+<!-- 실제 Bootstrap5 / AdminLTE4 / Bootstrap Icons CDN — 추측 CSS 아님, 진짜 배포 파일 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@4.9.1/dist/css/adminlte.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  body { font-family: 'Pretendard', 'Apple SD Gothic Neo', sans-serif; }
+  .bar-anim { transition: height .6s cubic-bezier(.16,1,.3,1); }
+</style>
+</head>
+<body class="layout-fixed sidebar-expand-lg bg-body-tertiary">
+<div class="app-wrapper">
+
+  <!-- ── Header (실제 app-header navbar 구조) ─────────────── -->
+  <nav class="app-header navbar navbar-expand bg-body">
+    <div class="container-fluid">
+      <ul class="navbar-nav">
+        <li class="nav-item">
+          <a class="nav-link" data-lte-toggle="sidebar" href="#" role="button" aria-label="Toggle sidebar">
+            <i class="bi bi-list"></i>
+          </a>
+        </li>
+        <li class="nav-item d-none d-md-block">
+          <span class="nav-link text-body-secondary">재무 · KPI · 실적 통합 대시보드</span>
+        </li>
+      </ul>
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item">
+          <a class="nav-link" href="#" onclick="toggleTheme(); return false;">
+            <i class="bi bi-moon-stars"></i>
+          </a>
+        </li>
+        <li class="nav-item dropdown">
+          <a class="nav-link" href="#">
+            <i class="bi bi-person-circle"></i> 담당자
+          </a>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- ── Sidebar (실제 app-sidebar, 항상 dark — AdminLTE 기본값 data-bs-theme="dark") ── -->
+  <aside class="app-sidebar bg-body-secondary shadow" data-bs-theme="dark">
+    <div class="sidebar-brand">
+      <a href="#" class="brand-link">
+        <span class="brand-text fw-bold">FINANCE ADMIN</span>
+      </a>
+    </div>
+    <div class="sidebar-wrapper">
+      <nav class="mt-2">
+        <ul class="nav sidebar-menu flex-column" data-lte-toggle="treeview" role="navigation">
+          <li class="nav-item">
+            <a href="#" class="nav-link active" data-tab="finance" onclick="switchTab('finance'); return false;">
+              <i class="nav-icon bi bi-cash-coin"></i>
+              <p>재무현황</p>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#" class="nav-link" data-tab="kpi" onclick="switchTab('kpi'); return false;">
+              <i class="nav-icon bi bi-graph-up-arrow"></i>
+              <p>KPI 현황</p>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#" class="nav-link" data-tab="performance" onclick="switchTab('performance'); return false;">
+              <i class="nav-icon bi bi-bar-chart-steps"></i>
+              <p>실적현황</p>
+            </a>
+          </li>
+          <li class="nav-header">관리</li>
+          <li class="nav-item">
+            <a href="#" class="nav-link">
+              <i class="nav-icon bi bi-gear"></i>
+              <p>설정</p>
+            </a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </aside>
+
+  <!-- ── Main (실제 app-main > app-content-header + app-content 구조) ── -->
+  <main class="app-main">
+    <div class="app-content-header">
+      <div class="container-fluid">
+        <div class="row g-4 mb-4">
+          <div class="col-sm-6"><h3 class="mb-0" id="tab-title">재무현황</h3></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="app-content">
+      <div class="container-fluid">
+
+      <div id="tab-finance" class="tab-pane">
+        <!-- ── KPI 카드 (실제 AdminLTE small-box 구조 그대로) ─────── -->
+        <div class="row g-4 mb-4">
+          <div class="col-lg-3 col-6">
+            <div class="small-box text-bg-success">
+              <div class="inner">
+                <h3 id="stat-revenue">…</h3>
+                <p>총 매출</p>
+              </div>
+              <svg class="small-box-icon" aria-hidden="true" viewBox="0 0 16 16" fill="currentColor" width="70" height="70">
+                <path fill-rule="evenodd" d="M11 15a4 4 0 1 0 0-8 4 4 0 0 0 0 8m5-4a5 5 0 1 1-10 0 5 5 0 0 1 10 0"/>
+                <path d="M9.438 11.944c.047.596.518 1.06 1.363 1.116v.44h.375v-.443c.875-.061 1.386-.529 1.386-1.207 0-.618-.39-.936-1.09-1.1l-.296-.07v-1.2c.376.043.614.248.671.532h.658c-.047-.575-.54-1.024-1.329-1.073V8.5h-.375v.45c-.747.073-1.255.522-1.255 1.158 0 .562.378.92 1.007 1.066l.248.061v1.272c-.384-.058-.639-.27-.696-.563h-.668zm1.36-1.354c-.369-.085-.569-.26-.569-.522 0-.294.216-.514.572-.578v1.1zm.432.746c.449.104.655.272.655.569 0 .339-.257.571-.709.614v-1.195z"/>
+                <path d="M1 0a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h4.083q.088-.517.258-1H3a2 2 0 0 0-2-2V3a2 2 0 0 0 2-2h10a2 2 0 0 0 2 2v3.528c.38.34.717.728 1 1.154V1a1 1 0 0 0-1-1z"/>
+                <path d="M9.998 5.083 10 5a2 2 0 1 0-3.132 1.65 6 6 0 0 1 3.13-1.567"/>
+              </svg>
+            </div>
+          </div>
+          <div class="col-lg-3 col-6">
+            <div class="small-box text-bg-warning">
+              <div class="inner">
+                <h3 id="stat-expenditure">…</h3>
+                <p>총 지출</p>
+              </div>
+              <svg class="small-box-icon" aria-hidden="true" viewBox="0 0 16 16" fill="currentColor" width="70" height="70">
+                <path d="M3 4.5a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5m0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5m0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5m0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5m0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5M11.5 4a.5.5 0 0 0 0 1h1a.5.5 0 0 0 0-1zm0 2a.5.5 0 0 0 0 1h1a.5.5 0 0 0 0-1zm0 2a.5.5 0 0 0 0 1h1a.5.5 0 0 0 0-1zm0 2a.5.5 0 0 0 0 1h1a.5.5 0 0 0 0-1zm0 2a.5.5 0 0 0 0 1h1a.5.5 0 0 0 0-1z"/>
+                <path d="M2.354.646a.5.5 0 0 0-.801.13l-.5 1A.5.5 0 0 0 1 2v13H.5a.5.5 0 0 0 0 1h15a.5.5 0 0 0 0-1H15V2a.5.5 0 0 0-.053-.224l-.5-1a.5.5 0 0 0-.8-.13L13 1.293l-.646-.647a.5.5 0 0 0-.708 0L11 1.293l-.646-.647a.5.5 0 0 0-.708 0L9 1.293 8.354.646a.5.5 0 0 0-.708 0L7 1.293 6.354.646a.5.5 0 0 0-.708 0L5 1.293 4.354.646a.5.5 0 0 0-.708 0L3 1.293zm-.217 1.198.51.51a.5.5 0 0 0 .707 0L4 1.707l.646.647a.5.5 0 0 0 .708 0L6 1.707l.646.647a.5.5 0 0 0 .708 0L8 1.707l.646.647a.5.5 0 0 0 .708 0L10 1.707l.646.647a.5.5 0 0 0 .708 0L12 1.707l.646.647a.5.5 0 0 0 .708 0l.509-.51.137.274V15H2V2.118z"/>
+              </svg>
+            </div>
+          </div>
+          <div class="col-lg-3 col-6">
+            <div class="small-box text-bg-info">
+              <div class="inner">
+                <h3 id="stat-profit">…</h3>
+                <p>경상이익</p>
+              </div>
+              <svg class="small-box-icon" aria-hidden="true" viewBox="0 0 16 16" fill="currentColor" width="70" height="70">
+                <path fill-rule="evenodd" d="M0 0h1v15h15v1H0zm10 3.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V4.9l-3.613 4.417a.5.5 0 0 1-.74.037L7.06 6.767l-3.656 5.027a.5.5 0 0 1-.808-.588l4-5.5a.5.5 0 0 1 .758-.06l2.609 2.61L13.445 4H10.5a.5.5 0 0 1-.5-.5"/>
+              </svg>
+            </div>
+          </div>
+          <div class="col-lg-3 col-6">
+            <div class="small-box text-bg-primary">
+              <div class="inner">
+                <h3 id="stat-rate">…</h3>
+                <p>평균 이익율</p>
+              </div>
+              <svg class="small-box-icon" aria-hidden="true" viewBox="0 0 16 16" fill="currentColor" width="70" height="70">
+                <path d="M13.442 2.558a.625.625 0 0 1 0 .884l-10 10a.625.625 0 1 1-.884-.884l10-10a.625.625 0 0 1 .884 0M4.5 6a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m0 1a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5m7 6a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m0 1a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── 차트 카드 (실제 card/card-header/card-body 구조) ──── -->
+        <div class="row g-4 mb-4">
+          <div class="col-lg-8">
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">파트별 매출 현황</h3>
+              </div>
+              <div class="card-body">
+                <div id="part-bars" class="d-flex align-items-end justify-content-between gap-2" style="height:180px">
+                  <span class="text-body-secondary small m-auto">불러오는 중…</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-4">
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">원가구성</h3>
+              </div>
+              <div class="card-body d-flex flex-column align-items-center">
+                <div id="donut-circle" style="width:120px;height:120px;border-radius:50%;background:conic-gradient(#dee2e6 0% 100%)"></div>
+                <div id="donut-total" class="fw-bold mt-2">…</div>
+                <div class="d-flex justify-content-between w-100 mt-3 small text-body-secondary">
+                  <span><i class="bi bi-square-fill text-primary"></i> 직접원가 <b id="cost-direct">-</b></span>
+                  <span><i class="bi bi-square-fill text-success"></i> 인건비 <b id="cost-labor">-</b></span>
+                  <span><i class="bi bi-square-fill text-warning"></i> 관리비 <b id="cost-overhead">-</b></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── 테이블 카드 ────────────────────────────────────── -->
+        <div class="card mb-4">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="card-title">최근 재무 데이터</h3>
+            <input class="form-control form-control-sm w-auto" placeholder="검색…">
+          </div>
+          <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+              <thead>
+                <tr>
+                  <th>프로젝트</th><th>파트</th><th>단계</th><th class="text-end">매출</th><th class="text-end">이익율</th>
+                </tr>
+              </thead>
+              <tbody id="data-tbody">
+                <tr><td colspan="5" class="text-center text-body-secondary py-4">불러오는 중…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ── 인사이트 카드 ──────────────────────────────────── -->
+        <div class="row g-4 mb-4">
+          <div class="col-lg-6">
+            <div class="card">
+              <div class="card-header"><h3 class="card-title"><i class="bi bi-graph-up-arrow text-success"></i> 이익율 상위 프로젝트</h3></div>
+              <div class="card-body" id="top-list"><span class="text-body-secondary small">불러오는 중…</span></div>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="card">
+              <div class="card-header"><h3 class="card-title"><i class="bi bi-exclamation-triangle text-danger"></i> 손실 / 저수익 경고</h3></div>
+              <div class="card-body" id="risk-list"><span class="text-body-secondary small">불러오는 중…</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- ── /tab-finance ── -->
+
+      <!-- ══ KPI 현황 (구조 동일: 스탯카드 → 차트 → 테이블 → 인사이트) ══ -->
+      <div id="tab-kpi" class="tab-pane d-none">
+        <div class="row g-4 mb-4" id="kpi-stat-cards">
+          <div class="col-lg-3 col-6"><div class="small-box text-bg-secondary"><div class="inner"><h3>…</h3><p>불러오는 중…</p></div></div></div>
+        </div>
+
+        <div class="card mb-4">
+          <div class="card-header"><h3 class="card-title">지표별 목표 대비 달성률</h3></div>
+          <div class="card-body">
+            <div id="kpi-bars" class="d-flex flex-column gap-2">
+              <span class="text-body-secondary small">불러오는 중…</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mb-4">
+          <div class="card-header"><h3 class="card-title">KPI 집계</h3></div>
+          <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+              <thead><tr><th>지표명</th><th>집계방식</th><th class="text-end">'26 목표</th><th class="text-end">'26 실적</th><th class="text-end">달성률</th></tr></thead>
+              <tbody id="kpi-tbody"><tr><td colspan="5" class="text-center text-body-secondary py-4">불러오는 중…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ 실적현황 (구조 동일: 스탯카드 → 차트 → 테이블 → 인사이트) ══ -->
+      <div id="tab-performance" class="tab-pane d-none">
+        <div class="row g-4 mb-4">
+          <div class="col-lg-3 col-6">
+            <div class="small-box text-bg-success"><div class="inner"><h3 id="perf-plan">…</h3><p>계획(연초)</p></div>
+              <svg class="small-box-icon" aria-hidden="true" viewBox="0 0 16 16" fill="currentColor" width="70" height="70">
+                <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+                <path d="M8 13A5 5 0 1 1 8 3a5 5 0 0 1 0 10m0 1A6 6 0 1 0 8 2a6 6 0 0 0 0 12"/>
+                <path d="M8 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6m0 1a4 4 0 1 0 0-8 4 4 0 0 0 0 8"/>
+                <path d="M9.5 8a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0"/>
+              </svg></div>
+          </div>
+          <div class="col-lg-3 col-6">
+            <div class="small-box text-bg-info"><div class="inner"><h3 id="perf-actual">…</h3><p>실적(누계)</p></div>
+              <svg class="small-box-icon" aria-hidden="true" viewBox="0 0 16 16" fill="currentColor" width="70" height="70">
+                <path d="M2.5 8a5.5 5.5 0 0 1 8.25-4.764.5.5 0 0 0 .5-.866A6.5 6.5 0 1 0 14.5 8a.5.5 0 0 0-1 0 5.5 5.5 0 1 1-11 0"/>
+                <path d="M15.354 3.354a.5.5 0 0 0-.708-.708L8 9.293 5.354 6.646a.5.5 0 1 0-.708.708l3 3a.5.5 0 0 0 .708 0z"/>
+              </svg></div>
+          </div>
+          <div class="col-lg-3 col-6">
+            <div class="small-box text-bg-primary"><div class="inner"><h3 id="perf-profit">…</h3><p>경상이익</p></div>
+              <svg class="small-box-icon" aria-hidden="true" viewBox="0 0 16 16" fill="currentColor" width="70" height="70">
+                <path fill-rule="evenodd" d="M0 0h1v15h15v1H0zm10 3.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V4.9l-3.613 4.417a.5.5 0 0 1-.74.037L7.06 6.767l-3.656 5.027a.5.5 0 0 1-.808-.588l4-5.5a.5.5 0 0 1 .758-.06l2.609 2.61L13.445 4H10.5a.5.5 0 0 1-.5-.5"/>
+              </svg></div>
+          </div>
+          <div class="col-lg-3 col-6">
+            <div class="small-box text-bg-warning"><div class="inner"><h3 id="perf-rate">…</h3><p>평균 이익율</p></div>
+              <svg class="small-box-icon" aria-hidden="true" viewBox="0 0 16 16" fill="currentColor" width="70" height="70">
+                <path d="M13.442 2.558a.625.625 0 0 1 0 .884l-10 10a.625.625 0 1 1-.884-.884l10-10a.625.625 0 0 1 .884 0M4.5 6a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m0 1a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5m7 6a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m0 1a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5"/>
+              </svg></div>
+          </div>
+        </div>
+
+        <div class="card mb-4">
+          <div class="card-header"><h3 class="card-title">월별 실적 현황</h3></div>
+          <div class="card-body">
+            <div id="perf-bars" class="d-flex align-items-end justify-content-between gap-1" style="height:180px">
+              <span class="text-body-secondary small m-auto">불러오는 중…</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mb-4">
+          <div class="card-header"><h3 class="card-title">파트별 실적</h3></div>
+          <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+              <thead><tr><th>파트</th><th class="text-end">계획</th><th class="text-end">실적</th><th class="text-end">경상이익</th><th class="text-end">이익율</th></tr></thead>
+              <tbody id="perf-tbody"><tr><td colspan="5" class="text-center text-body-secondary py-4">불러오는 중…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="row g-4 mb-4">
+          <div class="col-lg-6">
+            <div class="card">
+              <div class="card-header"><h3 class="card-title"><i class="bi bi-exclamation-triangle text-warning"></i> 목표 대비 부진 프로젝트</h3></div>
+              <div class="card-body" id="perf-worst-list"><span class="text-body-secondary small">불러오는 중…</span></div>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="card">
+              <div class="card-header"><h3 class="card-title"><i class="bi bi-exclamation-triangle text-danger"></i> 손실 / 저수익 경고</h3></div>
+              <div class="card-body" id="perf-risk-list"><span class="text-body-secondary small">불러오는 중…</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script>
+  function toggleTheme() {
+    const html = document.documentElement;
+    html.setAttribute('data-bs-theme', html.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark');
+  }
+
+  const fmtBil = (won) => (won / 1e8).toFixed(1) + '억';
+  const STAGE_BADGE = {
+    '완료': 'text-bg-info', '중간': 'text-bg-warning', '착수': 'text-bg-secondary',
+    '제안': 'text-bg-primary', '사업계획': 'text-bg-success', '검토': 'text-bg-danger', '사전검토': 'text-bg-danger',
+  };
+  const badgeClass = (stage) => STAGE_BADGE[stage] || 'text-bg-secondary';
+
+  async function loadSummary() {
+    try {
+      const r = await fetch('/api/summary');
+      const d = await r.json();
+      document.getElementById('stat-revenue').textContent = fmtBil(d.total_revenue || 0);
+      document.getElementById('stat-expenditure').textContent = fmtBil(d.total_expenditure || 0);
+      document.getElementById('stat-profit').textContent = fmtBil(d.total_profit || 0);
+      document.getElementById('stat-rate').textContent = (d.avg_profit_rate ?? 0) + '%';
+
+      const parts = Object.entries(d.by_part || {}).sort((a, b) => b[1].revenue - a[1].revenue).slice(0, 6);
+      const maxRev = Math.max(1, ...parts.map(([, v]) => v.revenue));
+      document.getElementById('part-bars').innerHTML = parts.map(([part, v]) => `
+        <div class="flex-fill d-flex flex-column align-items-center gap-1" title="${part}">
+          <span class="small text-body-secondary">${fmtBil(v.revenue)}</span>
+          <div class="w-100 bg-primary rounded-top bar-anim" style="height:${Math.max(6, (v.revenue / maxRev) * 100)}%"></div>
+          <span class="small text-body-secondary text-truncate w-100 text-center">${part}</span>
+        </div>`).join('') || '<span class="text-body-secondary small m-auto">데이터 없음</span>';
+
+      const cb = d.cost_breakdown || { direct_cost: 0, labor_cost: 0, overhead: 0 };
+      const total = cb.direct_cost + cb.labor_cost + cb.overhead;
+      const pct = (v) => total ? Math.round((v / total) * 100) : 0;
+      const p1 = pct(cb.direct_cost), p2 = pct(cb.labor_cost), p3 = 100 - p1 - p2;
+      document.getElementById('donut-circle').style.background =
+        `conic-gradient(#0d6efd 0% ${p1}%, #198754 ${p1}% ${p1 + p2}%, #ffc107 ${p1 + p2}% 100%)`;
+      document.getElementById('donut-total').textContent = fmtBil(total);
+      document.getElementById('cost-direct').textContent = p1 + '%';
+      document.getElementById('cost-labor').textContent = p2 + '%';
+      document.getElementById('cost-overhead').textContent = p3 + '%';
+    } catch (e) { console.error('summary 로드 실패', e); }
+  }
+
+  async function loadTable() {
+    try {
+      const r = await fetch('/api/data?page=1&page_size=6');
+      const { data } = await r.json();
+      const tbody = document.getElementById('data-tbody');
+      if (!data || !data.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-body-secondary py-4">데이터 없음</td></tr>';
+        return;
+      }
+      tbody.innerHTML = data.map(row => {
+        const isLoss = row.operating_profit < 0;
+        return `
+        <tr>
+          <td class="font-monospace small">${row.project_code ?? '-'}</td>
+          <td>${row.part ?? '-'}</td>
+          <td><span class="badge ${badgeClass(row.stage)}">${row.stage ?? '-'}</span></td>
+          <td class="text-end">${fmtBil(row.revenue || 0)}</td>
+          <td class="text-end fw-semibold ${isLoss ? 'text-danger' : 'text-success'}">${isLoss ? '손실 ' + fmtBil(row.operating_profit) : (row.profit_rate ?? 0) + '%'}</td>
+        </tr>`;
+      }).join('');
+    } catch (e) { console.error('data 로드 실패', e); }
+  }
+
+  async function loadInsights() {
+    try {
+      const r = await fetch('/api/insights');
+      const d = await r.json();
+      const row = (i, code, valueHtml) => `
+        <div class="d-flex justify-content-between align-items-center py-1">
+          <span><span class="badge text-bg-light border me-2">${i}</span>${code}</span>${valueHtml}
+        </div>`;
+      document.getElementById('top-list').innerHTML = (d.top || []).slice(0, 5).map((r, i) =>
+        row(i + 1, r.project_code, `<span class="fw-semibold text-success">${r.profit_rate}%</span>`)
+      ).join('') || '<span class="text-body-secondary small">데이터 없음</span>';
+      document.getElementById('risk-list').innerHTML = (d.risk || []).slice(0, 5).map((r, i) => {
+        const isLoss = r.operating_profit < 0;
+        return row(i + 1, r.project_code, `<span class="fw-semibold text-danger">${isLoss ? '손실 ' + fmtBil(r.operating_profit) : r.profit_rate + '%'}</span>`);
+      }).join('') || '<span class="text-body-secondary small">데이터 없음</span>';
+    } catch (e) { console.error('insights 로드 실패', e); }
+  }
+
+  const fmtEok = (v) => (!v ? '-' : (v / 100_000).toFixed(1) + '억'); // 실적 데이터는 천원 단위
+  const loaded = { finance: false, kpi: false, performance: false };
+  const TAB_TITLE = { finance: '재무현황', kpi: 'KPI 현황', performance: '실적현황' };
+
+  function switchTab(name) {
+    document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('d-none'));
+    document.getElementById('tab-' + name).classList.remove('d-none');
+    document.querySelectorAll('[data-tab]').forEach(el => el.classList.toggle('active', el.dataset.tab === name));
+    document.getElementById('tab-title').textContent = TAB_TITLE[name];
+    if (!loaded[name]) {
+      loaded[name] = true;
+      if (name === 'kpi') loadKpi();
+      if (name === 'performance') loadPerformance();
+    }
+  }
+
+  async function loadKpi() {
+    try {
+      const r = await fetch('/api/kpi/summary');
+      const d = await r.json();
+      if (!d.available) {
+        document.getElementById('kpi-stat-cards').innerHTML = `<div class="col-12"><div class="alert alert-warning mb-0">${d.message || 'KPI 데이터 없음'}</div></div>`;
+        document.getElementById('kpi-bars').innerHTML = '';
+        document.getElementById('kpi-tbody').innerHTML = '<tr><td colspan="5" class="text-center text-body-secondary py-4">데이터 없음</td></tr>';
+        return;
+      }
+      const items = d.items || [];
+      const numeric = items.filter(k => typeof k.achieve_rate === 'number');
+
+      const cardColors = ['success', 'info', 'primary', 'warning'];
+      const PERCENT_ICON = '<svg class="small-box-icon" aria-hidden="true" viewBox="0 0 16 16" fill="currentColor" width="70" height="70"><path d="M13.442 2.558a.625.625 0 0 1 0 .884l-10 10a.625.625 0 1 1-.884-.884l10-10a.625.625 0 0 1 .884 0M4.5 6a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m0 1a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5m7 6a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m0 1a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5"/></svg>';
+      document.getElementById('kpi-stat-cards').innerHTML = numeric.slice(0, 4).map((k, i) => `
+        <div class="col-lg-3 col-6">
+          <div class="small-box text-bg-${cardColors[i % 4]}">
+            <div class="inner">
+              <h3>${k.achieve_rate}%</h3>
+              <p>${k.name}</p>
+            </div>
+            ${PERCENT_ICON}
+          </div>
+        </div>`).join('') || '<div class="col-12 text-body-secondary small">지표 없음</div>';
+
+      document.getElementById('kpi-bars').innerHTML = numeric.slice(0, 10).map(k => {
+        const pct = Math.max(0, Math.min(100, k.achieve_rate));
+        const barColor = k.achieve_rate >= 100 ? 'bg-success' : k.achieve_rate >= 70 ? 'bg-warning' : 'bg-danger';
+        return `
+        <div>
+          <div class="d-flex justify-content-between small mb-1"><span>${k.name}</span><span class="fw-semibold">${k.achieve_rate}%</span></div>
+          <div class="progress" style="height:8px"><div class="progress-bar ${barColor}" style="width:${pct}%"></div></div>
+        </div>`;
+      }).join('') || '<span class="text-body-secondary small">지표 없음</span>';
+
+      document.getElementById('kpi-tbody').innerHTML = items.map(k => `
+        <tr>
+          <td>${k.name}</td>
+          <td class="text-body-secondary small">${k.agg ?? '-'}</td>
+          <td class="text-end">${typeof k.target_2026 === 'number' ? k.target_2026.toLocaleString() : k.target_2026}</td>
+          <td class="text-end">${typeof k.actual_2026 === 'number' ? k.actual_2026.toLocaleString() : k.actual_2026}</td>
+          <td class="text-end fw-semibold">${typeof k.achieve_rate === 'number' ? k.achieve_rate + '%' : '-'}</td>
+        </tr>`).join('') || '<tr><td colspan="5" class="text-center text-body-secondary py-4">데이터 없음</td></tr>';
+    } catch (e) { console.error('kpi 로드 실패', e); }
+  }
+
+  async function loadPerformance() {
+    try {
+      const [sr, ir] = await Promise.all([fetch('/api/performance/summary'), fetch('/api/performance/insights')]);
+      const s = await sr.json();
+      const ins = await ir.json();
+      const t = s.total || {};
+      document.getElementById('perf-plan').textContent = fmtEok(t.plan_initial || 0);
+      document.getElementById('perf-actual').textContent = fmtEok(t.jun_actual || 0);
+      document.getElementById('perf-profit').textContent = fmtEok(t.operating_profit || 0);
+      document.getElementById('perf-rate').textContent = (t.avg_profit_rate ?? 0) + '%';
+
+      const months = s.monthly || [];
+      const maxRev = Math.max(1, ...months.map(m => m.revenue));
+      document.getElementById('perf-bars').innerHTML = months.map(m => `
+        <div class="flex-fill d-flex flex-column align-items-center gap-1">
+          <div class="w-100 bg-info rounded-top bar-anim" style="height:${Math.max(4, (m.revenue / maxRev) * 100)}%"></div>
+          <span class="small text-body-secondary">${m.month}</span>
+        </div>`).join('') || '<span class="text-body-secondary small m-auto">데이터 없음</span>';
+
+      const parts = Object.entries(s.by_part || {}).sort((a, b) => b[1].jun_actual - a[1].jun_actual);
+      document.getElementById('perf-tbody').innerHTML = parts.map(([part, v]) => `
+        <tr>
+          <td>${part}</td>
+          <td class="text-end">${fmtEok(v.plan_initial)}</td>
+          <td class="text-end">${fmtEok(v.jun_actual)}</td>
+          <td class="text-end ${v.operating_profit < 0 ? 'text-danger' : ''}">${fmtEok(v.operating_profit)}</td>
+          <td class="text-end fw-semibold">${v.avg_profit_rate}%</td>
+        </tr>`).join('') || '<tr><td colspan="5" class="text-center text-body-secondary py-4">데이터 없음</td></tr>';
+
+      const row = (i, code, valueHtml) => `
+        <div class="d-flex justify-content-between align-items-center py-1">
+          <span><span class="badge text-bg-light border me-2">${i}</span>${code}</span>${valueHtml}
+        </div>`;
+      document.getElementById('perf-worst-list').innerHTML = (ins.worst || []).slice(0, 5).map((r, i) =>
+        row(i + 1, r.project_code, `<span class="fw-semibold text-warning">${r.achieve_rate}%</span>`)
+      ).join('') || '<span class="text-body-secondary small">데이터 없음</span>';
+      document.getElementById('perf-risk-list').innerHTML = (ins.risk || []).slice(0, 5).map((r, i) => {
+        const isLoss = r.operating_profit < 0;
+        return row(i + 1, r.project_code, `<span class="fw-semibold text-danger">${isLoss ? '손실 ' + fmtEok(r.operating_profit) : r.profit_rate + '%'}</span>`);
+      }).join('') || '<span class="text-body-secondary small">데이터 없음</span>';
+    } catch (e) { console.error('performance 로드 실패', e); }
+  }
+
+  loaded.finance = true;
+  loadSummary();
+  loadTable();
+  loadInsights();
+</script>
+</body>
+</html>

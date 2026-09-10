@@ -192,6 +192,8 @@ interface Props<T> {
   sizeVersion?: string | number;
   /** 툴바 우측에 추가 렌더링할 요소 (뷰 전환 토글 등) */
   toolbarExtra?: ReactNode;
+  /** 검색행 안, 검색범위 셀렉트와 입력창 사이에 끼워 넣을 요소 (파트/보고단계 필터 등) */
+  searchExtra?: ReactNode;
   /** 제목 옆 ⓘ 버튼 — 클릭 시 데이터 기준 설명 팝오버 */
   info?: ReactNode;
   /** 더블클릭 시 검색바에 해당 셀 값을 자동 입력할 컬럼 id 목록 (예: project_code) */
@@ -247,6 +249,7 @@ const DataTable = <T extends object>({
   storageKey,
   sizeVersion,
   toolbarExtra,
+  searchExtra,
   info,
   searchOnDblClick,
   expandableRow,
@@ -432,10 +435,12 @@ const DataTable = <T extends object>({
 
   // compact 테이블(KPI 집계, 파트별 실적 등) — 고정형 소형 테이블이라 가로 스크롤이 없어야 함.
   // 컬럼 합계가 카드 폭과 다르면(좁든 넓든) 첫 진입 시 비례 조정해서 항상 폭에 꼭 맞춤.
-  // 한 번만 실행(fittedRef) — FinanceCrossCheckPanel의 scaleToFill과 동일 패턴
+  // ⚠️ 이미 저장된 폭(colSizing)이 있으면 건드리지 않는다 — 안 그러면 컴포넌트가 리마운트될 때마다
+  //    "이미 축소된 값"을 또 축소해서 테이블이 계속 줄어든다(part 필터 전환 시 재현됨).
   const compactFitRef = useRef(false);
   useEffect(() => {
     if (!compact || !storageKey || compactFitRef.current) return;
+    if (Object.keys(colSizing).length > 0) { compactFitRef.current = true; return; }  // 저장된 폭 존중
     const wrapEl = tableWrapRef.current;
     if (!wrapEl) return;
     const wrapW = wrapEl.clientWidth;
@@ -620,6 +625,7 @@ const DataTable = <T extends object>({
                   ))}
                 </select>
               )}
+              {searchExtra}
               <input
                 className={styles.search}
                 placeholder={searchPlaceholder}

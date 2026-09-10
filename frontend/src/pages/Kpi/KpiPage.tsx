@@ -1,6 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createColumnHelper } from '@tanstack/react-table';
 import { useKpiPageViewModel } from '@/hooks/viewmodels/useKpiPageViewModel';
+import { useKpiFilterOptions } from '@/hooks/useKpiFilterOptions';
+import { useKpiFilterStore } from '@/store/kpiFilter.store';
+import { sortStages } from '@/utils/stageOrder';
 import { ChartCard, BarChart, DataTable, CopyText, HighlightText, Button } from '@/components/ui';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import KpiRawTable from '@/components/features/KpiRawTable/KpiRawTable';
@@ -42,10 +45,36 @@ const summaryColumns = [
 const rh = createColumnHelper<KpiRawRow>();
 
 const KpiPage = () => {
-  const vm = useKpiPageViewModel();
+  // ── 필터 A: KPI 목표 vs 실적 차트 + KPI 집계 표에만 적용 (취합 표와 완전 별개) ──
+  const [summaryPart, setSummaryPart] = useState('');
+  const vm = useKpiPageViewModel(summaryPart);
   const [rawView, setRawView] = useState<'flat' | 'rowspan'>('flat');
   // KPI 목표 vs 실적 막대 클릭 → 드릴다운 모달 (0=목표, 1=실적)
   const [breakdown, setBreakdown] = useState<{ name: string; metric: 'target' | 'actual' } | null>(null);
+
+  // 드롭박스 옵션 — "-"(파트/단계 미인식)는 목록에서만 제외. 표에는 그 행도 그대로 나옴
+  const { data: filterOpts } = useKpiFilterOptions();
+  const partOptions  = useMemo(() => (filterOpts?.parts ?? []).filter(p => p && p !== '-'), [filterOpts]);
+  const stageOptions = useMemo(() => sortStages((filterOpts?.stages ?? []).filter(s => s && s !== '-')), [filterOpts]);
+
+  // ── 필터 B: KPI 취합 표에만 적용 (useKpiFilterStore, 단일선택). 칩 필터바 제거 대체 ──
+  const rawParts  = useKpiFilterStore(s => s.parts);
+  const rawStages = useKpiFilterStore(s => s.stages);
+  // KpiFilterBar(=syncOptions) 제거로 자동 초기화가 없어짐 — persist된 옛 선택값(전체 파트 등)이
+  // "-" 행까지 걸러버리지 않도록 진입 시 1회 비움. 이후엔 아래 셀렉트로만 조작.
+  useEffect(() => {
+    useKpiFilterStore.setState({ years: [], parts: [], stages: [] });
+  }, []);
+  const rawPartVal  = rawParts.length === 1 ? rawParts[0] : '';
+  const rawStageVal = rawStages.length === 1 ? rawStages[0] : '';
+  const setRawPart  = (v: string) => {
+    useKpiFilterStore.setState({ parts: v ? [v] : [] });
+    vm.serverPagination.onPageChange(1);
+  };
+  const setRawStage = (v: string) => {
+    useKpiFilterStore.setState({ stages: v ? [v] : [] });
+    vm.serverPagination.onPageChange(1);
+  };
 
   // flat 뷰 컬럼 — rawCols 변경 시에만 재생성
   const rawColumns = useMemo(
@@ -99,24 +128,43 @@ const KpiPage = () => {
   return (
     <main className={styles.mainFull}>
 
-      {/* KPI 목표 vs 실적 차트 */}
+      {/* KPI 목표 vs 실적 차트 — 제목줄 안에 파트 필터(A). 이 필터는 차트 + KPI 집계 표에만 적용 */}
       <div className="fadeUp" style={{ animationDelay: '0ms' }}>
         <ErrorBoundary>
           <ChartCard compact={false}>
-            <ChartCard.Title>KPI 목표 vs 실적 (2026년)</ChartCard.Title>
+            <ChartCard.Title>
+              <div className={styles.titleWithFilter}>
+                <span>KPI 목표 vs 실적 (2026년)</span>
+                <div className={styles.summaryFilter}>
+                  <span className={styles.filterLabel}>파트</span>
+                  <select
+                    className={styles.filterSelect}
+                    value={summaryPart}
+                    onChange={e => setSummaryPart(e.target.value)}
+                  >
+                    <option value="">전체</option>
+                    {partOptions.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </div>
+              </div>
+            </ChartCard.Title>
             <ChartCard.Body>
-              <div className={styles.chartWrap} style={{ height: Math.max(320, vm.chart.labels.length * 40) }}>
+              <div className={styles.chartWrap} style={{ height: Math.max(480, vm.chart.labels.length * 66) }}>
                 <BarChart
                   labels={vm.chart.labels}
                   datasets={vm.chart.datasets}
                   onClick={(label, dsIndex) =>
-                    setBreakdown({ name: label, metric: dsIndex === 0 ? 'target' : 'actual' })
+                    // 0=목표KPI, 1=프로젝트목표 → target / 2=실적 → actual (축 라벨 클릭 -1도 actual)
+                    setBreakdown({ name: label, metric: dsIndex === 0 || dsIndex === 1 ? 'target' : 'actual' })
                   }
                   options={{
                     indexAxis: 'y',
                     ...vm.chart.options,
                     scales: {
-                      x: { ticks: { color: vm.chart.tickColor, callback: v => Number(v).toLocaleString() } },
+                      x: {
+                        max: vm.chart.xMax,   // 최댓값보다 살짝 위, 5 단위로 올림 (막대·수치가 축 끝에 안 붙게)
+                        ticks: { color: vm.chart.tickColor, callback: v => Number(v).toLocaleString() },
+                      },
                       y: { ticks: {
                         color: vm.chart.tickColor,
                         callback: function (this: { chart: { width: number } }, _value: unknown, index: number) {
@@ -148,6 +196,7 @@ const KpiPage = () => {
             defaultPageSize={10}
             pageSizeOptions={[10]}
             storageKey="kpi-summary-v3"   /* 컬럼 순서 변경 — 저장된 순서·폭 1회 초기화 */
+            sizeVersion={3}   /* 반복 축소로 망가진 저장 폭 1회 초기화 (compact fit 버그 수정 후) */
           />
         </ErrorBoundary>
       </div>
@@ -168,6 +217,19 @@ const KpiPage = () => {
                 >KPI 상세</Button>
               </div>
             );
+            // 파트/보고단계 필터(B) — 검색범위 셀렉트와 검색 입력창 사이
+            const rawFilters = (
+              <div className={styles.toolbarFilters}>
+                <select className={styles.filterSelect} value={rawPartVal} onChange={e => setRawPart(e.target.value)}>
+                  <option value="">파트 전체</option>
+                  {partOptions.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+                <select className={styles.filterSelect} value={rawStageVal} onChange={e => setRawStage(e.target.value)}>
+                  <option value="">보고단계 전체</option>
+                  {stageOptions.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+            );
             return rawView === 'flat' ? (
               <DataTable<KpiRawRow>
                 data={vm.rawRows}
@@ -186,6 +248,7 @@ const KpiPage = () => {
                 emptyDescription="다른 검색어나 필터 조건을 시도해보세요."
                 storageKey="kpi-raw-flat"
                 toolbarExtra={viewToggle}
+                searchExtra={rawFilters}
               />
             ) : (
               <KpiRawTable
@@ -195,7 +258,7 @@ const KpiPage = () => {
                 isFetching={vm.isFetching}
                 serverPagination={vm.serverPagination}
                 serverSearch={vm.serverSearch}
-                toolbarExtra={viewToggle}
+                toolbarExtra={<>{rawFilters}{viewToggle}</>}
               />
             );
           })()}

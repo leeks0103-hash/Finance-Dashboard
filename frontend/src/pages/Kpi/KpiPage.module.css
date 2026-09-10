@@ -32,6 +32,55 @@
 /* 기본값 — 실제 높이는 KPI 항목 수에 비례해 인라인 스타일로 늘어남(막대·숫자 겹침 방지) */
 .chartWrap { height: 320px; }
 
+/* 차트 제목줄 — 제목은 왼쪽 끝, 파트 필터는 오른쪽 */
+.titleWithFilter {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 0;
+}
+
+/* 필터 A — 차트 제목줄 오른쪽 (칩 필터바 제거 대체). 차트 + KPI 집계 표에만 적용 */
+.summaryFilter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.filterLabel {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* 셀렉트박스 공통 (필터 A·B) — DataTable .searchFieldSelect 와 동일 스타일로 통일 */
+.filterSelect {
+  font-size: 0.78rem;
+  color: var(--text-sub);
+  border: 1.5px solid var(--border);
+  background: var(--bg-subtle);
+  cursor: pointer;
+  padding: 5px 6px;
+  border-radius: var(--radius-sm);
+  outline: none;
+  font-family: inherit;
+  flex-shrink: 0;
+  transition: border-color 0.15s ease;
+}
+.filterSelect:hover { border-color: var(--brand-mid); }
+
+/* 필터 B — KPI 취합 툴바 안 (셀렉트 2개 + 목록/상세 토글) */
+.toolbarFilters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 /* 확대 모달 안에서만 꽉 채우기 — ChartCard가 compact 카드와 모달에 같은 엘리먼트를
    그대로 재사용하기 때문에, 평소 보기에 쓰는 인라인 height를 직접 바꾸면 거기까지 깨진다
    (실제로 한 번 그렇게 했다가 평소 화면이 찌부러지는 회귀 발생 — 되돌림).

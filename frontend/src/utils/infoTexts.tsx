@@ -89,8 +89,9 @@ export const INFO_COST_BREAKDOWN = (
     ['항목',   <Chips items={[
       `${PERF_COL.costDirect}열 (직접원가)`, `${PERF_COL.costLabor}열 (인건비)`,
       `${PERF_COL.costOverhead}열 (공통원가)`, `${PERF_COL.costMgmt}열 (관리비)`,
+      `${PERF_COL.operatingProfit}열 (경상손익)`,
     ]} />],
-    ['계산',   '전체 합산 후 항목별 구성비 (%)'],
+    ['계산',   '전체 합산 후 항목별 구성비 (%). 경상손익(BF)까지 5조각이라 합 ≈ 매출 — "매출이 어디에 쓰였고 얼마 남았나"'],
     ['필터',   '파트 · 팀 필터 적용'],
   ]} />
 );
@@ -119,6 +120,11 @@ export const INFO_ACHIEVEMENT_BARS = (
   <InfoTable rows={[
     ['출처',   '실적현황 엑셀'],
     ['계산',   `${PERF_COL.actualRange} ÷ ${PERF_COL.planInitial}열(매출 계획) × 100`],
+    ['기준선', <>
+      분자는 <b>N개월 누계</b>인데 분모는 <b>연간 계획</b>이라, 경과 시점(예: 8월 = 66.7%)까지는
+      100%에 못 미치는 게 정상입니다. 트랙 위 세로선이 그 <b>정상 페이스 위치</b> —
+      막대가 이 선을 넘으면 계획보다 앞선 것입니다.
+    </>],
     ['색상',   '100% 이상 Hyundai Blue / 70~100% Sky Blue / 70% 미만 Hyundai Gold'],
     ['필터',   '파트 · 팀 필터 적용'],
   ]} />
