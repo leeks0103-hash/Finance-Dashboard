@@ -1,7 +1,7 @@
-import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui';
 import { useScrollLock } from '@/hooks/useScrollLock';
+import { useEscToClose } from '@/hooks/useEscToClose';
 import { useKpiBreakdownViewModel } from '@/hooks/viewmodels/useKpiBreakdownViewModel';
 import { downloadCsvFile } from '@/hooks/useExport';
 import { stripPartPrefix } from '@/utils/format';
@@ -22,13 +22,8 @@ const KpiBreakdownModal = ({ name, metric, onClose }: Props) => {
 
   // 배경 스크롤 잠금 (스크롤바 폭 보정 포함 — 화면 튐 방지)
   useScrollLock();
-
-  // ESC 닫기
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  // ESC 닫기 — 차트 확대 모달 위에 겹쳐 떠도 이 모달만 닫힌다
+  useEscToClose(onClose);
 
   const handleCsv = () => {
     downloadCsvFile(

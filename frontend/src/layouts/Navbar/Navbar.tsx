@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Toggle, Button } from '@/components/ui';
 import TabNav from '@/components/ui/TabNav/TabNav';
 import type { TabId } from '@/components/ui/TabNav/TabNav';
+import NgvLogo from './NgvLogo';
 import { useTheme } from '@/hooks';
 import { useUiStore } from '@/store';
 import { pathToTab } from '@/utils/routing';
@@ -30,9 +31,10 @@ const Navbar = () => {
   return (
     <header className={styles.header}>
       <div className={styles.inner}>
-        {/* 좌측 — 제목(워드마크) */}
+        {/* 좌측 — 로고 + 제목 */}
         <div className={styles.left}>
-          <h1 className={styles.brand}>프로젝트 재무 대시보드</h1>
+          <NgvLogo className={styles.logo} />
+          <h1 className={styles.brand}>경영현황 통합 대시보드</h1>
         </div>
 
         {/* 중앙 — 탭 네비게이션 */}
@@ -43,7 +45,7 @@ const Navbar = () => {
         {/* 우측 — 설정 */}
         <div className={styles.right}>
           <div className={styles.settings} ref={ref}>
-          <Button variant="ghost" size="sm"
+          <Button unstyled
             className={styles.settingsBtn}
             onClick={() => setOpen(v => !v)}
             aria-label="설정"

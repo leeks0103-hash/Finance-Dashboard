@@ -1,7 +1,8 @@
-import { Children, useEffect, useState, type ReactNode } from 'react';
+import { Children, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/Button';
 import { useScrollLock } from '@/hooks/useScrollLock';
+import { useEscToClose } from '@/hooks/useEscToClose';
 import styles from './ChartCard.module.css';
 
 // 마커 컴포넌트 — 실제 렌더링(클래스·배치)은 Root가 전담. 호출부 가독성을 위한 자리 표시자.
@@ -23,14 +24,8 @@ const Root = ({ children, compact = true, expandable = true }: RootProps) => {
 
   // 모달 열림 동안 배경 스크롤 잠금 (스크롤바 폭 보정 포함 — 화면 튐 방지)
   useScrollLock(expanded);
-
-  // 모달 열림 동안 ESC 닫기
-  useEffect(() => {
-    if (!expanded) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setExpanded(false); };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [expanded]);
+  // ESC 닫기 — 모달을 겹쳐 열었을 땐 맨 위 것만 닫힌다
+  useEscToClose(() => setExpanded(false), expanded);
 
   // 제목줄 — 기존 제목(+토글 등)은 그대로 두고 우측 끝에 확대 버튼만 덧붙인다
   const titleRow = (className: string) => (

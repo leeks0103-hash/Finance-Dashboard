@@ -12,6 +12,13 @@
   overflow: visible;
 }
 
+/* 전역 ::selection(연한 남색 배경 + 짙은 남색 글자)이 다크 헤더 위에선 안 보여서
+   헤더 안에서는 흰 배경 + 남색 글자로 덮어쓴다 */
+.header ::selection {
+  background: rgba(255,255,255,0.85);
+  color: var(--nav-bg);
+}
+
 /* 내부 콘텐츠 — 본문(.pageContent)과 같은 max-width·좌우 패딩으로 정렬.
    3분할 그리드(좌 제목 / 중앙 탭 / 우 설정)라 좌·우 폭이 달라도 중앙 탭이 정중앙에 온다 */
 .inner {
@@ -26,11 +33,21 @@
   align-items: center;
 }
 
-/* 좌측 — 제목만 */
+/* 좌측 — 로고 + 제목 */
 .left {
   display: flex;
   align-items: center;
+  gap: 12px;
   min-width: 0;
+}
+
+/* Hyundai NGV 로고 — N·G·V 글자만 뽑아 간격 좁힌 SVG(currentColor). 다크 바 위 흰색 */
+.logo {
+  height: 19px;
+  width: auto;
+  display: block;
+  flex-shrink: 0;
+  color: #fff;
 }
 
 /* 중앙 — 탭 네비게이션 */
@@ -40,14 +57,16 @@
   justify-content: center;
 }
 
-/* 제목(워드마크) — 다크 바 위 흰 텍스트. 탭과 확실히 구분되도록 더 크고 굵게(800),
-   자간을 좁혀 '로고 덩어리'처럼 보이게 한다 (탭은 반대로 얇고 넓은 자간) */
+/* 제목 — 다크 바 위 흰 텍스트. 제목 전용 서체(HyundaiSansHead)의 실제 700 굵기 사용.
+   기존 800 + 자간 -0.03em은 HyundaiSans에 800 파일이 없어 가짜 볼드로 합성되면서
+   한글이 뭉개져 읽기 힘들었음 → 700 + 자간 거의 0으로 또렷하게 */
 .brand {
   margin: 0;
-  font-size: 1.15rem;
-  font-weight: 800;
+  font-family: 'HyundaiSansHead', 'HyundaiSans', 'Malgun Gothic', sans-serif;
+  font-size: 1.12rem;
+  font-weight: 700;
   color: #fff;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.005em;
   white-space: nowrap;
 }
 

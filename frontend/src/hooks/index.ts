@@ -10,3 +10,4 @@ export { usePrefetch } from './usePrefetch';
 export { createDataHook } from './createDataHook';
 export { useBackgroundPrefetch } from './useBackgroundPrefetch';
 export { useScrollLock } from './useScrollLock';
+export { useEscToClose } from './useEscToClose';
