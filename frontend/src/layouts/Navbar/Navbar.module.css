@@ -48,6 +48,10 @@
   display: block;
   flex-shrink: 0;
   color: #fff;
+  /* sticky 헤더가 만드는 합성 레이어 안에서 SVG가 저해상도 래스터로 캐시돼 흐릿하게 보이고
+     (다른 요소 hover 등으로) 페인트가 무효화될 때만 또렷해지던 문제 —
+     자체 레이어로 승격해 항상 device 해상도로 렌더 */
+  transform: translateZ(0);
 }
 
 /* 중앙 — 탭 네비게이션 */
