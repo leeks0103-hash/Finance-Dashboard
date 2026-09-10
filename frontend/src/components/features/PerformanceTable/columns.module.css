@@ -1,0 +1,27 @@
+/* 프로젝트코드 셀 — 코드 + 재무 이력 배지 */
+.codeCell {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+/* 재무 PPT 이력 보유 표시. 건수까지 알려줘 더블클릭 전에 판단할 수 있게 한다.
+   숫자만 담는 작은 pill이라 컬럼을 추가하지 않고도 정보를 얹을 수 있음 */
+.histBadge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--brand-bg);
+  color: var(--brand-mid);
+  font-size: 0.66rem;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  cursor: help;
+}

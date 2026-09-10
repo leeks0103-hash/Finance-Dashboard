@@ -22,3 +22,7 @@ export const reloadData = (): Promise<ReloadResponse> =>
 
 export const getPdfUrl = (filters: Filters): string =>
   `/api/export/pdf?${buildFilterParams(filters).toString()}`;
+
+/** 재무 PPT 이력이 있는 프로젝트코드 → 건수. 실적현황 표의 2뎁스 보유 배지용 */
+export const getFinanceCodes = (): Promise<Record<string, number>> =>
+  client.get<{ codes: Record<string, number> }>('/finance/codes').then(r => r.data.codes);

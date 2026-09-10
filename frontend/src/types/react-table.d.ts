@@ -5,6 +5,8 @@ declare module '@tanstack/react-table' {
   interface TableMeta<TData> {
     /** 현재 검색어 — 셀 렌더러에서 매치 텍스트 하이라이트용 */
     searchQuery?: string;
+    /** 재무 PPT 이력이 있는 프로젝트코드 → 건수. 2뎁스 보유 배지 표시용 */
+    financeCodes?: Record<string, number>;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

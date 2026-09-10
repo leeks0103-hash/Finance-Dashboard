@@ -1,6 +1,7 @@
 import { createColumnHelper } from '@tanstack/react-table';
 import { usePerformanceViewModel } from '@/hooks/viewmodels/usePerformanceViewModel';
 import type { PerfPartRow } from '@/hooks/viewmodels/usePerformanceViewModel';
+import { useFinanceCodes } from '@/hooks/useFinanceCodes';
 import { DataTable, InfoButton } from '@/components/ui';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import PerformanceChartSection from '@/components/features/PerformanceChartSection/PerformanceChartSection';
@@ -70,6 +71,8 @@ const byPartColumns = [
 
 const PerformancePage = () => {
   const vm = usePerformanceViewModel();
+  // 재무 이력 보유 코드↔건수 — 프로젝트코드 셀의 배지용 (한 번 받아 캐시)
+  const financeCodes = useFinanceCodes();
 
   return (
     <main className={styles.main}>
@@ -162,7 +165,9 @@ const PerformancePage = () => {
             getRowNumber={(row) => row._group_no}
             // 20자 넘는 셀은 클릭 시 전체 내용 팝업(오버레이)이 먼저 떠서 더블클릭이 td까지 도달하지 못함 —
             // 안내 문구도 실제 동작(짧은 셀만 펼침)에 맞춰 적어 둔다
-            hint="프로젝트코드·담당자처럼 짧은 셀을 더블클릭하면 해당 프로젝트의 재무 데이터가 아래에 펼쳐집니다. (프로젝트명·비고처럼 글이 긴 셀은 클릭하면 전체 내용 팝업이 열립니다)"
+            hint="프로젝트코드 옆 숫자 배지 = 재무 이력 건수. 짧은 셀(프로젝트코드·담당자)을 더블클릭하면 아래에 펼쳐집니다. (프로젝트명·비고처럼 글이 긴 셀은 클릭하면 전체 내용 팝업이 열립니다)"
+            /* 프로젝트코드 셀이 재무 이력 건수 배지를 그릴 수 있도록 코드↔건수 맵 전달 */
+            meta={{ financeCodes: financeCodes.data }}
             serverPagination={vm.serverPagination}
             serverSearch={vm.serverSearch}
             searchPlaceholder="프로젝트코드·이름·담당자 검색…"

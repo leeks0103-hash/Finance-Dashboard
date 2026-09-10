@@ -3,6 +3,8 @@ import { HighlightText } from '@/components/ui';
 import type { HideableColumn } from '@/components/ui/DataTable';
 import type { PerfProject } from '@/types/performance.types';
 import { formatEok, formatPctRaw, formatNum, PERF_MONTH } from '@/utils';
+import { countFinanceHistory } from '@/utils/projectCode';
+import styles from './columns.module.css';
 
 const h = createColumnHelper<PerfProject>();
 
@@ -22,12 +24,35 @@ const MONTH_COLS = Array.from({ length: 12 }, (_, i) => {
   });
 });
 
+// 재무 이력 건수 조회 결과 캐시 — 행마다 코드 목록을 다시 훑지 않도록 재사용.
+// financeCodes 응답이 바뀌면(참조 변경) 캐시를 통째로 버린다.
+let _fcRef: Record<string, number> | undefined;
+let _fcCache = new Map<string, number>();
+const financeCount = (code: string, codes?: Record<string, number>) => {
+  if (codes !== _fcRef) { _fcRef = codes; _fcCache = new Map(); }
+  return countFinanceHistory(code, codes, _fcCache);
+};
+
 export const perfColumns = [
   // ── 기본 표시 (사용자 지정 32개) — 프로젝트코드는 sticky 첫 컬럼이라 맨 앞 유지 ──
   h.accessor('project_code', {
     header: '프로젝트코드', size: 164,
     enableSorting: true,
-    cell: txt,
+    // 재무 PPT 이력이 있으면 건수 배지 — 더블클릭해야 2뎁스 유무를 알 수 있던 문제 해소
+    cell: i => {
+      const code = String(i.getValue() ?? '');
+      const n = financeCount(code, i.table.options.meta?.financeCodes);
+      return (
+        <span className={styles.codeCell}>
+          <HighlightText text={code} query={i.table.options.meta?.searchQuery} />
+          {n > 0 && (
+            <span className={styles.histBadge} title={`재무 이력 ${n}건 — 더블클릭하면 펼쳐집니다`}>
+              {n}
+            </span>
+          )}
+        </span>
+      );
+    },
   }),
   h.accessor('progress',     { header: '진행',       size: 78,  cell: txt }),
   h.accessor('category',     { header: '매출/원가',  size: 84,  cell: txt }),

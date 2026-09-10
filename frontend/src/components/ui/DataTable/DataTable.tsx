@@ -210,6 +210,8 @@ interface Props<T> {
   onSortChange?: (columnId: string | null) => void;
   /** ColumnMeta.staticCol 음영 강도 — 'soft'는 절반 알파 (기본 음영이 진하다는 피드백 있는 테이블용) */
   staticColShade?: 'default' | 'soft';
+  /** 셀 렌더러가 참조할 부가 데이터 — TanStack table meta로 그대로 전달 (searchQuery와 병합) */
+  meta?: Record<string, unknown>;
 }
 
 const DEFAULT_PAGE_SIZES = [10, 20, 30, 50, 100];
@@ -253,6 +255,7 @@ const DataTable = <T extends object>({
   hint,
   onSortChange,
   staticColShade    = 'default',
+  meta: extraMeta,
 }: Props<T>) => {
   const isServerMode   = !!serverPagination;
   const isInfiniteMode = !!infiniteLoadMore;
@@ -382,7 +385,7 @@ const DataTable = <T extends object>({
   const table = useReactTable({
     data,
     columns: columnsWithIndex,
-    meta: { searchQuery },
+    meta: { searchQuery, ...extraMeta },
     state: {
       sorting,
       globalFilter: isServerMode ? undefined : globalFilter,
