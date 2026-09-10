@@ -154,7 +154,8 @@ const KpiPage = () => {
                   labels={vm.chart.labels}
                   datasets={vm.chart.datasets}
                   onClick={(label, dsIndex) =>
-                    setBreakdown({ name: label, metric: dsIndex === 0 ? 'target' : 'actual' })
+                    // 0=목표KPI, 1=프로젝트목표 → target / 2=실적 → actual (축 라벨 클릭 -1도 actual)
+                    setBreakdown({ name: label, metric: dsIndex === 0 || dsIndex === 1 ? 'target' : 'actual' })
                   }
                   options={{
                     indexAxis: 'y',
@@ -185,14 +186,14 @@ const KpiPage = () => {
             data={vm.summaryRows}
             columns={summaryColumns as never}
             getRowId={row => row.name}
-            title={summaryPart ? `KPI 집계 — ${summaryPart}` : 'KPI 집계'}
+            title="KPI 집계"
             hideCount
             compact
             staticColShade="soft"
             defaultPageSize={10}
             pageSizeOptions={[10]}
             storageKey="kpi-summary-v3"   /* 컬럼 순서 변경 — 저장된 순서·폭 1회 초기화 */
-            sizeVersion={2}   /* 저장된 폭 무효화 → 첫 진입 시 부모 폭에 비례 재조정(compact fit) */
+            sizeVersion={3}   /* 반복 축소로 망가진 저장 폭 1회 초기화 (compact fit 버그 수정 후) */
           />
         </ErrorBoundary>
       </div>

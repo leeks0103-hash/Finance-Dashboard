@@ -435,10 +435,12 @@ const DataTable = <T extends object>({
 
   // compact 테이블(KPI 집계, 파트별 실적 등) — 고정형 소형 테이블이라 가로 스크롤이 없어야 함.
   // 컬럼 합계가 카드 폭과 다르면(좁든 넓든) 첫 진입 시 비례 조정해서 항상 폭에 꼭 맞춤.
-  // 한 번만 실행(fittedRef) — FinanceCrossCheckPanel의 scaleToFill과 동일 패턴
+  // ⚠️ 이미 저장된 폭(colSizing)이 있으면 건드리지 않는다 — 안 그러면 컴포넌트가 리마운트될 때마다
+  //    "이미 축소된 값"을 또 축소해서 테이블이 계속 줄어든다(part 필터 전환 시 재현됨).
   const compactFitRef = useRef(false);
   useEffect(() => {
     if (!compact || !storageKey || compactFitRef.current) return;
+    if (Object.keys(colSizing).length > 0) { compactFitRef.current = true; return; }  // 저장된 폭 존중
     const wrapEl = tableWrapRef.current;
     if (!wrapEl) return;
     const wrapW = wrapEl.clientWidth;

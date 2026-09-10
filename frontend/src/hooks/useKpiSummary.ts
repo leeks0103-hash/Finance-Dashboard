@@ -9,6 +9,8 @@ export const useKpiSummary = (part = '') =>
   useQuery({
     queryKey:          ['kpi-summary', part],
     queryFn:           () => getKpiSummary(part),
+    // 파트 바꿀 때 이전 데이터를 유지 — 스피너/스텁 페이지 깜빡임 + "전체로 초기화" 방지
+    placeholderData:   keepPreviousData,
     structuralSharing: true,
     staleTime:         STALE_5MIN,
     gcTime:            GC_10MIN,
