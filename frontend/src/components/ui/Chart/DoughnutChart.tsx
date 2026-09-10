@@ -12,6 +12,8 @@ interface Props {
   data:         number[];
   colors?:      string[];
   showLabels?:  boolean;
+  /** 세그먼트(또는 범례 항목) 클릭 — 인덱스와 라벨. 지정 시 조각 위 커서가 포인터로 바뀐다 */
+  onSliceClick?: (index: number, label: string) => void;
 }
 
 // 현대 브랜드 9색 — Hyundai Blue / Active Blue / Sky Blue / Gold
@@ -38,6 +40,7 @@ const DoughnutChart = ({
   data,
   colors = DEFAULT_COLORS,
   showLabels = false,
+  onSliceClick,
 }: Props) => {
   const total = data.reduce((a, b) => a + b, 0);
 
@@ -71,6 +74,17 @@ const DoughnutChart = ({
             responsive: true,
             maintainAspectRatio: false,
             animation: { duration: 700, easing: 'easeInOutQuart' },
+            onClick: onSliceClick
+              ? (_e, elements) => {
+                  const i = elements[0]?.index;
+                  if (i != null && labels[i] != null) onSliceClick(i, labels[i]);
+                }
+              : undefined,
+            onHover: onSliceClick
+              ? (_e, elements, chart) => {
+                  (chart.canvas as HTMLCanvasElement).style.cursor = elements.length ? 'pointer' : 'default';
+                }
+              : undefined,
             // 얇은 세그먼트의 % 라벨이 캔버스 밖으로 나가 잘리지 않도록 여백 확보 (ChartCard가 overflow:hidden)
             layout: { padding: 12 },
             plugins: {

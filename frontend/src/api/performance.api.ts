@@ -33,7 +33,7 @@ export const reloadPerfData = () =>
   client.post('/performance/reload').then(r => r.data);
 
 // ── 실적현황 차트 막대 드릴다운 (어떤 프로젝트 행들을 합산했는지) ──
-export type PerfBreakdownChart = 'monthly' | 'planVsActual' | 'profitRate';
+export type PerfBreakdownChart = 'monthly' | 'planVsActual' | 'profitRate' | 'costBreakdown';
 
 export interface PerfBreakdownRow {
   project_code: string;
@@ -54,7 +54,7 @@ export interface PerfBreakdown {
   message?:      string;
   chart?:        PerfBreakdownChart;
   series_label?: string;
-  dim?:          'month' | 'part';
+  dim?:          'month' | 'part' | 'none';
   key?:          string;
   /** 이 막대가 어떤 엑셀 열을 쓰는지 */
   field_desc?:   string;

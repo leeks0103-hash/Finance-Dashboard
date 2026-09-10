@@ -300,6 +300,7 @@ const PerformanceChartSection = () => {
             data={vm.costBreakdown.values}
             colors={doughnutColors}
             showLabels={vm.showLabels}
+            onSliceClick={i => setBreakdown({ chart: 'costBreakdown', series: i, key: '' })}
           />
         </ChartCard.Body>
       </ChartCard>

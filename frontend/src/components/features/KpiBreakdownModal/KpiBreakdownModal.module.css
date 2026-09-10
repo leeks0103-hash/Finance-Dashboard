@@ -61,24 +61,17 @@
 
 .close {
   flex-shrink: 0;
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-sm);
-  font-size: 1.15rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 1.5rem;
   line-height: 1;
+  padding: 0 4px;
   color: var(--text-muted);
-  background: var(--bg-subtle);
-  border: 1px solid var(--border);
-  transition: background 0.14s, color 0.14s, border-color 0.14s;
+  border-radius: var(--radius-sm);
+  transition: color 0.15s ease, background 0.15s ease;
 }
-.close:hover {
-  background: var(--danger-bg, var(--bg-header));
-  border-color: var(--danger, var(--border));
-  color: var(--danger, var(--text-primary));
-}
+.close:hover { color: var(--text-primary); background: var(--bg-subtle); }
 
 .body {
   padding: 14px 20px 18px;

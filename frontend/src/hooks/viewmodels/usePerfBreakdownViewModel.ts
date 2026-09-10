@@ -53,7 +53,7 @@ export const usePerfBreakdownViewModel = (
     available:   data?.available ?? false,
     message:     data?.message,
     seriesLabel: data?.series_label ?? '',
-    dimLabel:    data?.dim === 'month' ? '월' : '파트',
+    dimLabel:    data?.dim === 'month' ? '월' : data?.dim === 'part' ? '파트' : '원가 항목',
     keyLabel:    data?.key ?? target?.key ?? '',
     fieldDesc:   data?.field_desc ?? '',
     aggDesc:     data?.agg_desc ?? '',

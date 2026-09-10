@@ -713,6 +713,20 @@ _PERF_BREAKDOWN = {
              "field_desc": "원가행의 연간 점검 합계 (엑셀 BH열) — 매출행 '직접원가(BB열)'와 1:1로 대응"},
         ],
     },
+    "costBreakdown": {
+        "dim": "none",   # 파트·월 구분 없이 전체 매출행 대상
+        "agg_desc": "전체 매출행의 해당 원가 항목을 그대로 더한 값입니다. 도넛은 이 합계들의 구성비(금액 가중).",
+        "series": [
+            {"label": "직접원가", "category": "매출", "field": "cost_direct",
+             "field_desc": "매출행의 직접원가 (엑셀 BB열)"},
+            {"label": "인건비", "category": "매출", "field": "cost_labor",
+             "field_desc": "매출행의 직접인건비 (엑셀 BC열)"},
+            {"label": "공통원가", "category": "매출", "field": "cost_overhead",
+             "field_desc": "매출행의 공통원가 (엑셀 BD열)"},
+            {"label": "관리비", "category": "매출", "field": "cost_mgmt",
+             "field_desc": "매출행의 관리비 (엑셀 BE열)"},
+        ],
+    },
 }
 
 # 파생 값이 어떻게 만들어지는지 — 모달 '용어' 영역에 항상 표시 (docs/session-log 검증 결과 기준)
@@ -727,11 +741,11 @@ _PERF_CALC_GLOSSARY = [
 @perf_bp.route("/api/performance/summary/breakdown")
 def api_perf_summary_breakdown():
     """
-    실적현황 막대 하나가 '어떤 프로젝트 행들을 합산해서' 나온 값인지 드릴다운.
-    - chart:  monthly | planVsActual | profitRate
-    - series: 0 | 1  (차트 데이터셋 순서)
-    - key:    월 라벨("3월") 또는 파트명(접두 원문자 제거된 표시명)
-    필터(part/team)는 summary와 동일하게 적용. 반환 total(억)이 막대값과 일치한다.
+    실적현황 차트가 '어떤 프로젝트 행들을 합산해서' 나온 값인지 드릴다운.
+    - chart:  monthly | planVsActual | profitRate | costBreakdown
+    - series: 데이터셋/세그먼트 순서 (costBreakdown은 0~3)
+    - key:    월 라벨("3월") 또는 파트명(접두 원문자 제거된 표시명). costBreakdown은 불필요
+    필터(part/team)는 summary와 동일하게 적용. 반환 total(억)이 막대·세그먼트 값과 일치한다.
     """
     df = apply_perf_filters(get_perf_df())
     if df.empty:
@@ -745,7 +759,7 @@ def api_perf_summary_breakdown():
         series_idx = 0
 
     spec = _PERF_BREAKDOWN.get(chart)
-    if not spec or series_idx not in (0, 1):
+    if not spec or not (0 <= series_idx < len(spec["series"])):
         return jsonify({"available": False, "message": f"알 수 없는 차트/시리즈: {chart} / {series_idx}"})
 
     s     = spec["series"][series_idx]
@@ -758,10 +772,13 @@ def api_perf_summary_breakdown():
         field = field.format(mm=f"{int(m.group(1)):02d}")
         sub   = df[df["category"] == s["category"]]
         key_label = key
-    else:  # part
+    elif spec["dim"] == "part":
         stripped  = df["part"].astype(str).apply(lambda p: _PART_PREFIX_RE.sub("", p).strip())
         sub       = df[(df["category"] == s["category"]) & (stripped == key)]
         key_label = key
+    else:  # none — 전체 대상
+        sub       = df[df["category"] == s["category"]]
+        key_label = s["label"]
 
     if field not in sub.columns:
         return jsonify({"available": False, "message": f"'{field}' 컬럼을 찾을 수 없습니다."})
