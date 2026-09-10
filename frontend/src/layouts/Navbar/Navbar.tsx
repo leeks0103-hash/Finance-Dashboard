@@ -29,18 +29,20 @@ const Navbar = () => {
 
   return (
     <header className={styles.header}>
-      <div className={styles.left}>
-        <nav className={styles.nav}>
-          <span className={styles.brand}>프로젝트 재무 대시보드</span>
+      <div className={styles.inner}>
+        {/* 좌측 — 제목(워드마크) */}
+        <div className={styles.left}>
+          <h1 className={styles.brand}>프로젝트 재무 대시보드</h1>
+        </div>
+
+        {/* 중앙 — 탭 네비게이션 */}
+        <nav className={styles.center}>
+          <TabNav active={activeTab} onChange={setTab} />
         </nav>
-        <TabNav active={activeTab} onChange={setTab} />
-      </div>
 
-      {/* 우측 — 팀명 + 설정 */}
-      <div className={styles.right}>
-        <span className={styles.team}>기술교육사업기획팀</span>
-
-        <div className={styles.settings} ref={ref}>
+        {/* 우측 — 설정 */}
+        <div className={styles.right}>
+          <div className={styles.settings} ref={ref}>
           <Button variant="ghost" size="sm"
             className={styles.settingsBtn}
             onClick={() => setOpen(v => !v)}
@@ -72,6 +74,7 @@ const Navbar = () => {
               </div>
             </div>
           )}
+          </div>
         </div>
       </div>
     </header>

@@ -26,3 +26,35 @@ export const getKpiData = (
 
 export const reloadKpiData = () =>
   client.post('/kpi/reload').then(r => r.data);
+
+// ── KPI 집계 막대 드릴다운 (어떤 행들을 합/평균했는지) ──
+export interface KpiBreakdownRow {
+  project_code: string;
+  project_name: string;
+  part:  string;
+  stage: string;
+  file:  string;
+  value: number;
+}
+
+export interface KpiBreakdown {
+  available:      boolean;
+  message?:       string;
+  name?:          string;
+  metric?:        'target' | 'actual' | 'prev';
+  metric_label?:  string;
+  agg?:           'sum' | 'avg';
+  column?:        string;
+  rows?:          KpiBreakdownRow[];
+  count?:         number;
+  total?:         number;
+  is_count_type?: boolean;
+  sub?:           string | null;
+  note?:          string;
+}
+
+export const getKpiBreakdown = (
+  name: string,
+  metric: 'target' | 'actual',
+): Promise<KpiBreakdown> =>
+  client.get<KpiBreakdown>('/kpi/summary/breakdown', { params: { name, metric } }).then(r => r.data);

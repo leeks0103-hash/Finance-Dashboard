@@ -572,6 +572,142 @@ def api_kpi_summary():
         return jsonify({"available": False, "message": f"KPI 집계 오류: {e}"})
 
 
+_BD_METRIC_COL   = {"target": "PJ목표", "actual": "PJ실적", "prev": "PJ유사"}
+_BD_METRIC_LABEL = {"target": "26년 목표(프로젝트)", "actual": "26년 실적", "prev": "25년 유사실적"}
+
+
+@kpi_bp.route("/api/kpi/summary/breakdown")
+def api_kpi_summary_breakdown():
+    """
+    KPI 집계 막대 하나가 '어떤 프로젝트 행들을 합/평균해서' 나온 값인지 드릴다운.
+    - name:   차트 라벨(= KPI 항목명, 신규/기존 건수는 "…(신규 …)" / "…(기존 …)")
+    - metric: target | actual | prev
+    집계와 동일하게 _kpi_dedup_df(프로젝트당 최우선 단계 1건) 기준 — 반환 total이 막대값과 일치한다.
+    """
+    if not os.path.exists(KPI_EXCEL_PATH):
+        return jsonify({"available": False, "message": "KPI 추출 스크립트를 먼저 실행해주세요."})
+
+    name   = request.args.get("name", "").strip()
+    metric = request.args.get("metric", "actual").strip()
+    if metric not in _BD_METRIC_COL:
+        metric = "actual"
+
+    get_kpi_df()
+    if _kpi_agg_df.empty:
+        return jsonify({"available": False, "message": "kpi 집계 시트를 읽을 수 없습니다."})
+
+    try:
+        kpi_items = _load_kpi_items_from_cache()
+
+        # 차트 라벨 → KPI 항목 index (+ 신규/기존 하위 구분)
+        idx, sub = None, None
+        for i, kpi in enumerate(kpi_items):
+            if str(kpi["name"]).strip() == name:
+                idx = i
+                break
+        if idx is None:
+            for i, kpi in enumerate(kpi_items):
+                for s in ("신규", "기존"):
+                    if str(kpi["name"]).replace("신규/기존", s).strip() == name:
+                        idx, sub = i, s
+                        break
+                if idx is not None:
+                    break
+        if idx is None:
+            return jsonify({"available": False, "message": f"KPI 항목을 찾을 수 없습니다: {name}"})
+
+        kpi = kpi_items[idx]
+        df  = _kpi_dedup_df if not _kpi_dedup_df.empty else _kpi_raw_df
+        if df.empty:
+            return jsonify({"available": False, "message": "취합 데이터가 없습니다."})
+
+        keyword = _BD_METRIC_COL[metric]
+        cols    = [c for c in df.columns if keyword in re.sub(r"\s+", "", str(c))]
+        col     = cols[idx] if idx < len(cols) else None
+        if col is None:
+            return jsonify({"available": False, "message": f"'{keyword}' 컬럼을 찾을 수 없습니다."})
+
+        code_col  = next((c for c in df.columns if "프로젝트코드" in str(c)), None)
+        pname_col = next((c for c in df.columns if "프로젝트명" in str(c)), None)
+        part_col  = next((c for c in df.columns if "파트"      in str(c)), None)
+        stage_col = next((c for c in df.columns if "보고단계"   in str(c)), None)
+        file_col  = next((c for c in df.columns if "파일명"     in str(c)), None)
+
+        is_count_type = isinstance(kpi.get("target", 0), str) and "신규" in str(kpi.get("target", ""))
+
+        rows_out = []
+        for _, r in df.iterrows():
+            raw = r[col]
+            if raw is None:
+                continue
+            vs = str(raw).strip()
+            if not vs or vs in _SKIP_VALS:
+                continue
+
+            if is_count_type:
+                if ":" in vs:
+                    m_new = re.search(r"신규\s*:\s*(\d+)건", vs)
+                    m_old = re.search(r"기존\s*:\s*(\d+)건", vs)
+                    n_new = int(m_new.group(1)) if m_new else 0
+                    n_old = int(m_old.group(1)) if m_old else 0
+                elif vs == "신규":
+                    n_new, n_old = 1, 0
+                elif vs == "기존":
+                    n_new, n_old = 0, 1
+                else:
+                    continue
+                contrib = n_new if sub == "신규" else n_old if sub == "기존" else n_new + n_old
+                if contrib == 0:
+                    continue
+                value = contrib
+            else:
+                num = _parse_col_num(vs)
+                if num is None or num == 0:
+                    continue
+                value = round(num, 4)
+
+            rows_out.append({
+                "project_code": str(r[code_col]).strip() if code_col and r[code_col] not in (None, 0) else "",
+                "project_name": str(r[pname_col]).strip() if pname_col and r[pname_col] not in (None, 0) else "",
+                "part":  str(r[part_col]).strip()  if part_col  and r[part_col]  not in (None, 0) else "",
+                "stage": str(r[stage_col]).strip() if stage_col and r[stage_col] not in (None, 0) else "",
+                "file":  str(r[file_col]).strip()  if file_col  and r[file_col]  not in (None, 0) else "",
+                "value": value,
+            })
+
+        vals    = [x["value"] for x in rows_out]
+        use_sum = is_count_type or kpi["agg"] == "sum"
+        if not vals:
+            total = 0.0
+        elif use_sum:
+            total = round(sum(vals), 2)
+        else:
+            total = round(sum(vals) / len(vals), 2)
+
+        note = "프로젝트당 최우선 보고단계 1건만 반영 (완료 > 중간 > 착수 > 제안)"
+        if is_count_type and metric == "target":
+            note = "신규/기존 건수의 목표는 프로젝트별 값이 아니라 KPI 집계 시트 고정값이라 여기 목록과 다를 수 있습니다."
+
+        return jsonify({
+            "available":     True,
+            "name":          name,
+            "metric":        metric,
+            "metric_label":  _BD_METRIC_LABEL[metric],
+            "agg":           "sum" if use_sum else "avg",
+            "column":        str(col),
+            "rows":          rows_out,
+            "count":         len(rows_out),
+            "total":         total,
+            "is_count_type": is_count_type,
+            "sub":           sub,
+            "note":          note,
+        })
+
+    except Exception as e:
+        logger.error("api_kpi_summary_breakdown 오류: %s", e)
+        return jsonify({"available": False, "message": f"KPI 상세 오류: {e}"})
+
+
 @kpi_bp.route("/api/kpi/reload", methods=["POST"])
 def api_kpi_reload():
     try:

@@ -13,6 +13,9 @@ import { makeBarOptions } from '@/utils/chartOptions';
 import { getChartPalette, getChartTheme } from '@/utils/chartColors';
 // Toggle — 파트별 경상이익 토글 비활성화로 미사용(주석 처리). 복구 시 함께 import
 import { ChartCard, BarChart, DoughnutChart, useTableDndSensors, InfoButton } from '@/components/ui';
+import PerfBreakdownModal from '@/components/features/PerfBreakdownModal/PerfBreakdownModal';
+import type { PerfBreakdownTarget } from '@/hooks/viewmodels/usePerfBreakdownViewModel';
+import type { PerfBreakdownChart } from '@/api/performance.api';
 import {
   INFO_MONTHLY, INFO_PROFIT_RATE, INFO_COST_BREAKDOWN,
   INFO_PLAN_VS_ACTUAL,
@@ -107,6 +110,14 @@ const PerformanceChartSection = () => {
   const { labelColor, gridColor, tickColor } = getChartTheme(dark);
 
   const vm = usePerformanceChartViewModel();
+
+  // 막대 클릭 → 드릴다운 모달. 축 라벨 클릭(datasetIndex -1)은 첫 시리즈로.
+  const [breakdown, setBreakdown] = useState<PerfBreakdownTarget | null>(null);
+  const openBreakdown = useCallback(
+    (chart: PerfBreakdownChart) => (key: string, dsIndex: number) =>
+      setBreakdown({ chart, series: dsIndex < 0 ? 0 : dsIndex, key }),
+    [],
+  );
 
   const [chartOrder, setChartOrder] = useState<string[]>(() => {
     try {
@@ -220,6 +231,7 @@ const PerformanceChartSection = () => {
         <ChartCard.Title><span className={styles.chartTitle}>월별 실적 추이<InfoButton>{INFO_MONTHLY}</InfoButton></span></ChartCard.Title>
         <ChartCard.Body>
           <BarChart
+            onClick={openBreakdown('monthly')}
             labels={vm.monthly.labels}
             datasets={[
               {
@@ -244,6 +256,7 @@ const PerformanceChartSection = () => {
         <ChartCard.Body>
           <BarChart
             horizontal
+            onClick={openBreakdown('planVsActual')}
             labels={vm.planVsActual.labels}
             datasets={[
               { label: '계획(억)', data: vm.planVsActual.planInitial, backgroundColor: planColor },
@@ -267,6 +280,7 @@ const PerformanceChartSection = () => {
         </ChartCard.Title>
         <ChartCard.Body>
           <BarChart
+            onClick={openBreakdown('profitRate')}
             labels={vm.profitRate.labels}
             datasets={[
               { label: '매출', data: vm.profitRate.revenues, backgroundColor: palette.revenue },
@@ -321,13 +335,19 @@ const PerformanceChartSection = () => {
     : visibleCharts.map(c => <SortableChart key={c.id} id={c.id} fullRow={c.id === FULL_ROW_ID}>{c.node}</SortableChart>);
 
   return (
-    <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handleChartDragEnd}>
-      <SortableContext items={visibleCharts.map(c => c.id)} strategy={rectSortingStrategy}>
-        <div className={styles.grid} key={`${dark ? 'dark' : 'light'}-${chartState}`}>
-          {content}
-        </div>
-      </SortableContext>
-    </DndContext>
+    <>
+      <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handleChartDragEnd}>
+        <SortableContext items={visibleCharts.map(c => c.id)} strategy={rectSortingStrategy}>
+          <div className={styles.grid} key={`${dark ? 'dark' : 'light'}-${chartState}`}>
+            {content}
+          </div>
+        </SortableContext>
+      </DndContext>
+
+      {breakdown && (
+        <PerfBreakdownModal target={breakdown} onClose={() => setBreakdown(null)} />
+      )}
+    </>
   );
 };
 

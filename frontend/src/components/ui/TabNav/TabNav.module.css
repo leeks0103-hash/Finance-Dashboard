@@ -5,12 +5,15 @@
   background: transparent;
 }
 
+/* 탭 — 제목(굵고 좁은 자간)과 대비되게 얇게(400) + 넓은 자간 + 작은 크기.
+   활성 탭도 600까지만 올려 제목 800과 구분되게 둔다 */
 .tab {
   position: relative;
-  padding: 14px 20px;
-  font-size: 14px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.6);
+  padding: 14px 18px;
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  color: rgba(255, 255, 255, 0.55);
   background: none;
   border: none;
   cursor: pointer;
@@ -19,12 +22,12 @@
 }
 
 .tab:hover {
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(255, 255, 255, 0.85);
 }
 
 .tab.active {
   color: #fff;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .tab.active::after {

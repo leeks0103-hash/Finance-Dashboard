@@ -24,16 +24,17 @@ const PerformanceInsightSection = () => {
     //   // 달리 placeholder 코드라도 그냥 검색 시도 — 못 찾으면 "결과 없음"이 뜰 뿐 잘못된 매칭이 아님
     //   cell: i => <CopyText text={i.getValue()} onSearch={setPerfSearch} />,
     // }),
-    h.accessor('part', { header: '파트', size: 70 }),
-    h.accessor('note', { header: '비고', cell: i => <span title={i.getValue()}>{i.getValue() || '-'}</span> }),
+    h.accessor('part', { header: '파트', size: 90 }),
+    h.accessor('note', { header: '비고', size: 220, cell: i => <span title={i.getValue()}>{i.getValue() || '-'}</span> }),
     h.accessor('missed_bid_reason', {
       header: '미수사유',
+      size: 260,
       cell: i => {
         const reason = i.getValue() || '-';
         return <span title={reason}>{reason}</span>;
       },
     }),
-    h.accessor('filename', { header: '파일명', cell: i => <span title={i.getValue()}>{i.getValue()}</span> }),
+    h.accessor('filename', { header: '파일명', size: 320, cell: i => <span title={i.getValue()}>{i.getValue()}</span> }),
   ], [setPerfSearch]);
 
   return (
@@ -48,6 +49,8 @@ const PerformanceInsightSection = () => {
       hideToolbar
       /* storageKey — 헤더 드래그로 컬럼 순서 변경 + 폭 조절, localStorage 저장 */
       storageKey="perf-missed-bid"
+      /* sizeVersion — 컬럼별 size 신규 지정 + td max-width 상한 제거에 맞춰 저장된 폭 1회 초기화 */
+      sizeVersion={2}
       defaultPageSize={20}
       pageSizeOptions={[20]}
       emptyIcon="📋"

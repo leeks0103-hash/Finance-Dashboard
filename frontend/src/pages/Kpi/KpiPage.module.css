@@ -68,40 +68,49 @@
   color: var(--text-primary);
 }
 
+/* 세그먼트 토글 — 라이트 모드 배경이 흰색이 되면서 기존 var(--bg) 바탕이
+   흰 툴바 위에서 안 보이던 문제(누네 안 띔). 샌드 바탕 + 테두리로 '컨트롤'임을 드러낸다 */
 .viewToggle {
-  display: flex;
-  gap: 4px;
-  background: var(--bg, #f6f3f2);
+  display: inline-flex;
+  gap: 3px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 3px;
 }
 
 :global([data-theme="dark"]) .viewToggle {
   background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.12);
 }
 
 /* .viewToggle과 묶어 우선순위를 높임 — Button 컴포넌트(ghost variant)의 기본 border/padding을 덮어써야 함 */
 .viewToggle .toggleBtn {
-  padding: 4px 14px;
+  padding: 4px 16px;
   font-size: 0.78rem;
-  font-weight: 500;
+  font-weight: 600;
   border: none;
   border-radius: 6px;
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
 
+.viewToggle .toggleBtn:hover:not(.toggleActive) {
+  background: var(--bg-header);
+  color: var(--text-secondary);
+}
+
 .viewToggle .toggleActive {
-  background: var(--surface);
-  color: var(--text-primary);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
-  font-weight: 600;
+  background: var(--brand);
+  color: #fff;
+  box-shadow: var(--shadow-sm);
+  font-weight: 700;
 }
 
 :global([data-theme="dark"]) .viewToggle .toggleActive {
-  background: rgba(255,255,255,0.12);
+  color: #04263a;   /* --brand(다크=Active Blue #00AAD2) 위에서는 짙은 네이비 글자가 대비가 큼 */
 }
 
 /* 섹션 */

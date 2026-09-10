@@ -401,7 +401,7 @@ def get_perf_df() -> pd.DataFrame:
     return _perf_cached_df
 
 
-_PART_PREFIX_RE = re.compile(r"^[①-⑦]\s*")
+_PART_PREFIX_RE = re.compile(r"^[①-⑳]\s*")   # 프론트 stripPartPrefix와 동일 범위
 
 _PROGRESS_PRIORITY = ["제안", "협의", "착수", "중간", "완료", "인큐베이팅", "이월", "드롭", "미정"]
 
@@ -678,6 +678,125 @@ def api_perf_insights():
         })
 
     return jsonify({"worst": worst, "risk": risk, "comments": comments})
+
+
+# 차트별 드릴다운 매핑 — series 0/1이 각각 어떤 행(category)의 어떤 엑셀 필드를 합산하는지.
+# api_perf_summary의 monthly / by_part 계산과 정확히 같은 필드를 써야 total이 막대값과 일치한다.
+_PERF_BREAKDOWN = {
+    "monthly": {
+        "dim": "month",
+        "agg_desc": "선택한 월의 값을 프로젝트별로 그대로 더한 값입니다 (평균·가중치 없음). 기준월 이후는 추정치입니다.",
+        "series": [
+            {"label": "매출", "category": "매출", "field": "chk_m{mm}",
+             "field_desc": "매출행의 월별 실적 점검 열(엑셀 BI~BT = 1~12월)"},
+            {"label": "원가", "category": "원가", "field": "chk_m{mm}",
+             "field_desc": "원가행의 월별 실적 점검 열(엑셀 BI~BT = 1~12월)"},
+        ],
+    },
+    "planVsActual": {
+        "dim": "part",
+        "agg_desc": "파트별로 프로젝트 값을 단순 합산한 것입니다 (평균·가중치 없음).",
+        "series": [
+            {"label": "계획", "category": "매출", "field": "plan_initial",
+             "field_desc": "매출행의 '최초 사업계획' 금액 (엑셀 V열)"},
+            {"label": "추정 실적", "category": "매출", "field": "jun_check_total",
+             "field_desc": "매출행의 '연간 점검 합계' (엑셀 BH열 = 1~12월 합, 미래월 추정 포함)"},
+        ],
+    },
+    "profitRate": {
+        "dim": "part",
+        "agg_desc": "파트별 단순 합산입니다. 이 화면 값은 매출·원가 '원금액'이며, 손익률(경상손익÷매출)은 여기 없습니다.",
+        "series": [
+            {"label": "매출", "category": "매출", "field": "jun_check_total",
+             "field_desc": "매출행의 연간 점검 합계 (엑셀 BH열)"},
+            {"label": "원가", "category": "원가", "field": "jun_check_total",
+             "field_desc": "원가행의 연간 점검 합계 (엑셀 BH열) — 매출행 '직접원가(BB열)'와 1:1로 대응"},
+        ],
+    },
+}
+
+# 파생 값이 어떻게 만들어지는지 — 모달 '용어' 영역에 항상 표시 (docs/session-log 검증 결과 기준)
+_PERF_CALC_GLOSSARY = [
+    {"term": "매출이익", "formula": "매출(BH) − 직접원가(BB)", "note": "엑셀 BA열. 인건비·공통원가·관리비는 아직 안 뺀 값."},
+    {"term": "경상손익", "formula": "매출이익(BA) − 직접인건비(BC) − 공통원가(BD) − 관리비(BE)", "note": "엑셀 BF열. 실제 총원가는 직접원가만이 아님."},
+    {"term": "손익률",   "formula": "경상손익(BF) ÷ 매출(BH) × 100", "note": "엑셀 BG열. 파트 집계는 합계÷합계(금액 가중)."},
+    {"term": "연간 점검 합계(BH)", "formula": "1월(BI) + … + 12월(BT)", "note": "미래 월은 추정치가 포함된 연간 전망값."},
+]
+
+
+@perf_bp.route("/api/performance/summary/breakdown")
+def api_perf_summary_breakdown():
+    """
+    실적현황 막대 하나가 '어떤 프로젝트 행들을 합산해서' 나온 값인지 드릴다운.
+    - chart:  monthly | planVsActual | profitRate
+    - series: 0 | 1  (차트 데이터셋 순서)
+    - key:    월 라벨("3월") 또는 파트명(접두 원문자 제거된 표시명)
+    필터(part/team)는 summary와 동일하게 적용. 반환 total(억)이 막대값과 일치한다.
+    """
+    df = apply_perf_filters(get_perf_df())
+    if df.empty:
+        return jsonify({"available": False, "message": "표시할 데이터가 없습니다."})
+
+    chart = request.args.get("chart", "").strip()
+    key   = request.args.get("key", "").strip()
+    try:
+        series_idx = int(request.args.get("series", 0))
+    except (ValueError, TypeError):
+        series_idx = 0
+
+    spec = _PERF_BREAKDOWN.get(chart)
+    if not spec or series_idx not in (0, 1):
+        return jsonify({"available": False, "message": f"알 수 없는 차트/시리즈: {chart} / {series_idx}"})
+
+    s     = spec["series"][series_idx]
+    field = s["field"]
+
+    if spec["dim"] == "month":
+        m = re.match(r"(\d+)", key)
+        if not m:
+            return jsonify({"available": False, "message": f"월 형식 오류: {key}"})
+        field = field.format(mm=f"{int(m.group(1)):02d}")
+        sub   = df[df["category"] == s["category"]]
+        key_label = key
+    else:  # part
+        stripped  = df["part"].astype(str).apply(lambda p: _PART_PREFIX_RE.sub("", p).strip())
+        sub       = df[(df["category"] == s["category"]) & (stripped == key)]
+        key_label = key
+
+    if field not in sub.columns:
+        return jsonify({"available": False, "message": f"'{field}' 컬럼을 찾을 수 없습니다."})
+
+    raw_sum  = 0.0
+    rows_out = []
+    for _, r in sub.iterrows():
+        raw = r.get(field)
+        v   = float(raw) if pd.notna(raw) else 0.0
+        if v == 0:
+            continue
+        raw_sum += v
+        rows_out.append({
+            "project_code": str(r.get("project_code", "")).strip(),
+            "project_name": str(r.get("project_name", "")).strip(),
+            "part":  str(r.get("part", "")).strip(),
+            "team":  str(r.get("team", "")).strip(),
+            "value": round(v / 100_000, 1),   # 천원 → 억
+        })
+    rows_out.sort(key=lambda x: x["value"], reverse=True)
+
+    return jsonify({
+        "available":    True,
+        "chart":        chart,
+        "series_label": s["label"],
+        "dim":          spec["dim"],
+        "key":          key_label,
+        "field_desc":   s.get("field_desc", ""),
+        "agg_desc":     spec.get("agg_desc", ""),
+        "glossary":     _PERF_CALC_GLOSSARY,
+        "rows":         rows_out,
+        "count":        len(rows_out),
+        "total":        round(raw_sum / 100_000, 1),   # raw 합계 후 변환 — 막대값(toEokNum)과 동일 기준
+        "unit":         "억",
+    })
 
 
 @perf_bp.route("/api/performance/reload", methods=["POST"])

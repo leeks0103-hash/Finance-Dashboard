@@ -31,3 +31,53 @@ export const getPerfOptions = (): Promise<PerfOptions> =>
 
 export const reloadPerfData = () =>
   client.post('/performance/reload').then(r => r.data);
+
+// ── 실적현황 차트 막대 드릴다운 (어떤 프로젝트 행들을 합산했는지) ──
+export type PerfBreakdownChart = 'monthly' | 'planVsActual' | 'profitRate';
+
+export interface PerfBreakdownRow {
+  project_code: string;
+  project_name: string;
+  part:  string;
+  team:  string;
+  value: number;   // 억
+}
+
+export interface PerfCalcTerm {
+  term:    string;
+  formula: string;
+  note:    string;
+}
+
+export interface PerfBreakdown {
+  available:     boolean;
+  message?:      string;
+  chart?:        PerfBreakdownChart;
+  series_label?: string;
+  dim?:          'month' | 'part';
+  key?:          string;
+  /** 이 막대가 어떤 엑셀 열을 쓰는지 */
+  field_desc?:   string;
+  /** 어떻게 집계했는지(합/평균 등) */
+  agg_desc?:     string;
+  /** 파생 값(매출이익·경상손익 등) 계산식 — 모달 '용어' 영역 */
+  glossary?:     PerfCalcTerm[];
+  rows?:         PerfBreakdownRow[];
+  count?:        number;
+  total?:        number;
+  unit?:         string;
+}
+
+export const getPerfBreakdown = (
+  chart: PerfBreakdownChart,
+  series: number,
+  key: string,
+  parts: string[],
+  team = '',
+): Promise<PerfBreakdown> => {
+  const params = toParams(parts, team);
+  params.set('chart', chart);
+  params.set('series', String(series));
+  params.set('key', key);
+  return client.get<PerfBreakdown>('/performance/summary/breakdown', { params }).then(r => r.data);
+};

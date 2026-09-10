@@ -1,0 +1,225 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 24px;
+  animation: fadeIn 0.16s ease;
+}
+
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  width: 920px;
+  max-width: 100%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.18s ease;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.titleWrap { min-width: 0; }
+
+.title {
+  margin: 0;
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+.sub {
+  margin-top: 3px;
+  font-size: 0.76rem;
+  color: var(--text-muted);
+}
+
+.badge {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
+  background: var(--brand-bg);
+  color: var(--brand-mid);
+  font-weight: 700;
+  font-size: 0.7rem;
+  margin-right: 6px;
+}
+
+.close {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  font-size: 1.15rem;
+  line-height: 1;
+  color: var(--text-muted);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  transition: background 0.14s, color 0.14s, border-color 0.14s;
+}
+.close:hover {
+  background: var(--danger-bg, var(--bg-header));
+  border-color: var(--danger, var(--border));
+  color: var(--danger, var(--text-primary));
+}
+
+.body {
+  padding: 14px 20px 18px;
+  overflow-y: auto;
+}
+
+/* 이 막대가 무슨 데이터인지 설명 — 툴팁 느낌의 안내 박스 */
+.explain {
+  background: var(--brand-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  margin-bottom: 12px;
+}
+.explainLead {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+.explainLead b { color: var(--brand-mid); }
+.explainSub {
+  margin: 4px 0 0;
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+/* 파생 값 계산식 — 접이식 */
+.glossary {
+  margin-top: 12px;
+  font-size: 0.76rem;
+  color: var(--text-sub);
+}
+.glossary > summary {
+  cursor: pointer;
+  color: var(--text-muted);
+  font-weight: 600;
+  padding: 4px 0;
+  user-select: none;
+}
+.glossary > summary:hover { color: var(--text-primary); }
+.glossary dl {
+  margin: 6px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.term {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 8px;
+  align-items: baseline;
+}
+.term dt {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.term dd {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.term code {
+  font-family: 'HyundaiSans', 'Malgun Gothic', monospace;
+  font-size: 0.74rem;
+  color: var(--text-sub);
+}
+.term dd span {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.note {
+  margin: 10px 0 12px;
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+.table th {
+  text-align: left;
+  padding: 7px 10px;
+  background: var(--bg-header);
+  color: var(--text-muted);
+  font-weight: 600;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border);
+}
+.table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  white-space: nowrap;
+}
+.table tbody tr:last-child td { border-bottom: none; }
+.table tbody tr:hover { background: var(--bg-subtle); }
+
+/* 프로젝트코드 · 프로젝트명 칸만 줄바꿈 허용 — 나머지 컬럼(파트·팀·값)이 항상 보이도록 */
+.table td:first-child { white-space: normal; word-break: break-word; }
+
+.numCol { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+.pname  { color: var(--text-muted); }
+
+.totalRow td {
+  background: var(--bg-subtle);
+  font-weight: 800;
+  color: var(--text-primary);
+  border-top: 2px solid var(--border);
+}
+
+.foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+}
+.count { font-size: 0.76rem; color: var(--text-muted); }
+
+.state {
+  padding: 32px 12px;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+@keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp {
+  from { transform: translateY(14px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}

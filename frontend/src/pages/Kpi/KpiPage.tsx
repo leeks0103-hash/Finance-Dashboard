@@ -4,6 +4,7 @@ import { useKpiPageViewModel } from '@/hooks/viewmodels/useKpiPageViewModel';
 import { ChartCard, BarChart, DataTable, CopyText, HighlightText, Button } from '@/components/ui';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import KpiRawTable from '@/components/features/KpiRawTable/KpiRawTable';
+import KpiBreakdownModal from '@/components/features/KpiBreakdownModal/KpiBreakdownModal';
 import { kpiColLabel } from '@/utils/kpiColumns';
 import type { KpiRawRow } from '@/types/kpi.types';
 import type { KpiSummaryRow } from '@/hooks/viewmodels/useKpiPageViewModel';
@@ -43,6 +44,8 @@ const rh = createColumnHelper<KpiRawRow>();
 const KpiPage = () => {
   const vm = useKpiPageViewModel();
   const [rawView, setRawView] = useState<'flat' | 'rowspan'>('flat');
+  // KPI 목표 vs 실적 막대 클릭 → 드릴다운 모달 (0=목표, 1=실적)
+  const [breakdown, setBreakdown] = useState<{ name: string; metric: 'target' | 'actual' } | null>(null);
 
   // flat 뷰 컬럼 — rawCols 변경 시에만 재생성
   const rawColumns = useMemo(
@@ -106,6 +109,9 @@ const KpiPage = () => {
                 <BarChart
                   labels={vm.chart.labels}
                   datasets={vm.chart.datasets}
+                  onClick={(label, dsIndex) =>
+                    setBreakdown({ name: label, metric: dsIndex === 0 ? 'target' : 'actual' })
+                  }
                   options={{
                     indexAxis: 'y',
                     ...vm.chart.options,
@@ -195,6 +201,14 @@ const KpiPage = () => {
           })()}
         </ErrorBoundary>
       </div>
+
+      {breakdown && (
+        <KpiBreakdownModal
+          name={breakdown.name}
+          metric={breakdown.metric}
+          onClose={() => setBreakdown(null)}
+        />
+      )}
 
     </main>
   );

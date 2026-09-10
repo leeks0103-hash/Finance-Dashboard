@@ -20,7 +20,8 @@ interface Props {
   datasets:    ChartData<'bar'>['datasets'];
   horizontal?: boolean;
   options?:    ChartOptions<'bar'>;
-  onClick?:    (label: string) => void;
+  /** 막대 클릭 — 라벨(카테고리)과 데이터셋 인덱스(0=첫 시리즈)를 넘긴다 */
+  onClick?:    (label: string, datasetIndex: number) => void;
 }
 
 // rgba(r,g,b,a) → rgba(r,g,b,1) — 호버 시 완전 불투명으로 밝게
@@ -36,6 +37,23 @@ const BarChart = ({ labels, datasets, horizontal = false, options, onClick }: Pr
         : d.backgroundColor,
     hoverBorderWidth: 0,
   }));
+
+  // 카테고리축 눈금 라벨(가로 막대면 왼쪽, 세로 막대면 아래) 영역에 마우스가 있으면
+  // 그 카테고리 index를 돌려준다 — 라벨 텍스트도 클릭 대상으로 쓰기 위함(막대 클릭인 줄 모르는 문제)
+  const catLabelHit = (event: ChartEvent, chart: Chart): number => {
+    const area = chart.chartArea;
+    const x = event.x ?? -1;
+    const y = event.y ?? -1;
+    const count = chart.data.labels?.length ?? 0;
+    if (horizontal) {
+      if (x <= 0 || x >= area.left || y < area.top || y > area.bottom) return -1;
+      const idx = Math.round(chart.scales.y?.getValueForPixel?.(y) ?? -1);
+      return idx >= 0 && idx < count ? idx : -1;
+    }
+    if (y <= area.bottom || y >= chart.height || x < area.left || x > area.right) return -1;
+    const idx = Math.round(chart.scales.x?.getValueForPixel?.(x) ?? -1);
+    return idx >= 0 && idx < count ? idx : -1;
+  };
 
   const pluginsInput = options?.plugins ?? {};
   const legendRaw: unknown = pluginsInput.legend;
@@ -54,12 +72,28 @@ const BarChart = ({ labels, datasets, horizontal = false, options, onClick }: Pr
       datalabels: { display: false },  // 각 차트에서 options.plugins.datalabels로 override
       ...otherPlugins,
     },
-    onClick: (_event: ChartEvent, elements: ActiveElement[], chart: Chart) => {
-      if (elements.length > 0 && onClick) {
-        const label = chart.data.labels?.[elements[0].index];
-        if (label != null) onClick(String(label));
+    onClick: (event: ChartEvent, elements: ActiveElement[], chart: Chart) => {
+      if (!onClick) return;
+      if (elements.length > 0) {
+        const { index, datasetIndex } = elements[0];
+        const label = chart.data.labels?.[index];
+        if (label != null) onClick(String(label), datasetIndex);
+        return;
+      }
+      // 막대가 아니라 축 라벨 텍스트를 클릭한 경우 — 시리즈 미지정(-1)
+      const li = catLabelHit(event, chart);
+      if (li >= 0) {
+        const label = chart.data.labels?.[li];
+        if (label != null) onClick(String(label), -1);
       }
     },
+    // onClick이 있을 때만 막대·축 라벨 위에서 포인터 커서 — 클릭 가능함을 알린다
+    onHover: onClick
+      ? (event: ChartEvent, elements: ActiveElement[], chart: Chart) => {
+          const hit = elements.length > 0 || catLabelHit(event, chart) >= 0;
+          (chart.canvas as HTMLCanvasElement).style.cursor = hit ? 'pointer' : 'default';
+        }
+      : undefined,
   };
 
   return (
