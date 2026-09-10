@@ -70,13 +70,6 @@ const PartAchievementBars = ({ rows, month, info, onPartClick }: Props) => {
                     className={styles.bar}
                     style={{ width: `${barW}%`, background: color }}
                   />
-                  {pacePct > 0 && (
-                    <div
-                      className={styles.paceMark}
-                      style={{ left: `${pacePct}%` }}
-                      title={`${paceMonth}개월 경과 기준선 — 이 시점이면 여기까지가 정상 페이스`}
-                    />
-                  )}
                   {over && <div className={styles.overMark} style={{ background: color }} />}
                 </div>
 
