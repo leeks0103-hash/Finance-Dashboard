@@ -57,16 +57,16 @@
   justify-content: center;
 }
 
-/* 제목 — 다크 바 위 흰 텍스트. 제목 전용 서체(HyundaiSansHead)의 실제 700 굵기 사용.
-   기존 800 + 자간 -0.03em은 HyundaiSans에 800 파일이 없어 가짜 볼드로 합성되면서
-   한글이 뭉개져 읽기 힘들었음 → 700 + 자간 거의 0으로 또렷하게 */
+/* 제목 — 다크 바 위 흰 텍스트. 제목 전용 서체(HyundaiSansHead) Medium(500)로 덜 뚱뚱하게.
+   글자 높이를 옆 로고(.logo height)에 맞춰 키운다 */
 .brand {
   margin: 0;
   font-family: 'HyundaiSansHead', 'HyundaiSans', 'Malgun Gothic', sans-serif;
-  font-size: 1.12rem;
-  font-weight: 700;
+  font-size: 1.4rem;
+  font-weight: 500;
+  line-height: 1;
   color: #fff;
-  letter-spacing: -0.005em;
+  letter-spacing: -0.01em;
   white-space: nowrap;
 }
 
