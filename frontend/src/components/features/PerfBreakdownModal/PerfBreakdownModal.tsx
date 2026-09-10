@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui';
+import { useScrollLock } from '@/hooks/useScrollLock';
 import {
   usePerfBreakdownViewModel,
   type PerfBreakdownTarget,
@@ -21,15 +22,12 @@ interface Props {
 const PerfBreakdownModal = ({ target, onClose }: Props) => {
   const vm = usePerfBreakdownViewModel(target);
 
+  useScrollLock();
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    const prev = document.body.style.overflow;
     document.addEventListener('keydown', onKey);
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prev;
-    };
+    return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
 
   const handleCsv = () => {

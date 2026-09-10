@@ -9,3 +9,4 @@ export { useFilterOptions } from './useFilterOptions';
 export { usePrefetch } from './usePrefetch';
 export { createDataHook } from './createDataHook';
 export { useBackgroundPrefetch } from './useBackgroundPrefetch';
+export { useScrollLock } from './useScrollLock';

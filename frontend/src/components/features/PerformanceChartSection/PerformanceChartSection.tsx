@@ -30,6 +30,14 @@ const LS_CHART_ORDER = 'performance-chart-order';
 // 항상 한 줄 전체를 차지하는 차트 — 드래그로 순서가 바뀌어도 이 카드가 위치한 줄은 전체 폭 유지
 const FULL_ROW_ID = 'monthly';
 
+// 2번째 줄 카드별 고정 폭(12칸 그리드 기준 span). 슬롯이 아니라 '카드'에 붙어서
+// 재배치해도 파트별 추정 매출/원가(넓게)는 그대로 넓게 유지된다. 합 = 12.
+const SPAN_BY_ID: Record<string, 'spanWide' | 'spanNarrow' | 'spanMid'> = {
+  profitRate:    'spanWide',    // 파트별 추정 매출/원가 — 크게
+  costBreakdown: 'spanNarrow',  // 원가구성 도넛 — 작게
+  planVsActual:  'spanMid',     // 파트별 계획 vs 추정 실적
+};
+
 // 파트별 경상이익 카드 전용 여백 — 그래프 면적을 최대한 넓게 쓰기 위해 직접 지정한다.
 // makeBarOptions의 최소 여백(right 58 / top 30)은 가로 막대 차트가 막대 오른쪽에 수치를 찍기
 // 위한 값이라 세로 막대인 이 차트에서는 낭비된다. resolvePadding이 max()로만 키우므로 여기서 덮어씀.
@@ -58,13 +66,15 @@ const withUnstackedTheme = (
 });
 
 // 드래그 가능 차트 카드 래퍼 — 재무 ChartSection과 동일 패턴(카드 전체가 아닌 그립 아이콘만 드래그)
-interface SortableChartProps { id: string; fullRow?: boolean; children: ReactNode; }
-function SortableChart({ id, fullRow, children }: SortableChartProps) {
+// spanClassName: 2번째 줄 카드는 폭이 슬롯이 아니라 '카드' 기준(각 카드에 고정 span) —
+//   재배치해도 파트별 추정 매출/원가가 좁아지지 않게
+interface SortableChartProps { id: string; fullRow?: boolean; spanClassName?: string; children: ReactNode; }
+function SortableChart({ id, fullRow, spanClassName, children }: SortableChartProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   return (
     <div
       ref={setNodeRef}
-      className={fullRow ? styles.fullRow : undefined}
+      className={[fullRow ? styles.fullRow : '', spanClassName ?? ''].filter(Boolean).join(' ') || undefined}
       style={{
         transform: CSS.Transform.toString(transform),
         transition,
@@ -333,7 +343,16 @@ const PerformanceChartSection = () => {
   const content = chartState === 'loading' ? <ChartStateGrid variant="skeleton" count={5} />
     : chartState === 'error' ? <ChartStateGrid variant="error" icon="⚠" message="데이터를 불러올 수 없습니다" count={5} />
     : chartState === 'empty' ? <ChartStateGrid variant="empty" icon="📊" message="데이터 없음" count={5} />
-    : visibleCharts.map(c => <SortableChart key={c.id} id={c.id} fullRow={c.id === FULL_ROW_ID}>{c.node}</SortableChart>);
+    : visibleCharts.map(c => (
+        <SortableChart
+          key={c.id}
+          id={c.id}
+          fullRow={c.id === FULL_ROW_ID}
+          spanClassName={c.id === FULL_ROW_ID ? undefined : styles[SPAN_BY_ID[c.id] ?? 'spanMid']}
+        >
+          {c.node}
+        </SortableChart>
+      ));
 
   return (
     <>

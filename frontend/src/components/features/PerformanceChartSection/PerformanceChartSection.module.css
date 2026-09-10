@@ -40,12 +40,13 @@
 .dragHandle:hover  { opacity: 0.9; background: var(--bg-subtle); }
 .dragHandle:active { cursor: grabbing; }
 
-/* 월별 실적 추이(전체 폭 1줄) + 파트별 이익율·원가구성·계획vs실적 3개가 한 줄.
-   두 번째 줄 3칸 비율을 담당자 요청으로 불균등하게 — 파트별 경상이익(1번째 칸) 확대,
-   원가구성 도넛(2번째 칸) 축소. 3번째 칸(계획vs추정실적)은 기존 폭 그대로 유지 */
+/* 월별 실적 추이(전체 폭 1줄) + 파트별 추정 매출/원가·원가구성·계획vs실적 3개가 한 줄.
+   12칸 그리드 + 카드마다 고정 span(.spanWide/.spanNarrow/.spanMid, 합 12) — 폭이 '슬롯'이
+   아니라 '카드'에 붙어서, 드래그로 순서를 바꿔도 각 차트 크기가 그대로 유지된다.
+   (예전엔 grid-template-columns 비율이라 재배치 시 좁은 칸으로 가면 차트가 눌렸음) */
 .grid {
   display: grid;
-  grid-template-columns: 1.4fr 0.7fr 1fr;
+  grid-template-columns: repeat(12, 1fr);
   grid-auto-rows: 430px;   /* 한 줄 3개 유지하면서 카드 높이만 키움 */
   gap: 16px;
   animation: contentFadeIn 0.3s ease;
@@ -55,18 +56,25 @@
   grid-column: 1 / -1;
 }
 
+/* 2번째 줄 카드별 고정 폭 (합 = 12) */
+.spanWide   { grid-column: span 5; }   /* 파트별 추정 매출/원가 — 넓게 */
+.spanNarrow { grid-column: span 3; }   /* 원가구성 도넛 — 좁게 */
+.spanMid    { grid-column: span 4; }   /* 파트별 계획 vs 추정 실적 */
+
 @keyframes contentFadeIn {
   from { opacity: 0; }
   to   { opacity: 1; }
 }
 
-/* 좁아지면 3열 → 2열 → 1열 (3열 유지하면 카드가 너무 눌림) */
+/* 좁아지면 3열 → 2열 → 1열 (3열 유지하면 카드가 너무 눌림). 좁은 화면에선 카드별 span 무효화 */
 @media (max-width: 1280px) {
   .grid { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 470px; }
+  .spanWide, .spanNarrow, .spanMid { grid-column: span 1; }
 }
 
 @media (max-width: 768px) {
   .grid { grid-template-columns: 1fr; grid-auto-rows: auto; }
+  .spanWide, .spanNarrow, .spanMid { grid-column: span 1; }
 }
 
 .skeleton {

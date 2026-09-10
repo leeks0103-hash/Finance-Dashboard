@@ -1,6 +1,7 @@
 import { Children, useEffect, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/Button';
+import { useScrollLock } from '@/hooks/useScrollLock';
 import styles from './ChartCard.module.css';
 
 // 마커 컴포넌트 — 실제 렌더링(클래스·배치)은 Root가 전담. 호출부 가독성을 위한 자리 표시자.
@@ -20,17 +21,15 @@ const Root = ({ children, compact = true, expandable = true }: RootProps) => {
   const [title, body] = Children.toArray(children);
   const [expanded, setExpanded] = useState(false);
 
-  // 모달 열림 동안 ESC 닫기 + 배경 스크롤 잠금
+  // 모달 열림 동안 배경 스크롤 잠금 (스크롤바 폭 보정 포함 — 화면 튐 방지)
+  useScrollLock(expanded);
+
+  // 모달 열림 동안 ESC 닫기
   useEffect(() => {
     if (!expanded) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setExpanded(false); };
-    const prevOverflow = document.body.style.overflow;
     document.addEventListener('keydown', onKey);
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prevOverflow;
-    };
+    return () => document.removeEventListener('keydown', onKey);
   }, [expanded]);
 
   // 제목줄 — 기존 제목(+토글 등)은 그대로 두고 우측 끝에 확대 버튼만 덧붙인다

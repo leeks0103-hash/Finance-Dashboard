@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui';
+import { useScrollLock } from '@/hooks/useScrollLock';
 import { useKpiBreakdownViewModel } from '@/hooks/viewmodels/useKpiBreakdownViewModel';
 import { downloadCsvFile } from '@/hooks/useExport';
 import { stripPartPrefix } from '@/utils/format';
@@ -19,16 +20,14 @@ interface Props {
 const KpiBreakdownModal = ({ name, metric, onClose }: Props) => {
   const vm = useKpiBreakdownViewModel(name, metric);
 
-  // ESC 닫기 + 배경 스크롤 잠금 (ChartCard 확대 모달과 동일 패턴)
+  // 배경 스크롤 잠금 (스크롤바 폭 보정 포함 — 화면 튐 방지)
+  useScrollLock();
+
+  // ESC 닫기
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    const prev = document.body.style.overflow;
     document.addEventListener('keydown', onKey);
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prev;
-    };
+    return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
 
   const handleCsv = () => {

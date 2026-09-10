@@ -1,11 +1,12 @@
 import { useRef, useState } from 'react';
 import { Doughnut } from 'react-chartjs-2';
 import { Chart, ArcElement, Tooltip, Legend } from 'chart.js';
-import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { Button } from '@/components/ui/Button';
+// datalabels 등록 + "그래프 수치" 토글 켤 때 숫자 페이드인 (side-effect)
+import '@/utils/datalabelFade';
 import styles from './DoughnutChart.module.css';
 
-Chart.register(ArcElement, Tooltip, Legend, ChartDataLabels);
+Chart.register(ArcElement, Tooltip, Legend);
 
 interface Props {
   labels:       string[];

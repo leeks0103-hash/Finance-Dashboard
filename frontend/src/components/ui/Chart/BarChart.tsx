@@ -2,11 +2,12 @@ import { Bar } from 'react-chartjs-2';
 import {
   Chart, CategoryScale, LinearScale, BarElement, Tooltip, Legend,
 } from 'chart.js';
-import ChartDataLabels from 'chartjs-plugin-datalabels';
 import type { ChartData, ChartOptions, ChartEvent, ActiveElement } from 'chart.js';
+// datalabels 등록 + "그래프 수치" 토글 켤 때 숫자 페이드인 (side-effect)
+import '@/utils/datalabelFade';
 import styles from './BarChart.module.css';
 
-Chart.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend, ChartDataLabels);
+Chart.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
 // Chart.js는 CSS font-family를 무시 — 전역 폰트 직접 주입.
 // GmarketSans/Pretendard는 이 프로젝트에 로드되지 않아(=@font-face·폰트 파일 없음) 실제로는
