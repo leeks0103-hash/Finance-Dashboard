@@ -14,15 +14,20 @@
   min-height: 0;
 }
 
-/* 1열 리스트 — 항목이 3개든 5개든(홀수 포함) 트레일링 빈칸 없이 일관되게 */
+/* 2열 그리드 — 5개면 row-major로 왼쪽 열 3개(1·3·5) / 오른쪽 열 2개(2·4) */
 .legend {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 18px;
   margin: 10px 2px 0;
   padding: 10px 2px 0;
   border-top: 1px solid var(--border);
   list-style: none;
+}
+
+/* 카드가 좁아지면 1열로 */
+@media (max-width: 480px) {
+  .legend { grid-template-columns: 1fr; }
 }
 
 .item {

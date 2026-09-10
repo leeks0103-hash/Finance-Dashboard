@@ -23,16 +23,35 @@ const toEokNum = (v: number | null | undefined) =>
 
 const CURRENT_MONTH_NUM = parseInt(PERF_MONTH, 10);
 
-export interface PerfKpiCard {
-  /** 드래그 순서 저장용 안정 키 — label 텍스트와 무관하게 고정 */
+type PerfAccent = 'brand' | 'warn' | 'profit' | 'loss' | 'purple';
+
+/** 계획 → 추정(연간) 두 값을 나란히 비교하는 카드 (매출·원가·매출이익) */
+export interface PerfCompareCardData {
+  kind:    'compare';
+  id:      string;
+  label:   string;
+  accent:  PerfAccent;
+  planStr: string;   // "321.3억"
+  estStr:  string;   // "376.5억"
+  planNum: number;   // 억 (미니 막대용)
+  estNum:  number;
+  diffStr: string;   // "+55.2억" / "-3.1억"
+  diffUp:  boolean;
+}
+
+/** 단일 값 카드 (경상손익·누계 실적) — 기존 형태 유지 */
+export interface PerfSingleCardData {
+  kind:    'single';
   id:      string;
   label:   string;
   value:   string;
   sub:     string;
-  accent:  'brand' | 'warn' | 'profit' | 'loss' | 'purple';
+  accent:  PerfAccent;
   trendUp: boolean;
   trend?:  string;
 }
+
+export type PerfKpiCard = PerfCompareCardData | PerfSingleCardData;
 
 export interface PerfPartRow {
   part:            string;
@@ -135,49 +154,61 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
   const profitRaw    = total?.operating_profit ?? 0;
   const planRaw      = total?.plan_initial     ?? 0;
   const rateRaw      = total?.avg_profit_rate  ?? 0;
-  const junCheckRaw  = total?.jun_check_total  ?? 0;
-  const grossRaw     = total?.profit_gross     ?? 0;
 
   const animJun    = useCountUp(toEokNum(junActualRaw));
   const animProfit = useCountUp(toEokNum(profitRaw));
-  const animPlan   = useCountUp(toEokNum(planRaw));
   const animRate   = useCountUp(rateRaw);
-  const animCheck  = useCountUp(toEokNum(junCheckRaw));
-  const animGross  = useCountUp(toEokNum(grossRaw));
 
   const kpiCards: PerfKpiCard[] = useMemo(() => {
     if (!total) return [];
     const achieveRate = planRaw > 0 ? ((junActualRaw / planRaw) * 100).toFixed(1) : '-';
 
-    // 전월 대비 계산 — monthly[]는 chk_m01~12 집계, 0-based 인덱스
+    // 전월 대비 — monthly[]는 chk_m01~12 집계, 0-based 인덱스
     const currIdx = CURRENT_MONTH_NUM - 1;
     const curr = monthly[currIdx];
     const prev = currIdx > 0 ? monthly[currIdx - 1] : null;
+    const momTag = (diffK: number | null): string | undefined =>
+      (diffK === null || !prev) ? undefined : `전월대비 ${Math.abs(diffK / 100_000).toFixed(1)}억`;
+    const momRevK  = curr && prev ? curr.revenue - prev.revenue : null;
+    const momProfK = curr && prev ? (curr.revenue - curr.cost) - (prev.revenue - prev.cost) : null;
 
-    const momTag = (diffK: number | null): string | undefined => {
-      if (diffK === null || !prev) return undefined;
-      return `전월대비 ${Math.abs(diffK / 100_000).toFixed(1)}억`;
+    // 계획 → 추정(연간) 2값 비교 카드. 값은 매출행/원가행 각각의 합 (천원 → 억)
+    const mk = (
+      id: string, label: string, accent: PerfAccent, planK: number, estK: number,
+    ): PerfCompareCardData => {
+      const p = toEokNum(planK);
+      const e = toEokNum(estK);
+      const d = +(e - p).toFixed(1);
+      return {
+        kind: 'compare', id, label, accent,
+        planStr: `${p.toFixed(1)}억`, estStr: `${e.toFixed(1)}억`,
+        planNum: p, estNum: e,
+        diffStr: `${d >= 0 ? '+' : ''}${d.toFixed(1)}억`, diffUp: d >= 0,
+      };
     };
 
-    // 카드2: 이번달 점검 매출 vs 전월
-    const momRevK  = curr && prev ? curr.revenue - prev.revenue : null;
-    // 카드4: 이번달 (점검매출-원가) vs 전월
-    const momProfK = curr && prev
-      ? (curr.revenue - curr.cost) - (prev.revenue - prev.cost)
-      : null;
-
     return [
-      // 카드 순서는 담당자 지정 — 계획 → 추정 실적(연간) → 매출 이익 → 경상손익 → 누계 실적
-      { id: 'plan',     label: '매출/원가 계획', value: `${animPlan.toFixed(1)}억원`, sub: `원가 ${formatEok(total.plan_cost)}원 · ${total.count}개 프로젝트`, accent: 'brand', trendUp: true },
-      { id: 'junCheck', label: '매출/원가 추정 실적', value: `${animCheck.toFixed(1)}억원`,  sub: `원가 ${formatEok(total.jun_cost)}원`, accent: 'purple', trendUp: true },
-      // 매출이익 = 매출 - 직접원가 (엑셀 BA열 그대로 사용, 인건비/공통원가/관리비 차감 전 — 경상손익과 구분됨)
-      { id: 'grossProfit', label: '매출이익(당해년도 추정)', value: `${animGross.toFixed(1)}억원`, sub: '직접원가 제외', accent: grossRaw >= 0 ? 'profit' : 'loss', trendUp: grossRaw >= 0 },
-      { id: 'profit',   label: '경상손익(당해년도 추정)', value: `${animProfit.toFixed(1)}억원`, sub: `손익률 ${animRate.toFixed(1)}%`, accent: profitRaw >= 0 ? 'profit' : 'loss', trendUp: momProfK !== null ? momProfK >= 0 : profitRaw >= 0, trend: momTag(momProfK) },
-      // ⚠️ jun_actual = 1~현재월 실제 실적 누계 / jun_check_total = chk_m01~m12 연간 전체(미래월 추정 포함)
-      //    이전에 두 라벨이 서로 반대로 붙어 있었음 (performance.py load_perf_excel 주석 참고)
-      { id: 'junActual', label: `매출/원가 누계 실적 (1~${PERF_MONTH})`, value: `${animJun.toFixed(1)}억원`,    sub: `원가 ${formatEok(total.jun_cost_actual)}원 · 계획 대비 ${achieveRate}%`, accent: junActualRaw >= planRaw ? 'profit' : 'warn', trendUp: momRevK !== null ? momRevK >= 0 : junActualRaw >= planRaw,  trend: momTag(momRevK) },
+      mk('revenue',     '매출 (계획 → 추정)', 'brand',  total.plan_initial,   total.jun_check_total),
+      mk('cost',        '원가 (계획 → 추정)', 'purple', total.plan_cost,      total.jun_cost),
+      mk('grossProfit', '매출이익 (계획 → 추정)',
+         (total.jun_check_total - total.jun_cost) >= 0 ? 'profit' : 'loss',
+         total.plan_initial - total.plan_cost, total.jun_check_total - total.jun_cost),
+      // ↓ 언급 안 한 2개 카드는 그대로 유지 (경상손익 · 누계 실적)
+      {
+        kind: 'single', id: 'profit', label: '경상손익(당해년도 추정)',
+        value: `${animProfit.toFixed(1)}억원`, sub: `손익률 ${animRate.toFixed(1)}%`,
+        accent: profitRaw >= 0 ? 'profit' : 'loss',
+        trendUp: momProfK !== null ? momProfK >= 0 : profitRaw >= 0, trend: momTag(momProfK),
+      },
+      {
+        kind: 'single', id: 'junActual', label: `매출/원가 누계 실적 (1~${PERF_MONTH})`,
+        value: `${animJun.toFixed(1)}억원`,
+        sub: `원가 ${formatEok(total.jun_cost_actual)}원 · 계획 대비 ${achieveRate}%`,
+        accent: junActualRaw >= planRaw ? 'profit' : 'warn',
+        trendUp: momRevK !== null ? momRevK >= 0 : junActualRaw >= planRaw, trend: momTag(momRevK),
+      },
     ];
-  }, [total, monthly, animPlan, animJun, animCheck, animProfit, animGross, animRate, planRaw, junActualRaw, junCheckRaw, profitRaw, grossRaw]);
+  }, [total, monthly, animJun, animProfit, animRate, planRaw, junActualRaw, profitRaw]);
 
   const byPart = useMemo((): PerfPartRow[] => {
     if (!summary?.by_part) return [];

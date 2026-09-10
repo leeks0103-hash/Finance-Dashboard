@@ -1,0 +1,135 @@
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 22px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: relative;
+  overflow: hidden;
+  min-height: 128px;
+  transition: box-shadow 0.2s cubic-bezier(0.16,1,0.3,1);
+}
+.card:hover { box-shadow: var(--shadow-sm); }
+
+/* 상단 2px accent 바 */
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+.brand::before  { background: var(--brand-mid); }
+.profit::before { background: var(--profit); }
+.loss::before   { background: var(--loss); }
+.warn::before   { background: var(--warn); }
+.purple::before { background: var(--purple); }
+
+.label {
+  font-size: 0.70rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.body {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+  flex: 1;
+  min-width: 0;
+}
+
+.values {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.pair {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.plan {
+  font-family: 'HyundaiHarmony', 'HyundaiSansHead', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: -0.02em;
+}
+.arrow { color: var(--text-muted); font-size: 0.9rem; }
+.est {
+  font-family: 'HyundaiHarmony', 'HyundaiSansHead', sans-serif;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--text-primary);
+}
+.brand  .est { color: var(--brand-mid); }
+.profit .est { color: var(--profit); }
+.loss   .est { color: var(--loss); }
+.purple .est { color: var(--purple); }
+
+.diff {
+  align-self: flex-start;
+  font-size: 0.74rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+.up   { background: var(--profit-bg); color: var(--profit); }
+.down { background: var(--loss-bg);   color: var(--loss); }
+
+/* ── 미니 2막대 ── */
+.bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  height: 56px;
+  flex-shrink: 0;
+}
+.barCol {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  height: 100%;
+  justify-content: flex-end;
+}
+.bar {
+  width: 22px;
+  min-height: 3px;
+  border-radius: 2px 2px 0 0;
+  transition: height 0.4s cubic-bezier(0.16,1,0.3,1);
+}
+.barPlan { background: var(--border); }
+.barEst  { background: var(--brand-mid); }
+.brand  .barEst { background: var(--brand-mid); }
+.profit .barEst { background: var(--profit); }
+.loss   .barEst { background: var(--loss); }
+.purple .barEst { background: var(--purple); }
+.barCap {
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+}
+
+:global([data-theme="dark"]) .card { border-color: var(--border); }
+:global([data-theme="dark"]) .card:hover { box-shadow: var(--shadow-md); }
+
+@media (max-width: 900px) {
+  .card { min-height: 108px; padding: 16px 18px 12px; }
+  .est  { font-size: 1.6rem; }
+  .bars { height: 44px; }
+}
