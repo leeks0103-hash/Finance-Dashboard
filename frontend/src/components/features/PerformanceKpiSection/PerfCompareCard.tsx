@@ -3,8 +3,9 @@ import styles from './PerfCompareCard.module.css';
 
 /** 계획 → 추정(연간) 두 값 비교 카드 — 매출·원가·매출이익. 미니 2막대 그래프 포함 */
 const PerfCompareCard = ({ card }: { card: PerfCompareCardData }) => {
-  const max  = Math.max(Math.abs(card.planNum), Math.abs(card.estNum), 1);
-  const hPct = (v: number) => `${Math.round((Math.abs(v) / max) * 100)}%`;
+  const max     = Math.max(Math.abs(card.planNum), Math.abs(card.estNum), 1);
+  const planH   = `${Math.round((Math.abs(card.planNum) / max) * 65)}%`;  // 계획: 최대 65%
+  const estH    = `${Math.round((Math.abs(card.estNum)  / max) * 100)}%`; // 추정: 최대 100%
 
   return (
     <div className={`${styles.card} ${styles[card.accent]}`}>
@@ -24,11 +25,11 @@ const PerfCompareCard = ({ card }: { card: PerfCompareCardData }) => {
 
         <div className={styles.bars} aria-hidden>
           <div className={styles.barCol}>
-            <div className={`${styles.bar} ${styles.barPlan}`} style={{ height: hPct(card.planNum) }} />
+            <div className={`${styles.bar} ${styles.barPlan}`} style={{ height: planH }} />
             <span className={styles.barCap}>계획</span>
           </div>
           <div className={styles.barCol}>
-            <div className={`${styles.bar} ${styles.barEst}`} style={{ height: hPct(card.estNum) }} />
+            <div className={`${styles.bar} ${styles.barEst}`} style={{ height: estH }} />
             <span className={styles.barCap}>추정</span>
           </div>
         </div>

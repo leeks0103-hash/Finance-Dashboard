@@ -51,6 +51,7 @@
   text-transform: uppercase;
   letter-spacing: 0.07em;
   margin-bottom: 14px;
+  padding-right: 28px;
   /* font-family: 'Geist', 'SF Pro Display', monospace; */
   flex-shrink: 0;
 }
@@ -134,6 +135,9 @@
   font-weight: 600;
   color: var(--text);
 }
+
+/* 모달 헤더 안의 드롭다운은 크게 보기에서 불필요 — 숨김 */
+.modalHeader select { display: none; }
 
 .modalClose {
   flex-shrink: 0;

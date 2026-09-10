@@ -189,7 +189,7 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
 
     return [
       mk('revenue',     '매출 (계획/추정)', 'brand',  total.plan_initial,   total.jun_check_total),
-      mk('cost',        '원가 (계획/추정)', 'purple', total.plan_cost,      total.jun_cost),
+      mk('cost',        '원가 (계획/추정)', 'brand',  total.plan_cost,      total.jun_cost),
       mk('grossProfit', '매출이익 (계획/추정)',
          (total.jun_check_total - total.jun_cost) >= 0 ? 'profit' : 'loss',
          total.plan_initial - total.plan_cost, total.jun_check_total - total.jun_cost),

@@ -16,9 +16,11 @@ interface RootProps {
   compact?: boolean;
   /** true(기본) — 제목줄 우측에 확대 버튼 표시, 클릭 시 모달로 크게 보기 */
   expandable?: boolean;
+  /** 모달 확대 시 body 대신 렌더링할 커스텀 콘텐츠 (미지정 시 body 그대로) */
+  modalContent?: ReactNode;
 }
 
-const Root = ({ children, compact = true, expandable = true }: RootProps) => {
+const Root = ({ children, compact = true, expandable = true, modalContent }: RootProps) => {
   const [title, body] = Children.toArray(children);
   const [expanded, setExpanded] = useState(false);
 
@@ -68,7 +70,7 @@ const Root = ({ children, compact = true, expandable = true }: RootProps) => {
         </div>
         {/* chartcard-modal-body — 고정(비해시) 클래스. 페이지별 CSS 모듈이 "모달 안에서만"
             자기 차트 높이를 채우도록 :global()로 걸 수 있는 표식 (예: KpiPage.module.css) */}
-        <div className={`${styles.modalBody} chartcard-modal-body`}>{body}</div>
+        <div className={`${styles.modalBody} chartcard-modal-body`}>{modalContent ?? body}</div>
       </div>
     </div>,
     document.body,

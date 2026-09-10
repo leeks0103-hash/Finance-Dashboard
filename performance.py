@@ -562,6 +562,11 @@ def api_perf_summary():
             "acc_operating_profit": float(rev_grp["acc_operating_profit"].sum()),
             "acc_profit_rate":      _acc_profit_rate(rev_grp),
             "count":            int(len(rev_grp)),
+            # 원가 구성 (도넛 차트용)
+            "cost_direct":   float(rev_grp["cost_direct"].sum()),
+            "cost_labor":    float(rev_grp["cost_labor"].sum()),
+            "cost_overhead": float(rev_grp["cost_overhead"].sum()),
+            "cost_mgmt":     float(rev_grp["cost_mgmt"].sum()),
         }
 
     by_progress_raw = {}

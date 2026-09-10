@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { usePerformanceSummary } from '@/hooks/usePerformanceSummary';
 import { useUiStore } from '@/store';
 import { useTheme } from '@/hooks/useTheme';
@@ -65,6 +65,8 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
   const showLabels = useUiStore(s => s.showChartLabels);
   const { theme } = useTheme();
   const { labelColor } = getChartTheme(theme === 'dark');
+
+  const [selectedCostPart, setSelectedCostPart] = useState<string>('전체');
 
   const monthlyLength = summary?.monthly.length ?? 12;
 
@@ -156,10 +158,21 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
       // 전체 합계 구성비(금액 가중). 프로젝트별 비율의 단순평균이 아님 (직접원가 합계 67.5% vs 단순평균 56.7%).
       //    2026-09-10 경상손익(BF열) 조각 추가 — 매출행 기준. 이제 5조각 합 ≈ 매출(BH)이라
       //    "매출이 어디에 쓰였고 얼마 남았나" 구성이 됨(담당자 요청).
-      costBreakdown: {
+      costBreakdownTotal: {
         labels: ['직접원가', '인건비', '공통원가', '관리비', '경상손익'],
         values: [total.cost_direct, total.cost_labor, total.cost_overhead, total.cost_mgmt, total.operating_profit].map(toEokNum),
       },
+      costBreakdownByPart: Object.fromEntries(
+        parts.map(p => {
+          const bp = summary.by_part[p];
+          return [p, {
+            labels: ['직접원가', '인건비', '공통원가', '관리비', '경상손익'],
+            values: [bp.cost_direct ?? 0, bp.cost_labor ?? 0, bp.cost_overhead ?? 0, bp.cost_mgmt ?? 0, bp.operating_profit ?? 0].map(toEokNum),
+          }];
+        })
+      ),
+      partOptions: ['전체', ...parts.map(stripPartPrefix)],
+      partsRaw: parts,
       progress: {
         labels:       progressEntries,
         revenues:     progressEntries.map(p => toEokNum(summary.by_progress[p].revenue)),
@@ -168,23 +181,36 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
     };
   }, [summary, isLoading]);
 
+  const costBreakdown = useMemo(() => {
+    if (!chartData) return { labels: [], values: [] };
+    if (selectedCostPart === '전체') return chartData.costBreakdownTotal;
+    const rawPart = chartData.partsRaw.find(p => stripPartPrefix(p) === selectedCostPart);
+    return rawPart ? chartData.costBreakdownByPart[rawPart] : chartData.costBreakdownTotal;
+  }, [chartData, selectedCostPart]);
+
   if (!chartData || isLoading) {
     return {
       isLoading, isError, isEmpty: false, showLabels, labelColor,
-      monthly:       { labels: [], revenues: [], costs: [], isFuture: [], options: monthlyOptions },
-      planVsActual:  { labels: [], planInitial: [], junCheckTotal: [], options: planVsActualOptions },
-      profitRate:    { labels: [], rates: [], profits: [], isProfit: [], revenues: [], costs: [], options: profitRateOptions },
-      costBreakdown: { labels: [], values: [] },
-      progress:      { labels: [], revenues: [], expenditures: [], options: progressOptions },
+      monthly:          { labels: [], revenues: [], costs: [], isFuture: [], options: monthlyOptions },
+      planVsActual:     { labels: [], planInitial: [], junCheckTotal: [], options: planVsActualOptions },
+      profitRate:       { labels: [], rates: [], profits: [], isProfit: [], revenues: [], costs: [], options: profitRateOptions },
+      costBreakdown:    { labels: [], values: [] },
+      progress:         { labels: [], revenues: [], expenditures: [], options: progressOptions },
+      partOptions:      ['전체'],
+      selectedCostPart, setSelectedCostPart,
+      chartData: null,
     };
   }
 
   return {
     isLoading, isError, isEmpty: chartData.isEmpty, showLabels, labelColor,
-    monthly:       { ...chartData.monthly,      options: monthlyOptions },
-    planVsActual:  { ...chartData.planVsActual, options: planVsActualOptions },
-    profitRate:    { ...chartData.profitRate,   options: profitRateOptions },
-    costBreakdown:   chartData.costBreakdown,
-    progress:      { ...chartData.progress,     options: progressOptions },
+    monthly:          { ...chartData.monthly,      options: monthlyOptions },
+    planVsActual:     { ...chartData.planVsActual, options: planVsActualOptions },
+    profitRate:       { ...chartData.profitRate,   options: profitRateOptions },
+    costBreakdown,
+    progress:         { ...chartData.progress,     options: progressOptions },
+    partOptions:      chartData.partOptions,
+    selectedCostPart, setSelectedCostPart,
+    chartData,
   };
 };

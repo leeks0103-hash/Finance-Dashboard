@@ -15,9 +15,10 @@ interface Props {
 
 // 달성률 구간별 색 — 막대와 범례가 같은 정의를 쓰도록 한 곳에서 관리
 const RATE_BANDS = [
-  { min: 100, color: 'var(--profit)', label: '100% 이상' },
+  { min: 100, color: 'var(--profit)',   label: '100% 이상' },
   { min: 70,  color: 'var(--sky-blue)', label: '70~100%' },
-  { min: -Infinity, color: 'var(--warn)', label: '70% 미만' },   // Hyundai Gold (PMS 876C)
+  { min: 50,  color: 'rgba(160,174,192,0.9)', label: '50~70%' },
+  { min: -Infinity, color: 'var(--warn)', label: '50% 미만' },
 ];
 
 const barColor = (rate: number) =>
@@ -26,10 +27,6 @@ const barColor = (rate: number) =>
 const PartAchievementBars = ({ rows, month, info, onPartClick }: Props) => {
   const sorted = sortByPart(rows, r => r.part);   // 담당자 지정 고정 순서
 
-  // 경과 기준선 — 분자는 N개월 누계인데 분모는 연간 계획이라, 이 시점이면 여기까지 와야 '정상 페이스'.
-  // 막대가 이 선을 넘으면 계획보다 앞선 것. (달성률 자체를 안분으로 바꾸는 대신 기준선으로 오독 방지)
-  const paceMonth = parseInt(month, 10) || 0;
-  const pacePct   = paceMonth > 0 ? (paceMonth / 12) * 100 : 0;
 
   return (
     <div className={styles.sectionGroup}>
@@ -43,12 +40,6 @@ const PartAchievementBars = ({ rows, month, info, onPartClick }: Props) => {
               {b.label}
             </span>
           ))}
-          {pacePct > 0 && (
-            <span className={styles.legendItem}>
-              <i className={styles.paceDot} />
-              {paceMonth}개월 경과 기준선 ({pacePct.toFixed(0)}%)
-            </span>
-          )}
         </span>
       </div>
 

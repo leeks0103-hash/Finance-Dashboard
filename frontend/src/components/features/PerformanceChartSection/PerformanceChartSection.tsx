@@ -14,6 +14,7 @@ import { getChartPalette, getChartTheme } from '@/utils/chartColors';
 // Toggle — 파트별 경상이익 토글 비활성화로 미사용(주석 처리). 복구 시 함께 import
 import { ChartCard, BarChart, DoughnutChart, useTableDndSensors, InfoButton } from '@/components/ui';
 import PerfBreakdownModal from '@/components/features/PerfBreakdownModal/PerfBreakdownModal';
+import CostBreakdownModal from './CostBreakdownModal';
 import type { PerfBreakdownTarget } from '@/hooks/viewmodels/usePerfBreakdownViewModel';
 import type { PerfBreakdownChart } from '@/api/performance.api';
 import {
@@ -222,12 +223,21 @@ const PerformanceChartSection = () => {
   // 표시(anchor/align 'end', 부호 분기 불필요). 그룹형 막대라 stacked 해제
   const partRevCostOptions = useMemo(() => ({
     ...withUnstackedTheme(makeBarOptions(vm.showLabels, labelColor, {
-      layout: { padding: PROFIT_PADDING },
+      layout: { padding: { ...PROFIT_PADDING, top: 36 } },
       plugins: {
-        datalabels: { anchor: 'end', align: 'end', formatter: (v: number) => `${v}억` },
+        datalabels: {
+          anchor: 'end',
+          align: 'end',
+          offset: 2,
+          font: { size: 10 },
+          formatter: (v: number) => `${v}억`,
+        },
       },
     }), scaleOverride),
-    scales: { ...scaleOverride, y: { ...scaleOverride.y, ticks: { ...scaleOverride.y.ticks, callback: (v: string | number) => v + '억' } } },
+    scales: {
+      x: { ...scaleOverride.x, stacked: false, offset: true, ticks: { ...scaleOverride.x.ticks, align: 'center' } },
+      y: { ...scaleOverride.y, ticks: { ...scaleOverride.y.ticks, callback: (v: string | number) => v + '억' } },
+    },
   }), [vm.showLabels, labelColor, scaleOverride]);
 
   // progress 차트 비활성으로 미사용 — 복구 시 함께 주석 해제
@@ -303,8 +313,30 @@ const PerformanceChartSection = () => {
       </ChartCard>
     ),
     costBreakdown: () => (
-      <ChartCard>
-        <ChartCard.Title><span className={styles.chartTitle}>프로젝트 합계 원가비율<InfoButton>{INFO_COST_BREAKDOWN}</InfoButton></span></ChartCard.Title>
+      <ChartCard
+        modalContent={
+          <CostBreakdownModal
+            total={vm.chartData?.costBreakdownTotal ?? { labels: [], values: [] }}
+            byPart={vm.chartData?.costBreakdownByPart ?? {}}
+            partsRaw={vm.chartData?.partsRaw ?? []}
+            colors={doughnutColors}
+            showLabels={vm.showLabels}
+          />
+        }
+      >
+        <ChartCard.Title>
+          <span className={styles.chartTitle}>전체 평균 원가 비율<InfoButton>{INFO_COST_BREAKDOWN}</InfoButton></span>
+          <select
+            className="pageSize"
+            value={vm.selectedCostPart}
+            onChange={e => vm.setSelectedCostPart(e.target.value)}
+            style={{ fontSize: '0.72rem', padding: '2px 6px', marginLeft: '8px' }}
+          >
+            {vm.partOptions.map(p => (
+              <option key={p} value={p}>{p}</option>
+            ))}
+          </select>
+        </ChartCard.Title>
         <ChartCard.Body>
           <DoughnutChart
             labels={vm.costBreakdown.labels}

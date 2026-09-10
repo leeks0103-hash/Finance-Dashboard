@@ -11,6 +11,8 @@
   position: relative;
   overflow: hidden;
   min-height: 128px;
+  height: 100%;
+  box-sizing: border-box;
   transition: box-shadow 0.2s cubic-bezier(0.16,1,0.3,1),
               transform  0.2s cubic-bezier(0.16,1,0.3,1);
   cursor: default;
@@ -46,8 +48,8 @@
 
 .label {
   font-size: 0.70rem;
-  font-weight: 500;
-  color: var(--text-muted);
+  font-weight: 700;
+  color: var(--text-sub);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   /* font-family: 'Geist', 'SF Pro Display', monospace; */
