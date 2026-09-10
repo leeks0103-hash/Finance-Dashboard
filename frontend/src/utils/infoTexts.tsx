@@ -127,11 +127,23 @@ export const INFO_ACHIEVEMENT_BARS = (
 export const INFO_PART_TABLE = (
   <InfoTable rows={[
     ['출처',   '실적현황 엑셀'],
-    ['컬럼',   <Chips items={[
-      `${PERF_COL.actualRange} (실적)`, `${PERF_COL.actualRange} (원가, category=원가)`,
-      `${PERF_COL.checkTotal}열 (점검 연간)`, `${PERF_COL.operatingProfit}열 (경상손익)`, `${PERF_COL.profitRate}열 (손익률)`,
-    ]} />],
-    ['계산',   '파트별 합계 (천원 → 억원)'],
+    ['누계 컬럼', <>
+      <Chips items={[`${PERF_COL.actualRange}`]} />
+      <div style={{ marginTop: 4 }}>누계매출 · 누계원가 · 원가율 · 경상손익(누계) · 손익률(누계)</div>
+    </>],
+    ['연간 컬럼', <>
+      <Chips items={[`${PERF_COL.planInitial}열 (계획)`, `${PERF_COL.checkTotal}열 (추정)`,
+                     `${PERF_COL.operatingProfit}열 (경상손익)`, `${PERF_COL.profitRate}열 (손익률)`]} />
+      <div style={{ marginTop: 4 }}>매출 계획 · 추정 실적 · 경상손익(연간추정) · 손익률(연간추정)</div>
+    </>],
+    ['⚠️ 주의', <>
+      엑셀의 경상손익({PERF_COL.operatingProfit}열)은 <b>연간 기준</b>입니다
+      (매출·원가 모두 1~12월 값에서 계산).
+      <br />
+      그래서 <b>누계 경상손익은 대시보드가 따로 계산</b>합니다 —
+      누계 매출이익에 엑셀과 동일한 배부율(간접비 ÷ 매출이익)을 적용.
+    </>],
+    ['계산',   '파트별 합계 (천원 → 억원). 손익률은 합계÷합계(금액 가중), 좌측 빨간 선은 누계 손익 기준'],
     ['필터',   '파트 · 팀 필터 적용'],
   ]} />
 );

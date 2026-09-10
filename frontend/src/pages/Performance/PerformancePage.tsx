@@ -1,7 +1,6 @@
-// 파트별 실적 표 비활성으로 미사용 — 복구 시 함께 주석 해제
-// import { createColumnHelper } from '@tanstack/react-table';
-// import type { PerfPartRow } from '@/hooks/viewmodels/usePerformanceViewModel';
+import { createColumnHelper } from '@tanstack/react-table';
 import { usePerformanceViewModel } from '@/hooks/viewmodels/usePerformanceViewModel';
+import type { PerfPartRow } from '@/hooks/viewmodels/usePerformanceViewModel';
 import { DataTable, InfoButton } from '@/components/ui';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import PerformanceChartSection from '@/components/features/PerformanceChartSection/PerformanceChartSection';
@@ -12,10 +11,10 @@ import { perfColumns, PERF_HIDEABLE_COLS, PERF_DEFAULT_HIDDEN } from '@/componen
 import FinanceCrossCheckPanel from '@/components/features/PerformanceTable/FinanceCrossCheckPanel';
 import FinanceSearchResults from '@/components/features/PerformanceTable/FinanceSearchResults';
 import type { PerfProject } from '@/types/performance.types';
-// PERF_YEAR·stripPartPrefix·INFO_PART_TABLE — 파트별 실적 표 비활성으로 미사용, 복구 시 함께 해제
-import { PERF_MONTH } from '@/utils';
+import { PERF_YEAR, PERF_MONTH, stripPartPrefix } from '@/utils';
 import {
   INFO_ACHIEVEMENT_BARS,
+  INFO_PART_TABLE,
   INFO_INSIGHT,
   INFO_PROJECT_TABLE,
   INFO_FINANCE_SEARCH,
@@ -33,40 +32,41 @@ const perfGroupKey = (row: PerfProject) => {
   return REAL_CODE.test(code) ? code : `${code}␟${row.project_name}`;
 };
 
-// ── 파트별 실적 표 — 비활성(주석 처리) ────────────────────────────────────
-// 사유: 한 표 안에 기준이 다른 값이 섞여 있어 오독을 부름(담당자 협의 결론, 2026-09-10).
-//   · 누계 기준  : 누계매출 / 누계 원가 / 원가율   (1~8월, BI~BP)
-//   · 연간 기준  : 매출 계획 / 추정 실적 / 경상손익 / 손익률 (BH·BF)
-//   특히 누계매출(142.4억) 옆에 연간 경상손익(14.3억)이 놓여 14.3÷142.4=10.0% 로
-//   암산하기 쉬운데, 실제 연간 손익률은 3.8%다(분자만 연간, 분모는 8개월).
-// 복구 조건: 컬럼별 기준을 명시하거나, 누계 기준 손익을 별도 산출해 기준을 통일한 뒤 해제할 것.
-//   (누계 기준 재계산 방법은 scripts/make_analysis_report.py 및 docs/session-log.md 참고)
-//
-// const hp = createColumnHelper<PerfPartRow>();
-// const byPartColumns = [
-//   hp.accessor('part', {
-//     header: '파트', enableSorting: true,
-//     cell: i => stripPartPrefix(i.getValue()),
-//   }),
-//   hp.accessor('planInitial',   { header: '매출 계획',    enableSorting: true }),
-//   hp.accessor('junActual',     { header: `누계매출 (1~${PERF_MONTH})`, enableSorting: true }),
-//   hp.accessor('junCost',       { header: `누계 원가 (1~${PERF_MONTH})` }),
-//   hp.accessor('costRateStr',   { header: '원가율' }),
-//   hp.accessor('junCheckTotal', { header: '추정 실적 (연간)' }),
-//   hp.accessor('operatingProfit', {
-//     header: '경상손익',
-//     cell: i => {
-//       const row = i.row.original;
-//       return (
-//         <span style={{ color: row.isLoss ? 'var(--loss)' : 'var(--profit)', fontWeight: row.isLoss ? 600 : undefined }}>
-//           {row.operatingProfit}
-//         </span>
-//       );
-//     },
-//   }),
-//   hp.accessor('profitRate', { header: '손익률' }),
-//   hp.accessor('count',      { header: '건수', cell: i => String(i.getValue()) }),
-// ];
+// ── 파트별 실적 컬럼 ─────────────────────────────────────────────────────
+// 이 표는 기준이 다른 두 종류의 값을 함께 싣는다. 헤더에 기준을 반드시 명시할 것.
+//   · 누계(1~기준월) : 누계매출 · 누계원가 · 원가율 · 누계 경상손익 · 누계 손익률
+//   · 연간 추정      : 매출 계획 · 추정 실적 · 경상손익 · 손익률
+// 예전에는 누계 컬럼 옆에 연간 경상손익만 있어서 14.3÷142.4=10.0% 처럼 기간이 어긋난
+// 암산을 유발했다(실제 연간 손익률 3.8%). 지금은 누계 손익을 따로 계산해 나란히 둔다.
+// 누계 경상손익 산출 근거는 performance.py load_perf_excel()의 '누계 기준 경상손익 재구성' 참고.
+const hp = createColumnHelper<PerfPartRow>();
+const profitCell = (value: string, loss: boolean) => (
+  <span style={{ color: loss ? 'var(--loss)' : 'var(--profit)', fontWeight: loss ? 600 : undefined }}>
+    {value}
+  </span>
+);
+const byPartColumns = [
+  hp.accessor('part', {
+    header: '파트', enableSorting: true,
+    cell: i => stripPartPrefix(i.getValue()),
+  }),
+  hp.accessor('planInitial',   { header: '매출 계획 (연간)', enableSorting: true }),
+  hp.accessor('junActual',     { header: `누계매출 (1~${PERF_MONTH})`, enableSorting: true }),
+  hp.accessor('junCost',       { header: `누계 원가 (1~${PERF_MONTH})` }),
+  hp.accessor('costRateStr',   { header: '원가율 (누계)' }),
+  hp.accessor('accOperatingProfit', {
+    header: `경상손익 (누계 1~${PERF_MONTH})`,
+    cell: i => profitCell(i.row.original.accOperatingProfit, i.row.original.isAccLoss),
+  }),
+  hp.accessor('accProfitRate', { header: '손익률 (누계)' }),
+  hp.accessor('junCheckTotal', { header: '추정 실적 (연간)' }),
+  hp.accessor('operatingProfit', {
+    header: '경상손익 (연간추정)',
+    cell: i => profitCell(i.row.original.operatingProfit, i.row.original.isLoss),
+  }),
+  hp.accessor('profitRate', { header: '손익률 (연간추정)' }),
+  hp.accessor('count',      { header: '건수', cell: i => String(i.getValue()) }),
+];
 
 const PerformancePage = () => {
   const vm = usePerformanceViewModel();
@@ -95,14 +95,12 @@ const PerformancePage = () => {
         </div>
       )}
 
-      {/* ── 파트별 실적 표 — 비활성(주석 처리, 2026-09-10) ────────────────────
-          기준이 섞여 있어 오독 소지가 커 담당자 협의로 잠시 내림. 상단 byPartColumns
-          주석의 사유·복구 조건 참고. 아래 블록과 byPartColumns를 함께 해제하면 복구됨.
+      {/* 파트별 실적 */}
       <div className="fadeUp" style={{ animationDelay: '200ms' }}>
         <ErrorBoundary>
           <div className={styles.sectionGroup}>
             <h3 className={styles.sectionTitle}>
-              파트별 실적 ({PERF_YEAR} {PERF_MONTH} 기준, 억원)
+              파트별 실적 ({PERF_YEAR}, 억원) — 누계 1~{PERF_MONTH} / 추정 연간
               <InfoButton>{INFO_PART_TABLE}</InfoButton>
             </h3>
             <div className={styles.section}>
@@ -110,18 +108,19 @@ const PerformancePage = () => {
                 data={vm.byPart}
                 columns={byPartColumns as never}
                 getRowId={(row) => row.part}
-                getRowVariant={(row) => row.isLoss ? 'loss' : ''}
+                /* 손실 표시는 누계 기준 — 표 제목이 누계를 먼저 말하므로 기준을 맞춘다 */
+                getRowVariant={(row) => row.isAccLoss ? 'loss' : ''}
                 defaultPageSize={10}
                 pageSizeOptions={[10]}
                 compact
                 hideToolbar
-                storageKey="performance-by-part"
+                /* v2 — 컬럼 2개 추가로 저장된 폭·순서 1회 초기화 */
+                storageKey="performance-by-part-v2"
               />
             </div>
           </div>
         </ErrorBoundary>
       </div>
-      ──────────────────────────────────────────────────────────────────── */}
 
       {/* 미수주 프로젝트 */}
       <div className="fadeUp" style={{ animationDelay: '250ms' }}>

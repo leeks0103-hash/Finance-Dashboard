@@ -334,6 +334,42 @@ def load_perf_excel():
         current_month_num, ", ".join(elapsed_month_cols),
     )
 
+    # ── 누계(1~현재월) 기준 경상손익 재구성 ──────────────────────────────
+    # 엑셀의 경상손익(BF)은 100% 연간 기준이다: BF = AR − (BB+BC+BD+BE) 인데
+    # AR(=BH)도, BB(=원가행 BH)도, BC~BE(=매출이익 BA × 배부율)도 전부 1~12월 값이다.
+    # 그래서 "8월까지 실제로 얼마 남겼나"에 답할 수 있는 값이 원본에 아예 없다.
+    #
+    # 엑셀 원본 수식(BC/BD/BE)은 모두 `매출이익 × 배부율` 형태이고, 그 배부율은
+    # (팀 × 교육형태)별 상수다(참조표 910~965행에서 SUMIFS로 조회. 226건 100% 검증).
+    # 따라서 행별로 (BC+BD+BE) ÷ BA 로 배부율을 역산해, 같은 비율을 누계 매출이익에
+    # 적용하면 동일한 회계 원칙(간접비는 매출이익에 비례 배부)으로 누계 손익을 만들 수 있다.
+    #
+    # 짝짓기는 엑셀 수식과 동일하게 "바로 아랫줄"을 원가행으로 본다(BB 수식이 AR14 참조).
+    # 짝을 못 찾은 매출행은 직접원가 0으로 두어 과대계상되지 않게 한다.
+    cat = df["category"].values
+    acc_rev_all = df["jun_actual"].values          # 위에서 1~현재월로 보정된 값
+    acc_direct = np.zeros(len(df))
+    for i in range(len(df) - 1):
+        if cat[i] == "매출" and cat[i + 1] == "원가":
+            acc_direct[i] = acc_rev_all[i + 1]
+    acc_gross = np.where(cat == "매출", acc_rev_all - acc_direct, 0.0)
+
+    gross = df["profit_gross"].values                                    # BA (연간 매출이익)
+    indirect = (df["cost_labor"] + df["cost_overhead"] + df["cost_mgmt"]).values  # BC+BD+BE
+    with np.errstate(divide="ignore", invalid="ignore"):
+        alloc_rate = np.where(gross > 0, indirect / np.where(gross == 0, 1, gross), 0.0)
+    alloc_rate = np.nan_to_num(alloc_rate)
+
+    # 엑셀이 IF(BA>0)로 적자행에 간접비를 안 물리는 것과 같은 규칙을 누계에도 적용
+    df["acc_profit_gross"]     = acc_gross
+    df["acc_operating_profit"] = np.where(acc_gross > 0, acc_gross * (1 - alloc_rate), acc_gross)
+    logger.info(
+        "누계 경상손익 재구성: 매출이익 %.1f억 → 경상손익 %.1f억 (역산 배부율 평균 %.1f%%)",
+        acc_gross.sum() / 100_000,
+        df["acc_operating_profit"].sum() / 100_000,
+        alloc_rate[gross > 0].mean() * 100 if (gross > 0).any() else 0,
+    )
+
     df = df.where(df.notna(), other=None)
     df["filename"] = os.path.basename(PERF_EXCEL_PATH)
 
@@ -392,6 +428,18 @@ def _weighted_profit_rate(group) -> float:
     if not base:
         return 0.0
     return round(float(group["operating_profit"].sum()) / base * 100, 1)
+
+
+def _acc_profit_rate(group) -> float:
+    """누계 손익률 = 누계 경상손익 합계 / 누계 매출 합계 × 100.
+
+    연간 기준 _weighted_profit_rate와 같은 '합계 ÷ 합계' 방식이되, 분자·분모를
+    모두 누계(1~기준월)로 맞춘다. 분모가 연간이면 손익률이 부풀려지므로 반드시 짝을 맞출 것.
+    """
+    base = float(group["jun_actual"].sum())
+    if not base:
+        return 0.0
+    return round(float(group["acc_operating_profit"].sum()) / base * 100, 1)
 
 
 def _bil_perf(v) -> str:
@@ -485,6 +533,9 @@ def api_perf_summary():
         "jun_check_total":  float(rev["jun_check_total"].sum()),
         "operating_profit": float(rev["operating_profit"].sum()),
         "profit_gross":     float(rev["profit_gross"].sum()),
+        # 누계(1~기준월) 기준 재구성값 — 위 operating_profit/profit_gross는 연간 기준
+        "acc_operating_profit": float(rev["acc_operating_profit"].sum()),
+        "acc_profit_gross":     float(rev["acc_profit_gross"].sum()),
         "cost_direct":      float(rev["cost_direct"].sum()),
         "cost_labor":       float(rev["cost_labor"].sum()),
         "cost_overhead":    float(rev["cost_overhead"].sum()),
@@ -507,6 +558,9 @@ def api_perf_summary():
             "jun_cost_check":   float(cost_grp["jun_check_total"].sum()),
             "operating_profit": float(rev_grp["operating_profit"].sum()),
             "avg_profit_rate":  _weighted_profit_rate(rev_grp),
+            # 누계(1~기준월) 기준 — 누계매출/누계원가와 같은 기간이라 나란히 비교 가능
+            "acc_operating_profit": float(rev_grp["acc_operating_profit"].sum()),
+            "acc_profit_rate":      _acc_profit_rate(rev_grp),
             "count":            int(len(rev_grp)),
         }
 

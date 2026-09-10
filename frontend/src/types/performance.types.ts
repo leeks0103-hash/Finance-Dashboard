@@ -96,6 +96,10 @@ export interface PerfPartStats {
   jun_check_total:  number;
   /** 연간 추정 원가 — jun_check_total(추정 매출)의 짝 */
   jun_cost_check:   number;
+  /** 누계(1~기준월) 경상손익 — 누계매출/누계원가와 같은 기간. 엑셀에 없어 대시보드가 재구성 */
+  acc_operating_profit: number;
+  /** 누계 손익률(%) = 누계 경상손익 ÷ 누계매출 */
+  acc_profit_rate:      number;
   operating_profit: number;
   avg_profit_rate:  number;
   count:            number;

@@ -40,8 +40,16 @@ export interface PerfPartRow {
   junActual:       string;
   junCost:         string;
   junCheckTotal:   string;
+  /** 연간 추정 기준 경상손익 (엑셀 BF열) */
   operatingProfit: string;
+  /** 연간 추정 기준 손익률 */
   profitRate:      string;
+  /** 누계(1~기준월) 경상손익 — 누계매출·누계원가와 같은 기간 */
+  accOperatingProfit: string;
+  /** 누계 손익률 */
+  accProfitRate:      string;
+  /** 누계 경상손익이 음수인가 (연간 isLoss와 별개) */
+  isAccLoss:          boolean;
   count:           number;
   isLoss:          boolean;
   planInitialNum:  number;
@@ -186,6 +194,9 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
           planInitial: formatEok(s.plan_initial), junActual: formatEok(s.jun_actual),
           junCost: formatEok(s.jun_cost), junCheckTotal: formatEok(s.jun_check_total),
           operatingProfit: formatEok(s.operating_profit), profitRate: `${s.avg_profit_rate.toFixed(1)}%`,
+          accOperatingProfit: formatEok(s.acc_operating_profit),
+          accProfitRate: `${(s.acc_profit_rate ?? 0).toFixed(1)}%`,
+          isAccLoss: (s.acc_operating_profit ?? 0) < 0,
           count: s.count, isLoss: s.operating_profit < 0,
           planInitialNum, junActualNum, junCostNum, profitRateNum: s.avg_profit_rate, costRateStr: costRate,
           achieveRateNum,
