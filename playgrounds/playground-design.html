@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>KPI Card Designer — Finance Dashboard</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#0f0f0f;color:#e5e5e5;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+header{padding:10px 18px;border-bottom:1px solid #222;display:flex;align-items:center;gap:10px;font-size:13px;color:#666;flex-shrink:0}
+header strong{color:#e5e5e5;font-size:14px}
+.main{display:grid;grid-template-columns:270px 1fr;flex:1;overflow:hidden}
+.controls{background:#111;border-right:1px solid #222;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:14px}
+.section-label{font-size:10px;font-weight:700;color:#444;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px}
+.presets{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.preset-btn{background:#1a1a1a;border:1px solid #2a2a2a;color:#888;padding:6px;border-radius:6px;cursor:pointer;font-size:12px;transition:all .15s;text-align:center}
+.preset-btn:hover{background:#252525;color:#ccc}
+.preset-btn.active{background:#6366f1;border-color:#6366f1;color:#fff}
+.control-row{display:flex;flex-direction:column;gap:5px;margin-bottom:2px}
+.control-label{display:flex;justify-content:space-between;font-size:11px;color:#888}
+.control-label span{color:#ccc;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:#6366f1;cursor:pointer;margin:2px 0}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:#888;padding:5px 0}
+.toggle{position:relative;width:34px;height:18px}
+.toggle input{opacity:0;width:0;height:0}
+.slider-t{position:absolute;inset:0;background:#222;border-radius:20px;cursor:pointer;transition:.2s}
+.slider-t::before{content:'';position:absolute;width:12px;height:12px;left:3px;top:3px;background:#555;border-radius:50%;transition:.2s}
+.toggle input:checked+.slider-t{background:#6366f1}
+.toggle input:checked+.slider-t::before{transform:translateX(16px);background:#fff}
+select{background:#1a1a1a;border:1px solid #2a2a2a;color:#ccc;padding:5px 8px;border-radius:6px;font-size:12px;width:100%;cursor:pointer}
+.hue-bar{width:100%;height:7px;border-radius:4px;background:linear-gradient(to right,hsl(0,70%,55%),hsl(60,70%,55%),hsl(120,70%,55%),hsl(180,70%,55%),hsl(240,70%,55%),hsl(300,70%,55%),hsl(360,70%,55%));margin-bottom:4px}
+.divider{height:1px;background:#1e1e1e}
+.right{display:grid;grid-template-rows:1fr 150px;overflow:hidden}
+.preview-area{display:flex;align-items:center;justify-content:center;gap:14px;padding:28px;overflow:auto;transition:background .3s;background:#111827;flex-wrap:wrap}
+.preview-area.light{background:#f1f5f9}
+.kpi-card{width:190px;display:flex;flex-direction:column;gap:8px;cursor:pointer;transition:transform .15s,box-shadow .15s;background:#1e293b}
+.kpi-card.hover-on:hover{transform:translateY(-3px)}
+.card-header{display:flex;align-items:center;justify-content:space-between}
+.card-label{font-size:11px;color:#666}
+.card-icon{font-size:16px}
+.card-value{font-weight:700;color:#e5e5e5;line-height:1.1}
+.card-trend{font-size:11px;display:flex;align-items:center;gap:4px}
+.up{color:#10b981}.dn{color:#ef4444}
+.prompt-area{background:#111;border-top:1px solid #222;padding:14px 18px;display:flex;flex-direction:column;gap:8px}
+.prompt-label{font-size:10px;color:#444;text-transform:uppercase;letter-spacing:.1em}
+.prompt-text{font-family:Consolas,monospace;font-size:12px;color:#a5b4fc;line-height:1.5;flex:1;overflow-y:auto;white-space:pre-wrap}
+.copy-btn{align-self:flex-start;background:#6366f1;color:#fff;border:none;padding:5px 14px;border-radius:6px;font-size:12px;cursor:pointer;transition:background .15s}
+.copy-btn:hover{background:#4f46e5}
+.copy-btn.ok{background:#10b981}
+</style>
+</head>
+<body>
+<header>
+  <strong>KPI Card Designer</strong><span>—</span>
+  <span>Finance Dashboard · UI 컴포넌트 플레이그라운드</span>
+</header>
+<div class="main">
+  <div class="controls">
+    <div>
+      <div class="section-label">Presets</div>
+      <div class="presets" id="presets">
+        <button class="preset-btn" data-preset="glass">Glass</button>
+        <button class="preset-btn" data-preset="flat">Flat</button>
+        <button class="preset-btn active" data-preset="elevated">Elevated</button>
+        <button class="preset-btn" data-preset="compact">Compact</button>
+        <button class="preset-btn" data-preset="bold">Bold</button>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div>
+      <div class="section-label">Shape</div>
+      <div class="control-row">
+        <div class="control-label">Border Radius<span id="rv">12px</span></div>
+        <input type="range" id="radius" min="0" max="24" value="12">
+      </div>
+      <div class="control-row">
+        <div class="control-label">Padding<span id="pv">20px</span></div>
+        <input type="range" id="padding" min="8" max="40" value="20">
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div>
+      <div class="section-label">Shadow</div>
+      <select id="shadow">
+        <option value="none">없음 (Flat)</option>
+        <option value="soft">Soft</option>
+        <option value="medium" selected>Medium</option>
+        <option value="deep">Deep</option>
+        <option value="glow">Glow (accent)</option>
+      </select>
+    </div>
+    <div class="divider"></div>
+    <div>
+      <div class="section-label">Color</div>
+      <div class="control-row">
+        <div class="control-label">Accent Hue<span id="hv">240°</span></div>
+        <div class="hue-bar"></div>
+        <input type="range" id="hue" min="0" max="360" value="240">
+      </div>
+      <div class="toggle-row">테두리<label class="toggle"><input type="checkbox" id="border"><span class="slider-t"></span></label></div>
+      <div class="control-row" id="bw-row" style="display:none">
+        <div class="control-label">Border Width<span id="bwv">1px</span></div>
+        <input type="range" id="bw" min="1" max="4" value="1">
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div>
+      <div class="section-label">Typography</div>
+      <div class="control-row">
+        <div class="control-label">Value Size<span id="fsv">28px</span></div>
+        <input type="range" id="fs" min="16" max="48" value="28">
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div>
+      <div class="section-label">Features</div>
+      <div class="toggle-row">아이콘 표시<label class="toggle"><input type="checkbox" id="icon" checked><span class="slider-t"></span></label></div>
+      <div class="toggle-row">트렌드 표시<label class="toggle"><input type="checkbox" id="trend" checked><span class="slider-t"></span></label></div>
+      <div class="toggle-row">호버 효과<label class="toggle"><input type="checkbox" id="hover" checked><span class="slider-t"></span></label></div>
+      <div class="toggle-row">라이트 배경<label class="toggle"><input type="checkbox" id="lightbg"><span class="slider-t"></span></label></div>
+    </div>
+  </div>
+  <div class="right">
+    <div class="preview-area" id="pa">
+      <div class="kpi-card hover-on" id="c1"><div class="card-header"><span class="card-label">총 매출</span><span class="card-icon" id="i1">📊</span></div><div class="card-value" id="v1">₩125.3억</div><div class="card-trend" id="t1"><span class="up">▲</span><span class="up">+12.4%</span><span style="color:#444">전년 대비</span></div></div>
+      <div class="kpi-card hover-on" id="c2"><div class="card-header"><span class="card-label">경상이익</span><span class="card-icon" id="i2">💰</span></div><div class="card-value" id="v2">₩18.7억</div><div class="card-trend" id="t2"><span class="up">▲</span><span class="up">+5.2%</span><span style="color:#444">전년 대비</span></div></div>
+      <div class="kpi-card hover-on" id="c3"><div class="card-header"><span class="card-label">평균 이익율</span><span class="card-icon" id="i3">📈</span></div><div class="card-value" id="v3">14.9%</div><div class="card-trend" id="t3"><span class="dn">▼</span><span class="dn">-1.2%p</span><span style="color:#444">전년 대비</span></div></div>
+    </div>
+    <div class="prompt-area">
+      <div class="prompt-label">생성된 프롬프트</div>
+      <div class="prompt-text" id="prompt"></div>
+      <button class="copy-btn" id="cpybtn" onclick="copy()">복사</button>
+    </div>
+  </div>
+</div>
+<script>
+const PRESETS={
+  glass:{r:16,p:20,sh:'soft',brd:true,bw:1,hue:220,fs:24,icon:true,trend:true,hov:true},
+  flat:{r:8,p:16,sh:'none',brd:false,bw:1,hue:140,fs:28,icon:false,trend:true,hov:false},
+  elevated:{r:12,p:20,sh:'medium',brd:false,bw:1,hue:240,fs:28,icon:true,trend:true,hov:true},
+  compact:{r:6,p:10,sh:'soft',brd:false,bw:1,hue:200,fs:20,icon:false,trend:false,hov:false},
+  bold:{r:4,p:24,sh:'deep',brd:true,bw:3,hue:15,fs:36,icon:true,trend:true,hov:true}
+};
+const D=PRESETS.elevated;
+const s={...D,lightbg:false};
+
+function acc(a=1){return`hsla(${s.hue},70%,55%,${a})`}
+function getShadow(){
+  if(s.sh==='none')return'none';
+  if(s.sh==='soft')return'0 2px 8px rgba(0,0,0,.2)';
+  if(s.sh==='medium')return'0 4px 16px rgba(0,0,0,.3)';
+  if(s.sh==='deep')return'0 8px 32px rgba(0,0,0,.45)';
+  if(s.sh==='glow')return`0 4px 24px ${acc(.4)}`;
+  return'none';
+}
+function cardBg(){return s.lightbg?'#fff':'#1e293b'}
+
+function render(){
+  ['c1','c2','c3'].forEach(id=>{
+    const el=document.getElementById(id);
+    el.style.borderRadius=s.r+'px';
+    el.style.padding=s.p+'px';
+    el.style.boxShadow=getShadow();
+    el.style.background=cardBg();
+    el.style.border=s.brd?`${s.bw}px solid ${acc(.4)}`:'1px solid transparent';
+    if(s.hov)el.classList.add('hover-on'); else el.classList.remove('hover-on');
+  });
+  ['i1','i2','i3'].forEach(id=>document.getElementById(id).style.display=s.icon?'':'none');
+  ['v1','v2','v3'].forEach(id=>{
+    const el=document.getElementById(id);
+    el.style.fontSize=s.fs+'px';
+    el.style.color=s.lightbg?'#111827':'#e5e5e5';
+  });
+  document.querySelectorAll('.card-label').forEach(el=>el.style.color=s.lightbg?'#6b7280':'#666');
+  ['t1','t2','t3'].forEach(id=>document.getElementById(id).style.display=s.trend?'flex':'none');
+  document.getElementById('pa').className='preview-area'+(s.lightbg?' light':'');
+}
+
+function buildPrompt(){
+  const parts=[];
+  if(s.r!==D.r) parts.push(s.r===0?'날카로운 모서리':s.r>=20?`크게 둥근 모서리(${s.r}px)`:`${s.r}px border-radius`);
+  if(s.p!==D.p) parts.push(s.p<14?`조밀한 패딩(${s.p}px)`:`여유로운 패딩(${s.p}px)`);
+  if(s.sh!==D.sh){const m={none:'그림자 없이 플랫',soft:'부드러운 그림자',medium:'중간 깊이 그림자',deep:'깊고 강한 그림자',glow:`액센트 발광(hue ${s.hue}°)`};parts.push(m[s.sh]);}
+  if(s.hue!==D.hue) parts.push(`액센트 색상 hsl(${s.hue}°,70%,55%)`);
+  if(s.brd!==D.brd) parts.push(s.brd?`${s.bw}px 액센트 테두리`:'테두리 제거');
+  if(s.fs!==D.fs) parts.push(s.fs<22?`컴팩트 숫자(${s.fs}px)`:`큰 숫자 강조(${s.fs}px)`);
+  if(!s.icon) parts.push('아이콘 숨김');
+  if(!s.trend) parts.push('트렌드 인디케이터 숨김');
+  if(!s.hov) parts.push('호버 효과 제거');
+  if(s.lightbg) parts.push('라이트 모드 배경');
+  const el=document.getElementById('prompt');
+  el.textContent=parts.length===0
+    ?'KPI 카드를 기본 Elevated 스타일로 유지합니다. 컨트롤을 조정하면 프롬프트가 업데이트됩니다.'
+    :`KPI 카드 컴포넌트를 다음과 같이 수정해 주세요: ${parts.join(', ')}. 총 매출·경상이익·평균 이익율 카드 모두 동일하게 적용하고, 다크/라이트 테마 모두에서 가독성을 유지해야 합니다.`;
+}
+
+function updateAll(){render();buildPrompt();}
+
+// Wire sliders
+function wire(id,key,labelId,suffix,convert){
+  document.getElementById(id).addEventListener('input',e=>{
+    s[key]=convert?convert(e.target.value):+e.target.value;
+    document.getElementById(labelId).textContent=s[key]+suffix;
+    clearPreset();updateAll();
+  });
+}
+wire('radius','r','rv','px');
+wire('padding','p','pv','px');
+wire('fs','fs','fsv','px');
+wire('bw','bw','bwv','px');
+wire('hue','hue','hv','°');
+
+document.getElementById('shadow').addEventListener('change',e=>{s.sh=e.target.value;clearPreset();updateAll();});
+document.getElementById('border').addEventListener('change',e=>{s.brd=e.target.checked;document.getElementById('bw-row').style.display=s.brd?'':'none';clearPreset();updateAll();});
+document.getElementById('icon').addEventListener('change',e=>{s.icon=e.target.checked;clearPreset();updateAll();});
+document.getElementById('trend').addEventListener('change',e=>{s.trend=e.target.checked;clearPreset();updateAll();});
+document.getElementById('hover').addEventListener('change',e=>{s.hov=e.target.checked;clearPreset();updateAll();});
+document.getElementById('lightbg').addEventListener('change',e=>{s.lightbg=e.target.checked;updateAll();});
+
+// Presets
+document.querySelectorAll('.preset-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    Object.assign(s,PRESETS[btn.dataset.preset]);
+    syncControls();
+    document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    updateAll();
+  });
+});
+function clearPreset(){document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));}
+function syncControls(){
+  document.getElementById('radius').value=s.r;document.getElementById('rv').textContent=s.r+'px';
+  document.getElementById('padding').value=s.p;document.getElementById('pv').textContent=s.p+'px';
+  document.getElementById('shadow').value=s.sh;
+  document.getElementById('hue').value=s.hue;document.getElementById('hv').textContent=s.hue+'°';
+  document.getElementById('border').checked=s.brd;document.getElementById('bw-row').style.display=s.brd?'':'none';
+  document.getElementById('bw').value=s.bw;document.getElementById('bwv').textContent=s.bw+'px';
+  document.getElementById('fs').value=s.fs;document.getElementById('fsv').textContent=s.fs+'px';
+  document.getElementById('icon').checked=s.icon;
+  document.getElementById('trend').checked=s.trend;
+  document.getElementById('hover').checked=s.hov;
+}
+function copy(){
+  navigator.clipboard.writeText(document.getElementById('prompt').textContent).then(()=>{
+    const b=document.getElementById('cpybtn');b.textContent='복사됨!';b.classList.add('ok');
+    setTimeout(()=>{b.textContent='복사';b.classList.remove('ok');},1500);
+  });
+}
+updateAll();
+</script>
+</body>
+</html>

@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Architecture Code Map — Finance Dashboard</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#0f0f0f;color:#e5e5e5;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+header{padding:10px 18px;border-bottom:1px solid #222;display:flex;align-items:center;gap:10px;font-size:13px;color:#666;flex-shrink:0}
+header strong{color:#e5e5e5;font-size:14px}
+.main{display:grid;grid-template-columns:240px 1fr;flex:1;overflow:hidden}
+.sidebar{background:#111;border-right:1px solid #222;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:14px;font-size:12px}
+.section-label{font-size:10px;font-weight:700;color:#444;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px}
+.divider{height:1px;background:#1e1e1e}
+.preset-group{display:flex;flex-direction:column;gap:5px}
+.view-btn{background:#1a1a1a;border:1px solid #2a2a2a;color:#888;padding:6px 10px;border-radius:6px;cursor:pointer;font-size:12px;text-align:left;transition:all .15s}
+.view-btn:hover{background:#252525;color:#ccc}
+.view-btn.active{background:#6366f1;border-color:#6366f1;color:#fff}
+.layer-group,.conn-group{display:flex;flex-direction:column;gap:5px}
+.layer-row,.conn-row{display:flex;align-items:center;gap:8px;padding:3px 0;cursor:pointer;color:#888}
+.layer-row input,.conn-row input{accent-color:#6366f1;cursor:pointer}
+.dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+.conn-line{width:20px;height:2px;flex-shrink:0;border-radius:1px}
+.comments-section{flex:1}
+.comment-list{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.comment-item{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:6px;padding:8px;position:relative}
+.comment-node{font-size:10px;color:#6366f1;font-weight:600;margin-bottom:3px}
+.comment-text{font-size:11px;color:#aaa;line-height:1.4}
+.comment-del{position:absolute;top:6px;right:6px;background:none;border:none;color:#444;cursor:pointer;font-size:14px;line-height:1}
+.comment-del:hover{color:#ef4444}
+.no-comments{color:#444;font-size:11px;font-style:italic}
+.right{display:grid;grid-template-rows:1fr 140px;overflow:hidden}
+.canvas-area{position:relative;overflow:hidden;background:#0d1117}
+#diagram{width:100%;height:100%}
+.zoom-controls{position:absolute;bottom:12px;right:12px;display:flex;gap:4px}
+.zoom-btn{background:#1a1a1a;border:1px solid #2a2a2a;color:#888;width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center}
+.zoom-btn:hover{background:#252525;color:#ccc}
+.hint{position:absolute;top:12px;right:12px;background:#1a1a1a;border:1px solid #2a2a2a;color:#555;font-size:10px;padding:4px 8px;border-radius:4px}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:1000;display:none}
+.modal-overlay.show{display:flex}
+.modal{background:#1a1a1a;border:1px solid #333;border-radius:10px;padding:20px;width:340px;display:flex;flex-direction:column;gap:12px}
+.modal h3{font-size:14px;color:#e5e5e5}
+.modal small{font-size:11px;color:#666}
+.modal textarea{background:#111;border:1px solid #2a2a2a;color:#ccc;padding:10px;border-radius:6px;font-size:12px;resize:vertical;min-height:80px;width:100%;font-family:system-ui}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end}
+.modal-btns button{padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;border:none}
+.btn-save{background:#6366f1;color:#fff}
+.btn-cancel{background:#2a2a2a;color:#888}
+.prompt-area{background:#111;border-top:1px solid #222;padding:14px 18px;display:flex;flex-direction:column;gap:8px}
+.prompt-label{font-size:10px;color:#444;text-transform:uppercase;letter-spacing:.1em}
+.prompt-text{font-family:Consolas,monospace;font-size:12px;color:#a5b4fc;line-height:1.5;flex:1;overflow-y:auto;white-space:pre-wrap}
+.copy-btn{align-self:flex-start;background:#6366f1;color:#fff;border:none;padding:5px 14px;border-radius:6px;font-size:12px;cursor:pointer}
+.copy-btn:hover{background:#4f46e5}
+.copy-btn.ok{background:#10b981}
+</style>
+</head>
+<body>
+<header>
+  <strong>Architecture Code Map</strong><span>—</span>
+  <span>Finance Dashboard · 아키텍처 구조 플레이그라운드</span>
+</header>
+<div class="main">
+  <div class="sidebar">
+    <div>
+      <div class="section-label">View</div>
+      <div class="preset-group">
+        <button class="view-btn active" data-view="all">전체 시스템</button>
+        <button class="view-btn" data-view="backend">백엔드만</button>
+        <button class="view-btn" data-view="frontend">프론트엔드만</button>
+        <button class="view-btn" data-view="dataflow">데이터 흐름</button>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div>
+      <div class="section-label">Layers</div>
+      <div class="layer-group" id="layers">
+        <label class="layer-row"><input type="checkbox" data-layer="data" checked><span class="dot" style="background:#fce7f3"></span>Data (Excel)</label>
+        <label class="layer-row"><input type="checkbox" data-layer="backend" checked><span class="dot" style="background:#fef3c7"></span>Backend (Flask)</label>
+        <label class="layer-row"><input type="checkbox" data-layer="store" checked><span class="dot" style="background:#f3e8ff"></span>Store (Zustand)</label>
+        <label class="layer-row"><input type="checkbox" data-layer="hooks" checked><span class="dot" style="background:#dcfce7"></span>Hooks / ViewModel</label>
+        <label class="layer-row"><input type="checkbox" data-layer="ui" checked><span class="dot" style="background:#dbeafe"></span>UI (React)</label>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div>
+      <div class="section-label">Connections</div>
+      <div class="conn-group" id="conns">
+        <label class="conn-row"><input type="checkbox" data-conn="http" checked><span class="conn-line" style="background:#3b82f6"></span>HTTP / API</label>
+        <label class="conn-row"><input type="checkbox" data-conn="data" checked><span class="conn-line" style="background:#10b981"></span>Data Flow</label>
+        <label class="conn-row"><input type="checkbox" data-conn="import" checked><span class="conn-line" style="background:#6b7280;border-top:2px dashed #6b7280;height:0"></span>Import</label>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="comments-section">
+      <div class="section-label">Comments <span id="cnt" style="color:#6366f1"></span></div>
+      <div class="no-comments" id="no-comments">노드를 클릭해 코멘트를 추가하세요</div>
+      <div class="comment-list" id="comment-list"></div>
+    </div>
+  </div>
+  <div class="right">
+    <div class="canvas-area">
+      <svg id="diagram" xmlns="http://www.w3.org/2000/svg"></svg>
+      <div class="hint">클릭 → 코멘트 추가</div>
+      <div class="zoom-controls">
+        <button class="zoom-btn" onclick="zoom(1.2)">+</button>
+        <button class="zoom-btn" onclick="zoom(0.8)">−</button>
+        <button class="zoom-btn" onclick="resetZoom()" title="리셋">⟳</button>
+      </div>
+    </div>
+    <div class="prompt-area">
+      <div class="prompt-label">생성된 프롬프트</div>
+      <div class="prompt-text" id="prompt"></div>
+      <button class="copy-btn" id="cpybtn" onclick="copy()">복사</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div><h3 id="modal-title"></h3><small id="modal-sub"></small></div>
+    <textarea id="modal-ta" placeholder="이 컴포넌트에 대한 피드백이나 메모를 입력하세요..."></textarea>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">취소</button>
+      <button class="btn-save" onclick="saveComment()">저장</button>
+    </div>
+  </div>
+</div>
+<script>
+const NODES=[
+  {id:'excel',label:'Excel 파일',sub:'D:/.../재무관점 추출.xlsx',x:60,y:40,w:170,h:44,layer:'data',color:'#fce7f3'},
+  {id:'load',label:'load_excel()',sub:'app.py · pandas',x:300,y:40,w:150,h:44,layer:'backend',color:'#fef3c7'},
+  {id:'cache',label:'_cached_data',sub:'app.py · in-memory',x:300,y:120,w:150,h:44,layer:'backend',color:'#fef3c7'},
+  {id:'api-sum',label:'/api/summary',sub:'GET · Flask route',x:510,y:20,w:140,h:44,layer:'backend',color:'#fef3c7'},
+  {id:'api-data',label:'/api/data',sub:'GET · Flask route',x:510,y:85,w:140,h:44,layer:'backend',color:'#fef3c7'},
+  {id:'api-ins',label:'/api/insights',sub:'GET · Flask route',x:510,y:150,w:150,h:44,layer:'backend',color:'#fef3c7'},
+  {id:'api-pdf',label:'/api/export/pdf',sub:'GET · reportlab',x:510,y:215,w:150,h:44,layer:'backend',color:'#fef3c7'},
+  {id:'filter-store',label:'filter.store',sub:'store/ · Zustand',x:60,y:190,w:130,h:44,layer:'store',color:'#f3e8ff'},
+  {id:'theme-store',label:'theme.store',sub:'store/ · Zustand',x:210,y:190,w:130,h:44,layer:'store',color:'#f3e8ff'},
+  {id:'useSummary',label:'useSummary',sub:'hooks/ · TanStack Query',x:60,y:300,w:150,h:44,layer:'hooks',color:'#dcfce7'},
+  {id:'useProjects',label:'useProjects',sub:'hooks/ · TanStack Query',x:230,y:300,w:150,h:44,layer:'hooks',color:'#dcfce7'},
+  {id:'useInsights',label:'useInsights',sub:'hooks/ · TanStack Query',x:400,y:300,w:150,h:44,layer:'hooks',color:'#dcfce7'},
+  {id:'kpiVM',label:'useKpiViewModel',sub:'hooks/viewmodels/',x:60,y:380,w:150,h:44,layer:'hooks',color:'#dcfce7'},
+  {id:'chartVM',label:'useChartViewModel',sub:'hooks/viewmodels/',x:230,y:380,w:155,h:44,layer:'hooks',color:'#dcfce7'},
+  {id:'insVM',label:'useInsightViewModel',sub:'hooks/viewmodels/',x:400,y:380,w:160,h:44,layer:'hooks',color:'#dcfce7'},
+  {id:'filterbar',label:'FilterBar',sub:'layouts/ · filters UI',x:60,y:480,w:130,h:44,layer:'ui',color:'#dbeafe'},
+  {id:'kpiSection',label:'KpiSection',sub:'features/ · KPI cards',x:210,y:480,w:130,h:44,layer:'ui',color:'#dbeafe'},
+  {id:'chartSection',label:'ChartSection',sub:'features/ · Chart.js',x:355,y:480,w:130,h:44,layer:'ui',color:'#dbeafe'},
+  {id:'insSection',label:'InsightSection',sub:'features/ · 인사이트',x:500,y:480,w:130,h:44,layer:'ui',color:'#dbeafe'},
+  {id:'dashboard',label:'Dashboard Page',sub:'pages/ · 메인 페이지',x:300,y:560,w:150,h:44,layer:'ui',color:'#dbeafe'},
+];
+
+const CONNECTIONS=[
+  {from:'excel',to:'load',type:'data',label:'pandas read'},
+  {from:'load',to:'cache',type:'data'},
+  {from:'cache',to:'api-sum',type:'data'},
+  {from:'cache',to:'api-data',type:'data'},
+  {from:'cache',to:'api-ins',type:'data'},
+  {from:'cache',to:'api-pdf',type:'data'},
+  {from:'api-sum',to:'useSummary',type:'http',label:'HTTP GET'},
+  {from:'api-data',to:'useProjects',type:'http'},
+  {from:'api-ins',to:'useInsights',type:'http'},
+  {from:'filter-store',to:'useSummary',type:'import',label:'filter params'},
+  {from:'filter-store',to:'useProjects',type:'import'},
+  {from:'filter-store',to:'useInsights',type:'import'},
+  {from:'filter-store',to:'filterbar',type:'import'},
+  {from:'theme-store',to:'kpiSection',type:'import'},
+  {from:'useSummary',to:'kpiVM',type:'data'},
+  {from:'useSummary',to:'chartVM',type:'data'},
+  {from:'useInsights',to:'insVM',type:'data'},
+  {from:'kpiVM',to:'kpiSection',type:'import'},
+  {from:'chartVM',to:'chartSection',type:'import'},
+  {from:'insVM',to:'insSection',type:'import'},
+  {from:'filterbar',to:'dashboard',type:'import'},
+  {from:'kpiSection',to:'dashboard',type:'import'},
+  {from:'chartSection',to:'dashboard',type:'import'},
+  {from:'insSection',to:'dashboard',type:'import'},
+];
+
+const CONN_STYLES={
+  http:{color:'#3b82f6',dash:null},
+  data:{color:'#10b981',dash:null},
+  import:{color:'#6b7280',dash:'6,4'}
+};
+
+const LAYER_COLORS={
+  data:'#fce7f3',backend:'#fef3c7',store:'#f3e8ff',hooks:'#dcfce7',ui:'#dbeafe'
+};
+
+const VIEWS={
+  all:{layers:['data','backend','store','hooks','ui'],conns:['http','data','import']},
+  backend:{layers:['data','backend'],conns:['data']},
+  frontend:{layers:['store','hooks','ui'],conns:['data','import']},
+  dataflow:{layers:['data','backend','hooks','ui'],conns:['http','data']}
+};
+
+const state={layers:{data:true,backend:true,store:true,hooks:true,ui:true},conns:{http:true,data:true,import:true},comments:[],scale:1,tx:0,ty:0};
+let currentNode=null;
+
+const svg=document.getElementById('diagram');
+let svgW=0,svgH=0;
+
+function getNodeCenter(n){return{x:n.x+n.w/2,y:n.y+n.h/2};}
+
+function makeSvg(tag,attrs){
+  const el=document.createElementNS('http://www.w3.org/2000/svg',tag);
+  Object.entries(attrs).forEach(([k,v])=>el.setAttribute(k,v));
+  return el;
+}
+
+function drawDiagram(){
+  svgW=svg.clientWidth||800;svgH=svg.clientHeight||500;
+  svg.innerHTML='';
+
+  // Defs
+  const defs=makeSvg('defs',{});
+  ['http','data','import'].forEach(type=>{
+    const c=CONN_STYLES[type].color;
+    const m=makeSvg('marker',{id:`arr-${type}`,markerWidth:'8',markerHeight:'6',refX:'7',refY:'3',orient:'auto'});
+    const p=makeSvg('polygon',{points:'0 0, 8 3, 0 6',fill:c});
+    m.appendChild(p);defs.appendChild(m);
+  });
+  svg.appendChild(defs);
+
+  const g=makeSvg('g',{transform:`translate(${state.tx},${state.ty}) scale(${state.scale})`});
+  svg.appendChild(g);
+
+  const visibleNodes=NODES.filter(n=>state.layers[n.layer]);
+  const visibleIds=new Set(visibleNodes.map(n=>n.id));
+
+  // Connections
+  CONNECTIONS.filter(c=>state.conns[c.type]&&visibleIds.has(c.from)&&visibleIds.has(c.to)).forEach(c=>{
+    const from=NODES.find(n=>n.id===c.from);
+    const to=NODES.find(n=>n.id===c.to);
+    const fc=getNodeCenter(from),tc=getNodeCenter(to);
+    const dy=tc.y-fc.y,dx=tc.x-fc.x;
+    const cx1=fc.x+dx*0.1;const cy1=fc.y+dy*0.6;
+    const cx2=tc.x-dx*0.1;const cy2=tc.y-dy*0.4;
+    const st=CONN_STYLES[c.type];
+    const path=makeSvg('path',{
+      d:`M${fc.x} ${fc.y} C${cx1} ${cy1} ${cx2} ${cy2} ${tc.x} ${tc.y}`,
+      fill:'none',stroke:st.color,'stroke-width':'1.5',
+      'stroke-dasharray':st.dash||'none',
+      'marker-end':`url(#arr-${c.type})`,opacity:'0.6'
+    });
+    g.appendChild(path);
+    if(c.label){
+      const mx=(fc.x+tc.x)/2;const my=(fc.y+tc.y)/2;
+      const lt=makeSvg('text',{x:mx,y:my-4,'font-size':'9',fill:st.color,'text-anchor':'middle',opacity:'0.8'});
+      lt.textContent=c.label;g.appendChild(lt);
+    }
+  });
+
+  // Nodes
+  visibleNodes.forEach(n=>{
+    const hasComment=state.comments.some(c=>c.target===n.id);
+    const grp=makeSvg('g',{cursor:'pointer'});
+    const rect=makeSvg('rect',{x:n.x,y:n.y,width:n.w,height:n.h,rx:'7',fill:n.color,'fill-opacity':'0.12',
+      stroke:hasComment?'#6366f1':n.color,'stroke-width':hasComment?'2':'1','stroke-opacity':'0.5'});
+    const label=makeSvg('text',{x:n.x+n.w/2,y:n.y+16,'font-size':'11','font-weight':'600',fill:'#e5e5e5','text-anchor':'middle'});
+    label.textContent=n.label;
+    const sub=makeSvg('text',{x:n.x+n.w/2,y:n.y+30,'font-size':'9',fill:'#666','text-anchor':'middle'});
+    sub.textContent=n.sub;
+    if(hasComment){const dot=makeSvg('circle',{cx:n.x+n.w-6,cy:n.y+6,r:'4',fill:'#6366f1'});grp.appendChild(dot);}
+    grp.appendChild(rect);grp.appendChild(label);grp.appendChild(sub);
+    grp.addEventListener('click',()=>openModal(n));
+    grp.addEventListener('mouseenter',()=>rect.setAttribute('fill-opacity','0.22'));
+    grp.addEventListener('mouseleave',()=>rect.setAttribute('fill-opacity','0.12'));
+    g.appendChild(grp);
+  });
+}
+
+// Layer and connection toggles
+document.getElementById('layers').querySelectorAll('input').forEach(cb=>{
+  cb.addEventListener('change',()=>{state.layers[cb.dataset.layer]=cb.checked;drawDiagram();buildPrompt();});
+});
+document.getElementById('conns').querySelectorAll('input').forEach(cb=>{
+  cb.addEventListener('change',()=>{state.conns[cb.dataset.conn]=cb.checked;drawDiagram();});
+});
+
+// View presets
+document.querySelectorAll('.view-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const v=VIEWS[btn.dataset.view];
+    Object.keys(state.layers).forEach(k=>state.layers[k]=v.layers.includes(k));
+    Object.keys(state.conns).forEach(k=>state.conns[k]=v.conns.includes(k));
+    document.getElementById('layers').querySelectorAll('input').forEach(cb=>cb.checked=state.layers[cb.dataset.layer]);
+    document.getElementById('conns').querySelectorAll('input').forEach(cb=>cb.checked=state.conns[cb.dataset.conn]);
+    document.querySelectorAll('.view-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    drawDiagram();buildPrompt();
+  });
+});
+
+// Zoom
+function zoom(f){state.scale=Math.min(Math.max(state.scale*f,0.4),2);drawDiagram();}
+function resetZoom(){state.scale=1;state.tx=0;state.ty=0;drawDiagram();}
+
+// Modal
+function openModal(node){
+  currentNode=node;
+  document.getElementById('modal-title').textContent=node.label;
+  document.getElementById('modal-sub').textContent=node.sub;
+  const existing=state.comments.find(c=>c.target===node.id);
+  document.getElementById('modal-ta').value=existing?existing.text:'';
+  document.getElementById('modal').classList.add('show');
+  document.getElementById('modal-ta').focus();
+}
+function closeModal(){document.getElementById('modal').classList.remove('show');currentNode=null;}
+function saveComment(){
+  const text=document.getElementById('modal-ta').value.trim();
+  if(!text){
+    const idx=state.comments.findIndex(c=>c.target===currentNode.id);
+    if(idx!==-1)state.comments.splice(idx,1);
+  }else{
+    const existing=state.comments.find(c=>c.target===currentNode.id);
+    if(existing)existing.text=text;
+    else state.comments.push({id:Date.now(),target:currentNode.id,label:currentNode.label,sub:currentNode.sub,text});
+  }
+  closeModal();renderComments();drawDiagram();buildPrompt();
+}
+document.getElementById('modal').addEventListener('click',e=>{if(e.target===document.getElementById('modal'))closeModal();});
+
+function renderComments(){
+  const list=document.getElementById('comment-list');
+  const none=document.getElementById('no-comments');
+  document.getElementById('cnt').textContent=state.comments.length?`(${state.comments.length})`:'';
+  if(!state.comments.length){none.style.display='';list.innerHTML='';return;}
+  none.style.display='none';
+  list.innerHTML=state.comments.map(c=>`
+    <div class="comment-item">
+      <div class="comment-node">${c.label}</div>
+      <div class="comment-text">${c.text}</div>
+      <button class="comment-del" onclick="deleteComment(${c.id})">×</button>
+    </div>`).join('');
+}
+
+function deleteComment(id){
+  const idx=state.comments.findIndex(c=>c.id===id);
+  if(idx!==-1)state.comments.splice(idx,1);
+  renderComments();drawDiagram();buildPrompt();
+}
+
+function buildPrompt(){
+  const visibleLayers=Object.entries(state.layers).filter(([,v])=>v).map(([k])=>k);
+  const layerNames={data:'Data',backend:'Backend',store:'Store',hooks:'Hooks/ViewModel',ui:'UI'};
+  let text=`Finance Dashboard 아키텍처 (현재 레이어: ${visibleLayers.map(l=>layerNames[l]).join(', ')}).\n\n`;
+  text+=`구조: Excel → Flask(pandas) → React(TanStack Query + Zustand + ViewModel 패턴).\n`;
+  if(state.comments.length){
+    text+='\n특정 컴포넌트에 대한 피드백:\n\n';
+    state.comments.forEach(c=>{text+=`**${c.label}** (${c.sub}):\n${c.text}\n\n`;});
+  }else{
+    text+='\n노드를 클릭해 컴포넌트에 코멘트를 추가하면 프롬프트가 업데이트됩니다.';
+  }
+  document.getElementById('prompt').textContent=text;
+}
+
+function copy(){
+  navigator.clipboard.writeText(document.getElementById('prompt').textContent).then(()=>{
+    const b=document.getElementById('cpybtn');b.textContent='복사됨!';b.classList.add('ok');
+    setTimeout(()=>{b.textContent='복사';b.classList.remove('ok');},1500);
+  });
+}
+
+// Initial draw after layout
+requestAnimationFrame(()=>{drawDiagram();buildPrompt();});
+window.addEventListener('resize',()=>drawDiagram());
+</script>
+</body>
+</html>
