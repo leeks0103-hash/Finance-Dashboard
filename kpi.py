@@ -9,7 +9,6 @@ import pandas as pd
 from dotenv import load_dotenv
 from flask import Blueprint, jsonify, request
 import paths
-from shared import strip_stage_suffix
 
 load_dotenv()
 
@@ -129,22 +128,27 @@ def _post_process_raw(df: pd.DataFrame) -> pd.DataFrame:
     return df.fillna(0)
 
 
-# 보고단계 우선순위 (높을수록 우선)
-_STAGE_PRIORITY = {"완료": 5, "중간": 4, "착수": 3, "제안": 2, "사전검토": 1}
+# 보고단계 우선순위 (높을수록 우선). 미등록 단계는 -1 → 알려진 단계가 항상 이김
+_STAGE_PRIORITY = {"완료": 6, "중간": 5, "착수": 4, "제안": 3, "사전검토": 2, "사업계획": 1, "검토": 0}
+
+# 정식 프로젝트 코드 — 맨 앞이 "영문 1자 + 숫자 10자 이상". 뒤에 " (생성 예정)" 같은 주석이 붙어도
+# 앞 토큰만 인정. 이 형식이 아니면(생성예정·미정·- ·숫자 등) 집계 대상에서 제외.
+_REAL_CODE_RE = re.compile(r"^\s*([A-Za-z]\d{10,})")
 
 
-def _dedup_by_stage_priority(df: pd.DataFrame) -> pd.DataFrame:
+def _real_code(v) -> str:
+    m = _REAL_CODE_RE.match(str(v))
+    return m.group(1) if m else ""
+
+
+def _build_agg_df(df: pd.DataFrame) -> pd.DataFrame:
     """
-    프로젝트코드+연도별로 최우선 보고단계 1건만 남김 (완료>중간>착수>제안).
+    집계 전용 df를 만든다. (KPI 취합 '표'는 _kpi_raw_df 그대로 — 전체 노출)
 
-    프로젝트코드만으로 묶으면 서로 다른 프로젝트가 우연히 같은 코드를 공유하는 경우
-    (placeholder 코드 "생성예정"/"미정" 등은 물론, 실제로 "정식 코드" 형식인데도 데이터
-    입력 실수로 겹치는 사례 — 예: E158600126060001 이 서로 무관한 두 프로젝트에 붙어 있던
-    사례 — 실측 46개 다건 그룹 중 10개, 약 22%가 이런 충돌이었음)에 전혀 다른 프로젝트의
-    행이 "같은 프로젝트의 다른 단계"로 오인돼 dedup에서 통째로 사라진다.
-    파일명에서 보고단계 표시를 뗀 기준명(strip_stage_suffix, shared.py — extract_kpi_ppt.py의
-    placeholder 충돌 방지 로직과 동일 기준)을 dedup 키에 추가해, 코드가 같아도 실제로는 다른
-    프로젝트면 별도로 취급되게 한다.
+    규칙 1 — 프로젝트 코드가 정식 형식(_REAL_CODE_RE)이 아닌 행은 취합/계산에서 제외
+             (생성예정 / 미정 / "-" / 숫자만 / 빈값 등).
+    규칙 2 — 같은 프로젝트(정식코드+수행연도)에 완료·중간·착수·제안이 여러 건이면
+             전부 더하지 않고 가장 진행된 단계 1건만 사용 (완료>중간>착수>제안>…).
     """
     if df.empty:
         return df
@@ -152,28 +156,27 @@ def _dedup_by_stage_priority(df: pd.DataFrame) -> pd.DataFrame:
     code_col  = next((c for c in df.columns if "프로젝트코드" in str(c)), None)
     stage_col = next((c for c in df.columns if "보고단계"   in str(c)), None)
     year_col  = next((c for c in df.columns if "수행연도"   in str(c)), None)
-    file_col  = next((c for c in df.columns if "파일명"     in str(c)), None)
-
     if code_col is None or stage_col is None:
-        logger.warning("_dedup_by_stage_priority: 프로젝트코드 또는 보고단계 컬럼 없음")
+        logger.warning("_build_agg_df: 프로젝트코드/보고단계 컬럼 없음 — 전체 사용")
         return df
 
-    df = df.copy()
-    df["_stage_rank"] = df[stage_col].map(lambda s: _STAGE_PRIORITY.get(str(s).strip(), 0))
+    d = df.copy()
+    d["_real"] = d[code_col].map(_real_code)
 
-    subset = [code_col] + ([year_col] if year_col else [])
-    if file_col is not None:
-        df["_base_name"] = df[file_col].map(strip_stage_suffix)
-        subset = subset + ["_base_name"]
+    n_all = len(d)
+    d = d[d["_real"] != ""].copy()
+    logger.info("KPI 집계 대상: 정식 코드 %d행 (비정식 코드 %d행 제외)", len(d), n_all - len(d))
 
-    df = (
-        df.sort_values("_stage_rank", ascending=False)
-          .drop_duplicates(subset=subset, keep="first")
-          .drop(columns=[c for c in ("_stage_rank", "_base_name") if c in df.columns])
-          .reset_index(drop=True)
+    d["_stage_rank"] = d[stage_col].map(lambda s: _STAGE_PRIORITY.get(str(s).strip(), -1))
+    subset = ["_real"] + ([year_col] if year_col else [])
+    d = (
+        d.sort_values("_stage_rank", ascending=False, kind="stable")
+         .drop_duplicates(subset=subset, keep="first")
+         .drop(columns=["_real", "_stage_rank"])
+         .reset_index(drop=True)
     )
-    logger.info("보고단계 중복 제거 후 행 수: %d", len(df))
-    return df
+    logger.info("KPI 집계 대상: 단계 중복 제거 후 %d행", len(d))
+    return d
 
 
 def load_kpi_excel():
@@ -201,13 +204,13 @@ def load_kpi_excel():
             _kpi_agg_df   = pd.DataFrame()
             return
         _kpi_raw_df   = _post_process_raw(raw_df)
-        _kpi_dedup_df = _dedup_by_stage_priority(_kpi_raw_df)
+        _kpi_dedup_df = _build_agg_df(_kpi_raw_df)
         _kpi_agg_df   = agg_df
     else:
         wb = pd.ExcelFile(KPI_EXCEL_PATH, engine="openpyxl")
         sheet_names = wb.sheet_names
         _kpi_raw_df   = _post_process_raw(wb.parse("취합", header=0)) if "취합" in sheet_names else pd.DataFrame()
-        _kpi_dedup_df = _dedup_by_stage_priority(_kpi_raw_df)
+        _kpi_dedup_df = _build_agg_df(_kpi_raw_df)
         _kpi_agg_df   = wb.parse("kpi 집계", header=0) if "kpi 집계" in sheet_names else pd.DataFrame()
 
     logger.info("KPI 취합 %d행 / 집계(중복제거) %d행 / kpi집계 %d행 로드 완료",
