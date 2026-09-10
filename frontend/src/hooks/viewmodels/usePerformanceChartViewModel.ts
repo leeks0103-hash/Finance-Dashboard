@@ -9,7 +9,10 @@ import { sortParts } from '@/utils/partOrder';
 import { PERF_MONTH, stripPartPrefix } from '@/utils';
 import type { ChartOptions } from 'chart.js';
 
-const toEokNum = (v: number) => +(v / 100_000).toFixed(1);
+// 천원 → 억원. 백엔드가 아직 옛 코드라 새 필드를 안 내려주는 경우(서버 재시작 전)
+// undefined가 들어와 차트에 NaN이 찍히므로 0으로 방어한다.
+const toEokNum = (v: number | null | undefined) =>
+  Number.isFinite(Number(v)) ? +(Number(v) / 100_000).toFixed(1) : 0;
 
 // PERF_MONTH("7월") 기준 — 이후 달은 아직 실적이 없는 추정 구간이므로 흐릿하게 표시
 const CURRENT_MONTH_NUM = parseInt(PERF_MONTH, 10);

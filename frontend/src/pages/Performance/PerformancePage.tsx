@@ -104,6 +104,8 @@ const PerformancePage = () => {
                 pageSizeOptions={[10]}
                 compact
                 hideToolbar
+                /* storageKey — 헤더 드래그로 컬럼 순서 변경 + 폭 조절, localStorage 저장 */
+                storageKey="performance-by-part"
               />
             </div>
           </div>

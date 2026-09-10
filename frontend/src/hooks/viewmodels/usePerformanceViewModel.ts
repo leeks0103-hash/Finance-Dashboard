@@ -17,7 +17,9 @@ import type { ServerPagination, ServerSearch } from '@/components/ui/DataTable';
 
 const FINANCE_EMPTY_FILTERS: Filters = { years: [], parts: [], stages: [] };
 
-const toEokNum = (v: number) => +(v / 100_000).toFixed(1);
+// 천원 → 억원. 백엔드에 없는 필드(서버 재시작 전 등)가 들어와도 NaN 대신 0이 되도록 방어
+const toEokNum = (v: number | null | undefined) =>
+  Number.isFinite(Number(v)) ? +(Number(v) / 100_000).toFixed(1) : 0;
 
 const CURRENT_MONTH_NUM = parseInt(PERF_MONTH, 10);
 

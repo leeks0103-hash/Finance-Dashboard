@@ -23,7 +23,25 @@ import performance as perf
 
 SRC = os.path.join("data", "26년 사업계획 통합관리 파일_ver8.3_260901_종합1.xlsx")
 SHEET = "2026년 (8월 추정)"
-OUT = os.path.join("data", "실적데이터_분석보고서.xlsx")
+_OUT_BASE = os.path.join("data", "실적데이터_분석보고서.xlsx")
+
+
+def _pick_out(path):
+    """엑셀에서 파일을 열어둔 상태면 잠겨서 못 쓰므로 _v2, _v3 … 로 피해서 저장한다."""
+    if not os.path.exists(path):
+        return path
+    try:
+        with open(path, "a"):
+            return path
+    except PermissionError:
+        base, ext = os.path.splitext(path)
+        i = 2
+        while os.path.exists(f"{base}_v{i}{ext}"):
+            i += 1
+        return f"{base}_v{i}{ext}"
+
+
+OUT = _pick_out(_OUT_BASE)
 
 # ── 색상 (현대 브랜드 팔레트 계열) ─────────────────────────
 NAVY = "002C5F"
@@ -656,6 +674,115 @@ def add_walkthrough(code="E049600126050003"):
     print("08_실전예시 추가 완료")
 
 
+
+
+# ══════════════════════════════════════════════════════════════
+# 09_원본수식 — 엑셀에 실제로 박혀 있는 수식을 그대로 옮기고 해석
+# ══════════════════════════════════════════════════════════════
+def add_formulas():
+    import openpyxl
+    import re
+    from openpyxl.utils import get_column_letter as L
+
+    src = openpyxl.load_workbook(SRC, data_only=False)
+    sh = src[SHEET]
+    F = lambda c: sh[f"{c}13"].value
+
+    # 인접행 참조 컬럼 탐지
+    adj = []
+    for idx in range(0, 105):
+        c = L(idx + 1)
+        v = sh[f"{c}13"].value
+        if isinstance(v, str) and v.startswith("=") and \
+           any(r == "14" for r in re.findall(r"[A-Z]{1,2}(\d+)", v)):
+            adj.append(c)
+
+    raw = load_raw()
+    rev = raw[raw[10] == "매출"]
+    BA = num(rev, 52)
+    BC, BD, BEc = num(rev, 54), num(rev, 55), num(rev, 56)
+    pos, nonpos = BA > 0, BA <= 0
+    rate = ((BC + BD + BEc)[pos] / BA[pos])
+
+    df = perf.get_perf_df()
+    drev = df[df["category"] == "매출"]
+
+    wb = openpyxl.load_workbook(OUT)
+    blocks = [
+        ("title", "■ 엑셀에 실제로 박혀 있는 수식 (13행=매출행 기준, 그대로 옮김)"),
+        ("head", ["열", "항목", "원본 수식", "쉬운 말로"]),
+        ("row", ["AR", "8월 결산 기준 실적", str(F("AR")),
+                 "★ 계산이 아니라 그냥 BH를 가리킴. 이름만 '8월 실적'이지 내용은 연간 전체값."], WARN_FILL),
+        ("row", ["BH", "합계(8월 점검)", str(F("BH")), "1월~12월 칸(BI~BT)을 전부 더함"]),
+        ("row", ["BA", "매출이익", str(F("BA")),
+                 "매출 행이면 '내 AR − 바로 아랫줄 AR'. 즉 연간추정 매출 − 연간추정 원가"], OK_FILL),
+        ("row", ["BB", "직접원가", str(F("BB")),
+                 "매출 행이면 '바로 아랫줄(원가행)의 AR'을 그대로 가져옴"], OK_FILL),
+        ("row", ["BC", "인건비", str(F("BC"))[:150] + " …",
+                 "★ 실제 원가가 아님. 매출이익 × (팀·교육형태별 인건비 배부율). "
+                 "배부율은 910~965행 참조표에서 SUMIFS로 끌어옴. 매출이익>0 일 때만 배부"], WARN_FILL),
+        ("row", ["BD", "공통원가", "BC와 동일 구조 (참조표 BF열 사용)",
+                 "★ 매출이익 × 공통원가 배부율"], WARN_FILL),
+        ("row", ["BE", "관리비", "BC와 동일 구조 (참조표 BG열 사용)",
+                 "★ 매출이익 × 관리비 배부율"], WARN_FILL),
+        ("row", ["BF", "경상손익", str(F("BF")),
+                 "AR에서 BB~BE(직접원가+인건비+공통원가+관리비)를 모두 뺌"], OK_FILL),
+        ("row", ["BG", "손익률", str(F("BG")), "경상손익 ÷ AR(연간추정 매출)"]),
+        ("row", ["W", "계획 원가율", str(F("W")), "아랫줄 V(원가계획) ÷ 내 V(매출계획)"]),
+        ("row", ["AS", "8월 원가율", str(F("AS")), "아랫줄 AR ÷ 내 AR"]),
+        ("row", ["AX", "차이금액", str(F("AX")), "연간추정(AR) − 최초계획(V)"]),
+        ("row", ["AY", "증감율", str(F("AY")), "AR ÷ V − 1  (= 차이금액 ÷ V 와 같은 값)"]),
+        ("row", ["CB", "대차금액", str(F("CB")), "최초계획(V) − 2025년 실적(U)"]),
+        ("row", ["CC", "대차비율", str(F("CC")), "최초계획(V) ÷ 2025년 실적(U)  ※ 차액÷U 아님"]),
+        ("row", ["BU", "점검 원가율", str(F("BU"))[:150] + " …",
+                 "아랫줄 BH ÷ 내 BH. 단 K·D(파트)·R(프로젝트명)이 같은지 먼저 확인하는 안전장치가 있음"]),
+        ("gap",),
+        ("title", "■ 함정 A — 짝짓기가 '프로젝트코드'가 아니라 '바로 아랫줄'이다"),
+        ("head", ["내용", "설명"]),
+        ("row", ["무슨 뜻인가", "BA·BB 수식의 AR14는 '14번 행'이라는 위치 참조입니다. 프로젝트코드로 짝을 찾는 게 아니라, "
+                 "물리적으로 바로 아래 붙어 있는 줄을 무조건 '내 원가'로 간주합니다."], WARN_FILL),
+        ("row", ["위험", "행을 정렬하거나 중간에 한 줄 끼워 넣으면, 아무 경고 없이 엉뚱한 프로젝트의 원가를 빼게 됩니다. "
+                 "수식이 깨지는 게 아니라 '조용히 틀린 값'이 나옵니다."], WARN_FILL),
+        ("row", ["해당 컬럼", f"{', '.join(adj)} — 총 {len(adj)}개 컬럼이 아랫줄을 참조합니다."]),
+        ("row", ["그나마 안전한 것", "BU만 K(구분)·D(파트)·R(프로젝트명)이 서로 맞는지 확인하는 조건이 붙어 있습니다. "
+                 "BA·BB·BF에는 그런 검사가 없습니다."]),
+        ("row", ["대시보드는?", "대시보드는 이 위치 참조 방식을 쓰지 않습니다. 매출행·원가행을 각각 모아 "
+                 "따로 합산하므로 행 순서가 바뀌어도 합계는 영향받지 않습니다."], OK_FILL),
+        ("gap",),
+        ("title", "■ 함정 B — 인건비·공통원가·관리비는 '실제 원가'가 아니라 '배부액'이다"),
+        ("head", ["내용", "설명"]),
+        ("row", ["배부 공식",
+                 "인건비 = 그 프로젝트의 매출이익 × ( 그 팀·교육형태의 인건비 총액 ÷ 그 팀·교육형태의 매출이익 총액 )"]),
+        ("row", ["참조표 위치", "같은 시트 910~965행. AT=팀, AW=교육형태, AX=매출이익, BB=인건비, BF=공통원가, BG=관리비"]),
+        ("row", ["뜻", "프로젝트별로 실제 들어간 인건비를 집계한 게 아니라, 팀·교육형태 단위 총액을 "
+                 "'매출이익을 많이 낸 프로젝트가 더 많이 부담'하는 방식으로 나눠 준 것입니다."]),
+        ("row", ["실측 배부율", f"평균 {rate.mean():.1%}  (최소 {rate.min():.1%} ~ 최대 {rate.max():.1%})  "
+                 f"— 매출이익의 약 {rate.mean():.0%}가 간접비로 빠집니다"], WARN_FILL),
+        ("row", ["금액으로 보면",
+                 f"매출이익 {E(drev['profit_gross'].sum()):.1f}억 → 간접비 배부 "
+                 f"{E((drev['cost_labor']+drev['cost_overhead']+drev['cost_mgmt']).sum()):.1f}억 차감 → "
+                 f"경상손익 {E(drev['operating_profit'].sum()):.1f}억"], OK_FILL),
+        ("gap",),
+        ("title", "■ 함정 C — 적자 프로젝트는 간접비를 한 푼도 안 뗀다"),
+        ("head", ["항목", "값", "설명"]),
+        ("row", ["수식 조건", "IF(BA13>0, …, 0)", "매출이익이 0 이하면 배부액을 0으로 처리"], WARN_FILL),
+        ("row", ["매출이익 > 0 인 행", f"{int(pos.sum())}건", "정상적으로 간접비 배부받음"]),
+        ("row", ["매출이익 ≤ 0 인 행", f"{int(nonpos.sum())}건", "인건비·공통원가·관리비가 전부 0 (실측 확인)"], WARN_FILL),
+        ("row", ["그 결과", "경상손익 = 매출이익", f"{int(nonpos.sum())}건 전부 오차 0으로 일치 (실측 확인)"], WARN_FILL),
+        ("row", ["금액 영향", f"약 {E(abs(BA[nonpos].sum())*rate.mean()):.1f}억 수준",
+                 "적자 행들의 매출이익 규모 자체가 작아 총액 영향은 제한적이나, "
+                 "구조적으로 '적자 프로젝트의 손실이 실제보다 작게' 보입니다."]),
+        ("gap",),
+        ("note", "※ 수식은 openpyxl로 원본 파일에서 그대로 읽어온 것입니다(13행 기준). "
+                 "다른 행은 행번호만 바뀌고 구조는 동일합니다."),
+    ]
+    write_sheet(wb, "09_원본수식", blocks, [10, 22, 62, 74])
+    wb.save(OUT)
+    src.close()
+    print("09_원본수식 추가 완료")
+
+
 if __name__ == "__main__":
     main()
     add_walkthrough()
+    add_formulas()

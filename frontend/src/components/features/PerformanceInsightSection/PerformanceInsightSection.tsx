@@ -46,6 +46,8 @@ const PerformanceInsightSection = () => {
       isLoading={vm.isLoading}
       compact
       hideToolbar
+      /* storageKey — 헤더 드래그로 컬럼 순서 변경 + 폭 조절, localStorage 저장 */
+      storageKey="perf-missed-bid"
       defaultPageSize={20}
       pageSizeOptions={[20]}
       emptyIcon="📋"
