@@ -57,19 +57,21 @@
   letter-spacing: 0;
 }
 
-/* 셀렉트박스 공통 (필터 A·B) */
+/* 셀렉트박스 공통 (필터 A·B) — DataTable .searchFieldSelect 와 동일 스타일로 통일 */
 .filterSelect {
-  font-size: 0.8rem;
-  padding: 5px 9px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  color: var(--text);
+  font-size: 0.78rem;
+  color: var(--text-sub);
+  border: 1.5px solid var(--border);
+  background: var(--bg-subtle);
   cursor: pointer;
-  transition: border-color 0.14s;
+  padding: 5px 6px;
+  border-radius: var(--radius-sm);
+  outline: none;
+  font-family: inherit;
+  flex-shrink: 0;
+  transition: border-color 0.15s ease;
 }
-.filterSelect:hover  { border-color: var(--brand-mid); }
-.filterSelect:focus  { outline: none; border-color: var(--brand-mid); }
+.filterSelect:hover { border-color: var(--brand-mid); }
 
 /* 필터 B — KPI 취합 툴바 안 (셀렉트 2개 + 목록/상세 토글) */
 .toolbarFilters {
