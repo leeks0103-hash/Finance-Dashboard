@@ -29,7 +29,14 @@
 - 페이지네이션 `«‹›»` 화살표 `font-size`만 1.05rem로 키움 (폰트 패밀리는 기본 유지 → 세로 정렬 어긋남 없음)
 - KPI 뷰 토글(목록/KPI 상세)이 흰 툴바에 묻혀 안 보이던 것 — 샌드 배경(`--bg-subtle`)+테두리, 활성 버튼 브랜드색 채움
 
-tsc·build·vitest(61/61) 통과. 커밋 `4c37dfd` (push 완료)
+**5. 원가구성 도넛도 드릴다운** (커밋 `42fd45f`)
+- `DoughnutChart` `onSliceClick` prop — 조각 클릭 시 포인터 커서. 범례 클릭(숨김/표시 토글)은 그대로
+- `_PERF_BREAKDOWN`에 `costBreakdown`(`dim: "none"`) 추가 — series 0~3 = 직접원가(BB)/인건비(BC)/공통원가(BD)/관리비(BE), 전체 매출행 대상 합산 → 세그먼트 값과 일치
+- 이제 실적현황 탭: **막대 3개 + 도넛 1개** 전부 클릭 시 산출 근거 표
+
+**6. 드릴다운 모달 X 버튼** — 사각 배경/테두리 넣었던 것 제거, ChartCard 모달과 동일한 맨 `×` 글리프로 통일
+
+tsc·build·vitest(61/61) 통과. 커밋 `4c37dfd` / `42fd45f` (push 완료)
 
 ⚠️ **`kpi.py`·`performance.py` 변경 → Flask 서버 재시작 필요** (reload는 엑셀만, 새 라우트는 재시작해야 등록)
 
