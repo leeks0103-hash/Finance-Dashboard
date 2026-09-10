@@ -89,8 +89,9 @@ export const INFO_COST_BREAKDOWN = (
     ['항목',   <Chips items={[
       `${PERF_COL.costDirect}열 (직접원가)`, `${PERF_COL.costLabor}열 (인건비)`,
       `${PERF_COL.costOverhead}열 (공통원가)`, `${PERF_COL.costMgmt}열 (관리비)`,
+      `${PERF_COL.operatingProfit}열 (경상손익)`,
     ]} />],
-    ['계산',   '전체 합산 후 항목별 구성비 (%)'],
+    ['계산',   '전체 합산 후 항목별 구성비 (%). 경상손익(BF)까지 5조각이라 합 ≈ 매출 — "매출이 어디에 쓰였고 얼마 남았나"'],
     ['필터',   '파트 · 팀 필터 적용'],
   ]} />
 );

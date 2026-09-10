@@ -735,6 +735,8 @@ _PERF_BREAKDOWN = {
              "field_desc": "매출행의 공통원가 (엑셀 BD열)"},
             {"label": "관리비", "category": "매출", "field": "cost_mgmt",
              "field_desc": "매출행의 관리비 (엑셀 BE열)"},
+            {"label": "경상손익", "category": "매출", "field": "operating_profit",
+             "field_desc": "매출행의 경상손익 (엑셀 BF열) — 매출 − 모든 원가"},
         ],
     },
 }
@@ -753,7 +755,7 @@ def api_perf_summary_breakdown():
     """
     실적현황 차트가 '어떤 프로젝트 행들을 합산해서' 나온 값인지 드릴다운.
     - chart:  monthly | planVsActual | profitRate | costBreakdown
-    - series: 데이터셋/세그먼트 순서 (costBreakdown은 0~3)
+    - series: 데이터셋/세그먼트 순서 (costBreakdown은 0~4: 직접원가·인건비·공통원가·관리비·경상손익)
     - key:    월 라벨("3월") 또는 파트명(접두 원문자 제거된 표시명). costBreakdown은 불필요
     필터(part/team)는 summary와 동일하게 적용. 반환 total(억)이 막대·세그먼트 값과 일치한다.
     """

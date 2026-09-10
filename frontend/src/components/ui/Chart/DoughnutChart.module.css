@@ -14,10 +14,11 @@
   min-height: 0;
 }
 
+/* 1열 리스트 — 항목이 3개든 5개든(홀수 포함) 트레일링 빈칸 없이 일관되게 */
 .legend {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   margin: 10px 2px 0;
   padding: 10px 2px 0;
   border-top: 1px solid var(--border);
@@ -71,7 +72,3 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* 카드가 좁아지면 1열로 — 이름이 잘리는 것보다 세로로 쌓이는 편이 읽기 좋다 */
-@media (max-width: 480px) {
-  .legend { grid-template-columns: 1fr; }
-}

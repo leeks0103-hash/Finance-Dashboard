@@ -153,12 +153,12 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
         revenues: parts.map(p => toEokNum(summary.by_part[p].jun_check_total)),
         costs:    parts.map(p => toEokNum(summary.by_part[p].jun_cost_check)),
       },
-      // 카드 제목 "프로젝트 합계 원가비율" 그대로 — 전체 합계 구성비(금액 가중)를 그린다.
-      //    프로젝트별 비율의 단순평균이 아니다 (실측 차이: 직접원가 합계 67.5% vs 단순평균 56.7%).
-      //    2026-09-08 담당자 확인 후 계산은 합계로 확정, 제목도 "평균"→"합계"로 정정함.
+      // 전체 합계 구성비(금액 가중). 프로젝트별 비율의 단순평균이 아님 (직접원가 합계 67.5% vs 단순평균 56.7%).
+      //    2026-09-10 경상손익(BF열) 조각 추가 — 매출행 기준. 이제 5조각 합 ≈ 매출(BH)이라
+      //    "매출이 어디에 쓰였고 얼마 남았나" 구성이 됨(담당자 요청).
       costBreakdown: {
-        labels: ['직접원가', '인건비', '공통원가', '관리비'],
-        values: [total.cost_direct, total.cost_labor, total.cost_overhead, total.cost_mgmt].map(toEokNum),
+        labels: ['직접원가', '인건비', '공통원가', '관리비', '경상손익'],
+        values: [total.cost_direct, total.cost_labor, total.cost_overhead, total.cost_mgmt, total.operating_profit].map(toEokNum),
       },
       progress: {
         labels:       progressEntries,
