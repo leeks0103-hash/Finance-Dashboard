@@ -36,7 +36,19 @@
 
 **6. 드릴다운 모달 X 버튼** — 사각 배경/테두리 넣었던 것 제거, ChartCard 모달과 동일한 맨 `×` 글리프로 통일
 
-tsc·build·vitest(61/61) 통과. 커밋 `4c37dfd` / `42fd45f` (push 완료)
+**7. 파트별 매출 달성 현황 행 클릭 → 드릴다운** (커밋 예정)
+- `PartAchievementBars` 각 파트 행 클릭(=`Button unstyled` + hover) → 그 파트의 프로젝트별 **누계 실적** 표
+- `_PERF_BREAKDOWN`에 `partAchievement` 추가 — series 0 `jun_actual`(누계 실적) / 1 `plan_initial`(연간 계획), `agg_desc`에 "달성률 = 누계 실적 합계 ÷ 연간 계획 합계 × 100" 명시
+- 모달 상태는 `PerformancePage`가 소유(이 차트는 `PerformanceChartSection` 밖이라 별도 `<PerfBreakdownModal>` 인스턴스)
+
+**8. 차트 크기 카드 고정 + 모달 화면 튐 + 그래프 수치 페이드인** (커밋 `c836119`)
+- 실적현황 2번째 줄 차트 폭을 슬롯이 아니라 '카드'에 고정 (12칸 그리드 + `.spanWide/.spanNarrow/.spanMid`, 합 12) — 드래그 재배치해도 파트별 추정 매출/원가가 안 좁아짐
+- `useScrollLock` 훅 신설 — 모달 열 때 스크롤바 폭만큼 `padding-right` 보정. ChartCard 확대 모달 등에서 스크롤바 사라지며 화면이 옆으로 튀던 것 해결. KPI·실적 드릴다운 모달도 이 훅으로 통일
+- `datalabelFade` (`utils/`) — "그래프 수치" 토글 **켤 때** datalabel 숫자가 0→1로 페이드인. 전역 Chart.js 플러그인 + `Chart.defaults.plugins.datalabels.opacity` scriptable + `useUiStore.subscribe`. 끌 때는 즉시(옵션 `display:false`로 재렌더되어 페이드아웃 여지 없음). 라벨 없는 차트도 시간 기준으로 rAF 루프 정리
+
+이제 **실적현황: 막대 3개 + 도넛 + 파트별 달성 현황**, **KPI: 목표/실적 막대** 전부 클릭 시 산출 근거 모달.
+
+tsc·build·vitest(61/61) 통과. 커밋 `4c37dfd`/`42fd45f`/`bdbdf51`/`c836119` (+ 파트별 달성 현황 드릴다운)
 
 ⚠️ **`kpi.py`·`performance.py` 변경 → Flask 서버 재시작 필요** (reload는 엑셀만, 새 라우트는 재시작해야 등록)
 

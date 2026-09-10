@@ -1,10 +1,13 @@
 // createColumnHelper·PerfPartRow — 파트별 실적 표 비활성으로 미사용, 복구 시 함께 해제
 // import { createColumnHelper } from '@tanstack/react-table';
 // import type { PerfPartRow } from '@/hooks/viewmodels/usePerformanceViewModel';
+import { useState } from 'react';
 import { usePerformanceViewModel } from '@/hooks/viewmodels/usePerformanceViewModel';
 import { useFinanceCodes } from '@/hooks/useFinanceCodes';
 import { DataTable, InfoButton } from '@/components/ui';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import PerfBreakdownModal from '@/components/features/PerfBreakdownModal/PerfBreakdownModal';
+import type { PerfBreakdownTarget } from '@/hooks/viewmodels/usePerfBreakdownViewModel';
 import PerformanceChartSection from '@/components/features/PerformanceChartSection/PerformanceChartSection';
 import PerformanceKpiSection from '@/components/features/PerformanceKpiSection/PerformanceKpiSection';
 import PerformanceInsightSection from '@/components/features/PerformanceInsightSection';
@@ -79,6 +82,8 @@ const PerformancePage = () => {
   const vm = usePerformanceViewModel();
   // 재무 이력 보유 코드↔건수 — 프로젝트코드 셀의 배지용 (한 번 받아 캐시)
   const financeCodes = useFinanceCodes();
+  // 파트별 매출 달성 현황 행 클릭 → 드릴다운 모달 (누계 실적 기준)
+  const [achieveBreakdown, setAchieveBreakdown] = useState<PerfBreakdownTarget | null>(null);
 
   return (
     <main className={styles.main}>
@@ -99,7 +104,12 @@ const PerformancePage = () => {
       {vm.byPart.length > 0 && (
         <div className="fadeUp" style={{ animationDelay: '150ms' }}>
           <ErrorBoundary>
-            <PartAchievementBars rows={vm.byPart} month={PERF_MONTH} info={INFO_ACHIEVEMENT_BARS} />
+            <PartAchievementBars
+              rows={vm.byPart}
+              month={PERF_MONTH}
+              info={INFO_ACHIEVEMENT_BARS}
+              onPartClick={part => setAchieveBreakdown({ chart: 'partAchievement', series: 0, key: part })}
+            />
           </ErrorBoundary>
         </div>
       )}
@@ -202,6 +212,10 @@ const PerformancePage = () => {
             info={INFO_FINANCE_SEARCH}
           />
         </ErrorBoundary>
+      )}
+
+      {achieveBreakdown && (
+        <PerfBreakdownModal target={achieveBreakdown} onClose={() => setAchieveBreakdown(null)} />
       )}
 
     </main>

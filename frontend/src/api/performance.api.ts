@@ -33,7 +33,8 @@ export const reloadPerfData = () =>
   client.post('/performance/reload').then(r => r.data);
 
 // ── 실적현황 차트 막대 드릴다운 (어떤 프로젝트 행들을 합산했는지) ──
-export type PerfBreakdownChart = 'monthly' | 'planVsActual' | 'profitRate' | 'costBreakdown';
+export type PerfBreakdownChart =
+  | 'monthly' | 'planVsActual' | 'profitRate' | 'costBreakdown' | 'partAchievement';
 
 export interface PerfBreakdownRow {
   project_code: string;

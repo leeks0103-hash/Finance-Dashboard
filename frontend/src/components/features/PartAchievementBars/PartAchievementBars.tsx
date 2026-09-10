@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { PerfPartRow } from '@/hooks/viewmodels/usePerformanceViewModel';
-import { InfoButton } from '@/components/ui';
+import { InfoButton, Button } from '@/components/ui';
 import { stripPartPrefix } from '@/utils';
 import { sortByPart } from '@/utils/partOrder';
 import styles from './PartAchievementBars.module.css';
@@ -9,6 +9,8 @@ interface Props {
   rows:  PerfPartRow[];
   month: string;
   info?: ReactNode;
+  /** 파트 행 클릭 — 드릴다운 모달 열기. 전달 값은 접두 원문자 제거된 파트명 */
+  onPartClick?: (part: string) => void;
 }
 
 // 달성률 구간별 색 — 막대와 범례가 같은 정의를 쓰도록 한 곳에서 관리
@@ -21,7 +23,7 @@ const RATE_BANDS = [
 const barColor = (rate: number) =>
   (RATE_BANDS.find(b => rate >= b.min) ?? RATE_BANDS[RATE_BANDS.length - 1]).color;
 
-const PartAchievementBars = ({ rows, month, info }: Props) => {
+const PartAchievementBars = ({ rows, month, info, onPartClick }: Props) => {
   const sorted = sortByPart(rows, r => r.part);   // 담당자 지정 고정 순서
 
   return (
@@ -48,8 +50,8 @@ const PartAchievementBars = ({ rows, month, info }: Props) => {
             const over  = rate >= 100;
             const partName = stripPartPrefix(row.part);
 
-            return (
-              <div key={row.part} className={styles.row}>
+            const inner = (
+              <>
                 <span className={styles.partName}>{partName}</span>
 
                 <div className={styles.barWrap}>
@@ -67,7 +69,21 @@ const PartAchievementBars = ({ rows, month, info }: Props) => {
                 <span className={styles.vals}>
                   {row.junActualNum.toFixed(1)}억 <span className={styles.slash}>/</span> {row.planInitialNum.toFixed(1)}억
                 </span>
-              </div>
+              </>
+            );
+
+            return onPartClick ? (
+              <Button
+                key={row.part}
+                unstyled
+                className={`${styles.row} ${styles.rowClickable}`}
+                onClick={() => onPartClick(partName)}
+                title={`${partName} — 프로젝트별 상세`}
+              >
+                {inner}
+              </Button>
+            ) : (
+              <div key={row.part} className={styles.row}>{inner}</div>
             );
           })}
         </div>

@@ -52,6 +52,22 @@
   gap: 12px;
 }
 
+/* 클릭 가능한 행 — Button unstyled(=<button>)의 기본값 리셋 + hover */
+.rowClickable {
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  padding: 5px 6px;
+  margin: -5px -6px;
+  border-radius: var(--radius-sm);
+  transition: background 0.14s ease;
+}
+.rowClickable:hover { background: var(--bg-subtle); }
+
 .partName {
   font-size: 13px;
   font-weight: 500;

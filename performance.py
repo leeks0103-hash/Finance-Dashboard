@@ -713,6 +713,16 @@ _PERF_BREAKDOWN = {
              "field_desc": "원가행의 연간 점검 합계 (엑셀 BH열) — 매출행 '직접원가(BB열)'와 1:1로 대응"},
         ],
     },
+    "partAchievement": {
+        "dim": "part",
+        "agg_desc": "선택 파트의 프로젝트별 누계 실적(1~기준월)을 더한 값입니다. 달성률 = 이 합계 ÷ 연간 계획 합계 × 100.",
+        "series": [
+            {"label": "누계 실적", "category": "매출", "field": "jun_actual",
+             "field_desc": "매출행의 경과월 누계 실적 (chk_m01~기준월 재합산값)"},
+            {"label": "연간 계획", "category": "매출", "field": "plan_initial",
+             "field_desc": "매출행의 최초 사업계획 (엑셀 V열)"},
+        ],
+    },
     "costBreakdown": {
         "dim": "none",   # 파트·월 구분 없이 전체 매출행 대상
         "agg_desc": "전체 매출행의 해당 원가 항목을 그대로 더한 값입니다. 도넛은 이 합계들의 구성비(금액 가중).",
