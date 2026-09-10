@@ -26,7 +26,11 @@ export const countFinanceHistory = (
   cache?: Map<string, number>,
 ): number => {
   if (!codes) return 0;
-  const term = (extractRealCode(rawCode) ?? rawCode).trim();
+
+  // placeholder 코드("생성예정"/"드롭"/"미정" 등)는 서로 다른 프로젝트가 같은 문자열을 공유한다.
+  // 그대로 세면 남의 프로젝트 건수까지 합산돼(예: "생성예정" → 8건) 배지가 무의미해지고,
+  // 2뎁스 패널도 어차피 "특정 불가"로 막는다. 정식 코드가 잡히는 행에만 배지를 단다.
+  const term = extractRealCode(rawCode);
   if (!term) return 0;
 
   const hit = cache?.get(term);

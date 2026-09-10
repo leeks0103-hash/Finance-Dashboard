@@ -11,7 +11,8 @@ function fmtTs(raw: string | null | undefined): string {
 }
 
 const ActionBar = () => {
-  const { exportCsv, exportPdf, isExportingPdf, showPdfModal, reload, isReloading, correctedRows } = useExport();
+  // exportCsv — CSV 버튼 비활성으로 현재 미사용 (복구 시 구조분해에 다시 추가)
+  const { exportPdf, isExportingPdf, showPdfModal, reload, isReloading, correctedRows } = useExport();
   const lastLoaded    = useUiStore(s => s.lastLoaded);   // reload 클릭 시 갱신
   const { data: sum } = useSummary();                    // 초기 로드 시각 (서버 응답)
   const displayTs = lastLoaded || fmtTs(sum?.loaded_at); // reload > 초기 순서로 우선
@@ -19,7 +20,9 @@ const ActionBar = () => {
   return (
     <>
       <div className={styles.bar}>
+        {/* CSV 내보내기 — 담당자 지정으로 상단에서 내림. 되살리려면 아래 한 줄 주석 해제
         <Button variant="success" size="sm" onClick={exportCsv}>↓ CSV</Button>
+        */}
         <Button variant="danger"  size="sm" onClick={exportPdf} loading={isExportingPdf} disabled={isExportingPdf}>
           {isExportingPdf ? '생성 중…' : '↓ PDF'}
         </Button>
