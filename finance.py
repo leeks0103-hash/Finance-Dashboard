@@ -359,6 +359,26 @@ def api_data():
     return jsonify({"data": records, "total": total})
 
 
+@finance_bp.route("/api/finance/codes")
+def api_finance_codes():
+    """
+    재무 PPT 이력이 존재하는 프로젝트코드와 그 건수만 반환 — 실적현황 표에서
+    "이 행은 더블클릭하면 재무 이력이 나온다"를 미리 표시하기 위한 경량 엔드포인트.
+
+    행 데이터를 통째로 내리면 수백 KB라, 코드↔건수만 담아 응답을 작게 유지한다.
+    필터는 적용하지 않는다(2뎁스 조회 자체가 필터와 무관하게 코드로 찾기 때문).
+    """
+    df = get_df()
+    if df.empty or "project_code" not in df.columns:
+        return jsonify({"codes": {}})
+    codes = (
+        df["project_code"].astype(str).str.strip()
+        .loc[lambda s: s.ne("") & s.ne("0")]
+        .value_counts()
+    )
+    return jsonify({"codes": {str(k): int(v) for k, v in codes.items()}})
+
+
 @finance_bp.route("/api/summary")
 def api_summary():
     df = apply_filters(get_df())

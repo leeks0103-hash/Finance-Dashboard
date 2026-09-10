@@ -7,11 +7,17 @@ import { formatBillion, formatRate } from '@/utils';
 import type { Project } from '@/types/finance.types';
 import styles from './FinanceCrossCheckPanel.module.css';
 
-const LS_KEY = 'finance-cross-check-col-widths';
-// 보고단계 | 연도 | 매출 | 지출 | 이익율 | 비고 | 파일명
-const DEFAULT_WIDTHS = [110, 64, 80, 80, 90, 160, 220];
-const HEADERS = ['보고단계', '연도', '매출', '지출', '이익율', '비고', '파일명'] as const;
-const RIGHT_COLS = new Set([2, 3, 4]); // 숫자 컬럼 인덱스
+// v2 — 표시 컬럼을 재무 PPT 추출 전체 항목으로 확장(7 → 15개)하며 저장된 폭 무효화
+const LS_KEY = 'finance-cross-check-col-widths-v2';
+// 재무 PPT에서 추출되는 항목 전부. project_code는 패널 헤더에 이미 있어(모든 행 동일값) 컬럼에서는 제외
+// 보고단계가 첫 컬럼 — .stageCell의 좌측 색상 바가 행 시작 표시 역할을 하므로 순서 유지
+const HEADERS = [
+  '보고단계', '파트', '연도',
+  '매출', '지출', '직접원가', '인건비', '공통원가', '경상이익', '이익율',
+  '미수사유', '비고', '처리일', '반영일', '파일명',
+] as const;
+const DEFAULT_WIDTHS = [100, 90, 60, 88, 88, 88, 80, 88, 92, 76, 140, 160, 100, 100, 220];
+const RIGHT_COLS = new Set([3, 4, 5, 6, 7, 8, 9]); // 숫자 컬럼 인덱스
 
 function loadWidths(): number[] {
   try {
@@ -44,19 +50,35 @@ function stageColor(stage: string) {
 interface RowProps { r: Project; onCell: (text: string, copyable?: boolean) => void; }
 function TableRow({ r, onCell }: RowProps) {
   const isLoss = r.operating_profit < 0;
-  const note   = r.note     || '-';
-  const fname  = r.filename || '-';
+  const dash   = (v?: string) => (v && v.trim()) || '-';
+  const note   = dash(r.note);
+  const missed = dash(r.missed_bid_reason);
+  const fname  = dash(r.filename);
+  // 20자 넘는 텍스트는 클릭하면 전체 내용 팝업 (다른 표와 동일 규칙)
+  const longCell = (text: string, cls: string) => (
+    <td className={`${cls}${text.length > 20 ? ` ${styles.clickable}` : ''}`}
+        title={text} onClick={text.length > 20 ? () => onCell(text) : undefined}>{text}</td>
+  );
   return (
     <tr style={{ '--stage-color': stageColor(r.stage) } as React.CSSProperties}>
       <td className={styles.stageCell}>{r.stage}</td>
+      <td className={styles.truncCell} title={r.part}>{dash(r.part)}</td>
       <td className={styles.yearCell}>{r.year}년</td>
       <td className={styles.numCell}>{formatBillion(r.revenue)}</td>
       <td className={styles.numCell}>{formatBillion(r.expenditure)}</td>
+      <td className={styles.numCell}>{formatBillion(r.direct_cost)}</td>
+      <td className={styles.numCell}>{formatBillion(r.labor_cost)}</td>
+      <td className={styles.numCell}>{formatBillion(r.overhead)}</td>
       <td className={`${styles.numCell}${isLoss ? ` ${styles.loss}` : ''}`}>
-        {isLoss ? `손실 ${formatBillion(r.operating_profit)}` : formatRate(r.profit_rate)}
+        {formatBillion(r.operating_profit)}
       </td>
-      <td className={`${styles.truncCell}${note.length > 15 ? ` ${styles.clickable}` : ''}`}
-          title={note} onClick={note.length > 15 ? () => onCell(note) : undefined}>{note}</td>
+      <td className={`${styles.numCell}${isLoss ? ` ${styles.loss}` : ''}`}>
+        {formatRate(r.profit_rate)}
+      </td>
+      {longCell(missed, styles.truncCell)}
+      {longCell(note, styles.truncCell)}
+      <td className={styles.yearCell}>{dash(r.processed_at)}</td>
+      <td className={styles.yearCell}>{dash(r.reflected_at)}</td>
       <td className={`${styles.fileCell} ${styles.clickable}`}
           title={fname} onClick={() => onCell(fname, true)}>{fname}</td>
     </tr>
