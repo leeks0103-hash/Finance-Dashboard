@@ -41,11 +41,18 @@ const PerfCompareCard = ({ card }: { card: PerfCompareCardData }) => {
 
         <div className={styles.bars} aria-hidden>
           <div className={styles.barCol}>
-            <div className={`${styles.bar} ${styles.barPlan}`} style={{ height: planH }} />
+            {/* barTrack — 캡션을 뺀 "막대만의 영역". 이게 없으면 막대(height %)와 캡션이
+                같은 flex 칸을 나눠 갖다가 100% 막대만 flex-shrink로 찌그러져서
+                높이 차이가 사라짐 */}
+            <div className={styles.barTrack}>
+              <div className={`${styles.bar} ${styles.barPlan}`} style={{ height: planH }} />
+            </div>
             <span className={styles.barCap}>계획</span>
           </div>
           <div className={styles.barCol}>
-            <div className={`${styles.bar} ${styles.barEst}`} style={{ height: estH }} />
+            <div className={styles.barTrack}>
+              <div className={`${styles.bar} ${styles.barEst}`} style={{ height: estH }} />
+            </div>
             <span className={styles.barCap}>추정</span>
           </div>
         </div>

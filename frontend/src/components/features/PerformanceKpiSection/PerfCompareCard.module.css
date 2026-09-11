@@ -114,7 +114,10 @@
   display: flex;
   align-items: flex-end;
   gap: 8px;
-  height: 44px;
+  /* 캡션(약 10px)+gap(3px)을 빼고도 막대 트랙이 충분히 남도록 44 → 52px.
+     margin-top 18 + 52 = 70px로, 옆의 값 영역(계획/추정 두 줄 ≈ 70px)과 같아
+     카드 전체 높이(min 140px)는 그대로 유지됨 */
+  height: 52px;
   flex-shrink: 0;
   /* perf-kpi-card(140px) 높이에 맞추려고 예전보다 위로 당김(36→18px) */
   margin-top: 18px;
@@ -128,9 +131,21 @@
   height: 100%;
   justify-content: flex-end;
 }
-.bar {
+
+/* 막대 전용 트랙 — 캡션("계획"/"추정")을 뺀 나머지 세로 공간을 전부 차지.
+   막대의 height %가 이 트랙 기준으로 계산되므로 100%여도 캡션에 밀려 줄어들지 않음 */
+.barTrack {
+  flex: 1;
+  min-height: 0;
   width: 22px;
+  display: flex;
+  align-items: flex-end;
+}
+
+.bar {
+  width: 100%;
   min-height: 3px;
+  flex-shrink: 0;   /* 트랙을 꽉 채우는 100% 막대가 찌그러지지 않도록 */
   border-radius: 2px 2px 0 0;
   transition: height 0.4s cubic-bezier(0.16,1,0.3,1);
 }
@@ -153,5 +168,5 @@
 @media (max-width: 900px) {
   .card { min-height: 108px; padding: 16px 18px 12px; }
   .plan, .est { font-size: 1.5rem; }
-  .bars { height: 36px; margin-top: 14px; }
+  .bars { height: 44px; margin-top: 14px; }
 }
