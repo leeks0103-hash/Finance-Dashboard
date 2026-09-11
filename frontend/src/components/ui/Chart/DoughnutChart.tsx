@@ -22,6 +22,9 @@ interface Props {
   /** 'sm'(기본) — 메인 카드처럼 캔버스가 작아 인출선을 짧게(링 크기 거의 그대로).
    *  'lg' — 확대 모달처럼 캔버스가 큰 곳 전용. 두 값은 완전히 독립 — 하나를 조정해도 다른 쪽엔 영향 없음. */
   outsideLabelsSize?: 'sm' | 'lg';
+  /** true면 캔버스 밑 범례 목록을 아예 그리지 않는다 — 좁은 미니카드용(범례가 캔버스 자리를 다 먹어버림).
+   *  기본 false라 기존 호출부는 전부 그대로 동작 */
+  hideLegend?: boolean;
 }
 
 // 현대 브랜드 9색 — Hyundai Blue / Active Blue / Sky Blue / Gold
@@ -51,6 +54,7 @@ const DoughnutChart = ({
   onSliceClick,
   outsideLabels = false,
   outsideLabelsSize = 'sm',
+  hideLegend = false,
 }: Props) => {
   const total = data.reduce((a, b) => a + b, 0);
 
@@ -125,7 +129,7 @@ const DoughnutChart = ({
         />
       </div>
 
-      {labels.length > 0 && (
+      {!hideLegend && labels.length > 0 && (
         <ul className={styles.legend}>
           {labels.map((label, i) => (
             <li key={label}>
