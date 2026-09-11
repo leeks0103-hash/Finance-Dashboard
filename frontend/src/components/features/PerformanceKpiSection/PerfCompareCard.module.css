@@ -52,9 +52,11 @@
 
 .body {
   display: flex;
+  flex-direction: column;
   align-items: flex-start;
+  /* 값은 위, 막대는 맨 아래로 — 카드 밑쪽이 허전해 보이던 것 보완 */
   justify-content: space-between;
-  gap: 14px;
+  gap: 10px;
   flex: 1;
   min-width: 0;
   position: relative;
