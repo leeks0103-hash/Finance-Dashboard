@@ -94,7 +94,9 @@
 .brand  .est { color: var(--brand-mid); }
 .profit .est { color: var(--profit); }
 .loss   .est { color: var(--loss); }
-.purple .est { color: var(--purple); }
+/* .est 값 텍스트는 purple accent여도 남색(brand) 유지 — 원가 카드만 색이 혼자 튀지 않도록.
+   상단 accent 바·막대그래프 색은 그대로 purple(원가 구분용) */
+.purple .est { color: var(--brand-mid); }
 
 .diff {
   flex-shrink: 0;
