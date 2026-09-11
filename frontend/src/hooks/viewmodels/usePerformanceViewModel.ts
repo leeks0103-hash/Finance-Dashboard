@@ -161,14 +161,10 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
 
   const kpiCards: PerfKpiCard[] = useMemo(() => {
     if (!total) return [];
-    // 파생값은 백엔드 /api/performance/summary 가 계산 (frontend-no-calc-logic)
-    const achieveRate = total.achieve_rate != null ? total.achieve_rate.toFixed(1) : '-';
 
-    // 전월대비 diff(천원) — 백엔드 total.mom_* (전월 데이터 없으면 null → 배지 없음)
+    // 전월대비 diff(천원) — 배지는 뗐지만 accent 방향(흑자/적자 등) 계산엔 계속 사용
     const momRevK  = total.mom_revenue ?? null;
     const momProfK = total.mom_gross   ?? null;
-    const momTag = (diffK: number | null): string | undefined =>
-      diffK === null ? undefined : `전월대비 ${Math.abs(diffK / 100_000).toFixed(1)}억`;
 
     // 계획 → 추정(연간) 2값 비교 카드. 값은 매출행/원가행 각각의 합 (천원 → 억)
     const mk = (
@@ -204,14 +200,14 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
         kind: 'single', id: 'profit', label: '경상손익(당해년도 추정)',
         value: `${animProfit.toFixed(1)}억원`, sub: `손익률 ${animRate.toFixed(1)}%`,
         accent: profitRaw >= 0 ? 'profit' : 'loss',
-        trendUp: momProfK !== null ? momProfK >= 0 : profitRaw >= 0, trend: momTag(momProfK),
+        trendUp: momProfK !== null ? momProfK >= 0 : profitRaw >= 0,
       },
       {
         kind: 'single', id: 'junActual', label: `매출/원가 누계 실적 (1~${PERF_MONTH})`,
         value: `${animJun.toFixed(1)}억원`,
-        sub: `원가 ${formatEok(total.jun_cost_actual)}원 · 계획 대비 ${achieveRate}%`,
+        sub: `원가 ${formatEok(total.jun_cost_actual)}원`,
         accent: junActualRaw >= planRaw ? 'profit' : 'warn',
-        trendUp: momRevK !== null ? momRevK >= 0 : junActualRaw >= planRaw, trend: momTag(momRevK),
+        trendUp: momRevK !== null ? momRevK >= 0 : junActualRaw >= planRaw,
       },
     ];
   }, [total, animJun, animProfit, animRate, planRaw, junActualRaw, profitRaw]);

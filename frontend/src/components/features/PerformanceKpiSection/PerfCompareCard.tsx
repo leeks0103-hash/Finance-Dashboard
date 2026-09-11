@@ -25,11 +25,8 @@ const PerfCompareCard = ({ card }: { card: PerfCompareCardData }) => {
 
       <div className={styles.body}>
         <div className={styles.values}>
-          <div className={styles.pair}>
-            <span className={styles.plan}>{card.planStr}</span>
-            <span className={styles.slash}>/</span>
-            <span className={styles.est}>{card.estStr}</span>
-          </div>
+          <span className={styles.plan}>{card.planStr}</span>
+          <span className={styles.est}>{card.estStr}</span>
         </div>
 
         <div className={styles.bars} aria-hidden>

@@ -52,11 +52,10 @@
 
 .body {
   display: flex;
-  flex-direction: column;
   align-items: flex-start;
-  /* 값은 위, 막대는 맨 아래로 — 카드 밑쪽이 허전해 보이던 것 보완 */
+  /* 값은 왼쪽, 막대는 오른쪽 */
   justify-content: space-between;
-  gap: 10px;
+  gap: 14px;
   flex: 1;
   min-width: 0;
   position: relative;
@@ -83,32 +82,25 @@
 .loss   .sparkWrap { color: var(--loss); }
 .purple .sparkWrap { color: var(--purple); }
 
+/* 계획·추정 값 항상 위아래로 고정 */
 .values {
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  gap: 2px;
   min-width: 0;
 }
-.pair {
-  display: flex;
-  align-items: baseline;
-  gap: 4px;
-  flex-wrap: nowrap;
-  min-width: 0;
-}
-/* 계획·추정 두 값은 같은(큰) 크기 — KpiCard .value와 동일 크기, 자간은 한 줄에 다 들어오도록
-   더 좁게. 구분은 색으로만 (계획 muted / 추정 accent) */
+/* 계획·추정 두 값은 같은(큰) 크기 — KpiCard .value와 동일 크기.
+   구분은 색으로만 (계획 muted / 추정 accent) */
 .plan,
 .est {
   font-family: 'HyundaiHarmony', 'HyundaiSansHead', sans-serif;
   font-size: 2.10rem;
   font-weight: 700;
-  letter-spacing: -0.08em;
+  letter-spacing: -0.03em;
   line-height: 1.15;
   white-space: nowrap;
 }
 .plan { color: var(--text-muted); }
-.slash { color: var(--border); font-size: 1.6rem; font-weight: 400; flex-shrink: 0; }
 .est  { color: var(--text-primary); }
 .brand  .est { color: var(--brand-mid); }
 .profit .est { color: var(--profit); }

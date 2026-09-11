@@ -13,16 +13,20 @@ interface Props {
   onPartClick?: (part: string) => void;
 }
 
-// 달성률 구간별 색 — 막대와 범례가 같은 정의를 쓰도록 한 곳에서 관리
+// 달성률 구간별 색 — 막대와 범례가 같은 정의를 쓰도록 한 곳에서 관리.
+// 범례에 낮은 구간부터 순서대로 나오도록 오름차순으로 정의 (barColor는 순서 무관하게 동작)
 const RATE_BANDS = [
-  { min: 100, color: 'var(--profit)',   label: '100% 이상' },
-  { min: 70,  color: 'var(--sky-blue)', label: '70~100%' },
-  { min: 50,  color: 'rgba(160,174,192,0.9)', label: '50~70%' },
-  { min: -Infinity, color: 'var(--warn)', label: '50% 미만' },
+  { min: -Infinity, color: 'var(--loss)',          label: '30% 미만' },   // Active Red
+  { min: 30,         color: 'var(--warn)',         label: '30~60%' },    // Hyundai Gold(갈색)
+  { min: 60,         color: 'rgba(0,170,210,0.9)', label: '60~100%' },   // Active Blue — 전체 평균 원가비율 도넛의 인건비와 동일
+  { min: 100,        color: 'var(--profit)',       label: '100% 이상' },
 ];
 
-const barColor = (rate: number) =>
-  (RATE_BANDS.find(b => rate >= b.min) ?? RATE_BANDS[RATE_BANDS.length - 1]).color;
+const barColor = (rate: number) => {
+  const matched = RATE_BANDS.filter(b => rate >= b.min);
+  const top = matched.reduce((a, b) => (b.min > a.min ? b : a), matched[0] ?? RATE_BANDS[0]);
+  return top.color;
+};
 
 const PartAchievementBars = ({ rows, month, info, onPartClick }: Props) => {
   const sorted = sortByPart(rows, r => r.part);   // 담당자 지정 고정 순서
@@ -57,8 +61,12 @@ const PartAchievementBars = ({ rows, month, info, onPartClick }: Props) => {
                 <span className={styles.partName}>{partName}</span>
 
                 <div className={styles.barWrap}>
+                  {/* 기준 구간 경계선(30/60%) — 100%는 트랙 오른쪽 끝 자체라 별도 선 불필요 */}
+                  {[30, 60].map(t => (
+                    <div key={t} className={styles.thresholdMark} style={{ left: `${t}%` }} />
+                  ))}
                   <div
-                    className={styles.bar}
+                    className={`${styles.bar} ${over ? styles.barOver : ''}`}
                     style={{ width: `${barW}%`, background: color }}
                   />
                   {over && <div className={styles.overMark} style={{ background: color }} />}
