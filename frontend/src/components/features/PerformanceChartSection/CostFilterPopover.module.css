@@ -1,6 +1,6 @@
-/* DataTable .pageSizeSelect 와 동일 스타일 */
+/* DataTable .pageSizeSelect 와 동일 스타일 — 팀/파트명이 길어서 폭은 더 넓게(130→190px) */
 .select {
-  max-width: 130px;
+  width: 190px;
   font-size: 0.75rem;
   color: var(--text-sub);
   border: 1px solid var(--border);
@@ -13,3 +13,9 @@
   transition: border-color 0.15s ease;
 }
 .select:hover { border-color: var(--brand-mid); }
+
+/* 펼친 목록(option) 오른쪽 여백 — 기본값이 거의 없어 답답해 보이는 것 보정.
+   브라우저마다 option 스타일 반영 정도가 다르지만(Chromium 계열은 반영됨) 최대한 통일 */
+.select option {
+  padding: 6px 20px 6px 8px;
+}

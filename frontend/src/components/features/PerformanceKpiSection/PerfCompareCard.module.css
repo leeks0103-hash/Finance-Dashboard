@@ -60,8 +60,8 @@
   min-width: 0;
   position: relative;
   z-index: 1;
-  /* 라벨-값 사이 간격 축소 (기존 8px에서 좁힘) */
-  margin-top: 4px;
+  /* 라벨-값 사이 간격은 .card의 gap(4px)만으로 충분 — 여기 margin까지 더해서
+     이중으로 벌어지지 않게(카드 높이를 perf-kpi-card 기준(140px)에 맞추려면 여백 절약 필요) */
 }
 
 /* 배경 스파크라인 — KpiCard .sparkWrap과 같은 비율(52%×48px). 카드가 더 길어서
@@ -130,10 +130,10 @@
   display: flex;
   align-items: flex-end;
   gap: 8px;
-  height: 56px;
+  height: 44px;
   flex-shrink: 0;
-  /* 막대가 .plan 줄이 아니라 .est 줄 높이에서 시작하도록 — planRow(한 줄) 높이만큼 내림 */
-  margin-top: 36px;
+  /* perf-kpi-card(140px) 높이에 맞추려고 예전보다 위로 당김(36→18px) */
+  margin-top: 18px;
 }
 .barCol {
   display: flex;
@@ -168,6 +168,6 @@
 @media (max-width: 900px) {
   .card { min-height: 108px; padding: 16px 18px 12px; }
   .plan, .est { font-size: 1.5rem; }
-  .bars { height: 44px; margin-top: 30px; }
+  .bars { height: 36px; margin-top: 14px; }
   .sparkWrap { height: 40px; }
 }
