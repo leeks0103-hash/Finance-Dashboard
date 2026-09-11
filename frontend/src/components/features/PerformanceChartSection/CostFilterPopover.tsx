@@ -59,7 +59,8 @@ const CostFilterPopover = ({ teams, selectedTeam, onTeamChange, teamParts, selec
         aria-label="원가 비율 팀/파트 필터"
         title="팀/파트 선택"
       >
-        ⚙
+        <span className={styles.triggerLabel}>{active ? selectedPart : '전체'}</span>
+        <span className={styles.arrow}>▾</span>
       </Button>
 
       {open && (
