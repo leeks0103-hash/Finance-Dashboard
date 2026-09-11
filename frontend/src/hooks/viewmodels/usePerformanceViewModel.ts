@@ -195,14 +195,14 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
         kind: 'single', id: 'profit', label: '경상손익(당해년도 추정)',
         value: `${animProfit.toFixed(1)}억원`, sub: `손익률 ${animRate.toFixed(1)}%`,
         accent: profitRaw >= 0 ? 'profit' : 'loss',
-        trendUp: momProfK !== null ? momProfK >= 0 : profitRaw >= 0,
+        trendUp: profitRaw >= 0,
       },
       {
         kind: 'single', id: 'junActual', label: `매출/원가 누계 실적 (1~${PERF_MONTH})`,
         value: `${animJun.toFixed(1)}억원`,
         sub: `원가 ${formatEok(total.jun_cost_actual)}원`,
         accent: junActualRaw >= planRaw ? 'profit' : 'warn',
-        trendUp: momRevK !== null ? momRevK >= 0 : junActualRaw >= planRaw,
+        trendUp: junActualRaw >= 0,
       },
     ];
   }, [total, animJun, animProfit, animRate, planRaw, junActualRaw, profitRaw]);
