@@ -1,5 +1,45 @@
 # 세션 진행 기록
 
+## [2026-09-11] 파생값 계산 백엔드 이전 + QueryGate + 반복 UI 컴포넌트화
+
+**1. 파생값(집계·비율) 계산을 프론트 뷰모델 → 백엔드 API로 이전** (`frontend-no-calc-logic` 메모 반영)
+- `finance.py /api/summary`: `by_part[*].profit_rate`(경상이익÷매출), `expense_ratio`(지출÷매출),
+  `profit_ratio`(경상이익÷매출), `avg_rate_trend`("최고 {파트} +{gap}%p" 라벨) 신규
+- `performance.py /api/performance/summary`:
+  - `total.plan_gross`/`est_gross`(매출−원가), `total.achieve_rate`(누계매출÷계획매출),
+    `total.mom_revenue`/`mom_gross`(전월대비 diff, 천원) — `_perf_current_month` 모듈 전역 추가
+  - `by_part[*].cost_rate`(누계원가÷누계매출), `by_part[*].achieve_rate`
+  - `_ratio()` 헬퍼 — 분모 0 이하면 `None`(프론트 '-')
+- `kpi.py /api/kpi/summary`: `item.plan_target` — `_PLAN_TARGETS` 고정값을 kpi.py로 이전
+  (프론트 `useKpiPageViewModel`의 `PLAN_TARGETS` 상수 제거)
+- 프론트: `useKpiViewModel`·`useChartViewModel`·`usePerformanceViewModel`·`useKpiPageViewModel`
+  가 위 계산을 전부 백엔드 필드 참조로 교체. 매출이익만 서버 재시작 전 폴백(`?? (a-b)`) 인라인 유지
+- `PerformancePage`: `perfGroupKey`(백엔드 `_group_no` 재구현) 삭제 → `mergeRowsByKey`가
+  `row._group_no` 직접 사용. 메모가 지적한 "규칙 두 벌" 위험 해소
+- 단위 변환(천원→억)·차트 축 상한(`niceAxisMax`)은 표시 로직이라 프론트 유지
+- ⚠️ **`finance.py`·`performance.py`·`kpi.py` 변경 → Flask 서버 재시작 필요** (reload는 엑셀만)
+
+**2. QueryGate — "로딩 중인데 '데이터 없음'이 먼저 뜨는" 구조적 방지**
+- `KpiSection`(재무 탭 KPI 카드): 직접 분기하던 로딩/에러/빈 상태를 `<QueryGate>`로 통일
+  (우선순위 loading > error > empty), 하드코딩 `invalidateQueries` → VM이 노출한 `refetch` 사용
+- `.dimmed` 스켈레톤(로딩·빈 상태 혼용) 제거 → 빈 상태는 `.emptyNote`로 명시
+
+**3. 반복 UI 컴포넌트화** (2회 이상 사용 → 컴포넌트, 담당자 지정)
+- `FilterSelect` (`components/ui`) — DataTable 검색범위 셀렉트와 동일 스타일. KpiPage 파트/보고단계
+  `<select>` 3곳(필터 A·B) + 중복 CSS(`.filterSelect`/`.filterLabel`/`.summaryFilter`) 대체
+- `FadeInSection` (`components`) — `fadeUp` 진입 애니메이션 + ErrorBoundary 래퍼.
+  Finance·Kpi·Performance 3개 페이지의 `<div className="fadeUp" style={{animationDelay}}><ErrorBoundary>`
+  12곳 대체
+- KpiPage: 목표/실적/전년 셀 "신규:N건" 분기 3중복 → `KpiValueCell` 하나로
+
+tsc·build·vitest(61/61)·oxlint(0 err) 통과. 커밋 `1fc49ef`/`f4ec2a9`
+
+**다음 세션 과제**
+- Flask 재시작 후 재무/실적/KPI 값 실측 재검증 (특히 `avg_rate_trend`·`mom_*`·`achieve_rate` 신규 필드)
+- 프론트에 남은 표시용 계산: `niceAxisMax`(차트 축), 단위 변환 `/1e8`·`/100_000`, compare 카드 diff
+  (`e - p`) — 순수 표시라 유지 판단. 필요 시 재검토
+- 재무 비고 검색 안 됨 문제 (여러 세션째 이월)
+
 ## [2026-09-10 오후] 차트 막대 클릭 → 산출 근거 드릴다운 모달 + 네브바/UI 정비
 
 **1. 드릴다운 모달 (KPI · 실적현황)** — "이 막대 값이 어떤 프로젝트 행들을 합/평균해서 나왔는지" 표로
