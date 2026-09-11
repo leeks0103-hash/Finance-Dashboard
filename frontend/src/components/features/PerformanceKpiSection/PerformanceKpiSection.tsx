@@ -23,13 +23,13 @@ interface Props {
 
 // 카드 전체가 아니라 그립 아이콘만 드래그 — 차트 섹션(ChartSection/PerformanceChartSection)과 동일 패턴,
 // 위치만 사용자 지정으로 우측 상단
-interface SortableCardProps { id: string; children: React.ReactNode }
-function SortableCard({ id, children }: SortableCardProps) {
+interface SortableCardProps { id: string; wide: boolean; children: React.ReactNode }
+function SortableCard({ id, wide, children }: SortableCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   return (
     <div
       ref={setNodeRef}
-      className={styles.sortable}
+      className={`${styles.sortable} ${wide ? styles.wide : styles.narrow}`}
       style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }}
     >
       <div className={styles.dragHandle} {...attributes} {...listeners} aria-label="카드 순서 이동" title="드래그하여 순서 변경">
@@ -78,7 +78,8 @@ const PerformanceKpiSection = ({ cards }: Props) => {
       <SortableContext items={sortedCards.map(c => c.id)} strategy={rectSortingStrategy}>
         <div className={styles.kpiGrid}>
           {sortedCards.map(card => (
-            <SortableCard key={card.id} id={card.id}>
+            // 폭은 카드 종류(kind) 기준 — 드래그로 자리를 옮겨도 이 카드는 항상 같은 폭 유지
+            <SortableCard key={card.id} id={card.id} wide={card.kind === 'compare'}>
               {card.kind === 'compare' ? (
                 <PerfCompareCard card={card} />
               ) : (
