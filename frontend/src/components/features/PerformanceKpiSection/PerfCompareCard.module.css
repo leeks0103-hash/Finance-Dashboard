@@ -52,7 +52,7 @@
 
 .body {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 14px;
   flex: 1;
