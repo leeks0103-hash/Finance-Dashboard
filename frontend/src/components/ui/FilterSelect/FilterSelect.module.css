@@ -11,14 +11,14 @@
   color: var(--text-muted);
 }
 
-/* DataTable .searchFieldSelect 와 동일 스타일 — 필터 셀렉트 공통 */
+/* DataTable .pageSizeSelect 와 동일 스타일 — 필터 셀렉트 공통 */
 .select {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: var(--text-sub);
-  border: 1.5px solid var(--border);
-  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  background: var(--surface);
   cursor: pointer;
-  padding: 5px 6px;
+  padding: 5px 8px;
   border-radius: var(--radius-sm);
   outline: none;
   font-family: inherit;
