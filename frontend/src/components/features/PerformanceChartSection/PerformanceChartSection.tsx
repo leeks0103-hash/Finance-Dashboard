@@ -12,7 +12,7 @@ import { useTheme } from '@/hooks';
 import { makeBarOptions } from '@/utils/chartOptions';
 import { getChartPalette, getChartTheme } from '@/utils/chartColors';
 // Toggle — 파트별 경상이익 토글 비활성화로 미사용(주석 처리). 복구 시 함께 import
-import { ChartCard, BarChart, DoughnutChart, useTableDndSensors, InfoButton } from '@/components/ui';
+import { ChartCard, BarChart, DoughnutChart, useTableDndSensors, InfoButton, FilterSelect } from '@/components/ui';
 import PerfBreakdownModal from '@/components/features/PerfBreakdownModal/PerfBreakdownModal';
 import CostBreakdownModal from './CostBreakdownModal';
 import type { PerfBreakdownTarget } from '@/hooks/viewmodels/usePerfBreakdownViewModel';
@@ -326,16 +326,13 @@ const PerformanceChartSection = () => {
       >
         <ChartCard.Title>
           <span className={styles.chartTitle}>전체 평균 원가 비율<InfoButton>{INFO_COST_BREAKDOWN}</InfoButton></span>
-          <select
-            className="pageSize"
+          <FilterSelect
             value={vm.selectedCostPart}
-            onChange={e => vm.setSelectedCostPart(e.target.value)}
-            style={{ fontSize: '0.72rem', padding: '2px 6px', marginLeft: '8px' }}
-          >
-            {vm.partOptions.map(p => (
-              <option key={p} value={p}>{p}</option>
-            ))}
-          </select>
+            onChange={vm.setSelectedCostPart}
+            options={vm.partOptions}
+            allLabel={null}   /* partOptions 첫 항목이 이미 '전체' (값도 '전체') */
+            ariaLabel="원가 비율 파트 선택"
+          />
         </ChartCard.Title>
         <ChartCard.Body>
           <DoughnutChart

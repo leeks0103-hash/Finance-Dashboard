@@ -19,6 +19,7 @@ import {
 } from '@dnd-kit/sortable';
 import { Button } from '@/components/ui/Button';
 import { Pagination } from '@/components/ui/Pagination';
+import { FilterSelect } from '@/components/ui/FilterSelect';
 import { useColumnHighlight } from './useColumnHighlight';
 import { useClipboardPopup } from './useClipboardPopup';
 import { useTableEscapePriority } from './useTableEscapePriority';
@@ -614,16 +615,13 @@ const DataTable = <T extends object>({
           {showSearch && (
             <div className={styles.searchWrap}>
               {serverSearch?.fieldOptions && (
-                <select
-                  className={styles.searchFieldSelect}
+                <FilterSelect
                   value={serverSearch.field ?? ''}
-                  onChange={e => serverSearch.onFieldChange?.(e.target.value)}
-                  aria-label="검색 범위"
-                >
-                  {serverSearch.fieldOptions.map(o => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                  ))}
-                </select>
+                  onChange={f => serverSearch.onFieldChange?.(f)}
+                  options={serverSearch.fieldOptions}
+                  allLabel={null}   /* fieldOptions에 이미 {value:'',label:'전체'} 포함 */
+                  ariaLabel="검색 범위"
+                />
               )}
               {searchExtra}
               <input

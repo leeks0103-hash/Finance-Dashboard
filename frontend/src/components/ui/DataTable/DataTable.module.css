@@ -100,20 +100,7 @@
   gap: 6px;
 }
 
-.searchFieldSelect {
-  font-size: 0.78rem;
-  color: var(--text-sub);
-  border: 1.5px solid var(--border);
-  background: var(--bg-subtle);
-  cursor: pointer;
-  padding: 5px 6px;
-  border-radius: var(--radius-sm);
-  outline: none;
-  font-family: inherit;
-  flex-shrink: 0;
-  transition: border-color 0.15s ease;
-}
-.searchFieldSelect:hover { border-color: var(--brand-mid); }
+/* 검색범위 셀렉트는 공용 <FilterSelect> (components/ui/FilterSelect) 로 이전 */
 
 .search {
   padding: 5px 28px 5px 10px;
