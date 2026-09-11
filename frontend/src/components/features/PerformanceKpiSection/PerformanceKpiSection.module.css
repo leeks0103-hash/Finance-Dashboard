@@ -39,7 +39,7 @@
 
 /* 경상손익·누계 실적(KpiCard) — 옆 비교카드가 막대 위치 변경으로 더 길어져서 같이 키움.
    KpiCard 자체(.card)는 안 건드리고 이 화면에서만 마커 클래스로 덧씌움 */
-.narrow :global(.perf-kpi-card) { min-height: 172px; }
+.narrow :global(.perf-kpi-card) { min-height: 140px; }
 
 /* KPI 카드 드래그 핸들 — 차트 카드와 같은 아이콘·스타일, 위치만 우측 상단(사용자 지정) */
 .dragHandle {
