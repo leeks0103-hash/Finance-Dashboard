@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom';
-import { Button } from '@/components/ui';
+import { Button, CopyText } from '@/components/ui';
 import { useScrollLock } from '@/hooks/useScrollLock';
 import { useEscToClose } from '@/hooks/useEscToClose';
 import { useKpiBreakdownViewModel } from '@/hooks/viewmodels/useKpiBreakdownViewModel';
@@ -63,6 +63,11 @@ const KpiBreakdownModal = ({ name, metric, onClose }: Props) => {
           {vm.note && <p className={styles.explainSub}>{vm.note}</p>}
         </div>
 
+        <div className={styles.foot}>
+          <span className={styles.count}>프로젝트당 최우선 보고단계 1건 기준</span>
+          <Button variant="success" size="sm" onClick={handleCsv}>↓ 이 목록 CSV</Button>
+        </div>
+
         <BreakdownTable
           columns={[
             {
@@ -70,7 +75,7 @@ const KpiBreakdownModal = ({ name, metric, onClose }: Props) => {
               sortValue: r => r.project_code,
               render: r => (
                 <>
-                  {r.project_code || '—'}
+                  {r.project_code ? <CopyText text={r.project_code} /> : '—'}
                   {r.project_name && <span className={styles.pname}> · {r.project_name}</span>}
                 </>
               ),
@@ -85,7 +90,7 @@ const KpiBreakdownModal = ({ name, metric, onClose }: Props) => {
             {
               key: 'file', header: '파일명', wrap: true,
               sortValue: r => r.file,
-              render: r => r.file || '—',
+              render: r => (r.file ? <CopyText text={r.file} /> : '—'),
             },
           ] satisfies BreakdownColumn<KpiBreakdownRow>[]}
           rows={vm.rows}
@@ -93,11 +98,6 @@ const KpiBreakdownModal = ({ name, metric, onClose }: Props) => {
           totalValue={vm.totalStr}
           totalSpan={3}
         />
-
-        <div className={styles.foot}>
-          <span className={styles.count}>프로젝트당 최우선 보고단계 1건 기준</span>
-          <Button variant="success" size="sm" onClick={handleCsv}>↓ 이 목록 CSV</Button>
-        </div>
       </>
     );
   })();

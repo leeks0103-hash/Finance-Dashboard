@@ -117,12 +117,13 @@
 /* 표 자체 스타일·정렬은 BreakdownTable 컴포넌트로 이동 */
 .pname { color: var(--text-muted); }
 
+/* explain 박스 바로 아래, 표 위로 옮김(스크롤해야만 보이지 않도록) — 여백은 위 대신 아래로 */
 .foot {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-top: 12px;
+  margin-bottom: 12px;
 }
 .count { font-size: 0.76rem; color: var(--text-muted); }
 
