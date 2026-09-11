@@ -71,13 +71,15 @@
   min-height: 0;
 }
 
-/* 비교용 미니 도넛 그리드 — 팀 모드는 팀 수만큼, 파트 모드는 파트 수만큼 자연스럽게 배치 */
+/* 비교용 미니 도넛 그리드 — 팀 모드는 팀 수만큼, 파트 모드는 파트 수만큼 자연스럽게 배치.
+   카드 안에 도넛+범례(직접원가·인건비·공통원가·관리비·경상손익)가 다 들어가야 해서
+   충분히 넓게(190px 이상) */
 .partGrid {
   flex: 1;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
   grid-auto-rows: min-content;
-  gap: 10px;
+  gap: 12px;
   align-content: start;
   min-height: 0;
   overflow-y: auto;
@@ -91,11 +93,11 @@
   background: var(--bg-subtle);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 10px 6px;
+  padding: 10px 10px 12px;
 }
 
 .partLabel {
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 600;
   color: var(--text-sub);
   white-space: nowrap;
@@ -104,10 +106,11 @@
   max-width: 100%;
 }
 
+/* 정사각형으로 강제하면 도넛+범례가 같이 눌려서 범례만 남고 도넛이 사라지므로,
+   고정 높이로 도넛(위, flex:1)과 범례(아래, 컨텐츠 높이)가 각자 자리를 갖게 함 */
 .smallChart {
   width: 100%;
-  aspect-ratio: 1 / 1;
-  max-width: 96px;
+  height: 210px;
 }
 
 /* 전사 평균 경상손익 대비 ▲/▼ */
@@ -122,5 +125,5 @@
 @media (max-width: 900px) {
   .wrap     { flex-direction: column; }
   .left     { flex: 0 0 260px; }
-  .partGrid { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); }
+  .partGrid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
 }
