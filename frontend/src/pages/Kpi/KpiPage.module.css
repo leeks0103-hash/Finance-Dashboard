@@ -42,36 +42,7 @@
   min-width: 0;
 }
 
-/* 필터 A — 차트 제목줄 오른쪽 (칩 필터바 제거 대체). 차트 + KPI 집계 표에만 적용 */
-.summaryFilter {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-.filterLabel {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: none;
-  letter-spacing: 0;
-}
-
-/* 셀렉트박스 공통 (필터 A·B) — DataTable .searchFieldSelect 와 동일 스타일로 통일 */
-.filterSelect {
-  font-size: 0.78rem;
-  color: var(--text-sub);
-  border: 1.5px solid var(--border);
-  background: var(--bg-subtle);
-  cursor: pointer;
-  padding: 5px 6px;
-  border-radius: var(--radius-sm);
-  outline: none;
-  font-family: inherit;
-  flex-shrink: 0;
-  transition: border-color 0.15s ease;
-}
-.filterSelect:hover { border-color: var(--brand-mid); }
+/* 필터 A·B 셀렉트는 공용 <FilterSelect> (components/ui/FilterSelect) 로 이전 */
 
 /* 필터 B — KPI 취합 툴바 안 (셀렉트 2개 + 목록/상세 토글) */
 .toolbarFilters {

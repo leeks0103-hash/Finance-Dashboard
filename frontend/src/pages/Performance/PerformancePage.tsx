@@ -6,6 +6,7 @@ import { usePerformanceViewModel } from '@/hooks/viewmodels/usePerformanceViewMo
 import { useFinanceCodes } from '@/hooks/useFinanceCodes';
 import { DataTable, InfoButton } from '@/components/ui';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { FadeInSection } from '@/components/FadeInSection';
 import PerfBreakdownModal from '@/components/features/PerfBreakdownModal/PerfBreakdownModal';
 import type { PerfBreakdownTarget } from '@/hooks/viewmodels/usePerfBreakdownViewModel';
 import PerformanceChartSection from '@/components/features/PerformanceChartSection/PerformanceChartSection';
@@ -26,16 +27,7 @@ import {
 } from '@/utils/infoTexts';
 import styles from './PerformancePage.module.css';
 
-// 프로젝트 병합 키 — 백엔드 performance.py `_group_no` 와 같은 규칙을 유지해야 함.
-// 정식 코드(영문 1자 + 숫자 10자 이상)는 코드만으로 묶는다: 매출행/원가행 프로젝트명이
-// 원본 엑셀에서 다르게 입력된 경우(H093600126020002 "홍보 자료" vs "안내 자료")에도 한 묶음이 되도록.
-// 정식 코드가 아닌 placeholder("생성예정"/"드롭"/"미생성" 등)는 서로 다른 프로젝트가 같은
-// 텍스트를 공유하므로 project_name까지 함께 봐야 한다.
-const REAL_CODE = /^[A-Za-z]\d{10,}$/;
-const perfGroupKey = (row: PerfProject) => {
-  const code = String(row.project_code ?? '').trim();
-  return REAL_CODE.test(code) ? code : `${code}␟${row.project_name}`;
-};
+// 프로젝트 병합 키는 백엔드 performance.py `_group_no` 가 계산해서 내려준다 (프론트 재구현 제거).
 
 // ── 파트별 실적 표 — 비활성(주석 처리, 담당자 지정) ──────────────────────
 // 사유: 한 표에 기준이 다른 값이 섞여 오독을 부름.
@@ -89,29 +81,25 @@ const PerformancePage = () => {
     <main className={styles.main}>
 
       {/* KPI 카드 */}
-      <div className="fadeUp" style={{ animationDelay: '0ms' }}>
-        <ErrorBoundary>
-          <PerformanceKpiSection cards={vm.kpiCards} />
-        </ErrorBoundary>
-      </div>
+      <FadeInSection delay={0}>
+        <PerformanceKpiSection cards={vm.kpiCards} />
+      </FadeInSection>
 
       {/* 차트 섹션 */}
-      <div className="fadeUp" style={{ animationDelay: '100ms' }}>
-        <ErrorBoundary><PerformanceChartSection /></ErrorBoundary>
-      </div>
+      <FadeInSection delay={100}>
+        <PerformanceChartSection />
+      </FadeInSection>
 
       {/* 파트별 달성 현황 진행바 */}
       {vm.byPart.length > 0 && (
-        <div className="fadeUp" style={{ animationDelay: '150ms' }}>
-          <ErrorBoundary>
-            <PartAchievementBars
-              rows={vm.byPart}
-              month={PERF_MONTH}
-              info={INFO_ACHIEVEMENT_BARS}
-              onPartClick={part => setAchieveBreakdown({ chart: 'partAchievement', series: 0, key: part })}
-            />
-          </ErrorBoundary>
-        </div>
+        <FadeInSection delay={150}>
+          <PartAchievementBars
+            rows={vm.byPart}
+            month={PERF_MONTH}
+            info={INFO_ACHIEVEMENT_BARS}
+            onPartClick={part => setAchieveBreakdown({ chart: 'partAchievement', series: 0, key: part })}
+          />
+        </FadeInSection>
       )}
 
       {/* ── 파트별 실적 표 — 비활성(주석 처리, 담당자 지정) ──────────────────
@@ -143,23 +131,20 @@ const PerformancePage = () => {
       ──────────────────────────────────────────────────────────────────── */}
 
       {/* 미수주 프로젝트 */}
-      <div className="fadeUp" style={{ animationDelay: '250ms' }}>
-        <ErrorBoundary>
-          <div className={styles.sectionGroup}>
-            <h3 className={styles.sectionTitle}>
-              미수주 프로젝트
-              <InfoButton>{INFO_INSIGHT}</InfoButton>
-            </h3>
-            <div className={styles.section}>
-              <PerformanceInsightSection />
-            </div>
+      <FadeInSection delay={250}>
+        <div className={styles.sectionGroup}>
+          <h3 className={styles.sectionTitle}>
+            미수주 프로젝트
+            <InfoButton>{INFO_INSIGHT}</InfoButton>
+          </h3>
+          <div className={styles.section}>
+            <PerformanceInsightSection />
           </div>
-        </ErrorBoundary>
-      </div>
+        </div>
+      </FadeInSection>
 
       {/* 프로젝트 상세 */}
-      <div className="fadeUp" style={{ animationDelay: '300ms' }}>
-        <ErrorBoundary>
+      <FadeInSection delay={300}>
           <DataTable<PerfProject>
             data={vm.projects}
             columns={perfColumns as never}
@@ -177,8 +162,8 @@ const PerformancePage = () => {
             }
             hideableColumns={PERF_HIDEABLE_COLS}
             initialColumnVisibility={PERF_DEFAULT_HIDDEN}
-            // 백엔드 _group_no와 반드시 같은 규칙이어야 병합 묶음과 NO.가 어긋나지 않음
-            mergeRowsByKey={perfGroupKey}
+            // 병합 묶음·NO. 둘 다 백엔드 _group_no 기준 (프론트 재계산 없음)
+            mergeRowsByKey={(row) => String(row._group_no)}
             getRowNumber={(row) => row._group_no}
             // 20자 넘는 셀은 클릭 시 전체 내용 팝업(오버레이)이 먼저 떠서 더블클릭이 td까지 도달하지 못함 —
             // 안내 문구도 실제 동작(짧은 셀만 펼침)에 맞춰 적어 둔다
@@ -200,8 +185,7 @@ const PerformancePage = () => {
               renderContent: (row, close) => <FinanceCrossCheckPanel projectCode={row.project_code} onClose={close} />,
             }}
           />
-        </ErrorBoundary>
-      </div>
+      </FadeInSection>
 
       {/* 2depth: 재무 데이터 검색 결과 */}
       {vm.hasFinanceResults && (

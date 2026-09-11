@@ -4,8 +4,8 @@ import { useKpiPageViewModel } from '@/hooks/viewmodels/useKpiPageViewModel';
 import { useKpiFilterOptions } from '@/hooks/useKpiFilterOptions';
 import { useKpiFilterStore } from '@/store/kpiFilter.store';
 import { sortStages } from '@/utils/stageOrder';
-import { ChartCard, BarChart, DataTable, CopyText, HighlightText, Button, Spinner, QueryGate } from '@/components/ui';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { ChartCard, BarChart, DataTable, CopyText, HighlightText, Button, Spinner, QueryGate, FilterSelect } from '@/components/ui';
+import { FadeInSection } from '@/components/FadeInSection';
 import KpiRawTable from '@/components/features/KpiRawTable/KpiRawTable';
 import KpiBreakdownModal from '@/components/features/KpiBreakdownModal/KpiBreakdownModal';
 import { kpiColLabel } from '@/utils/kpiColumns';
@@ -22,6 +22,10 @@ function CountCell({ value }: { value: string }) {
   return <>{value}</>;
 }
 
+// 목표/실적/전년 셀 공통 — "신규:N건/기존:N건"이면 분할, 아니면 그대로
+const KpiValueCell = ({ value }: { value: string }) =>
+  /신규/.test(value) ? <CountCell value={value} /> : <>{value}</>;
+
 // KPI 집계 컬럼 — 모듈 스코프 (stable)
 const sh = createColumnHelper<KpiSummaryRow>();
 const summaryColumns = [
@@ -31,13 +35,13 @@ const summaryColumns = [
   sh.accessor('planTarget', { header: '26년 목표(사업계획)', size: 170, meta: { staticCol: true } }),
   sh.accessor('agg',        { header: '집계방식', size: 110 }),
   sh.accessor('targetStr',  { header: '26년 목표(프로젝트)', size: 190, enableSorting: true,
-    cell: i => { const v = i.getValue() as string; return /신규/.test(v) ? <CountCell value={v} /> : <>{v}</>; },
+    cell: i => <KpiValueCell value={i.getValue() as string} />,
   }),
   sh.accessor('actual',     { header: '26년 실적', size: 220, enableSorting: true,
-    cell: i => { const v = i.getValue() as string; return /신규/.test(v) ? <CountCell value={v} /> : <>{v}</>; },
+    cell: i => <KpiValueCell value={i.getValue() as string} />,
   }),
   sh.accessor('prevActual', { header: '25년 실적', size: 220, enableSorting: true,
-    cell: i => { const v = i.getValue() as string; return /신규/.test(v) ? <CountCell value={v} /> : <>{v}</>; },
+    cell: i => <KpiValueCell value={i.getValue() as string} />,
   }),
 ];
 
@@ -135,23 +139,17 @@ const KpiPage = () => {
     <main className={styles.mainFull}>
 
       {/* KPI 목표 vs 실적 차트 — 제목줄 안에 파트 필터(A). 이 필터는 차트 + KPI 집계 표에만 적용 */}
-      <div className="fadeUp" style={{ animationDelay: '0ms' }}>
-        <ErrorBoundary>
+      <FadeInSection delay={0}>
           <ChartCard compact={false}>
             <ChartCard.Title>
               <div className={styles.titleWithFilter}>
                 <span>KPI 목표 vs 실적 (2026년)</span>
-                <div className={styles.summaryFilter}>
-                  <span className={styles.filterLabel}>파트</span>
-                  <select
-                    className={styles.filterSelect}
-                    value={summaryPart}
-                    onChange={e => setSummaryPart(e.target.value)}
-                  >
-                    <option value="">전체</option>
-                    {partOptions.map(p => <option key={p} value={p}>{p}</option>)}
-                  </select>
-                </div>
+                <FilterSelect
+                  label="파트"
+                  value={summaryPart}
+                  onChange={setSummaryPart}
+                  options={partOptions}
+                />
               </div>
             </ChartCard.Title>
             <ChartCard.Body>
@@ -185,12 +183,10 @@ const KpiPage = () => {
               </div>
             </ChartCard.Body>
           </ChartCard>
-        </ErrorBoundary>
-      </div>
+      </FadeInSection>
 
       {/* KPI 집계 — 검색·정렬 활성화 */}
-      <div className="fadeUp" style={{ animationDelay: '100ms' }}>
-        <ErrorBoundary>
+      <FadeInSection delay={100}>
           <DataTable<KpiSummaryRow>
             data={vm.summaryRows}
             columns={summaryColumns as never}
@@ -204,12 +200,10 @@ const KpiPage = () => {
             storageKey="kpi-summary-v3"   /* 컬럼 순서 변경 — 저장된 순서·폭 1회 초기화 */
             sizeVersion={3}   /* 반복 축소로 망가진 저장 폭 1회 초기화 (compact fit 버그 수정 후) */
           />
-        </ErrorBoundary>
-      </div>
+      </FadeInSection>
 
       {/* KPI 취합 — flat / rowspan 토글 (툴바에 통합) */}
-      <div className="fadeUp" style={{ animationDelay: '200ms' }}>
-        <ErrorBoundary>
+      <FadeInSection delay={200}>
           {(() => {
             const viewToggle = (
               <div className={styles.viewToggle}>
@@ -226,14 +220,8 @@ const KpiPage = () => {
             // 파트/보고단계 필터(B) — 검색범위 셀렉트와 검색 입력창 사이
             const rawFilters = (
               <div className={styles.toolbarFilters}>
-                <select className={styles.filterSelect} value={rawPartVal} onChange={e => setRawPart(e.target.value)}>
-                  <option value="">파트 전체</option>
-                  {partOptions.map(p => <option key={p} value={p}>{p}</option>)}
-                </select>
-                <select className={styles.filterSelect} value={rawStageVal} onChange={e => setRawStage(e.target.value)}>
-                  <option value="">보고단계 전체</option>
-                  {stageOptions.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
+                <FilterSelect value={rawPartVal}  onChange={setRawPart}  options={partOptions}  allLabel="파트 전체" />
+                <FilterSelect value={rawStageVal} onChange={setRawStage} options={stageOptions} allLabel="보고단계 전체" />
               </div>
             );
             return rawView === 'flat' ? (
@@ -268,8 +256,7 @@ const KpiPage = () => {
               />
             );
           })()}
-        </ErrorBoundary>
-      </div>
+      </FadeInSection>
 
       {breakdown && (
         <KpiBreakdownModal

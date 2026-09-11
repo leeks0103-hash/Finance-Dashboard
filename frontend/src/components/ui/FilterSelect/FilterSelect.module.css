@@ -1,0 +1,28 @@
+.wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* DataTable .searchFieldSelect 와 동일 스타일 — 필터 셀렉트 공통 */
+.select {
+  font-size: 0.78rem;
+  color: var(--text-sub);
+  border: 1.5px solid var(--border);
+  background: var(--bg-subtle);
+  cursor: pointer;
+  padding: 5px 6px;
+  border-radius: var(--radius-sm);
+  outline: none;
+  font-family: inherit;
+  flex-shrink: 0;
+  transition: border-color 0.15s ease;
+}
+.select:hover { border-color: var(--brand-mid); }
