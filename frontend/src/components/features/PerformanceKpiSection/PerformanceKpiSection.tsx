@@ -90,6 +90,7 @@ const PerformanceKpiSection = ({ cards }: Props) => {
                   sub={card.sub}
                   trendUp={card.trendUp}
                   trend={card.trend}
+                  className="perf-kpi-card"
                 />
               )}
             </SortableCard>

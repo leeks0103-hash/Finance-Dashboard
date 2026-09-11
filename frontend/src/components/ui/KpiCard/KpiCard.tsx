@@ -9,6 +9,9 @@ interface Props {
   sub?:     string;
   trend?:   string | null;
   trendUp?: boolean;
+  /** 추가 클래스 — 다른 카드와 나란히 놓일 때 그 화면 쪽에서만 크기 등을 보정하려는 용도.
+   *  KpiCard 자체 스타일은 그대로 두고 바깥에서만 덧씌운다 */
+  className?: string;
 }
 
 /** 배경 대형 아이콘 — 은은한 방향 화살표 */
@@ -41,9 +44,9 @@ const BgIcon = ({ up }: { up: boolean }) => (
   </svg>
 );
 
-const KpiCard = ({ label, value, accent, sub, trend, trendUp = false }: Props) => {
+const KpiCard = ({ label, value, accent, sub, trend, trendUp = false, className }: Props) => {
   return (
-    <div className={`${styles.card} ${styles[accent]}`}>
+    <div className={`${styles.card} ${styles[accent]}${className ? ` ${className}` : ''}`}>
       {/* 배경 아이콘 (은은하게) */}
       <BgIcon up={trendUp} />
 
