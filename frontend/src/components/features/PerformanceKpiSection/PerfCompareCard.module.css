@@ -134,6 +134,9 @@
   flex-shrink: 0;
   /* perf-kpi-card(140px) 높이에 맞추려고 예전보다 위로 당김(36→18px) */
   margin-top: 18px;
+  /* 카드 우측 끝(sparkWrap이 bottom:0/right:0로 깔리는 자리)과 살짝 띄워서
+     "계획"/"추정" 캡션이 배경 스파크라인과 겹쳐 안 보이던 것 완화 */
+  margin-right: 14px;
 }
 .barCol {
   display: flex;
