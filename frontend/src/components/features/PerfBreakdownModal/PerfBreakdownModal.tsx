@@ -53,8 +53,8 @@ const PerfBreakdownModal = ({ target, onClose }: Props) => {
           </>
         ),
       },
-      { key: 'part', header: '파트', sortValue: r => stripPartPrefix(r.part), render: r => stripPartPrefix(r.part) || '—' },
-      { key: 'team', header: '팀',   sortValue: r => r.team, render: r => r.team || '—' },
+      { key: 'part', header: '파트', align: 'center', sortValue: r => stripPartPrefix(r.part), render: r => stripPartPrefix(r.part) || '—' },
+      { key: 'team', header: '팀',   align: 'center', sortValue: r => r.team, render: r => r.team || '—' },
       {
         key: 'value', header: `값 (${vm.unit})`, align: 'right',
         sortValue: r => r.value,

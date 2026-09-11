@@ -53,6 +53,8 @@
 .right { text-align: right; font-variant-numeric: tabular-nums; }
 .table td.right { font-weight: 600; }
 
+.center { text-align: center; }
+
 .totalRow td {
   background: var(--bg-subtle);
   font-weight: 800;

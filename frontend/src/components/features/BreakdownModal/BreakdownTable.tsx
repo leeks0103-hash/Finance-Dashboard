@@ -4,12 +4,16 @@ import styles from './BreakdownTable.module.css';
 export interface BreakdownColumn<R> {
   key:       string;
   header:    string;
-  align?:    'left' | 'right';
+  /** 짧은 분류값(파트·보고단계 등)은 center, 숫자값은 right, 코드·이름처럼 긴 텍스트는 기본(left) */
+  align?:    'left' | 'right' | 'center';
   /** 정렬용 원시값 */
   sortValue: (row: R) => string | number;
   /** 화면 표시 */
   render:    (row: R) => ReactNode;
 }
+
+const alignClass = (align: BreakdownColumn<unknown>['align']) =>
+  align === 'right' ? styles.right : align === 'center' ? styles.center : '';
 
 interface Props<R> {
   columns:    BreakdownColumn<R>[];
@@ -57,7 +61,7 @@ export function BreakdownTable<R>({
             {columns.map(c => (
               <th
                 key={c.key}
-                className={`${c.align === 'right' ? styles.right : ''} ${sort.key === c.key ? styles.active : ''}`}
+                className={`${alignClass(c.align)} ${sort.key === c.key ? styles.active : ''}`}
                 onClick={() => onHeader(c.key)}
               >
                 {c.header}
@@ -70,7 +74,7 @@ export function BreakdownTable<R>({
           {sorted.map((row, i) => (
             <tr key={i}>
               {columns.map(c => (
-                <td key={c.key} className={c.align === 'right' ? styles.right : ''}>
+                <td key={c.key} className={alignClass(c.align)}>
                   {c.render(row)}
                 </td>
               ))}

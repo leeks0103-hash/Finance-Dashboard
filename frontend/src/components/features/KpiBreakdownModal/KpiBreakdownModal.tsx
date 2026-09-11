@@ -71,8 +71,8 @@ const KpiBreakdownModal = ({ name, metric, onClose }: Props) => {
                 </>
               ),
             },
-            { key: 'part',  header: '파트',     sortValue: r => stripPartPrefix(r.part), render: r => stripPartPrefix(r.part) || '—' },
-            { key: 'stage', header: '보고단계', sortValue: r => r.stage, render: r => r.stage || '—' },
+            { key: 'part',  header: '파트',     align: 'center', sortValue: r => stripPartPrefix(r.part), render: r => stripPartPrefix(r.part) || '—' },
+            { key: 'stage', header: '보고단계', align: 'center', sortValue: r => r.stage, render: r => r.stage || '—' },
             {
               key: 'value', header: vm.column || '값', align: 'right',
               sortValue: r => r.value,
