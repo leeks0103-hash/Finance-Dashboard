@@ -57,7 +57,26 @@
   gap: 14px;
   flex: 1;
   min-width: 0;
+  position: relative;
+  z-index: 1;
 }
+
+/* 배경 스파크라인 — KpiCard .sparkWrap과 같은 비율(52%×48px). 카드가 더 길어서
+   실제로는 전체 높이의 1/3 정도만 차지 — z-index로 막대그래프 뒤에 깔림 */
+.sparkWrap {
+  position: absolute;
+  bottom: 0; right: 0;
+  width: 52%;
+  height: 48px;
+  opacity: 0.22;
+  pointer-events: none;
+  z-index: 0;
+}
+.spark { width: 100%; height: 100%; }
+.brand  .sparkWrap { color: var(--brand-mid); }
+.profit .sparkWrap { color: var(--profit); }
+.loss   .sparkWrap { color: var(--loss); }
+.purple .sparkWrap { color: var(--purple); }
 
 .values {
   display: flex;
@@ -132,7 +151,8 @@
 .purple .barEst { background: var(--purple); }
 .barCap {
   font-size: 0.6rem;
-  color: var(--text-muted);
+  font-weight: 700;
+  color: var(--text-primary);
   letter-spacing: 0.02em;
 }
 
@@ -143,4 +163,5 @@
   .card { min-height: 108px; padding: 16px 18px 12px; }
   .plan, .est { font-size: 1.7rem; }
   .bars { height: 44px; }
+  .sparkWrap { height: 36px; }
 }
