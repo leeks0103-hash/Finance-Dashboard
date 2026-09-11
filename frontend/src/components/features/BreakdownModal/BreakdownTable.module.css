@@ -50,6 +50,9 @@
 /* 코드·프로젝트명 칸만 줄바꿈 허용 — 나머지 컬럼(정렬·값)이 항상 보이도록 */
 .table td:first-child { white-space: normal; word-break: break-word; }
 
+/* 파일명처럼 긴 텍스트 컬럼 — nowrap이면 표가 옆으로 넘쳐서(스크롤 발생) 줄바꿈 허용 */
+.wrapCell { white-space: normal; word-break: break-word; }
+
 .right { text-align: right; font-variant-numeric: tabular-nums; }
 .table td.right { font-weight: 600; }
 

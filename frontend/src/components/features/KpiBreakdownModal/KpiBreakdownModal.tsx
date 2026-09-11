@@ -82,6 +82,11 @@ const KpiBreakdownModal = ({ name, metric, onClose }: Props) => {
               sortValue: r => r.value,
               render: r => (Number.isInteger(r.value) ? r.value.toLocaleString() : r.value),
             },
+            {
+              key: 'file', header: '파일명', wrap: true,
+              sortValue: r => r.file,
+              render: r => r.file || '—',
+            },
           ] satisfies BreakdownColumn<KpiBreakdownRow>[]}
           rows={vm.rows}
           totalLabel={`${vm.aggLabel} (${vm.count}건)`}

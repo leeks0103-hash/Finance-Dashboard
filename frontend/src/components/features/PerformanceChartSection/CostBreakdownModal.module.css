@@ -71,17 +71,19 @@
   min-height: 0;
 }
 
-/* 비교용 미니 도넛 그리드 — 한 줄에 항상 3개 고정(팀 모드 3개는 한 줄, 파트 모드 6개는 두 줄) */
+/* 비교용 미니 도넛 그리드 — 카드 개수가 3개 이하면 3열, 4개 이상이면 4열로 줄 수를 줄여서
+   세로 스크롤을 최대한 없앰(예: 파트 7개는 3열×3줄 대신 4열×2줄) */
 .partGrid {
   flex: 1;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
   grid-auto-rows: min-content;
   gap: 12px;
   align-content: start;
   min-height: 0;
   overflow-y: auto;
 }
+.cols3 { grid-template-columns: repeat(3, 1fr); }
+.cols4 { grid-template-columns: repeat(4, 1fr); }
 
 .partCard {
   display: flex;
@@ -94,106 +96,27 @@
   padding: 10px 10px 12px;
 }
 
-/* 카드 상단 — 이름 + (전사평균 대비 경상손익 ▲/▼) */
-.cardHeader {
-  display: flex;
-  align-items: baseline;
-  justify-content: center;
-  gap: 5px;
-  width: 100%;
-  min-width: 0;
-}
-
 .partLabel {
+  width: 100%;
+  text-align: center;
   font-size: 0.72rem;
   font-weight: 600;
   color: var(--text-sub);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  min-width: 0;
 }
 
 /* 정사각형으로 강제하면 도넛+범례가 같이 눌려서 범례만 남고 도넛이 사라지므로,
-   고정 높이로 도넛(위, flex:1)과 범례(아래, 컨텐츠 높이)가 각자 자리를 갖게 함 */
+   고정 높이로 도넛(위, flex:1)과 범례(아래, 컨텐츠 높이)가 각자 자리를 갖게 함.
+   4열(카드 개수 많음 — 최대 2줄까지)일 땐 스크롤 없이 다 들어가야 해서 더 작게 */
 .smallChart {
   width: 100%;
   height: 280px;
 }
-
-/* 전사 평균 경상손익 대비 ▲/▼ — .partLabel 오른쪽에 괄호로 붙음 */
-.miniValue {
-  font-size: 0.7rem;
-  font-weight: 700;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-.miniValue.up   { color: var(--profit); }
-.miniValue.down { color: var(--loss); }
-
-/* 상세보기 토글 — 전사평균 대비 5개 원가 항목 전부 비교 */
-.detailToggle {
-  appearance: none;
-  font: inherit;
-  width: 100%;
-  margin-top: 2px;
-  padding: 4px 0;
-  border: none;
-  border-top: 1px dashed var(--border);
-  background: transparent;
-  color: var(--text-sub);
-  font-size: 0.68rem;
-  font-weight: 600;
-  cursor: pointer;
-  text-align: center;
-  transition: color 0.12s ease;
-}
-.detailToggle:hover { color: var(--brand-mid); }
-
-.detailPanel {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: 2px;
-  padding-top: 6px;
-  list-style: none;
-}
-
-.detailRow {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  padding: 6px 8px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-}
-
-.detailLabel {
-  font-size: 0.68rem;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.detailVal {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: 0.68rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.detailValMuted { color: var(--text-sub); }
-.detailValSelf  { color: var(--text-primary); font-weight: 600; }
-
-.detailDiff {
-  align-self: flex-end;
-  font-size: 0.66rem;
-  font-weight: 700;
-}
-.detailDiff.up   { color: var(--profit); }
-.detailDiff.down { color: var(--loss); }
+.cols4 .smallChart { height: 190px; }
+.cols4 .partCard    { padding: 8px 8px 10px; }
+.cols4 .partLabel   { font-size: 0.68rem; }
 
 @media (max-width: 900px) {
   .wrap     { flex-direction: column; }

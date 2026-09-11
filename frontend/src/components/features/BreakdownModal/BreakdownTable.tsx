@@ -6,6 +6,8 @@ export interface BreakdownColumn<R> {
   header:    string;
   /** 짧은 분류값(파트·보고단계 등)은 center, 숫자값은 right, 코드·이름처럼 긴 텍스트는 기본(left) */
   align?:    'left' | 'right' | 'center';
+  /** 파일명처럼 긴 텍스트인데 nowrap이면 표가 옆으로 넘칠 수 있는 컬럼 — 줄바꿈 허용 */
+  wrap?:     boolean;
   /** 정렬용 원시값 */
   sortValue: (row: R) => string | number;
   /** 화면 표시 */
@@ -74,7 +76,7 @@ export function BreakdownTable<R>({
           {sorted.map((row, i) => (
             <tr key={i}>
               {columns.map(c => (
-                <td key={c.key} className={alignClass(c.align)}>
+                <td key={c.key} className={`${alignClass(c.align)} ${c.wrap ? styles.wrapCell : ''}`}>
                   {c.render(row)}
                 </td>
               ))}
@@ -83,6 +85,10 @@ export function BreakdownTable<R>({
           <tr className={styles.totalRow}>
             <td colSpan={totalSpan}>{totalLabel}</td>
             <td className={styles.right}>{totalValue}</td>
+            {/* totalSpan+1(합계값 칸) 뒤에 남는 컬럼(예: 파일명)이 있으면 그만큼 마저 채움 */}
+            {columns.length - totalSpan - 1 > 0 && (
+              <td colSpan={columns.length - totalSpan - 1} />
+            )}
           </tr>
         </tbody>
       </table>
