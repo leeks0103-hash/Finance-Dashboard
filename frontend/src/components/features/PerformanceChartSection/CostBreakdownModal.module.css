@@ -5,17 +5,16 @@
   overflow: hidden;
 }
 
-/* 왼쪽 — 프로젝트별 원가 구성 표 (표라서 그리드보다 넓게) */
+/* 왼쪽 — 선택한 파트(기본 전체)의 원가 비율 큰 도넛 */
 .left {
-  flex: 0 0 58%;
+  flex: 0 0 34%;
   display: flex;
   flex-direction: column;
   gap: 8px;
   min-height: 0;
-  min-width: 0;
 }
 
-/* 오른쪽 — 파트별 그리드 (선택 용도) */
+/* 오른쪽 — 파트별 그리드 (65%, 선택 용도) */
 .right {
   flex: 1;
   display: flex;
@@ -34,69 +33,17 @@
   flex-shrink: 0;
 }
 
-/* 표 영역 — 세로 전체 채움 */
+/* 전체 도넛 — 세로 전체 채움 */
 .bigChart {
   flex: 1;
   min-height: 0;
-  min-width: 0;
 }
 
-.tableWrap {
-  height: 100%;
-  overflow: auto;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-}
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.74rem;
-  font-variant-numeric: tabular-nums;
-}
-.table th,
-.table td {
-  padding: 6px 10px;
-  border-bottom: 1px solid var(--border);
-  white-space: nowrap;
-}
-.table th {
-  position: sticky;
-  top: 0;
-  background: var(--bg-subtle);
-  color: var(--text-sub);
-  font-weight: 700;
-  text-align: left;
-  z-index: 1;
-}
-.table tfoot td {
-  font-weight: 700;
-  background: var(--bg-subtle);
-  border-top: 2px solid var(--border);
-  border-bottom: none;
-}
-.num { text-align: right; }
-.codeCol {
-  max-width: 220px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.pname { color: var(--text-muted); font-weight: 400; }
-
-.state {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  color: var(--text-muted);
-  font-size: 0.85rem;
-}
-
-/* 파트별 그리드 — 2열, 행 높이 균등 분배 */
+/* 파트별 그리드 — 3열, 행 높이 균등 분배 */
 .partGrid {
   flex: 1;
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   grid-auto-rows: 1fr;
   gap: 8px;
   min-height: 0;

@@ -788,38 +788,6 @@ _PERF_CALC_GLOSSARY = [
 ]
 
 
-@perf_bp.route("/api/performance/costbreakdown/detail")
-def api_perf_costbreakdown_detail():
-    """
-    '전체 평균 원가 비율' 확대 모달 — 선택한 파트(또는 전체, apply_perf_filters 기준)의
-    프로젝트별 원가 구성(직접원가·인건비·공통원가·관리비·경상손익)을 표로 반환.
-    api_perf_summary의 by_part/total 도넛 집계와 정확히 같은 필드 사용 → 합계행이 도넛 값과 일치한다.
-    """
-    df = apply_perf_filters(get_perf_df())
-    if df.empty:
-        return jsonify({"rows": [], "count": 0, "total": {}, "unit": "억"})
-
-    rev  = df[df["category"] == "매출"]
-    cols = ["cost_direct", "cost_labor", "cost_overhead", "cost_mgmt", "operating_profit"]
-
-    rows = []
-    for _, r in rev.iterrows():
-        vals = {c: float(r.get(c) or 0) for c in cols}
-        if not any(vals.values()):
-            continue
-        rows.append({
-            "project_code": str(r.get("project_code", "")).strip(),
-            "project_name": str(r.get("project_name", "")).strip(),
-            "part":         str(r.get("part", "")).strip(),
-            **{c: round(v / 100_000, 1) for c, v in vals.items()},
-        })
-    rows.sort(key=lambda r: r["cost_direct"], reverse=True)
-
-    total = {c: round(float(rev[c].sum()) / 100_000, 1) for c in cols}
-
-    return jsonify({"rows": rows, "count": len(rows), "total": total, "unit": "억"})
-
-
 @perf_bp.route("/api/performance/summary/breakdown")
 def api_perf_summary_breakdown():
     """

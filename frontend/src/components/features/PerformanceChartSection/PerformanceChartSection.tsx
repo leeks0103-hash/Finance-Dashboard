@@ -320,6 +320,8 @@ const PerformanceChartSection = () => {
             byPart={vm.chartData?.costBreakdownByPart ?? {}}
             partsRaw={vm.chartData?.partsRaw ?? []}
             colors={doughnutColors}
+            showLabels={vm.showLabels}
+            onSliceClick={(i, partOverride) => setBreakdown({ chart: 'costBreakdown', series: i, key: '', partOverride })}
           />
         }
       >
