@@ -60,8 +60,8 @@
   min-width: 0;
   position: relative;
   z-index: 1;
-  /* KpiCard .value의 margin-top: 8px와 맞춰서 헤더-값 사이 간격 통일 (글자 시작 위치 정렬) */
-  margin-top: 8px;
+  /* 라벨-값 사이 간격 축소 (기존 8px에서 좁힘) */
+  margin-top: 4px;
 }
 
 /* 배경 스파크라인 — KpiCard .sparkWrap과 같은 비율(52%×48px). 카드가 더 길어서
