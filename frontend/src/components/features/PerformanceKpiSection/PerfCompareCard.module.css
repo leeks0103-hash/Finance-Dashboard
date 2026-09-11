@@ -53,8 +53,8 @@
 .body {
   display: flex;
   align-items: flex-start;
-  /* 값은 왼쪽, 막대는 오른쪽 */
-  justify-content: space-between;
+  /* 값(.values)과 보이지 않는 균형추(.spacer)가 같은 비율로 늘어나서
+     그 사이의 막대그래프(.bars)가 가운데 자리하게 됨 */
   gap: 14px;
   flex: 1;
   min-width: 0;
@@ -88,6 +88,13 @@
   flex-direction: column;
   gap: 2px;
   min-width: 0;
+  /* 오른쪽 .spacer와 같은 비율로 커져서 막대그래프(.bars)가 그 사이 가운데 자리하게 됨 */
+  flex: 1 1 0;
+}
+
+/* 보이지 않는 우측 균형추 — .values와 같은 flex 비율로 남는 공간을 나눠 가짐 */
+.spacer {
+  flex: 1 1 0;
 }
 /* 계획·추정 두 값은 같은 크기 — 구분은 색으로만 (계획 muted / 추정 accent) */
 .plan,

@@ -42,6 +42,9 @@ const PerfCompareCard = ({ card }: { card: PerfCompareCardData }) => {
             <span className={styles.barCap}>추정</span>
           </div>
         </div>
+
+        {/* values와 같은 비율(flex:1)로 남는 공간을 나눠 가져서 막대그래프가 가운데로 옴 */}
+        <div className={styles.spacer} aria-hidden />
       </div>
     </div>
   );
