@@ -35,6 +35,9 @@ export interface PerfCompareCardData {
   estNum:  number;
   diffStr: string;   // "+55.2억" / "-3.1억"
   diffUp:  boolean;
+  /** 미니 막대 스케일 기준 — 매출/원가/매출이익 3장 카드 공통 최댓값(억).
+   *  카드마다 따로 스케일하면 계획이 항상 100%로 찍혀 카드 간 크기 비교가 안 됐음 */
+  barMax:  number;
 }
 
 /** 단일 값 카드 (경상손익·누계 실적) — 기존 형태 유지 */
@@ -170,7 +173,7 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
     // 계획 → 추정(연간) 2값 비교 카드. 값은 매출행/원가행 각각의 합 (천원 → 억)
     const mk = (
       id: string, label: string, accent: PerfAccent, planK: number, estK: number,
-    ): PerfCompareCardData => {
+    ): Omit<PerfCompareCardData, 'barMax'> => {
       const p = toEokNum(planK);
       const e = toEokNum(estK);
       const d = +(e - p).toFixed(1);
@@ -182,7 +185,7 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
       };
     };
 
-    return [
+    const compareCards = [
       mk('revenue',     '매출 (계획/추정)', 'brand',  total.plan_initial,   total.jun_check_total),
       mk('cost',        '원가 (계획/추정)', 'brand',  total.plan_cost,      total.jun_cost),
       mk('grossProfit', '매출이익 (계획/추정)',
@@ -190,6 +193,12 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
          // 매출이익 = 매출 − 원가. 백엔드 계산값 사용 (재시작 전 폴백만 인라인)
          total.plan_gross ?? (total.plan_initial - total.plan_cost),
          total.est_gross  ?? (total.jun_check_total - total.jun_cost)),
+    ];
+    // 3장 공통 스케일 — 카드마다 따로 스케일하면 계획이 항상 100%로 찍혀 카드 간 크기 비교가 안 됨
+    const barMax = Math.max(...compareCards.flatMap(c => [Math.abs(c.planNum), Math.abs(c.estNum)]), 1);
+
+    return [
+      ...compareCards.map((c): PerfCompareCardData => ({ ...c, barMax })),
       // ↓ 언급 안 한 2개 카드는 그대로 유지 (경상손익 · 누계 실적)
       {
         kind: 'single', id: 'profit', label: '경상손익(당해년도 추정)',
