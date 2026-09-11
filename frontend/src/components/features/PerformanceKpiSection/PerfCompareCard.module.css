@@ -99,6 +99,12 @@
   line-height: 1.15;
   white-space: nowrap;
 }
+/* 슬래시가 plan 줄 끝에 바로 붙도록 — plan+slash를 한 줄(row)로 묶음, est는 그 아래 줄 */
+.planRow {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+}
 .plan { color: var(--text-muted); }
 .slash { color: var(--border); font-size: 0.9rem; font-weight: 400; line-height: 1; }
 .est  { color: var(--text-primary); }
