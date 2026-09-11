@@ -120,63 +120,63 @@
 @font-face {
   font-family: 'HyundaiSans';
   font-weight: 400;
-  font-display: swap;
+  font-display: optional;
   src: url('/fonts/HyundaiSansTextKRRegular.ttf') format('truetype');
 }
 @font-face {
   font-family: 'HyundaiSans';
   font-weight: 500;
-  font-display: swap;
+  font-display: optional;
   src: url('/fonts/HyundaiSansTextKRMedium.ttf') format('truetype');
 }
 @font-face {
   font-family: 'HyundaiSans';
   font-weight: 700;
-  font-display: swap;
+  font-display: optional;
   src: url('/fonts/HyundaiSansTextKRBold.ttf') format('truetype');
 }
 /* ─── 현대 HyundaiSans Head (제목) ───────────── */
 @font-face {
   font-family: 'HyundaiSansHead';
   font-weight: 300;
-  font-display: swap;
+  font-display: optional;
   src: url('/fonts/HyundaiSansHeadKRLight.ttf') format('truetype');
 }
 @font-face {
   font-family: 'HyundaiSansHead';
   font-weight: 400;
-  font-display: swap;
+  font-display: optional;
   src: url('/fonts/HyundaiSansHeadKRRegular.ttf') format('truetype');
 }
 @font-face {
   font-family: 'HyundaiSansHead';
   font-weight: 500;
-  font-display: swap;
+  font-display: optional;
   src: url('/fonts/HyundaiSansHeadKRMedium.ttf') format('truetype');
 }
 @font-face {
   font-family: 'HyundaiSansHead';
   font-weight: 700;
-  font-display: swap;
+  font-display: optional;
   src: url('/fonts/HyundaiSansHeadKRBold.ttf') format('truetype');
 }
 /* ─── 현대하모니 (KPI 대형 수치·강조) ─────────── */
 @font-face {
   font-family: 'HyundaiHarmony';
   font-weight: 300;
-  font-display: swap;
+  font-display: optional;
   src: url('/fonts/HyundaiHarmony-Light.ttf') format('truetype');
 }
 @font-face {
   font-family: 'HyundaiHarmony';
   font-weight: 500;
-  font-display: swap;
+  font-display: optional;
   src: url('/fonts/HyundaiHarmony-Medium.ttf') format('truetype');
 }
 @font-face {
   font-family: 'HyundaiHarmony';
   font-weight: 700;
-  font-display: swap;
+  font-display: optional;
   src: url('/fonts/HyundaiHarmony-Bold.ttf') format('truetype');
 }
 
