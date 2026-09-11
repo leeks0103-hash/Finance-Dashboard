@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { usePerformanceSummary } from '@/hooks/usePerformanceSummary';
 import { usePerformanceOptions } from '@/hooks/usePerformanceData';
 import { useUiStore } from '@/store';
@@ -53,7 +53,7 @@ export interface PerformanceChartViewModel {
     labels: string[];
     values: number[];
   };
-  /** 팀 목록 — 원가 비율 카드 설정 패널의 팀→파트 계단식 선택용 */
+  /** 팀 목록 — 원가 비율 카드 설정 패널의 "전체/팀/파트" 개별 선택용 */
   teams:            string[];
   selectedCostTeam: string;
   setSelectedCostTeam: (v: string) => void;
@@ -72,8 +72,19 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
   const { theme } = useTheme();
   const { labelColor } = getChartTheme(theme === 'dark');
 
-  const [selectedCostPart, setSelectedCostPart] = useState<string>('전체');
-  const [selectedCostTeam, setSelectedCostTeam] = useState<string>('');   // '' = 전체 팀
+  // 전체 / 팀 / 파트 — 서로 배타적인 개별 선택지(팀을 펼쳐야 파트가 나오는 계단식 아님).
+  // 하나를 고르면 다른 하나는 자동으로 '선택 없음'으로 리셋
+  const [selectedCostPart, setSelectedCostPartRaw] = useState<string>('전체');
+  const [selectedCostTeam, setSelectedCostTeamRaw] = useState<string>('');   // '' = 미선택
+
+  const setSelectedCostTeam = useCallback((v: string) => {
+    setSelectedCostTeamRaw(v);
+    setSelectedCostPartRaw('전체');
+  }, []);
+  const setSelectedCostPart = useCallback((v: string) => {
+    setSelectedCostPartRaw(v);
+    setSelectedCostTeamRaw('');
+  }, []);
 
   const teams     = useMemo(() => options?.teams ?? [], [options]);
   const teamParts = useMemo(() => options?.team_parts ?? {}, [options]);
@@ -181,6 +192,21 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
           }];
         })
       ),
+      // 팀 단위 구성비 — 소속 파트 전부 합산. "전체/팀/파트"를 대등한 개별 선택지로 두면서
+      // 팀을 골라도 그 팀만의 원가 비율을 바로 보여주기 위함(파트를 거쳐야 하는 계단식이 아님)
+      costBreakdownByTeam: Object.fromEntries(
+        teams.map(team => {
+          const allowed = new Set(teamParts[team] ?? []);
+          const sums = [0, 0, 0, 0, 0];
+          parts.forEach(p => {
+            if (!allowed.has(p)) return;
+            const bp = summary.by_part[p];
+            [bp.cost_direct ?? 0, bp.cost_labor ?? 0, bp.cost_overhead ?? 0, bp.cost_mgmt ?? 0, bp.operating_profit ?? 0]
+              .forEach((v, i) => { sums[i] += v; });
+          });
+          return [team, { labels: ['직접원가', '인건비', '공통원가', '관리비', '경상손익'], values: sums.map(toEokNum) }];
+        })
+      ),
       partOptions: ['전체', ...parts.map(stripPartPrefix)],
       partsRaw: parts,
       teamParts,
@@ -190,22 +216,16 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
         expenditures: progressEntries.map(p => toEokNum(summary.by_progress[p].cost)),
       },
     };
-  }, [summary, isLoading, teamParts]);
+  }, [summary, isLoading, teams, teamParts]);
 
+  // 전체 > 팀 > 파트 배타적 선택 — 팀이 골라져 있으면 팀 구성비, 아니면 파트, 둘 다 없으면 전체
   const costBreakdown = useMemo(() => {
     if (!chartData) return { labels: [], values: [] };
+    if (selectedCostTeam) return chartData.costBreakdownByTeam[selectedCostTeam] ?? chartData.costBreakdownTotal;
     if (selectedCostPart === '전체') return chartData.costBreakdownTotal;
     const rawPart = chartData.partsRaw.find(p => stripPartPrefix(p) === selectedCostPart);
     return rawPart ? chartData.costBreakdownByPart[rawPart] : chartData.costBreakdownTotal;
-  }, [chartData, selectedCostPart]);
-
-  // 팀 선택 시 그 팀 소속 파트만 — 원가 비율 카드 설정 패널(팀→파트 계단식 선택)용
-  const partOptionsForTeam = useMemo(() => {
-    if (!chartData) return ['전체'];
-    if (!selectedCostTeam) return chartData.partOptions;
-    const allowed = new Set(teamParts[selectedCostTeam] ?? []);
-    return ['전체', ...chartData.partsRaw.filter(p => allowed.has(p)).map(stripPartPrefix)];
-  }, [chartData, selectedCostTeam, teamParts]);
+  }, [chartData, selectedCostTeam, selectedCostPart]);
 
   if (!chartData || isLoading) {
     return {
@@ -229,7 +249,7 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
     profitRate:       { ...chartData.profitRate,   options: profitRateOptions },
     costBreakdown,
     progress:         { ...chartData.progress,     options: progressOptions },
-    partOptions:      partOptionsForTeam,
+    partOptions:      chartData.partOptions,
     teams, selectedCostTeam, setSelectedCostTeam,
     selectedCostPart, setSelectedCostPart,
     chartData,

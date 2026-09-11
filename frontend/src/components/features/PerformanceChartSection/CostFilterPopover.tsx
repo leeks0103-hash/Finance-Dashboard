@@ -1,117 +1,53 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { Button } from '@/components/ui';
-import { stripPartPrefix } from '@/utils';
+import type { ChangeEvent } from 'react';
 import styles from './CostFilterPopover.module.css';
 
 interface Props {
   teams:        string[];
   selectedTeam: string;
   onTeamChange: (v: string) => void;
-  /** 팀 → 소속 파트(원문, 접두어 포함) — 패널 안에서 팀을 펼치면 그 파트들이 하위 목록으로 나온다 */
-  teamParts:    Record<string, string[]>;
+  /** 접두어 제거된 전체 파트 목록(팀 소속과 무관하게 항상 동일한 하나의 평평한 목록) */
+  parts:        string[];
   /** 접두어 제거된 값. '전체'가 기본 */
   selectedPart: string;
   onPartChange: (v: string) => void;
 }
 
+const ALL = 'all';
+const teamValue = (team: string) => `team:${team}`;
+const partValue = (part: string) => `part:${part}`;
+
 /**
- * 원가 비율 카드 제목줄의 ⚙ 버튼 — 눌러야 뜨는 설정 패널.
- * 팀을 눌러 펼치면 그 안에 소속 파트가 하위 목록(드롭다운 안의 드롭다운)으로 나오고,
- * 파트를 고르면 팀·파트가 한 번에 정해지며 패널이 닫힌다.
+ * 원가 비율 카드 제목줄의 팀/파트 필터 — 다른 필터 셀렉트(FilterSelect)와 똑같이 생긴
+ * 네이티브 <select>. optgroup으로 "팀"/"파트"를 나눠 보여주되 둘은 대등한 개별 선택지다
+ * (팀을 먼저 골라야 파트가 나오는 계단식 아님) — 하나를 고르면 다른 쪽은 자동으로 전체로 풀린다.
  */
-const CostFilterPopover = ({ teams, selectedTeam, onTeamChange, teamParts, selectedPart, onPartChange }: Props) => {
-  const [open, setOpen] = useState(false);
-  const [expandedTeam, setExpandedTeam] = useState<string>(selectedTeam);
-  const wrapRef = useRef<HTMLDivElement>(null);
+const CostFilterPopover = ({ teams, selectedTeam, onTeamChange, parts, selectedPart, onPartChange }: Props) => {
+  const value = selectedTeam ? teamValue(selectedTeam) : selectedPart !== '전체' ? partValue(selectedPart) : ALL;
 
-  const close = useCallback(() => setOpen(false), []);
-
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) close();
-    };
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); };
-    document.addEventListener('mousedown', onDown);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onDown);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open, close]);
-
-  const active = selectedTeam !== '' || selectedPart !== '전체';
-
-  const pickAll = () => { onTeamChange(''); onPartChange('전체'); close(); };
-  const pickPart = (team: string, rawPart: string) => {
-    onTeamChange(team);
-    onPartChange(stripPartPrefix(rawPart));
-    close();
+  const handleChange = (e: ChangeEvent<HTMLSelectElement>) => {
+    const v = e.target.value;
+    if (v === ALL) { onTeamChange(''); return; }
+    const [kind, ...rest] = v.split(':');
+    const name = rest.join(':');
+    if (kind === 'team') onTeamChange(name);
+    else onPartChange(name);
   };
 
   return (
-    <div className={`${styles.wrap} chart-title-filter`} ref={wrapRef}>
-      <Button
-        unstyled
-        className={`${styles.trigger} ${active ? styles.active : ''}`}
-        onClick={() => setOpen(v => !v)}
-        aria-expanded={open}
-        aria-label="원가 비율 팀/파트 필터"
-        title="팀/파트 선택"
-      >
-        <span className={styles.triggerLabel}>{active ? selectedPart : '전체'}</span>
-        <span className={styles.arrow}>▾</span>
-      </Button>
-
-      {open && (
-        <div className={styles.panel}>
-          <Button
-            unstyled
-            className={`${styles.allItem} ${!active ? styles.itemActive : ''}`}
-            onClick={pickAll}
-          >
-            전체
-          </Button>
-
-          <ul className={styles.teamList}>
-            {teams.map(team => {
-              const isExpanded = expandedTeam === team;
-              const parts = teamParts[team] ?? [];
-              return (
-                <li key={team}>
-                  <Button
-                    unstyled
-                    className={`${styles.teamItem} ${selectedTeam === team ? styles.itemActive : ''}`}
-                    onClick={() => setExpandedTeam(isExpanded ? '' : team)}
-                    aria-expanded={isExpanded}
-                  >
-                    <span className={styles.caret}>{isExpanded ? '▾' : '▸'}</span>
-                    {team}
-                  </Button>
-
-                  {/* 드롭다운 안의 드롭다운 — 팀을 펼치면 그 소속 파트만 하위 목록으로 */}
-                  {isExpanded && parts.length > 0 && (
-                    <ul className={styles.partList}>
-                      {parts.map(p => (
-                        <li key={p}>
-                          <Button
-                            unstyled
-                            className={`${styles.partItem} ${selectedTeam === team && selectedPart === stripPartPrefix(p) ? styles.itemActive : ''}`}
-                            onClick={() => pickPart(team, p)}
-                          >
-                            {stripPartPrefix(p)}
-                          </Button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      )}
-    </div>
+    <select
+      className={styles.select}
+      value={value}
+      onChange={handleChange}
+      aria-label="원가 비율 팀/파트 필터"
+    >
+      <option value={ALL}>전체</option>
+      <optgroup label="팀">
+        {teams.map(team => <option key={team} value={teamValue(team)}>{team}</option>)}
+      </optgroup>
+      <optgroup label="파트">
+        {parts.map(part => <option key={part} value={partValue(part)}>{part}</option>)}
+      </optgroup>
+    </select>
   );
 };
 
