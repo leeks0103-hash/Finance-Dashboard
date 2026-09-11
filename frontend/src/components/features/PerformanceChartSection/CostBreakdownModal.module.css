@@ -94,6 +94,16 @@
   padding: 10px 10px 12px;
 }
 
+/* 카드 상단 — 이름 + (전사평균 대비 경상손익 ▲/▼) */
+.cardHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 5px;
+  width: 100%;
+  min-width: 0;
+}
+
 .partLabel {
   font-size: 0.72rem;
   font-weight: 600;
@@ -101,7 +111,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 100%;
+  min-width: 0;
 }
 
 /* 정사각형으로 강제하면 도넛+범례가 같이 눌려서 범례만 남고 도넛이 사라지므로,
@@ -111,11 +121,12 @@
   height: 280px;
 }
 
-/* 전사 평균 경상손익 대비 ▲/▼ */
+/* 전사 평균 경상손익 대비 ▲/▼ — .partLabel 오른쪽에 괄호로 붙음 */
 .miniValue {
-  font-size: 0.78rem;
+  font-size: 0.7rem;
   font-weight: 700;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 .miniValue.up   { color: var(--profit); }
 .miniValue.down { color: var(--loss); }

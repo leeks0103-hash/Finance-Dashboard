@@ -99,7 +99,12 @@ const CostBreakdownModal = ({ total, byPart, partsRaw, teams, teamParts, colors,
             const isOpen = expanded.has(key);
             return (
               <div key={key} className={styles.partCard}>
-                <span className={styles.partLabel}>{label}</span>
+                <div className={styles.cardHeader}>
+                  <span className={styles.partLabel}>{label}</span>
+                  <span className={`${styles.miniValue} ${up ? styles.up : styles.down}`}>
+                    ({up ? '▲' : '▼'} {profit.toFixed(1)}억)
+                  </span>
+                </div>
                 <div className={styles.smallChart}>
                   <DoughnutChart
                     labels={data.labels}
@@ -110,9 +115,6 @@ const CostBreakdownModal = ({ total, byPart, partsRaw, teams, teamParts, colors,
                     outsideLabelsSize="sm"
                   />
                 </div>
-                <span className={`${styles.miniValue} ${up ? styles.up : styles.down}`}>
-                  {up ? '▲' : '▼'} {profit.toFixed(1)}억
-                </span>
 
                 <Button
                   unstyled
