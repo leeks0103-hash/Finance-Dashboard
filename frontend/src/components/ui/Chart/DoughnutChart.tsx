@@ -19,6 +19,9 @@ interface Props {
   /** true면 라벨을 링 안쪽 대신 바깥 인출선으로 표시 — 조각이 얇아 숫자가 안 보일 때용.
    *  메인 카드·확대(큰 화면) 그래프에서만 켜고, 작은 미리보기 카드에는 켜지 않는다. */
   outsideLabels?: boolean;
+  /** 'sm'(기본) — 메인 카드처럼 캔버스가 작아 인출선을 짧게(링 크기 거의 그대로).
+   *  'lg' — 확대 모달처럼 캔버스가 큰 곳 전용. 두 값은 완전히 독립 — 하나를 조정해도 다른 쪽엔 영향 없음. */
+  outsideLabelsSize?: 'sm' | 'lg';
 }
 
 // 현대 브랜드 9색 — Hyundai Blue / Active Blue / Sky Blue / Gold
@@ -47,6 +50,7 @@ const DoughnutChart = ({
   showLabels = false,
   onSliceClick,
   outsideLabels = false,
+  outsideLabelsSize = 'sm',
 }: Props) => {
   const total = data.reduce((a, b) => a + b, 0);
 
@@ -93,8 +97,8 @@ const DoughnutChart = ({
                 }
               : undefined,
             // 얇은 세그먼트의 % 라벨이 캔버스 밖으로 나가 잘리지 않도록 여백 확보 (ChartCard가 overflow:hidden)
-            // outsideLabels 모드: 인출선(최대 +28px) + 텍스트("100.0%" 기준 ~38px)까지 감안한 여백
-            layout: { padding: outsideLabels ? 64 : 12 },
+            // sm(메인 카드): 링 크기 거의 그대로(12→20px). lg(확대 모달): 인출선·글자가 커서 여백도 크게(64px)
+            layout: { padding: outsideLabels ? (outsideLabelsSize === 'lg' ? 64 : 20) : 12 },
             plugins: {
               // 범례는 아래 2열 그리드로 직접 그린다 (Chart.js 기본 범례는 개수에 따라 줄이 어긋남)
               legend: { display: false },
@@ -115,7 +119,7 @@ const DoughnutChart = ({
                   return `${((value / sum) * 100).toFixed(1)}%`;
                 },
               },
-              outsideLabels: { enabled: showLabels && outsideLabels },
+              outsideLabels: { enabled: showLabels && outsideLabels, size: outsideLabelsSize },
             },
           }}
         />

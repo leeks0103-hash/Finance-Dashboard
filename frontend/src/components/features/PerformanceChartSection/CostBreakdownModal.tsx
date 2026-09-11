@@ -51,6 +51,7 @@ const CostBreakdownModal = ({ total, byPart, partsRaw, colors, showLabels, onSli
             colors={colors}
             showLabels={showLabels}
             outsideLabels
+            outsideLabelsSize="lg"
             onSliceClick={i => onSliceClick(i, selected ? stripPartPrefix(selected) : undefined)}
           />
         </div>
