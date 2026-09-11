@@ -89,7 +89,14 @@ const CostBreakdownModal = ({ total, byPart, partsRaw, teams, teamParts, colors,
               <div key={key} className={styles.partCard}>
                 <span className={styles.partLabel}>{label}</span>
                 <div className={styles.smallChart}>
-                  <DoughnutChart labels={data.labels} data={data.values} colors={colors} showLabels={showLabels} />
+                  <DoughnutChart
+                    labels={data.labels}
+                    data={data.values}
+                    colors={colors}
+                    showLabels={showLabels}
+                    outsideLabels
+                    outsideLabelsSize="sm"
+                  />
                 </div>
                 <span className={`${styles.miniValue} ${up ? styles.up : styles.down}`}>
                   {up ? '▲' : '▼'} {profit.toFixed(1)}억

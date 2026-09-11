@@ -112,7 +112,7 @@
 }
 
 .modalCard {
-  width: min(1440px, 96vw);
+  width: min(1680px, 97vw);
   height: min(820px, 88vh);
   display: flex;
   flex-direction: column;
