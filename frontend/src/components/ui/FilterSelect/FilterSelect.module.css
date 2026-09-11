@@ -11,8 +11,12 @@
   color: var(--text-muted);
 }
 
-/* DataTable .pageSizeSelect 와 동일 스타일 — 필터 셀렉트 공통 */
+/* DataTable .pageSizeSelect 와 동일 스타일 — 필터 셀렉트 공통.
+   min-width 필수 — 옵션이 API로 늦게 도착하면 "전체"(짧은 기본값)로 작게 떠 있다가
+   데이터가 차면서 선택값이 긴 텍스트(파트명 등)로 바뀌어 박스가 갑자기 넓어지는
+   리플로우("작았다가 길어짐")가 있었음. 자리 자체는 처음부터 넉넉히 예약 */
 .select {
+  min-width: 108px;
   font-size: 0.75rem;
   color: var(--text-sub);
   border: 1px solid var(--border);
