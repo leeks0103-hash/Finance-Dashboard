@@ -18,14 +18,22 @@ interface Props {
 
 /**
  * 원가 비율 확대 모달 — 기존 레이아웃(왼쪽 큰 도넛 + 오른쪽 파트별 그리드) 그대로.
- * 추가된 것: 오른쪽 그리드의 파트 카드를 클릭하면 그 파트의 원가 비율이 왼쪽 큰 도넛에 표시된다.
- * (같은 카드를 다시 클릭하거나 아무것도 안 고르면 전체)
+ * 추가된 것: 오른쪽 그리드 카드를 클릭하면 그 원가 비율이 왼쪽 큰 도넛에 표시된다.
+ * 그리드 첫 칸은 '전체' 카드 — 언제든 전체로 되돌아갈 수 있다. (기본 선택: 전체)
  */
 const CostBreakdownModal = ({ total, byPart, partsRaw, colors, showLabels }: Props) => {
   const [selected, setSelected] = useState<string>('');   // '' = 전체
 
   const active     = selected && byPart[selected] ? byPart[selected] : total;
   const activeName = selected ? stripPartPrefix(selected) : '전체';
+
+  // '전체' 카드 + 파트 카드들 — 그리드 첫 칸에서 언제든 전체로 되돌아갈 수 있게
+  const cells: { key: string; label: string; data: CostData }[] = [
+    { key: '', label: '전체', data: total },
+    ...partsRaw
+      .filter(p => byPart[p])
+      .map(p => ({ key: p, label: stripPartPrefix(p), data: byPart[p] })),
+  ];
 
   return (
     <div className={styles.wrap}>
@@ -44,21 +52,19 @@ const CostBreakdownModal = ({ total, byPart, partsRaw, colors, showLabels }: Pro
 
       {/* 오른쪽 — 파트별 원가 비율 그리드 (카드 클릭 → 왼쪽에 크게) */}
       <div className={styles.right}>
-        <span className={styles.sectionTitle}>파트별 · 카드 클릭 시 왼쪽에 크게</span>
+        <span className={styles.sectionTitle}>파트별</span>
         <div className={styles.partGrid}>
-          {partsRaw.map(part => {
-            const data = byPart[part];
-            if (!data) return null;
-            const on = selected === part;
+          {cells.map(({ key, label, data }) => {
+            const on = selected === key;
             return (
               <Button
-                key={part}
+                key={key || '__all__'}
                 unstyled
                 className={`${styles.partCard} ${on ? styles.partCardActive : ''}`}
-                onClick={() => setSelected(on ? '' : part)}
+                onClick={() => setSelected(key)}
                 aria-pressed={on}
               >
-                <span className={styles.partLabel}>{stripPartPrefix(part)}</span>
+                <span className={styles.partLabel}>{label}</span>
                 <div className={styles.smallChart}>
                   <DoughnutChart
                     labels={data.labels}
