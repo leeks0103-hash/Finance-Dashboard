@@ -69,64 +69,55 @@
   min-height: 0;
 }
 
-/* 파트별 그리드 — 3열, 행 높이 균등 분배 */
-.partGrid {
+/* 비교용 미니카드 그리드 — 팀 모드 3개 / 파트 모드 6개 다 자연스럽게 들어가도록 auto-fill */
+.miniGrid {
   flex: 1;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  grid-auto-rows: 1fr;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  grid-auto-rows: min-content;
   gap: 8px;
+  align-content: start;
   min-height: 0;
-  overflow: hidden;
+  overflow-y: auto;
 }
 
-.partCard {
-  /* <Button unstyled> = 맨 <button> — 네이티브 스타일 리셋 */
-  appearance: none;
-  font: inherit;
-  color: inherit;
-  text-align: left;
-  width: 100%;
-
+.miniCard {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 4px;
   background: var(--bg-subtle);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 6px 8px;
-  min-height: 0;
-  overflow: hidden;
-  cursor: pointer;
-  transition: border-color 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
-}
-.partCard:hover {
-  border-color: var(--brand-mid);
-}
-.partCardActive,
-.partCardActive:hover {
-  border-color: var(--brand-mid);
-  box-shadow: inset 0 0 0 1px var(--brand-mid);
-  background: var(--bg-header);
+  padding: 10px 6px;
 }
 
-.partLabel {
-  font-size: 0.64rem;
+/* 미니 도넛 스와치 — 실제 차트가 아니라 색 링(항목 색과 매칭) */
+.miniRing {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 5px solid transparent;   /* borderColor는 인라인 스타일로 지정 */
+  background: var(--surface);
+}
+
+.miniLabel {
+  font-size: 0.66rem;
   font-weight: 600;
   color: var(--text-sub);
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  flex-shrink: 0;
 }
 
-.smallChart {
-  flex: 1;
-  min-height: 0;
+.miniValue {
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
 }
+.miniValue.up   { color: var(--profit); }
+.miniValue.down { color: var(--loss); }
 
 @media (max-width: 900px) {
-  .wrap       { flex-direction: column; }
-  .left       { flex: 0 0 200px; }
-  .partGrid   { grid-template-columns: repeat(2, 1fr); }
+  .wrap     { flex-direction: column; }
+  .left     { flex: 0 0 260px; }
+  .miniGrid { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); }
 }

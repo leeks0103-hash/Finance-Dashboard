@@ -121,8 +121,9 @@
 .thresholdHeaderLabel {
   position: absolute;
   top: 0;
-  transform: translateX(-100%);
-  padding-right: 2px;
+  /* 점선 위치(left:t%)에 라벨 가운데를 맞춤 — .body 우측 padding(20px)이 100% 라벨의
+     여유 공간이 되어줌 */
+  transform: translateX(-50%);
   font-size: 9px;
   font-weight: 600;
   color: var(--text-muted);
