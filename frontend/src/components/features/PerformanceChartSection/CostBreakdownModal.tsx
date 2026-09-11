@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { DoughnutChart, Button } from '@/components/ui';
+import BigCostDoughnut from './BigCostDoughnut';
 import { stripPartPrefix } from '@/utils';
 import styles from './CostBreakdownModal.module.css';
 
@@ -45,13 +46,11 @@ const CostBreakdownModal = ({ total, byPart, partsRaw, colors, showLabels, onSli
       <div className={styles.left}>
         <span className={styles.sectionTitle}>{activeName}</span>
         <div className={styles.bigChart}>
-          <DoughnutChart
+          <BigCostDoughnut
             labels={active.labels}
             data={active.values}
             colors={colors}
             showLabels={showLabels}
-            outsideLabels
-            outsideLabelsSize="lg"
             onSliceClick={i => onSliceClick(i, selected ? stripPartPrefix(selected) : undefined)}
           />
         </div>
