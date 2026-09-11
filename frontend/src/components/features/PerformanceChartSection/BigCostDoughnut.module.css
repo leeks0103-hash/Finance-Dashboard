@@ -26,11 +26,14 @@
   gap: 6px 18px;
   /* 캔버스가 max-height로 잡혀서 남는 세로 공간이 생기면, 그 공간을 범례 위쪽으로 몰아서
      범례를 카드 바닥에 붙임 — 밑에 빈 여백이 뜨는 것보다 이쪽이 자연스러움 */
-  margin: auto 2px 0;
+  margin: auto auto 0;
   padding: 10px 2px 0;
   border-top: 1px solid var(--border);
   list-style: none;
   flex-shrink: 0;
+  /* .canvasBox와 같은 폭으로 — 도넛보다 범례가 더 넓어 보이지 않게 */
+  width: 100%;
+  max-width: 420px;
 }
 
 @media (max-width: 480px) {

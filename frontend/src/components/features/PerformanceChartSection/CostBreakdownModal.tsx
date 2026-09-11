@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { Button } from '@/components/ui';
+import { useState } from 'react';
+import { Button, DoughnutChart } from '@/components/ui';
 import BigCostDoughnut from './BigCostDoughnut';
 import { stripPartPrefix } from '@/utils';
 import styles from './CostBreakdownModal.module.css';
@@ -10,146 +10,89 @@ interface CostData {
 }
 
 interface Props {
-  total:              CostData;
-  byPart:             Record<string, CostData>;
-  partsRaw:           string[];
-  teams:              string[];
-  teamParts:          Record<string, string[]>;
-  /** 파트별 손익률(%) — 오른쪽 미니카드 "손익률" 항목용 */
-  profitRateByPart:   Record<string, number>;
-  /** 전사 평균 손익률(%) — 미니카드 비교 기준선 */
-  avgProfitRateTotal: number;
-  colors:             string[];
-  showLabels:         boolean;
-  /** 왼쪽 큰 도넛의 조각 클릭 — 그 원가 항목의 프로젝트별 산출근거 표(PerfBreakdownModal)를 연다.
-   *  현재 선택된 파트(없으면 전체) 기준으로 필터링해서 넘긴다. */
-  onSliceClick: (seriesIndex: number, partOverride?: string) => void;
+  total:      CostData;
+  byPart:     Record<string, CostData>;
+  partsRaw:   string[];
+  teams:      string[];
+  teamParts:  Record<string, string[]>;
+  colors:     string[];
+  showLabels: boolean;
+  /** 왼쪽 큰 도넛(항상 전사평균)의 조각 클릭 — 그 원가 항목의 프로젝트별 산출근거 표를 연다 */
+  onSliceClick: (seriesIndex: number) => void;
 }
 
 const COST_LABELS = ['직접원가', '인건비', '공통원가', '관리비', '경상손익'];
-const TEAM_ITEM_IDX = [0, 1, 4];        // 팀 모드 — 직접원가·인건비·경상손익 3개
-const PART_ITEM_IDX = [0, 1, 2, 3, 4];  // 파트 모드 — 5개 + 손익률(별도)
-
-interface MiniItem { label: string; value: number; unit: '억' | '%'; color: string; baseline: number }
 
 /**
- * 원가 비율 확대 모달 — 왼쪽 큰 도넛(선택한 파트 또는 전사평균) + 오른쪽(팀/파트 탭 + 비교 미니카드).
- * 오른쪽은 왼쪽과 비교하기 위한 용도 — 팀 탭을 고르면 그 팀 소속 파트 합계로 3개 항목,
- * 파트 탭을 고르면 그 파트 6개 항목(+손익률)을 미니카드로 보여준다. 각 카드의 ▲/▼는
- * 전사 평균 대비 위/아래를 나타낸다. 파트 탭은 왼쪽 큰 도넛도 같이 바꾼다.
+ * 원가 비율 확대 모달 — 왼쪽은 항상 전사평균 고정, 오른쪽은 팀/파트 보기 전환 + 비교용 미니 도넛.
+ * "팀" 선택 시 팀별로(소속 파트 합계), "파트" 선택 시 파트별로 미니 도넛이 나열되고,
+ * 각 카드 밑에 경상손익을 전사 평균과 비교하는 ▲/▼ 수치를 표시한다.
  */
-const CostBreakdownModal = ({
-  total, byPart, partsRaw, teams, teamParts, profitRateByPart, avgProfitRateTotal,
-  colors, showLabels, onSliceClick,
-}: Props) => {
-  const [selected, setSelected]     = useState<string>('');            // '' = 전체 — 왼쪽 도넛 + 파트 모드 카드
-  const [activeTeam, setActiveTeam] = useState<string>('');            // '' = 전체 — 팀 모드 카드
-  const [rightMode, setRightMode]   = useState<'team' | 'part'>('part');
+const CostBreakdownModal = ({ total, byPart, partsRaw, teams, teamParts, colors, showLabels, onSliceClick }: Props) => {
+  const [rightMode, setRightMode] = useState<'team' | 'part'>('part');
 
-  const active     = selected && byPart[selected] ? byPart[selected] : total;
-  const activeName = selected ? stripPartPrefix(selected) : '전사평균';
-
-  // 팀 소속 파트 원가 항목 합계 (팀 모드 미니카드용)
-  const teamAggregate: CostData = useMemo(() => {
-    if (!activeTeam) return total;
-    const allowed = new Set(teamParts[activeTeam] ?? []);
+  const teamData = (team: string): CostData => {
+    const allowed = new Set(teamParts[team] ?? []);
     const sums = [0, 0, 0, 0, 0];
     partsRaw.forEach(p => {
-      if (!allowed.has(p)) return;
-      byPart[p]?.values.forEach((v, i) => { sums[i] += v; });
+      if (allowed.has(p)) byPart[p]?.values.forEach((v, i) => { sums[i] += v; });
     });
     return { labels: COST_LABELS, values: sums };
-  }, [activeTeam, partsRaw, teamParts, byPart, total]);
+  };
 
-  const miniItems: MiniItem[] = useMemo(() => {
-    if (rightMode === 'team') {
-      return TEAM_ITEM_IDX.map(i => ({
-        label: COST_LABELS[i], unit: '억' as const, color: colors[i],
-        value: teamAggregate.values[i] ?? 0,
-        baseline: total.values[i] ?? 0,
-      }));
-    }
-    const partData = selected && byPart[selected] ? byPart[selected] : total;
-    const rate = selected ? (profitRateByPart[selected] ?? avgProfitRateTotal) : avgProfitRateTotal;
-    return [
-      ...PART_ITEM_IDX.map(i => ({
-        label: COST_LABELS[i], unit: '억' as const, color: colors[i],
-        value: partData.values[i] ?? 0,
-        baseline: total.values[i] ?? 0,
-      })),
-      { label: '손익률', unit: '%' as const, color: colors[4], value: rate, baseline: avgProfitRateTotal },
-    ];
-  }, [rightMode, teamAggregate, total, selected, byPart, profitRateByPart, avgProfitRateTotal, colors]);
+  const cells = rightMode === 'team'
+    ? teams.map(t => ({ key: t, label: t, data: teamData(t) }))
+    : partsRaw.filter(p => byPart[p]).map(p => ({ key: p, label: stripPartPrefix(p), data: byPart[p] }));
+
+  const totalProfit = total.values[4] ?? 0;
 
   return (
     <div className={styles.wrap}>
-      {/* 왼쪽 — 선택한 파트(기본 전사평균)의 원가 비율을 크게. 조각 클릭 → 산출근거 표 모달 */}
+      {/* 왼쪽 — 항상 전사평균 고정. 조각 클릭 → 산출근거 표 모달 */}
       <div className={styles.left}>
-        <span className={styles.sectionTitle}>{activeName}</span>
+        <span className={styles.sectionTitle}>전사평균</span>
         <div className={styles.bigChart}>
           <BigCostDoughnut
-            labels={active.labels}
-            data={active.values}
+            labels={total.labels}
+            data={total.values}
             colors={colors}
             showLabels={showLabels}
-            onSliceClick={i => onSliceClick(i, selected ? stripPartPrefix(selected) : undefined)}
+            onSliceClick={onSliceClick}
           />
         </div>
       </div>
 
-      {/* 오른쪽 — 팀/파트 탭 + 비교용 미니카드(전사 평균 대비 ▲/▼) */}
+      {/* 오른쪽 — 팀/파트 보기 전환 + 비교용 미니 도넛(전사 평균 경상손익 대비 ▲/▼) */}
       <div className={styles.right}>
-        <span className={styles.sectionTitle}>팀</span>
-        <div className={styles.teamTabs}>
+        <div className={styles.modeTabs}>
           <Button
             unstyled
-            className={`${styles.teamTab} ${rightMode === 'team' && !activeTeam ? styles.teamTabActive : ''}`}
-            onClick={() => { setRightMode('team'); setActiveTeam(''); }}
+            className={`${styles.modeTab} ${rightMode === 'team' ? styles.modeTabActive : ''}`}
+            onClick={() => setRightMode('team')}
           >
-            전체
+            팀
           </Button>
-          {teams.map(t => (
-            <Button
-              key={t}
-              unstyled
-              className={`${styles.teamTab} ${rightMode === 'team' && activeTeam === t ? styles.teamTabActive : ''}`}
-              onClick={() => { setRightMode('team'); setActiveTeam(t); }}
-            >
-              {t}
-            </Button>
-          ))}
-        </div>
-
-        <span className={styles.sectionTitle}>파트</span>
-        <div className={styles.teamTabs}>
           <Button
             unstyled
-            className={`${styles.teamTab} ${rightMode === 'part' && !selected ? styles.teamTabActive : ''}`}
-            onClick={() => { setRightMode('part'); setSelected(''); }}
+            className={`${styles.modeTab} ${rightMode === 'part' ? styles.modeTabActive : ''}`}
+            onClick={() => setRightMode('part')}
           >
-            전체
+            파트
           </Button>
-          {partsRaw.map(p => (
-            <Button
-              key={p}
-              unstyled
-              className={`${styles.teamTab} ${rightMode === 'part' && selected === p ? styles.teamTabActive : ''}`}
-              onClick={() => { setRightMode('part'); setSelected(p); }}
-            >
-              {stripPartPrefix(p)}
-            </Button>
-          ))}
         </div>
 
-        <div className={styles.miniGrid}>
-          {miniItems.map(item => {
-            const up = item.value >= item.baseline;
+        <div className={styles.partGrid}>
+          {cells.map(({ key, label, data }) => {
+            const profit = data.values[4] ?? 0;
+            const up = profit >= totalProfit;
             return (
-              <div key={item.label} className={styles.miniCard}>
-                <span className={styles.miniRing} style={{ borderColor: item.color }} />
-                <span className={styles.miniLabel}>{item.label}</span>
+              <div key={key} className={styles.partCard}>
+                <span className={styles.partLabel}>{label}</span>
+                <div className={styles.smallChart}>
+                  <DoughnutChart labels={data.labels} data={data.values} colors={colors} showLabels={false} />
+                </div>
                 <span className={`${styles.miniValue} ${up ? styles.up : styles.down}`}>
-                  {up ? '▲' : '▼'} {item.value.toFixed(1)}{item.unit}
+                  {up ? '▲' : '▼'} {profit.toFixed(1)}억
                 </span>
               </div>
             );

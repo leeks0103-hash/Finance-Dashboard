@@ -184,9 +184,6 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
       partOptions: ['전체', ...parts.map(stripPartPrefix)],
       partsRaw: parts,
       teamParts,
-      // 원가 비율 모달 오른쪽 미니카드 "손익률" 항목용 — 파트별/전사 손익률
-      profitRateByPart: Object.fromEntries(parts.map(p => [p, summary.by_part[p].avg_profit_rate])),
-      avgProfitRateTotal: total.avg_profit_rate,
       progress: {
         labels:       progressEntries,
         revenues:     progressEntries.map(p => toEokNum(summary.by_progress[p].revenue)),
