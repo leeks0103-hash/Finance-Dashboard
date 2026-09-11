@@ -82,14 +82,18 @@
   min-height: 0;
   overflow-y: auto;
 }
-.cols3 { grid-template-columns: repeat(3, 1fr); }
-.cols4 { grid-template-columns: repeat(4, 1fr); }
+/* minmax(0, 1fr) 필수 — 그냥 1fr은 minmax(auto, 1fr)로 계산되어 카드 내용(범례 텍스트 등)의
+   min-content 폭보다 트랙이 못 줄어듦. partGrid가 overflow-y:auto라 overflow-x도 auto로
+   전산(스펙 규칙)되면서 4열일 때 가로 스크롤이 생기던 원인 */
+.cols3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.cols4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 
 .partCard {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 4px;
+  min-width: 0;   /* 그리드 아이템 기본 min-width:auto 때문에 트랙보다 안 줄어드는 것 방지 */
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
