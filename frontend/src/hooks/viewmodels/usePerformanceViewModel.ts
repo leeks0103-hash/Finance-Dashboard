@@ -21,8 +21,6 @@ const FINANCE_EMPTY_FILTERS: Filters = { years: [], parts: [], stages: [] };
 const toEokNum = (v: number | null | undefined) =>
   Number.isFinite(Number(v)) ? +(Number(v) / 100_000).toFixed(1) : 0;
 
-const CURRENT_MONTH_NUM = parseInt(PERF_MONTH, 10);
-
 type PerfAccent = 'brand' | 'warn' | 'profit' | 'loss' | 'purple';
 
 /** 계획 → 추정(연간) 두 값을 나란히 비교하는 카드 (매출·원가·매출이익) */
@@ -148,7 +146,6 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
 
   const isLoading = sumLoading || projLoading;
   const total     = summary?.total;
-  const monthly   = summary?.monthly ?? [];
 
   const junActualRaw = total?.jun_actual       ?? 0;
   const profitRaw    = total?.operating_profit ?? 0;
@@ -161,16 +158,14 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
 
   const kpiCards: PerfKpiCard[] = useMemo(() => {
     if (!total) return [];
-    const achieveRate = planRaw > 0 ? ((junActualRaw / planRaw) * 100).toFixed(1) : '-';
+    // 파생값은 백엔드 /api/performance/summary 가 계산 (frontend-no-calc-logic)
+    const achieveRate = total.achieve_rate != null ? total.achieve_rate.toFixed(1) : '-';
 
-    // 전월 대비 — monthly[]는 chk_m01~12 집계, 0-based 인덱스
-    const currIdx = CURRENT_MONTH_NUM - 1;
-    const curr = monthly[currIdx];
-    const prev = currIdx > 0 ? monthly[currIdx - 1] : null;
+    // 전월대비 diff(천원) — 백엔드 total.mom_* (전월 데이터 없으면 null → 배지 없음)
+    const momRevK  = total.mom_revenue ?? null;
+    const momProfK = total.mom_gross   ?? null;
     const momTag = (diffK: number | null): string | undefined =>
-      (diffK === null || !prev) ? undefined : `전월대비 ${Math.abs(diffK / 100_000).toFixed(1)}억`;
-    const momRevK  = curr && prev ? curr.revenue - prev.revenue : null;
-    const momProfK = curr && prev ? (curr.revenue - curr.cost) - (prev.revenue - prev.cost) : null;
+      diffK === null ? undefined : `전월대비 ${Math.abs(diffK / 100_000).toFixed(1)}억`;
 
     // 계획 → 추정(연간) 2값 비교 카드. 값은 매출행/원가행 각각의 합 (천원 → 억)
     const mk = (
@@ -191,8 +186,10 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
       mk('revenue',     '매출 (계획/추정)', 'brand',  total.plan_initial,   total.jun_check_total),
       mk('cost',        '원가 (계획/추정)', 'brand',  total.plan_cost,      total.jun_cost),
       mk('grossProfit', '매출이익 (계획/추정)',
-         (total.jun_check_total - total.jun_cost) >= 0 ? 'profit' : 'loss',
-         total.plan_initial - total.plan_cost, total.jun_check_total - total.jun_cost),
+         (total.est_gross ?? 0) >= 0 ? 'profit' : 'loss',
+         // 매출이익 = 매출 − 원가. 백엔드 계산값 사용 (재시작 전 폴백만 인라인)
+         total.plan_gross ?? (total.plan_initial - total.plan_cost),
+         total.est_gross  ?? (total.jun_check_total - total.jun_cost)),
       // ↓ 언급 안 한 2개 카드는 그대로 유지 (경상손익 · 누계 실적)
       {
         kind: 'single', id: 'profit', label: '경상손익(당해년도 추정)',
@@ -208,7 +205,7 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
         trendUp: momRevK !== null ? momRevK >= 0 : junActualRaw >= planRaw, trend: momTag(momRevK),
       },
     ];
-  }, [total, monthly, animJun, animProfit, animRate, planRaw, junActualRaw, profitRaw]);
+  }, [total, animJun, animProfit, animRate, planRaw, junActualRaw, profitRaw]);
 
   const byPart = useMemo((): PerfPartRow[] => {
     if (!summary?.by_part) return [];
@@ -218,8 +215,9 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
         const planInitialNum = toEokNum(s.plan_initial);
         const junActualNum   = toEokNum(s.jun_actual);
         const junCostNum     = toEokNum(s.jun_cost);
-        const costRate = junActualNum > 0 ? `${((junCostNum / junActualNum) * 100).toFixed(1)}%` : '-';
-        const achieveRateNum = planInitialNum > 0 ? (junActualNum / planInitialNum) * 100 : 0;
+        // 원가율·진행률은 백엔드 /api/performance/summary by_part 가 계산 (raw 기준)
+        const costRate = s.cost_rate != null ? `${s.cost_rate.toFixed(1)}%` : '-';
+        const achieveRateNum = s.achieve_rate ?? 0;
         return {
           part,
           planInitial: formatEok(s.plan_initial), junActual: formatEok(s.jun_actual),

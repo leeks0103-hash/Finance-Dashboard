@@ -73,12 +73,6 @@ const fmtNum = (v: number) => v !== 0 ? v.toLocaleString() : '0';
 const isScoreItem = (name: string) => name.includes('적절성');
 const fmtScore    = (v: number) => v.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
-// 26년 목표(사업계획) — 담당자 지정 고정값. 엑셀 'kpi 집계' D열에도 값이 있지만 PPT 원본
-// 오입력이 섞여 있어(적절성 칸에 인원수가 들어간 사례 등) 화면에는 이 값을 그대로 노출한다.
-// 순서는 'kpi 집계' 시트 행 순서(2~9행)와 동일 — 항목이 추가/삭제되면 여기도 같이 고칠 것.
-//   NPS / 전략기술 건수 / 전략기술 적절성 / 특화체계 건수 / AI 고객사 건수 / AI 적절성 / 신사업 매출액 / 신사업 신규기존
-const PLAN_TARGETS = ['62', '15', '4.0', '12', '10', '4.0', '60.3', '10'];
-
 const SEARCH_FIELD_OPTIONS = [
   { value: '',        label: '전체' },
   { value: '프로젝트코드', label: '프로젝트코드' },
@@ -137,9 +131,9 @@ export const useKpiPageViewModel = (summaryPart = ''): KpiPageViewModel => {
   const chart = useMemo((): KpiChartData => {
     // 괄호 안 세부 구분(과정 건수/구성 적절성 등)까지 유지 — 지우면 같은 항목명이 중복돼 헷갈림
     const labels  = items.map(it => it.name.trim());
-    // 사업계획 목표 — PLAN_TARGETS 고정값(표의 '26년 목표(사업계획)'과 동일 기준). idx 매핑도 표와 동일
-    const planTargets = items.map((_, idx) => {
-      const n = parseFloat(PLAN_TARGETS[idx] ?? '');
+    // 사업계획 목표 — 백엔드 _PLAN_TARGETS 고정값(item.plan_target). 숫자 파싱만 여기서
+    const planTargets = items.map(it => {
+      const n = parseFloat(it.plan_target ?? '');
       return Number.isFinite(n) ? n : 0;
     });
     const targets = items.map(it => typeof it.target_2026 === 'number' ? it.target_2026 : 0);
@@ -159,13 +153,13 @@ export const useKpiPageViewModel = (summaryPart = ''): KpiPageViewModel => {
   }, [items, chartOptions, palette, labelColor]);
 
   const summaryRows = useMemo((): KpiSummaryRow[] =>
-    items.map((it, idx) => {
+    items.map((it) => {
       // 신규/기존 건수 행 여부 — target이 문자열 "신규:N건/기존:N건" 형식이면 해당
       const isCountRow = typeof it.target_2026 === 'string' && /신규/.test(it.target_2026);
       return {
         name:       it.name,
         agg:        it.agg === 'sum' ? '합계' : '평균',
-        planTarget: PLAN_TARGETS[idx] ?? '-',
+        planTarget: it.plan_target || '-',
         targetStr:  typeof it.target_2026 === 'number'
           ? (isScoreItem(it.name) ? fmtScore(it.target_2026) : fmtNum(it.target_2026))
           : String(it.target_2026),

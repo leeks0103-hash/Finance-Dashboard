@@ -22,6 +22,12 @@ _DATA_DIR  = os.path.join(_BASE_DIR, "data")
 # 경로는 paths.py 한 곳에서 관리 (.env: KPI_EXCEL_PATH)
 KPI_EXCEL_PATH = paths.KPI_EXCEL_PATH
 
+# 26년 목표(사업계획) — 담당자 지정 고정값. 엑셀 'kpi 집계' D열에도 값이 있지만 PPT 원본
+# 오입력이 섞여 있어(적절성 칸에 인원수가 들어간 사례 등) 이 값을 그대로 노출한다.
+# 순서는 'kpi 집계' 시트 행 순서(2~9행) = api_kpi_summary result 순서와 동일.
+#   NPS / 전략기술 건수 / 전략기술 적절성 / 특화체계 건수 / AI 고객사 건수 / AI 적절성 / 신사업 매출액 / 신사업 신규기존
+_PLAN_TARGETS = ["62", "15", "4.0", "12", "10", "4.0", "60.3", "10"]
+
 _kpi_cache_lock   = threading.Lock()
 _kpi_cached_mtime = None
 _kpi_raw_df: pd.DataFrame = pd.DataFrame()   # 취합 전체 (테이블 표시용)
@@ -584,6 +590,10 @@ def api_kpi_summary():
                 "prev_actual":  prev,
                 "achieve_rate": achieve,
             })
+
+        # 26년 목표(사업계획) 고정값 — result 행 순서와 1:1 (신규/기존 분리 행은 뒤쪽이 "-")
+        for idx, row in enumerate(result):
+            row["plan_target"] = _PLAN_TARGETS[idx] if idx < len(_PLAN_TARGETS) else "-"
 
         return jsonify({"available": True, "items": result})
 

@@ -403,6 +403,10 @@ def api_summary():
         )
         .to_dict(orient="index")
     )
+    # 파생값(프론트 계산 이전) — 파트별 이익율 = 경상이익 ÷ 매출 × 100 (매출 0 이하면 null)
+    for _p in by_part.values():
+        _rev = _p["revenue"]
+        _p["profit_rate"] = round(_p["profit"] / _rev * 100, 1) if _rev and _rev > 0 else None
 
     by_stage_raw = (
         df.groupby("stage")
@@ -418,10 +422,31 @@ def api_summary():
     unknown = sorted(k for k in by_stage_raw if k not in _STAGE_PRIORITY)
     by_stage = {s: by_stage_raw[s] for s in known + unknown}
 
+    total_revenue     = float(df["revenue"].sum())
+    total_expenditure = float(df["expenditure"].sum())
+    total_profit      = float(df["operating_profit"].sum())
+    has_sales         = total_revenue > 0
+
+    # 파생값(프론트 계산 이전) — 지출률·실질 이익율, 파트 이익율 최고/최저 편차
+    expense_ratio = round(total_expenditure / total_revenue * 100, 1) if has_sales else None
+    profit_ratio  = round(total_profit / total_revenue * 100, 1) if has_sales else None
+
+    valid_parts = {p: v for p, v in by_part.items() if v["revenue"] and v["revenue"] > 0}
+    avg_rate_trend = None
+    if len(valid_parts) >= 2:
+        prates = {p: v["profit"] / v["revenue"] * 100 for p, v in valid_parts.items()}
+        best  = max(prates, key=prates.get)
+        worst = min(prates, key=prates.get)
+        gap   = round(prates[best] - prates[worst], 1)
+        avg_rate_trend = f"최고 {best} +{gap}%p"
+    elif len(valid_parts) == 1:
+        p, v = next(iter(valid_parts.items()))
+        avg_rate_trend = f"{p} {round(v['profit'] / v['revenue'] * 100, 1)}%"
+
     return jsonify({
-        "total_revenue":    df["revenue"].sum(),
-        "total_expenditure": df["expenditure"].sum(),
-        "total_profit":     df["operating_profit"].sum(),
+        "total_revenue":    total_revenue,
+        "total_expenditure": total_expenditure,
+        "total_profit":     total_profit,
         "avg_profit_rate":  round(rates.mean(), 1) if not rates.empty else 0,
         "count":            len(df),
         "by_part":          by_part,
@@ -431,6 +456,9 @@ def api_summary():
             "labor_cost":  df["labor_cost"].sum(),
             "overhead":    df["overhead"].sum(),
         },
+        "expense_ratio":  expense_ratio,
+        "profit_ratio":   profit_ratio,
+        "avg_rate_trend": avg_rate_trend,
         "loaded_at": _last_loaded,
     })
 

@@ -97,10 +97,8 @@ export const useChartViewModel = (): ChartViewModel => {
       },
       profitRate: {
         labels:   parts,
-        rates:    parts.map(p => {
-          const rev = data.by_part[p].revenue;
-          return rev === 0 ? 0 : +(data.by_part[p].profit / rev * 100).toFixed(1);
-        }),
+        // 파트 이익율(%) — 백엔드 /api/summary 가 계산 (매출 0 이하면 null → 0)
+        rates:    parts.map(p => data.by_part[p].profit_rate ?? 0),
         isProfit: parts.map(p => data.by_part[p].profit >= 0),
       },
       stageChart: {

@@ -103,6 +103,10 @@ export interface PerfPartStats {
   operating_profit: number;
   avg_profit_rate:  number;
   count:            number;
+  /** 누계 원가율(%) = 누계원가 ÷ 누계매출 × 100. 누계매출 0 이하면 null. 백엔드 계산 */
+  cost_rate?:       number | null;
+  /** 계획 대비 누계 진행률(%) = 누계매출 ÷ 계획매출 × 100. 백엔드 계산 */
+  achieve_rate?:    number;
 }
 
 export interface PerfTotal {
@@ -121,6 +125,17 @@ export interface PerfTotal {
   cost_mgmt:        number;
   avg_profit_rate:  number;
   count:            number;
+  // ── 파생값 (백엔드 계산) ──────────────────────────────
+  /** 계획 매출이익 = 계획매출 − 계획원가 (천원) */
+  plan_gross?:      number;
+  /** 연간 추정 매출이익 = 추정매출 − 추정원가 (천원) */
+  est_gross?:       number;
+  /** 계획 대비 누계 진행률(%) = 누계매출 ÷ 계획매출 × 100. 계획 0 이하면 null */
+  achieve_rate?:    number | null;
+  /** 전월대비 매출 diff (천원). 전월 데이터 없으면 null */
+  mom_revenue?:     number | null;
+  /** 전월대비 매출이익 diff (천원). 전월 데이터 없으면 null */
+  mom_gross?:       number | null;
 }
 
 export interface PerfMonthly {

@@ -14,11 +14,17 @@ export interface KpiCardData {
 export interface KpiViewModel {
   isLoading: boolean;
   isError:   boolean;
+  refetch:   () => void;
   cards:     KpiCardData[];
 }
 
+/**
+ * 재무 탭 상단 KPI 카드 4개.
+ * 파생값(지출률·실질 이익율·파트 이익율 편차)은 전부 /api/summary 가 계산해서 내려준다 —
+ * 여기서는 애니메이션 카운트업과 포맷팅만 한다. (frontend-no-calc-logic)
+ */
 export const useKpiViewModel = (): KpiViewModel => {
-  const { data, isLoading, isError } = useSummary();
+  const { data, isLoading, isError, refetch } = useSummary();
 
   const revenueRaw     = data?.total_revenue     ?? 0;
   const expenditureRaw = data?.total_expenditure ?? 0;
@@ -30,42 +36,18 @@ export const useKpiViewModel = (): KpiViewModel => {
   const animProfit      = useCountUp(profitRaw);
   const animRate        = useCountUp(rateRaw);
 
-  if (isLoading || !data) return { isLoading, isError: !!isError, cards: [] };
+  const base = { isLoading, isError: !!isError, refetch };
 
-  // 비율 계산 — 매출 0일 때 오표시 방지
-  const hasSales     = revenueRaw > 0;  // 양수 매출만 비율 계산 (음수 매출 시 비율 부호 반전 방지)
-  // animExpenditure 사용 → value의 카운트업과 지출률 배지가 동기화됨
-  const expenseRatio = hasSales ? (animExpenditure / revenueRaw) * 100 : null;
+  if (isLoading || !data) return { ...base, cards: [] };
 
-  // 파트별 이익율 최고/최저 계산 — 평균이익율 카드 trend용
-  const byPart = data?.by_part ?? {};
-  // revenue > 0인 파트만 대상 — 0나누기 및 의미없는 파트 제외
-  const validParts = Object.keys(byPart).filter(p => {
-    const d = byPart[p] as { revenue: number };
-    return (d.revenue ?? 0) > 0;
-  });
-  let avgRateTrend: string | null = null;
-  if (validParts.length >= 2) {
-    const rates = validParts.map(p => {
-      const d = byPart[p] as { revenue: number; profit: number };
-      return { part: p, rate: (d.profit / d.revenue) * 100 };
-    });
-    const best  = rates.reduce((a, b) => a.rate >= b.rate ? a : b);
-    const worst = rates.reduce((a, b) => a.rate <= b.rate ? a : b);
-    const gap = Math.round((best.rate - worst.rate) * 10) / 10;
-    avgRateTrend = `최고 ${best.part} +${gap}%p`;
-  } else if (validParts.length === 1) {
-    const d = byPart[validParts[0]] as { revenue: number; profit: number };
-    const rate = Math.round((d.profit / d.revenue) * 1000) / 10;
-    avgRateTrend = `${validParts[0]} ${rate}%`;
-  }
+  const expenseRatio = data.expense_ratio ?? null;   // 지출률(%) — 백엔드 계산
+  const profitRatio  = data.profit_ratio ?? null;    // 실질 이익율(%) — 백엔드 계산
 
   const cards: KpiCardData[] = [
     {
       label:   '총매출',
       value:   formatBillion(animRevenue),
       accent:  'brand',
-      // animRate 사용 → value의 카운트업과 배지 숫자가 동기화됨
       trend:   `이익율 ${formatRate(animRate)}`,
       trendUp: rateRaw > 0,  // 0은 손익분기 — ▲ 표시 안 함
     },
@@ -73,25 +55,24 @@ export const useKpiViewModel = (): KpiViewModel => {
       label:   '지출합계',
       value:   formatBillion(animExpenditure),
       accent:  'warn',
-      trend:   expenseRatio != null ? `지출률 ${expenseRatio.toFixed(1)}%` : null,
+      trend:   expenseRatio != null ? `지출률 ${expenseRatio}%` : null,
       trendUp: expenseRatio != null ? expenseRatio < 80 : false,
     },
     {
       label:   '경상이익',
       value:   formatBillion(animProfit),
       accent:  data.total_profit < 0 ? 'loss' : 'profit',
-      // animProfit 사용 → value의 카운트업과 trend 배지 비율이 동기화됨
-      trend:   hasSales ? `${((animProfit / revenueRaw) * 100).toFixed(1)}%` : null,
+      trend:   profitRatio != null ? `${profitRatio}%` : null,
       trendUp: data.total_profit > 0,
     },
     {
       label:   '평균 이익율',
       value:   formatRate(animRate),
       accent:  'purple',
-      trend:   avgRateTrend,
+      trend:   data.avg_rate_trend ?? null,
       trendUp: rateRaw > 0,  // 0은 손익분기 — 하향 스파크라인으로 표시
     },
   ];
 
-  return { isLoading, isError: !!isError, cards };
+  return { ...base, cards };
 };

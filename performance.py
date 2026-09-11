@@ -31,6 +31,7 @@ _PERF_SHEET_RE = re.compile(r"^(\d{4})년 \((\d+)월 (추정|집계)\)$")
 _perf_cached_df: pd.DataFrame = pd.DataFrame()
 _perf_last_loaded = None
 _perf_cached_mtime = None
+_perf_current_month = 0   # 자동 선택된 시트의 기준월 (전월대비 계산에 사용)
 _perf_cache_lock = threading.Lock()
 
 # ──────────────────────────────────────────────────────────────
@@ -245,7 +246,7 @@ def _resolve_perf_sheet(sheet_names):
 
 def load_perf_excel():
     """_perf_cache_lock 보유 상태에서만 호출."""
-    global _perf_cached_df, _perf_last_loaded, _perf_cached_mtime, PERF_EXCEL_PATH
+    global _perf_cached_df, _perf_last_loaded, _perf_cached_mtime, _perf_current_month, PERF_EXCEL_PATH
     # 새 ver 파일을 data/ 에 넣고 reload 만 해도 잡히도록 매 로드마다 재탐색
     PERF_EXCEL_PATH = resolve_perf_excel()
     if not os.path.exists(PERF_EXCEL_PATH):
@@ -327,6 +328,7 @@ def load_perf_excel():
     #    jun_check_total은 "N월 점검 연간합계"라는 이름 그대로 연간(전체) 값이 맞아 보정하지 않음.
     sheet_month_match = _PERF_SHEET_RE.match(resolved_sheet)
     current_month_num = int(sheet_month_match.group(2))
+    _perf_current_month = current_month_num
     elapsed_month_cols = [f"chk_m{m:02d}" for m in range(1, current_month_num + 1)]
     df["jun_actual"] = df[elapsed_month_cols].sum(axis=1)
     logger.info(
@@ -447,6 +449,11 @@ def _bil_perf(v) -> str:
     return f"{v / 100_000:.1f}".replace("-0.0", "0.0") + "억원"
 
 
+def _ratio(numer: float, denom: float) -> "float | None":
+    """비율(%) — 분모가 0 이하면 None(프론트에서 '-' 표시). 계산은 전부 여기(백엔드)에서."""
+    return round(numer / denom * 100, 1) if denom and denom > 0 else None
+
+
 # ──────────────────────────────────────────────────────────────
 # 실적현황 API
 # ──────────────────────────────────────────────────────────────
@@ -523,14 +530,21 @@ def api_perf_summary():
     rev  = df[df["category"] == "매출"]
     cost = df[df["category"] == "원가"]
 
+    _plan_rev  = float(rev["plan_initial"].sum())
+    _plan_cost = float(cost["plan_initial"].sum())
+    _est_rev   = float(rev["jun_check_total"].sum())
+    _est_cost  = float(cost["jun_check_total"].sum())
+    _acc_rev   = float(rev["jun_actual"].sum())
+    _acc_cost  = float(cost["jun_check_total"].sum())
+
     total = {
-        "plan_initial":     float(rev["plan_initial"].sum()),
-        "plan_cost":        float(cost["plan_initial"].sum()),
+        "plan_initial":     _plan_rev,
+        "plan_cost":        _plan_cost,
         "actual_2025":      float(rev["actual_2025"].sum()),
-        "jun_actual":       float(rev["jun_actual"].sum()),
+        "jun_actual":       _acc_rev,
         "jun_cost_actual":  float(cost["jun_actual"].sum()),
-        "jun_cost":         float(cost["jun_check_total"].sum()),
-        "jun_check_total":  float(rev["jun_check_total"].sum()),
+        "jun_cost":         _acc_cost,
+        "jun_check_total":  _est_rev,
         "operating_profit": float(rev["operating_profit"].sum()),
         "profit_gross":     float(rev["profit_gross"].sum()),
         # 누계(1~기준월) 기준 재구성값 — 위 operating_profit/profit_gross는 연간 기준
@@ -542,6 +556,15 @@ def api_perf_summary():
         "cost_mgmt":        float(rev["cost_mgmt"].sum()),
         "avg_profit_rate":  _weighted_profit_rate(rev),
         "count":            int(len(rev)),
+        # ── 파생값(프론트 계산 이전) ──────────────────────────────
+        # 매출이익 = 매출 − 원가 (계획 기준 / 연간 추정 기준 각각)
+        "plan_gross":       _plan_rev - _plan_cost,
+        "est_gross":        _est_rev - _est_cost,
+        # 계획 대비 누계 진행률 = 누계매출 ÷ 계획매출 × 100
+        "achieve_rate":     _ratio(_acc_rev, _plan_rev),
+        # 전월대비 diff(천원) — monthly 계산 후 아래에서 채움
+        "mom_revenue":      None,
+        "mom_gross":        None,
     }
 
     by_part = {}
@@ -562,6 +585,9 @@ def api_perf_summary():
             "acc_operating_profit": float(rev_grp["acc_operating_profit"].sum()),
             "acc_profit_rate":      _acc_profit_rate(rev_grp),
             "count":            int(len(rev_grp)),
+            # 파생값(프론트 계산 이전) — 누계 원가율 · 계획 대비 진행률
+            "cost_rate":     _ratio(float(cost_grp["jun_actual"].sum()), float(rev_grp["jun_actual"].sum())),
+            "achieve_rate":  _ratio(float(rev_grp["jun_actual"].sum()), float(rev_grp["plan_initial"].sum())) or 0.0,
             # 원가 구성 (도넛 차트용)
             "cost_direct":   float(rev_grp["cost_direct"].sum()),
             "cost_labor":    float(rev_grp["cost_labor"].sum()),
@@ -597,6 +623,13 @@ def api_perf_summary():
         for col, label in MONTH_COLS
         if col in rev.columns
     ]
+
+    # 전월대비(당월 vs 전월) — monthly[] 는 chk_m01~12 집계 (1-based 월 → 0-based 인덱스)
+    m = _perf_current_month
+    if 2 <= m <= len(monthly):
+        curr, prev = monthly[m - 1], monthly[m - 2]
+        total["mom_revenue"] = curr["revenue"] - prev["revenue"]
+        total["mom_gross"]   = (curr["revenue"] - curr["cost"]) - (prev["revenue"] - prev["cost"])
 
     return jsonify({"total": total, "by_part": by_part, "by_progress": by_progress, "monthly": monthly, "loaded_at": _perf_last_loaded})
 

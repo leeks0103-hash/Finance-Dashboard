@@ -35,6 +35,8 @@ export interface PartStats {
   direct_cost?: number;
   labor_cost?: number;
   overhead?: number;
+  /** 파트 이익율(%) = profit ÷ revenue × 100. 매출 0 이하면 null. 백엔드 계산 */
+  profit_rate?: number | null;
 }
 
 export interface CostBreakdown {
@@ -52,6 +54,12 @@ export interface Summary {
   by_part: Record<string, PartStats>;
   by_stage?: Record<string, PartStats>;
   cost_breakdown: CostBreakdown;
+  /** 지출률(%) = 지출 ÷ 매출 × 100. 매출 0 이하면 null. 백엔드 계산 */
+  expense_ratio?: number | null;
+  /** 실질 이익율(%) = 경상이익 ÷ 매출 × 100. 매출 0 이하면 null. 백엔드 계산 */
+  profit_ratio?: number | null;
+  /** "최고 {파트} +{gap}%p" — 파트 이익율 편차 라벨. 백엔드 계산 */
+  avg_rate_trend?: string | null;
   loaded_at?: string | null;
 }
 
