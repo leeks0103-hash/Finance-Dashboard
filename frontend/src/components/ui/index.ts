@@ -6,6 +6,7 @@ export * from './Badge';
 export * from './Spinner';
 export * from './QueryGate';
 export * from './FilterSelect';
+export * from './Sparkline';
 export * from './ErrorFallback';
 export * from './EmptyState';
 export * from './Chart';

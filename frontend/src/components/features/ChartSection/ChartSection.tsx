@@ -221,7 +221,6 @@ const ChartSection = () => {
             data={vm.costBreakdown.values}
             colors={doughnutColors}
             showLabels={vm.showLabels}
-            outsideLabels
           />
         </ChartCard.Body>
       </ChartCard>

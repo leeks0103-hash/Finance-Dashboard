@@ -93,8 +93,8 @@ const DoughnutChart = ({
                 }
               : undefined,
             // 얇은 세그먼트의 % 라벨이 캔버스 밖으로 나가 잘리지 않도록 여백 확보 (ChartCard가 overflow:hidden)
-            // outsideLabels 모드는 인출선이 링 바깥 더 멀리까지 나가므로 여백을 더 크게
-            layout: { padding: outsideLabels ? 40 : 12 },
+            // outsideLabels 모드: 인출선(최대 +28px) + 텍스트("100.0%" 기준 ~38px)까지 감안한 여백
+            layout: { padding: outsideLabels ? 64 : 12 },
             plugins: {
               // 범례는 아래 2열 그리드로 직접 그린다 (Chart.js 기본 범례는 개수에 따라 줄이 어긋남)
               legend: { display: false },

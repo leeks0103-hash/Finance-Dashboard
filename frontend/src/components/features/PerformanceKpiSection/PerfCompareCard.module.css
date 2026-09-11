@@ -47,7 +47,25 @@
   gap: 14px;
   flex: 1;
   min-width: 0;
+  position: relative;
+  z-index: 1;
 }
+
+/* 계획·추정 각각의 배경 스파크라인 — 값이 2개니까 절반씩 (KpiCard .sparkWrap과 같은 룩) */
+.sparkPair {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 48px;
+  display: flex;
+  pointer-events: none;
+  z-index: 0;
+}
+.spark { flex: 1; width: 50%; height: 100%; opacity: 0.22; }
+.sparkPlan { color: var(--text-muted); }
+.brand  .sparkEst { color: var(--brand-mid); }
+.profit .sparkEst { color: var(--profit); }
+.loss   .sparkEst { color: var(--loss); }
+.purple .sparkEst { color: var(--purple); }
 
 .values {
   display: flex;

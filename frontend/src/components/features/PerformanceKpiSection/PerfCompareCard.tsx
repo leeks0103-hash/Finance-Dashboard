@@ -1,7 +1,8 @@
+import { Sparkline } from '@/components/ui/Sparkline';
 import type { PerfCompareCardData } from '@/hooks/viewmodels/usePerformanceViewModel';
 import styles from './PerfCompareCard.module.css';
 
-/** 계획 → 추정(연간) 두 값 비교 카드 — 매출·원가·매출이익. 미니 2막대 그래프 포함 */
+/** 계획 → 추정(연간) 두 값 비교 카드 — 매출·원가·매출이익. 미니 2막대 그래프 + 값 2개짜리 스파크라인 포함 */
 const PerfCompareCard = ({ card }: { card: PerfCompareCardData }) => {
   const max     = Math.max(Math.abs(card.planNum), Math.abs(card.estNum), 1);
   const planH   = `${Math.round((Math.abs(card.planNum) / max) * 65)}%`;  // 계획: 최대 65%
@@ -9,6 +10,12 @@ const PerfCompareCard = ({ card }: { card: PerfCompareCardData }) => {
 
   return (
     <div className={`${styles.card} ${styles[card.accent]}`}>
+      {/* 값이 2개(계획·추정)라 스파크라인도 2개 — 각자 부호(양/음)에 따라 상승·하강 곡선 */}
+      <div className={styles.sparkPair} aria-hidden>
+        <Sparkline up={card.planNum >= 0} className={`${styles.spark} ${styles.sparkPlan}`} />
+        <Sparkline up={card.estNum  >= 0} className={`${styles.spark} ${styles.sparkEst}`} />
+      </div>
+
       <div className={styles.label}>{card.label}</div>
 
       <div className={styles.body}>

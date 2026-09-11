@@ -5,16 +5,17 @@
   overflow: hidden;
 }
 
-/* 왼쪽 — 선택한 파트(기본 전체)의 원가 비율 큰 도넛 */
+/* 왼쪽 — 선택한 파트(기본 전체)의 원가 비율 큰 도넛
+   (outsideLabels 인출선·수치가 잘리지 않으려면 34%로는 폭이 부족 — 42%로 확대) */
 .left {
-  flex: 0 0 34%;
+  flex: 0 0 42%;
   display: flex;
   flex-direction: column;
   gap: 8px;
   min-height: 0;
 }
 
-/* 오른쪽 — 파트별 그리드 (65%, 선택 용도) */
+/* 오른쪽 — 파트별 그리드 (58%, 선택 용도) */
 .right {
   flex: 1;
   display: flex;
@@ -64,7 +65,7 @@
   background: var(--bg-subtle);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 8px 10px;
+  padding: 6px 8px;
   min-height: 0;
   overflow: hidden;
   cursor: pointer;
