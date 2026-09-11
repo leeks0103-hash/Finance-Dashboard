@@ -71,7 +71,8 @@
   position: absolute;
   bottom: 0; right: 0;
   width: 52%;
-  height: 48px;
+  /* 카드 높이가 172px로 커진 만큼 비율 유지하며 같이 키움(48→64px) */
+  height: 64px;
   opacity: 0.22;
   pointer-events: none;
   z-index: 0;
@@ -167,5 +168,5 @@
   .card { min-height: 108px; padding: 16px 18px 12px; }
   .plan, .est { font-size: 1.7rem; }
   .bars { height: 44px; }
-  .sparkWrap { height: 36px; }
+  .sparkWrap { height: 48px; }
 }
