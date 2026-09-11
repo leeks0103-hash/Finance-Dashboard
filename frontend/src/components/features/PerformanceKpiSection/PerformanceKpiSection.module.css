@@ -1,9 +1,11 @@
 /* 카드 5개(매출/원가/매출이익 비교 + 경상손익/누계 실적) — 5열 유지.
    minmax(0,1fr)로 트랙이 내용 최소폭 아래로도 줄어들게 → 넓은 비교카드가 있어도
-   가로 오버플로로 카드가 화면 밖으로 밀리지 않음 */
+   가로 오버플로로 카드가 화면 밖으로 밀리지 않음.
+   ⚠️ 비교카드 3장(앞) : 단일값카드 2장(뒤) 순서 기준 비율 — DEFAULT_KPI_ORDER와 맞물려 있음.
+   드래그로 순서를 바꾸면 폭이 카드 종류가 아니라 위치(칸)를 따라간다 (다른 카드 그리드와 동일한 한계) */
 .kpiGrid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1.2fr)) repeat(2, minmax(0, 0.7fr));
   gap: 16px;
 }
 
