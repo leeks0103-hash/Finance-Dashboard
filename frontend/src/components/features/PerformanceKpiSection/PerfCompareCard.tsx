@@ -3,9 +3,10 @@ import styles from './PerfCompareCard.module.css';
 
 /** 계획 → 추정(연간) 두 값 비교 카드 — 매출·원가·매출이익. 미니 2막대 그래프 포함 */
 const PerfCompareCard = ({ card }: { card: PerfCompareCardData }) => {
+  // 두 막대 다 같은 기준(max)으로 100%까지 — 값이 작은 쪽이 항상 더 짧게 나오도록
   const max     = Math.max(Math.abs(card.planNum), Math.abs(card.estNum), 1);
-  const planH   = `${Math.round((Math.abs(card.planNum) / max) * 65)}%`;  // 계획: 최대 65%
-  const estH    = `${Math.round((Math.abs(card.estNum)  / max) * 100)}%`; // 추정: 최대 100%
+  const planH   = `${Math.round((Math.abs(card.planNum) / max) * 100)}%`;
+  const estH    = `${Math.round((Math.abs(card.estNum)  / max) * 100)}%`;
 
   return (
     <div className={`${styles.card} ${styles[card.accent]}`}>
@@ -17,12 +18,10 @@ const PerfCompareCard = ({ card }: { card: PerfCompareCardData }) => {
       </div>
 
       <div className={styles.body}>
+        {/* 값 길이에 따라 한 줄/두 줄이 들쭉날쭉하던 것 — 항상 위아래로 고정 */}
         <div className={styles.values}>
-          <div className={styles.pair}>
-            <span className={styles.plan}>{card.planStr}</span>
-            <span className={styles.slash}>/</span>
-            <span className={styles.est}>{card.estStr}</span>
-          </div>
+          <span className={styles.plan}>{card.planStr}</span>
+          <span className={styles.est}>{card.estStr}</span>
         </div>
 
         <div className={styles.bars} aria-hidden>

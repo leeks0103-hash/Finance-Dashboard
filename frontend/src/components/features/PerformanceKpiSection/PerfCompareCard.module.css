@@ -52,38 +52,35 @@
 
 .body {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 14px;
   flex: 1;
   min-width: 0;
 }
 
+/* 계획·추정 항상 위아래 고정 — 값 길이에 따라 한 줄/두 줄이 들쭉날쭉하던 것 방지 */
 .values {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  justify-content: center;
+  gap: 2px;
   min-width: 0;
-}
-.pair {
-  display: flex;
-  align-items: baseline;
-  gap: 7px;
-  flex-wrap: wrap;
 }
 /* 계획·추정 두 값은 같은(큰) 크기 — 구분은 색으로만 (계획 muted / 추정 accent) */
 .plan,
 .est {
   font-family: 'HyundaiHarmony', 'HyundaiSansHead', sans-serif;
-  font-size: 1.7rem;
+  font-size: 1.5rem;
   font-weight: 700;
   letter-spacing: -0.03em;
-  line-height: 1.1;
+  line-height: 1.25;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .plan { color: var(--text-muted); }
 .est  { color: var(--text-primary); }
-.slash { color: var(--border); font-size: 1.5rem; font-weight: 400; }
 .brand  .est { color: var(--brand-mid); }
 .profit .est { color: var(--profit); }
 .loss   .est { color: var(--loss); }
@@ -139,6 +136,6 @@
 
 @media (max-width: 900px) {
   .card { min-height: 108px; padding: 16px 18px 12px; }
-  .est  { font-size: 1.6rem; }
+  .plan, .est { font-size: 1.3rem; }
   .bars { height: 44px; }
 }
