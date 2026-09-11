@@ -16,7 +16,13 @@ const PerfCompareCard = ({ card }: { card: PerfCompareCardData }) => {
         <Sparkline up={card.estNum  >= 0} className={`${styles.spark} ${styles.sparkEst}`} />
       </div>
 
-      <div className={styles.label}>{card.label}</div>
+      {/* KpiCard 헤더 행과 같은 위치 — 라벨 좌측, 증감 배지 우측 */}
+      <div className={styles.header}>
+        <span className={styles.label}>{card.label}</span>
+        <span className={`${styles.diff} ${card.diffUp ? styles.up : styles.down}`}>
+          {card.diffUp ? '▲' : '▼'} {card.diffStr}
+        </span>
+      </div>
 
       <div className={styles.body}>
         <div className={styles.values}>
@@ -25,9 +31,6 @@ const PerfCompareCard = ({ card }: { card: PerfCompareCardData }) => {
             <span className={styles.slash}>/</span>
             <span className={styles.est}>{card.estStr}</span>
           </div>
-          <span className={`${styles.diff} ${card.diffUp ? styles.up : styles.down}`}>
-            {card.diffUp ? '▲' : '▼'} {card.diffStr}
-          </span>
         </div>
 
         <div className={styles.bars} aria-hidden>

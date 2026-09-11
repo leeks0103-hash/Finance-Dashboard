@@ -29,6 +29,16 @@
 .warn::before   { background: var(--warn); }
 .purple::before { background: var(--purple); }
 
+/* KpiCard .header 와 같은 위치 — 라벨 좌측, 증감 배지 우측 */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  position: relative;
+  z-index: 1;
+}
+
 .label {
   font-size: 0.70rem;
   font-weight: 700;
@@ -38,6 +48,8 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .body {
@@ -98,12 +110,13 @@
 .purple .est { color: var(--purple); }
 
 .diff {
-  align-self: flex-start;
-  font-size: 0.74rem;
+  flex-shrink: 0;
+  font-size: 0.76em;
   font-weight: 600;
   padding: 2px 8px;
   border-radius: 9999px;
   white-space: nowrap;
+  letter-spacing: 0.02em;
 }
 .up   { background: var(--profit-bg); color: var(--profit); }
 .down { background: var(--loss-bg);   color: var(--loss); }
