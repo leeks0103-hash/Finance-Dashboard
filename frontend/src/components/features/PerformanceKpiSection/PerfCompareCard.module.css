@@ -64,24 +64,6 @@
      이중으로 벌어지지 않게(카드 높이를 perf-kpi-card 기준(140px)에 맞추려면 여백 절약 필요) */
 }
 
-/* 배경 스파크라인 — KpiCard .sparkWrap과 같은 비율(52%×48px). 카드가 더 길어서
-   실제로는 전체 높이의 1/3 정도만 차지 — z-index로 막대그래프 뒤에 깔림 */
-.sparkWrap {
-  position: absolute;
-  bottom: 0; right: 0;
-  width: 52%;
-  /* 카드 높이가 172px로 커진 만큼 비율 유지하며 같이 키움(48→64px) */
-  height: 52px;
-  opacity: 0.22;
-  pointer-events: none;
-  z-index: 0;
-}
-.spark { width: 100%; height: 100%; }
-.brand  .sparkWrap { color: var(--brand-mid); }
-.profit .sparkWrap { color: var(--profit); }
-.loss   .sparkWrap { color: var(--loss); }
-.purple .sparkWrap { color: var(--purple); }
-
 /* 계획·추정 값 항상 위아래로 고정 */
 .values {
   display: flex;
@@ -134,8 +116,6 @@
   flex-shrink: 0;
   /* perf-kpi-card(140px) 높이에 맞추려고 예전보다 위로 당김(36→18px) */
   margin-top: 18px;
-  /* 카드 우측 끝(sparkWrap이 bottom:0/right:0로 깔리는 자리)과 살짝 띄워서
-     "계획"/"추정" 캡션이 배경 스파크라인과 겹쳐 안 보이던 것 완화 */
   margin-right: 14px;
 }
 .barCol {
@@ -172,5 +152,4 @@
   .card { min-height: 108px; padding: 16px 18px 12px; }
   .plan, .est { font-size: 1.5rem; }
   .bars { height: 36px; margin-top: 14px; }
-  .sparkWrap { height: 40px; }
 }

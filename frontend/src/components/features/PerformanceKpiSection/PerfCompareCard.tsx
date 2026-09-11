@@ -1,8 +1,7 @@
-import { Sparkline } from '@/components/ui/Sparkline';
 import type { PerfCompareCardData } from '@/hooks/viewmodels/usePerformanceViewModel';
 import styles from './PerfCompareCard.module.css';
 
-/** 계획 → 추정(연간) 두 값 비교 카드 — 매출·원가·매출이익. 미니 2막대 그래프 + 배경 스파크라인 포함 */
+/** 계획 → 추정(연간) 두 값 비교 카드 — 매출·원가·매출이익. 미니 2막대 그래프 포함(배경 스파크라인 없음) */
 const PerfCompareCard = ({ card }: { card: PerfCompareCardData }) => {
   // 매출/원가/매출이익 3장 공통 기준(barMax)으로 스케일 — 카드끼리도 크기 비교가 되도록
   // (카드마다 따로 스케일하면 계획이 항상 100%로 찍혀 세 카드 막대가 다 똑같아 보였음)
@@ -11,11 +10,6 @@ const PerfCompareCard = ({ card }: { card: PerfCompareCardData }) => {
 
   return (
     <div className={`${styles.card} ${styles[card.accent]}`}>
-      {/* KpiCard와 같은 배경 스파크라인 — 막대그래프 뒤로(z-index) */}
-      <div className={styles.sparkWrap}>
-        <Sparkline up={card.diffUp} className={styles.spark} />
-      </div>
-
       <div className={styles.header}>
         <span className={styles.label}>{card.label}</span>
         <span className={`${styles.diff} ${card.diffUp ? styles.up : styles.down}`}>
