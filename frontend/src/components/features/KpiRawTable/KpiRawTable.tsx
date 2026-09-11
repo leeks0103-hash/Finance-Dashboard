@@ -98,6 +98,8 @@ interface Props {
   isFetching?: boolean;
   title?: string;
   toolbarExtra?: ReactNode;
+  /** 검색창 옆(파트/보고단계 셀렉트 등) — DataTable의 searchExtra와 같은 위치 */
+  searchExtra?: ReactNode;
   serverPagination?: {
     total: number; page: number; pageSize: number;
     onPageChange: (p: number) => void;
@@ -106,7 +108,7 @@ interface Props {
   serverSearch?: { value: string; onChange: (v: string) => void };
 }
 
-const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, serverPagination, serverSearch }: Props) => {
+const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, searchExtra, serverPagination, serverSearch }: Props) => {
   // ── 컬럼 순서 ─────────────────────────────────────────────
   const [colOrder, setColOrder] = useState<string[]>(() => {
     const saved  = loadFromLS<string[]>(LS_ORDER, []);
@@ -200,6 +202,7 @@ const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, serverP
           )}
           {serverSearch && (
             <div className={styles.searchWrap}>
+              {searchExtra}
               <input className={styles.search} placeholder="프로젝트코드·파트명 검색…"
                 value={serverSearch.value}
                 onChange={e => serverSearch.onChange(e.target.value)} />

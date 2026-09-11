@@ -266,7 +266,8 @@ const KpiPage = () => {
                 isFetching={vm.isFetching}
                 serverPagination={vm.serverPagination}
                 serverSearch={vm.serverSearch}
-                toolbarExtra={<>{rawFilters}{viewToggle}</>}
+                toolbarExtra={viewToggle}
+                searchExtra={rawFilters}
               />
             );
           })()}

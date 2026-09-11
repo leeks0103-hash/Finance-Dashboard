@@ -18,10 +18,12 @@ const PerfCompareCard = ({ card }: { card: PerfCompareCardData }) => {
       </div>
 
       <div className={styles.body}>
-        {/* 값 길이에 따라 한 줄/두 줄이 들쭉날쭉하던 것 — 항상 위아래로 고정 */}
         <div className={styles.values}>
-          <span className={styles.plan}>{card.planStr}</span>
-          <span className={styles.est}>{card.estStr}</span>
+          <div className={styles.pair}>
+            <span className={styles.plan}>{card.planStr}</span>
+            <span className={styles.slash}>/</span>
+            <span className={styles.est}>{card.estStr}</span>
+          </div>
         </div>
 
         <div className={styles.bars} aria-hidden>
