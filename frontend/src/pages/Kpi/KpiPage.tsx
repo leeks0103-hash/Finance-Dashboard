@@ -28,22 +28,6 @@ const KpiValueCell = ({ value }: { value: string }) =>
 
 // KPI 집계 컬럼 — 모듈 스코프 (stable)
 const sh = createColumnHelper<KpiSummaryRow>();
-const summaryColumns = [
-  // KPI 항목·사업계획 목표는 필터와 무관한 고정값 — staticCol 음영으로 변동 컬럼과 구분
-  sh.accessor('name',       { header: 'KPI 항목', size: 420, meta: { staticCol: true } }),
-  // 사업계획 목표는 고정값(ViewModel PLAN_TARGETS) — 프로젝트 목표와 구분되도록 헤더에 명시
-  sh.accessor('planTarget', { header: '26년 목표(사업계획)', size: 170, meta: { staticCol: true } }),
-  sh.accessor('agg',        { header: '집계방식', size: 110 }),
-  sh.accessor('targetStr',  { header: '26년 목표(프로젝트)', size: 190, enableSorting: true,
-    cell: i => <KpiValueCell value={i.getValue() as string} />,
-  }),
-  sh.accessor('actual',     { header: '26년 실적', size: 220, enableSorting: true,
-    cell: i => <KpiValueCell value={i.getValue() as string} />,
-  }),
-  sh.accessor('prevActual', { header: '25년 실적', size: 220, enableSorting: true,
-    cell: i => <KpiValueCell value={i.getValue() as string} />,
-  }),
-];
 
 // flat 취합 컬럼 helper — 모듈 스코프
 const rh = createColumnHelper<KpiRawRow>();
@@ -53,8 +37,38 @@ const KpiPage = () => {
   const [summaryPart, setSummaryPart] = useState('');
   const vm = useKpiPageViewModel(summaryPart);
   const [rawView, setRawView] = useState<'flat' | 'rowspan'>('flat');
-  // KPI 목표 vs 실적 막대 클릭 → 드릴다운 모달 (0=목표, 1=실적)
-  const [breakdown, setBreakdown] = useState<{ name: string; metric: 'target' | 'actual' } | null>(null);
+  // KPI 목표 vs 실적 막대 또는 KPI 집계 표 셀 클릭 → 드릴다운 모달
+  const [breakdown, setBreakdown] = useState<{ name: string; metric: 'target' | 'actual' | 'prev' } | null>(null);
+
+  // KPI 집계 표 컬럼 — 목표/실적/전년 셀 클릭 시 그 값의 산출근거 모달(위 막대 클릭과 동일 모달)
+  const summaryColumns = useMemo(() => [
+    // KPI 항목·사업계획 목표는 필터와 무관한 고정값 — staticCol 음영으로 변동 컬럼과 구분
+    sh.accessor('name',       { header: 'KPI 항목', size: 420, meta: { staticCol: true } }),
+    // 사업계획 목표는 고정값(ViewModel PLAN_TARGETS) — 프로젝트 목표와 구분되도록 헤더에 명시
+    sh.accessor('planTarget', { header: '26년 목표(사업계획)', size: 170, meta: { staticCol: true } }),
+    sh.accessor('agg',        { header: '집계방식', size: 110 }),
+    sh.accessor('targetStr',  { header: '26년 목표(프로젝트)', size: 190, enableSorting: true,
+      cell: i => (
+        <Button unstyled className={styles.cellBtn} onClick={() => setBreakdown({ name: i.row.original.name, metric: 'target' })}>
+          <KpiValueCell value={i.getValue() as string} />
+        </Button>
+      ),
+    }),
+    sh.accessor('actual',     { header: '26년 실적', size: 220, enableSorting: true,
+      cell: i => (
+        <Button unstyled className={styles.cellBtn} onClick={() => setBreakdown({ name: i.row.original.name, metric: 'actual' })}>
+          <KpiValueCell value={i.getValue() as string} />
+        </Button>
+      ),
+    }),
+    sh.accessor('prevActual', { header: '25년 실적', size: 220, enableSorting: true,
+      cell: i => (
+        <Button unstyled className={styles.cellBtn} onClick={() => setBreakdown({ name: i.row.original.name, metric: 'prev' })}>
+          <KpiValueCell value={i.getValue() as string} />
+        </Button>
+      ),
+    }),
+  ], []);
 
   // 드롭박스 옵션 — "-"(파트/단계 미인식)는 목록에서만 제외. 표에는 그 행도 그대로 나옴
   const { data: filterOpts } = useKpiFilterOptions();

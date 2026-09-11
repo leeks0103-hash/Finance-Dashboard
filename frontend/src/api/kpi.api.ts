@@ -55,6 +55,6 @@ export interface KpiBreakdown {
 
 export const getKpiBreakdown = (
   name: string,
-  metric: 'target' | 'actual',
+  metric: 'target' | 'actual' | 'prev',
 ): Promise<KpiBreakdown> =>
   client.get<KpiBreakdown>('/kpi/summary/breakdown', { params: { name, metric } }).then(r => r.data);

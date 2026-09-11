@@ -11,9 +11,13 @@ import styles from './KpiBreakdownModal.module.css';
 
 interface Props {
   name:    string;
-  metric:  'target' | 'actual';
+  metric:  'target' | 'actual' | 'prev';
   onClose: () => void;
 }
+
+const METRIC_LABEL_FALLBACK: Record<Props['metric'], string> = {
+  target: '목표', actual: '실적', prev: '25년 유사실적',
+};
 
 /**
  * KPI 목표 vs 실적 막대를 클릭하면 열리는 드릴다운 모달.
@@ -52,7 +56,7 @@ const KpiBreakdownModal = ({ name, metric, onClose }: Props) => {
       <>
         <div className={styles.explain}>
           <p className={styles.explainLead}>
-            <b>{vm.metricLabel || (metric === 'target' ? '목표' : '실적')}</b> ={' '}
+            <b>{vm.metricLabel || METRIC_LABEL_FALLBACK[metric]}</b> ={' '}
             취합 시트 <code>{vm.column}</code> 열을 프로젝트별로{' '}
             {vm.aggLabel === '평균' ? '평균낸' : '더한'} 값
           </p>
@@ -100,7 +104,7 @@ const KpiBreakdownModal = ({ name, metric, onClose }: Props) => {
           <div className={styles.titleWrap}>
             <h3 className={styles.title}>{vm.name}</h3>
             <div className={styles.sub}>
-              <span className={styles.badge}>{vm.metricLabel || (metric === 'target' ? '목표' : '실적')}</span>
+              <span className={styles.badge}>{vm.metricLabel || METRIC_LABEL_FALLBACK[metric]}</span>
               {vm.available && `${vm.aggLabel}으로 산출`}
             </div>
           </div>

@@ -23,7 +23,7 @@ const fmt = (v: number): string =>
 
 export const useKpiBreakdownViewModel = (
   name: string | null,
-  metric: 'target' | 'actual',
+  metric: 'target' | 'actual' | 'prev',
 ): KpiBreakdownViewModel => {
   const { data, isLoading, isError } = useQuery({
     queryKey:  ['kpi-breakdown', name, metric],
