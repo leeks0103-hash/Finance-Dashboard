@@ -183,6 +183,11 @@
 /* ─── Reset ──────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* 세로 스크롤바 자리를 항상 예약 — 탭 전환·데이터 로딩으로 페이지 높이가 뷰포트 경계를
+   넘나들 때마다 스크롤바가 생겼다 사라지며 전체 폭이 바뀌어(리플로우) 헤더·본문이
+   좌우로 씰룩거리던 것 방지 */
+html { scrollbar-gutter: stable; }
+
 body {
   background: var(--bg);
   font-family: 'HyundaiSans', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
