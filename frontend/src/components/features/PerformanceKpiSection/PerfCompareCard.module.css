@@ -174,4 +174,6 @@
   .plan, .est { font-size: 1.5rem; }
   .bars { height: 44px; }
   .sparkWrap { height: 40px; }
+  /* 카드가 좁아지면 가운데 정렬은 답답해 보여서 — 균형추를 없애고 막대그래프를 오른쪽 끝으로 */
+  .spacer { display: none; }
 }
