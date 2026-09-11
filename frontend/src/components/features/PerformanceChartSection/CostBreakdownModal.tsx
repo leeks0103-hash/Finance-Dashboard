@@ -27,9 +27,20 @@ const COST_LABELS = ['직접원가', '인건비', '공통원가', '관리비', '
  * 원가 비율 확대 모달 — 왼쪽은 항상 전사평균 고정, 오른쪽은 팀/파트 보기 전환 + 비교용 미니 도넛.
  * "팀" 선택 시 팀별로(소속 파트 합계), "파트" 선택 시 파트별로 미니 도넛이 나열되고,
  * 각 카드 밑에 경상손익을 전사 평균과 비교하는 ▲/▼ 수치를 표시한다.
+ * 카드의 "상세보기"를 누르면 5개 원가 항목(직접원가·인건비·공통원가·관리비·경상손익)
+ * 전부를 전사평균과 나란히 비교하는 목록이 펼쳐진다.
  */
 const CostBreakdownModal = ({ total, byPart, partsRaw, teams, teamParts, colors, showLabels, onSliceClick }: Props) => {
   const [rightMode, setRightMode] = useState<'team' | 'part'>('part');
+  // 카드별 "상세보기" 펼침 상태 — 여러 카드 동시에 펼쳐서 비교 가능
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const toggleExpanded = (key: string) => {
+    setExpanded(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  };
 
   const teamData = (team: string): CostData => {
     const allowed = new Set(teamParts[team] ?? []);
@@ -85,6 +96,7 @@ const CostBreakdownModal = ({ total, byPart, partsRaw, teams, teamParts, colors,
           {cells.map(({ key, label, data }) => {
             const profit = data.values[4] ?? 0;
             const up = profit >= totalProfit;
+            const isOpen = expanded.has(key);
             return (
               <div key={key} className={styles.partCard}>
                 <span className={styles.partLabel}>{label}</span>
@@ -101,6 +113,38 @@ const CostBreakdownModal = ({ total, byPart, partsRaw, teams, teamParts, colors,
                 <span className={`${styles.miniValue} ${up ? styles.up : styles.down}`}>
                   {up ? '▲' : '▼'} {profit.toFixed(1)}억
                 </span>
+
+                <Button
+                  unstyled
+                  className={styles.detailToggle}
+                  onClick={() => toggleExpanded(key)}
+                  aria-expanded={isOpen}
+                >
+                  {isOpen ? '접기 ▴' : '상세보기 ▾'}
+                </Button>
+
+                {isOpen && (
+                  <ul className={styles.detailPanel}>
+                    {COST_LABELS.map((costLabel, i) => {
+                      const totalVal = total.values[i] ?? 0;
+                      const cardVal  = data.values[i] ?? 0;
+                      const diff = cardVal - totalVal;
+                      const diffUp = diff >= 0;
+                      return (
+                        <li key={costLabel} className={styles.detailRow}>
+                          <span className={styles.detailLabel}>{costLabel}</span>
+                          <span className={styles.detailVal}>
+                            <span className={styles.detailValMuted}>전사 {totalVal.toFixed(1)}</span>
+                            <span className={styles.detailValSelf}>{label} {cardVal.toFixed(1)}</span>
+                          </span>
+                          <span className={`${styles.detailDiff} ${diffUp ? styles.up : styles.down}`}>
+                            {diffUp ? '▲' : '▼'} {Math.abs(diff).toFixed(1)}억
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
               </div>
             );
           })}

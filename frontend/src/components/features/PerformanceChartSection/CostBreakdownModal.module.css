@@ -120,6 +120,70 @@
 .miniValue.up   { color: var(--profit); }
 .miniValue.down { color: var(--loss); }
 
+/* 상세보기 토글 — 전사평균 대비 5개 원가 항목 전부 비교 */
+.detailToggle {
+  appearance: none;
+  font: inherit;
+  width: 100%;
+  margin-top: 2px;
+  padding: 4px 0;
+  border: none;
+  border-top: 1px dashed var(--border);
+  background: transparent;
+  color: var(--text-sub);
+  font-size: 0.68rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  transition: color 0.12s ease;
+}
+.detailToggle:hover { color: var(--brand-mid); }
+
+.detailPanel {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 2px;
+  padding-top: 6px;
+  list-style: none;
+}
+
+.detailRow {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.detailLabel {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.detailVal {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.detailValMuted { color: var(--text-sub); }
+.detailValSelf  { color: var(--text-primary); font-weight: 600; }
+
+.detailDiff {
+  align-self: flex-end;
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+.detailDiff.up   { color: var(--profit); }
+.detailDiff.down { color: var(--loss); }
+
 @media (max-width: 900px) {
   .wrap     { flex-direction: column; }
   .left     { flex: 0 0 260px; }
