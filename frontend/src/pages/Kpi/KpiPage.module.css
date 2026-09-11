@@ -29,17 +29,14 @@
 }
 
 /* KPI 집계 표 — 목표/실적/전년 셀 클릭 시 산출근거 모달 (차트 막대 클릭과 동일) */
+/* 테이블 셀 그대로 보이게 — 버튼 기본 스타일을 완전히 지우고 인라인 텍스트처럼만 동작 */
 .cellBtn {
-  display: block;
-  width: 100%;
-  text-align: left;
-  font: inherit;
-  color: inherit;
+  all: unset;
   cursor: pointer;
-  border-radius: var(--radius-sm);
-  transition: background 0.12s ease, color 0.12s ease;
+  color: inherit;
+  font: inherit;
 }
-.cellBtn:hover { background: var(--bg-subtle); color: var(--brand-mid); }
+.cellBtn:hover { color: var(--brand-mid); text-decoration: underline; }
 
 /* 차트 */
 /* 기본값 — 실제 높이는 KPI 항목 수에 비례해 인라인 스타일로 늘어남(막대·숫자 겹침 방지) */
