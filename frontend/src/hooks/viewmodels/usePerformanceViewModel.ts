@@ -183,7 +183,7 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
 
     const compareCards = [
       mk('revenue',     '매출 (계획/추정)', 'brand',  total.plan_initial,   total.jun_check_total),
-      mk('cost',        '원가 (계획/추정)', 'brand',  total.plan_cost,      total.jun_cost),
+      mk('cost',        '원가 (계획/추정)', 'purple', total.plan_cost,      total.jun_cost),
       mk('grossProfit', '매출이익 (계획/추정)',
          (total.est_gross ?? 0) >= 0 ? 'profit' : 'loss',
          // 매출이익 = 매출 − 원가. 백엔드 계산값 사용 (재시작 전 폴백만 인라인)
