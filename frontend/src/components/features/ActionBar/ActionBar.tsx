@@ -30,7 +30,11 @@ const ActionBar = () => {
           <Button variant="ghost" size="sm" onClick={() => reload()} disabled={isReloading}>
             {isReloading ? '갱신 중…' : '↺ 갱신'}
           </Button>
-          {displayTs && <span className={styles.lastLoaded} title="데이터 최종 업데이트">업데이트 {displayTs}</span>}
+          {/* 항상 렌더 + visibility 토글 — 조건부 렌더였을 때 로딩 후 늦게 팝인하며
+              옆 버튼을 밀던 리플로우 방지(자리는 항상 예약) */}
+          <span className={styles.lastLoaded} style={{ visibility: displayTs ? 'visible' : 'hidden' }} title="데이터 최종 업데이트">
+            업데이트 {displayTs || '00-00 00:00'}
+          </span>
           {correctedRows > 0 && <span className={styles.correctedBadge}>{correctedRows}행 보정됨</span>}
         </div>
       </div>

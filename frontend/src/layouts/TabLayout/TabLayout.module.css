@@ -8,6 +8,15 @@
   position: sticky;
   top: var(--navbar-height, 50px);
   z-index: 90;
+  /* KPI 탭은 이 바 자체가 없어서(의도된 설계), KPI ↔ 재무/실적 탭 전환마다 이 바가
+     마운트/언마운트되며 아래 콘텐츠가 훅 밀림 — 최소한 바 자체는 툭 튀어나오지 않고
+     부드럽게 나타나도록 */
+  animation: filterGroupIn 0.22s ease;
+}
+
+@keyframes filterGroupIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 /* ActionBar를 오른쪽 끝으로 — 2개 이상일 때만 */

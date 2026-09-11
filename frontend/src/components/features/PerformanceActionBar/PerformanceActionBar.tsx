@@ -25,11 +25,15 @@ const PerformanceActionBar = () => {
         hrefOf={key => `/api/download/${key}`}
         buttonLabel="↓ 재무데이터 다운로드"
       />
-      {displayTs && (
-        <span className={styles.lastLoaded} title="데이터 최종 업데이트">
-          업데이트 {displayTs}
-        </span>
-      )}
+      {/* 항상 렌더 + visibility로 토글 — 데이터 로딩 후에야 나타나는 조건부 렌더였을 때
+          이 뱃지가 늦게 팝인하면서 옆 버튼이 밀리는 리플로우가 있었음(자리는 항상 예약) */}
+      <span
+        className={styles.lastLoaded}
+        style={{ visibility: displayTs ? 'visible' : 'hidden' }}
+        title="데이터 최종 업데이트"
+      >
+        업데이트 {displayTs || '00-00 00:00'}
+      </span>
     </div>
   );
 };
