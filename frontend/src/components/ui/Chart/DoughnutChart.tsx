@@ -98,7 +98,7 @@ const DoughnutChart = ({
               : undefined,
             // 얇은 세그먼트의 % 라벨이 캔버스 밖으로 나가 잘리지 않도록 여백 확보 (ChartCard가 overflow:hidden)
             // sm(메인 카드): 링 크기 거의 그대로(12→20px). lg(확대 모달): 인출선·글자가 커서 여백도 크게(64px)
-            layout: { padding: outsideLabels ? (outsideLabelsSize === 'lg' ? 64 : 20) : 12 },
+            layout: { padding: outsideLabels ? (outsideLabelsSize === 'lg' ? 68 : 24) : 12 },
             plugins: {
               // 범례는 아래 2열 그리드로 직접 그린다 (Chart.js 기본 범례는 개수에 따라 줄이 어긋남)
               legend: { display: false },

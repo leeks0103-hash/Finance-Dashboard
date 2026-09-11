@@ -57,7 +57,7 @@ const BigCostDoughnut = ({ labels, data, colors, showLabels, onSliceClick }: Pro
             onHover: (_e, elements, chart) => {
               (chart.canvas as HTMLCanvasElement).style.cursor = elements.length ? 'pointer' : 'default';
             },
-            layout: { padding: 64 },   // 인출선(+24) + "100.0%" 텍스트 폭까지 감안한 여백
+            layout: { padding: 68 },   // 인출선(+25) + "100.0%" 텍스트 폭까지 감안한 여백
             plugins: {
               legend: { display: false },
               tooltip: {

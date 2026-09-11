@@ -23,8 +23,8 @@ interface OutsideLabelsOpts {
 }
 
 const SIZE_PRESET = {
-  sm: { r1: 3,  r2: 11, horiz: 8,  font: 10 },
-  lg: { r1: 6,  r2: 24, horiz: 14, font: 13 },
+  sm: { r1: 3,  r2: 12, horiz: 9,  font: 11 },
+  lg: { r1: 6,  r2: 25, horiz: 15, font: 15 },
 } as const;
 
 interface LabelItem {
