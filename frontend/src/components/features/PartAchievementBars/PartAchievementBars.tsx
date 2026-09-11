@@ -49,6 +49,18 @@ const PartAchievementBars = ({ rows, month, info, onPartClick }: Props) => {
 
       <div className={`${styles.wrap} ${styles.wrapOpen}`}>
         <div className={styles.body}>
+          {/* 기준 구간 수치(30/60/100%) — 행마다 반복하지 않고 맨 위에 한 번만, 막대 트랙 칸에 맞춰 정렬 */}
+          <div className={styles.row} aria-hidden>
+            <span />
+            <div className={styles.thresholdHeaderTrack}>
+              {[30, 60, 100].map(t => (
+                <span key={t} className={styles.thresholdHeaderLabel} style={{ left: `${t}%` }}>{t}%</span>
+              ))}
+            </div>
+            <span />
+            <span />
+          </div>
+
           {sorted.map(row => {
             const rate  = row.achieveRateNum;
             const barW  = Math.min(rate, 100);
@@ -60,11 +72,9 @@ const PartAchievementBars = ({ rows, month, info, onPartClick }: Props) => {
                 <span className={styles.partName}>{partName}</span>
 
                 <div className={styles.barWrap}>
-                  {/* 기준 구간 경계선(30/60/100%) — 선 + 수치 라벨 */}
+                  {/* 기준 구간 경계선(30/60/100%) — 수치는 맨 위 헤더에 한 번만 표시 */}
                   {[30, 60, 100].map(t => (
-                    <div key={t} className={styles.thresholdMark} style={{ left: `${t}%` }}>
-                      <span className={styles.thresholdLabel}>{t}%</span>
-                    </div>
+                    <div key={t} className={styles.thresholdMark} style={{ left: `${t}%` }} />
                   ))}
                   <div
                     className={styles.bar}

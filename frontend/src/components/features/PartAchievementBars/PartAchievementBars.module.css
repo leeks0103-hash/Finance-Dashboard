@@ -113,11 +113,16 @@
 }
 
 /* 구간 선 위 수치 라벨 — 선 끝(오른쪽 정렬)에 붙여서 100% 지점에서도 카드 밖으로 안 넘침 */
-.thresholdLabel {
+/* 기준 구간 수치 헤더 — 행마다 안 넣고 목록 맨 위에 한 번, 막대 트랙 칸에 맞춰 정렬 */
+.thresholdHeaderTrack {
+  position: relative;
+  height: 12px;
+}
+.thresholdHeaderLabel {
   position: absolute;
-  bottom: 100%;
-  right: 0;
-  margin-bottom: 2px;
+  top: 0;
+  transform: translateX(-100%);
+  padding-right: 2px;
   font-size: 9px;
   font-weight: 600;
   color: var(--text-muted);
