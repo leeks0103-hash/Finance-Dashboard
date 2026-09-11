@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { usePerformanceSummary } from '@/hooks/usePerformanceSummary';
+import { usePerformanceOptions } from '@/hooks/usePerformanceData';
 import { useUiStore } from '@/store';
 import { useTheme } from '@/hooks/useTheme';
 import { makeBarOptions } from '@/utils/chartOptions';
@@ -52,6 +53,10 @@ export interface PerformanceChartViewModel {
     labels: string[];
     values: number[];
   };
+  /** 팀 목록 — 원가 비율 카드 설정 패널의 팀→파트 계단식 선택용 */
+  teams:            string[];
+  selectedCostTeam: string;
+  setSelectedCostTeam: (v: string) => void;
   progress: {
     labels:       string[];
     revenues:     number[];
@@ -62,11 +67,16 @@ export interface PerformanceChartViewModel {
 
 export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
   const { data: summary, isLoading, isError } = usePerformanceSummary();
+  const { data: options } = usePerformanceOptions();
   const showLabels = useUiStore(s => s.showChartLabels);
   const { theme } = useTheme();
   const { labelColor } = getChartTheme(theme === 'dark');
 
   const [selectedCostPart, setSelectedCostPart] = useState<string>('전체');
+  const [selectedCostTeam, setSelectedCostTeam] = useState<string>('');   // '' = 전체 팀
+
+  const teams     = useMemo(() => options?.teams ?? [], [options]);
+  const teamParts = useMemo(() => options?.team_parts ?? {}, [options]);
 
   const monthlyLength = summary?.monthly.length ?? 12;
 
@@ -173,13 +183,14 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
       ),
       partOptions: ['전체', ...parts.map(stripPartPrefix)],
       partsRaw: parts,
+      teamParts,
       progress: {
         labels:       progressEntries,
         revenues:     progressEntries.map(p => toEokNum(summary.by_progress[p].revenue)),
         expenditures: progressEntries.map(p => toEokNum(summary.by_progress[p].cost)),
       },
     };
-  }, [summary, isLoading]);
+  }, [summary, isLoading, teamParts]);
 
   const costBreakdown = useMemo(() => {
     if (!chartData) return { labels: [], values: [] };
@@ -187,6 +198,14 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
     const rawPart = chartData.partsRaw.find(p => stripPartPrefix(p) === selectedCostPart);
     return rawPart ? chartData.costBreakdownByPart[rawPart] : chartData.costBreakdownTotal;
   }, [chartData, selectedCostPart]);
+
+  // 팀 선택 시 그 팀 소속 파트만 — 원가 비율 카드 설정 패널(팀→파트 계단식 선택)용
+  const partOptionsForTeam = useMemo(() => {
+    if (!chartData) return ['전체'];
+    if (!selectedCostTeam) return chartData.partOptions;
+    const allowed = new Set(teamParts[selectedCostTeam] ?? []);
+    return ['전체', ...chartData.partsRaw.filter(p => allowed.has(p)).map(stripPartPrefix)];
+  }, [chartData, selectedCostTeam, teamParts]);
 
   if (!chartData || isLoading) {
     return {
@@ -197,6 +216,7 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
       costBreakdown:    { labels: [], values: [] },
       progress:         { labels: [], revenues: [], expenditures: [], options: progressOptions },
       partOptions:      ['전체'],
+      teams, selectedCostTeam, setSelectedCostTeam,
       selectedCostPart, setSelectedCostPart,
       chartData: null,
     };
@@ -209,7 +229,8 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
     profitRate:       { ...chartData.profitRate,   options: profitRateOptions },
     costBreakdown,
     progress:         { ...chartData.progress,     options: progressOptions },
-    partOptions:      chartData.partOptions,
+    partOptions:      partOptionsForTeam,
+    teams, selectedCostTeam, setSelectedCostTeam,
     selectedCostPart, setSelectedCostPart,
     chartData,
   };

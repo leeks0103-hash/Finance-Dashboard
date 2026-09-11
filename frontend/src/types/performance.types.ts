@@ -162,6 +162,8 @@ export interface PerfSummary {
 export interface PerfOptions {
   parts: string[];
   teams: string[];
+  /** 팀 → 그 팀 소속 파트 목록 (원문, 접두어 포함) */
+  team_parts: Record<string, string[]>;
 }
 
 export interface PerfWorstRow {

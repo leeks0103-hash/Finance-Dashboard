@@ -462,10 +462,15 @@ def _ratio(numer: float, denom: float) -> "float | None":
 def api_perf_options():
     df = get_perf_df()
     if df.empty:
-        return jsonify({"parts": [], "teams": []})
+        return jsonify({"parts": [], "teams": [], "team_parts": {}})
     parts = sorted(df["part"].dropna().unique().tolist())
     teams = sorted(df["team"].dropna().unique().tolist())
-    return jsonify({"parts": parts, "teams": teams})
+    # 팀 → 그 팀 소속 파트 목록 — 원가 비율 카드에서 "팀 고르면 파트가 좁혀지는" 용도
+    team_parts = {
+        team: sorted(g["part"].dropna().unique().tolist())
+        for team, g in df.dropna(subset=["team"]).groupby("team")
+    }
+    return jsonify({"parts": parts, "teams": teams, "team_parts": team_parts})
 
 
 @perf_bp.route("/api/performance/data")
