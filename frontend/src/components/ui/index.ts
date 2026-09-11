@@ -4,6 +4,7 @@ export * from './FilterPanelView';
 export * from './InsightComment';
 export * from './Badge';
 export * from './Spinner';
+export * from './QueryGate';
 export * from './ErrorFallback';
 export * from './EmptyState';
 export * from './Chart';

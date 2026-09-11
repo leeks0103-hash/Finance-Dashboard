@@ -4,7 +4,7 @@ import { useKpiPageViewModel } from '@/hooks/viewmodels/useKpiPageViewModel';
 import { useKpiFilterOptions } from '@/hooks/useKpiFilterOptions';
 import { useKpiFilterStore } from '@/store/kpiFilter.store';
 import { sortStages } from '@/utils/stageOrder';
-import { ChartCard, BarChart, DataTable, CopyText, HighlightText, Button, Spinner } from '@/components/ui';
+import { ChartCard, BarChart, DataTable, CopyText, HighlightText, Button, Spinner, QueryGate } from '@/components/ui';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import KpiRawTable from '@/components/features/KpiRawTable/KpiRawTable';
 import KpiBreakdownModal from '@/components/features/KpiBreakdownModal/KpiBreakdownModal';
@@ -112,25 +112,26 @@ const KpiPage = () => {
     ),
   [vm.rawCols]);
 
-  // 아직 로딩 중이면 "데이터 없음" 스텁 대신 로딩 스피너 (탭 첫 진입 시 스텁이 깜빡이던 문제)
-  if (vm.isLoading && !vm.available) {
-    return <main className={styles.main}><Spinner label="KPI 데이터 불러오는 중…" /></main>;
-  }
-
-  if (!vm.available) {
-    return (
-      <main className={styles.main}>
-        <div className={styles.stub}>
-          <div className={styles.icon}>📊</div>
-          <h2 className={styles.title}>KPI 데이터</h2>
-          <p className={styles.desc}>{vm.message ?? 'KPI 추출 스크립트를 먼저 실행해주세요.'}</p>
-          <code className={styles.path}>extract_kpi_ppt.py 실행 → KPI 지표 데이터 추출.xlsx</code>
-        </div>
-      </main>
-    );
-  }
+  // 로딩 / 데이터없음 / 정상 분기 — QueryGate가 우선순위(loading > empty)를 강제해
+  // "로딩 중인데 스텁이 먼저 뜨는" 문제를 구조적으로 막는다
+  const emptyView = (
+    <main className={styles.main}>
+      <div className={styles.stub}>
+        <div className={styles.icon}>📊</div>
+        <h2 className={styles.title}>KPI 데이터</h2>
+        <p className={styles.desc}>{vm.message ?? 'KPI 추출 스크립트를 먼저 실행해주세요.'}</p>
+        <code className={styles.path}>extract_kpi_ppt.py 실행 → KPI 지표 데이터 추출.xlsx</code>
+      </div>
+    </main>
+  );
 
   return (
+    <QueryGate
+      loading={vm.isLoading && !vm.available}
+      empty={!vm.available}
+      loadingView={<main className={styles.main}><Spinner label="KPI 데이터 불러오는 중…" /></main>}
+      emptyView={emptyView}
+    >
     <main className={styles.mainFull}>
 
       {/* KPI 목표 vs 실적 차트 — 제목줄 안에 파트 필터(A). 이 필터는 차트 + KPI 집계 표에만 적용 */}
@@ -279,6 +280,7 @@ const KpiPage = () => {
       )}
 
     </main>
+    </QueryGate>
   );
 };
 
