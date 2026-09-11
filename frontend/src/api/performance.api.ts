@@ -82,3 +82,37 @@ export const getPerfBreakdown = (
   params.set('key', key);
   return client.get<PerfBreakdown>('/performance/summary/breakdown', { params }).then(r => r.data);
 };
+
+// ── 원가 비율 확대 모달 — 선택 파트의 프로젝트별 원가 구성 표 ──
+export interface PerfCostBreakdownRow {
+  project_code:      string;
+  project_name:      string;
+  part:              string;
+  cost_direct:       number;   // 억
+  cost_labor:        number;
+  cost_overhead:     number;
+  cost_mgmt:         number;
+  operating_profit:  number;
+}
+
+export interface PerfCostBreakdownTotal {
+  cost_direct?:       number;
+  cost_labor?:        number;
+  cost_overhead?:     number;
+  cost_mgmt?:         number;
+  operating_profit?:  number;
+}
+
+export interface PerfCostBreakdownDetail {
+  rows:  PerfCostBreakdownRow[];
+  count: number;
+  total: PerfCostBreakdownTotal;
+  unit:  string;
+}
+
+export const getPerfCostBreakdownDetail = (
+  parts: string[],
+  team = '',
+): Promise<PerfCostBreakdownDetail> =>
+  client.get<PerfCostBreakdownDetail>('/performance/costbreakdown/detail', { params: toParams(parts, team) })
+    .then(r => r.data);
