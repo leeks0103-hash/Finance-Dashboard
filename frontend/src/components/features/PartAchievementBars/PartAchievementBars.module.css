@@ -86,27 +86,9 @@
 }
 
 .bar {
-  position: relative;
   height: 100%;
   border-radius: 9999px;
-  overflow: hidden;   /* 100% 달성 시 반짝임 효과가 막대 밖으로 안 새게 */
   transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* 100% 이상 달성 — 막대 색은 그대로 두고 그 위로 밝은 띠가 출렁이듯 훑고 지나감 */
-.barOver::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  width: 50%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent);
-  /* linear + 끝까지 쉬지 않고 이동 — 오른쪽 끝으로 빠져나가 사라지자마자 바로 다시 시작 */
-  animation: barShimmer 1.6s linear infinite;
-  pointer-events: none;
-}
-@keyframes barShimmer {
-  0%   { transform: translateX(-120%); }
-  100% { transform: translateX(220%); }
 }
 
 /* 경과 기준선 — 트랙 위 세로 점선 (N개월 경과 시점 = 정상 페이스 위치). 데이터가 아니라 가이드라 점선 */
@@ -128,6 +110,18 @@
   border-left: 1.5px dashed var(--text-primary);
   opacity: 0.65;
   pointer-events: none;
+}
+
+/* 구간 선 위 수치 라벨 — 선 끝(오른쪽 정렬)에 붙여서 100% 지점에서도 카드 밖으로 안 넘침 */
+.thresholdLabel {
+  position: absolute;
+  bottom: 100%;
+  right: 0;
+  margin-bottom: 2px;
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
 }
 
 .pct {

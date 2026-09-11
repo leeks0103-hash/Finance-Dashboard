@@ -34,7 +34,7 @@ const CostBreakdownModal = ({ total, byPart, partsRaw, teams, teamParts, colors,
   const [selected, setSelected]     = useState<string>('');   // '' = 전체
 
   const active     = selected && byPart[selected] ? byPart[selected] : total;
-  const activeName = selected ? stripPartPrefix(selected) : '전체';
+  const activeName = selected ? stripPartPrefix(selected) : '전사평균';
 
   const allowedParts = activeTeam ? new Set(teamParts[activeTeam] ?? []) : null;
 

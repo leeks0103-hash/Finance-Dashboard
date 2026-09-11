@@ -53,7 +53,6 @@ const PartAchievementBars = ({ rows, month, info, onPartClick }: Props) => {
             const rate  = row.achieveRateNum;
             const barW  = Math.min(rate, 100);
             const color = barColor(rate);
-            const over  = rate >= 100;
             const partName = stripPartPrefix(row.part);
 
             const inner = (
@@ -61,12 +60,14 @@ const PartAchievementBars = ({ rows, month, info, onPartClick }: Props) => {
                 <span className={styles.partName}>{partName}</span>
 
                 <div className={styles.barWrap}>
-                  {/* 기준 구간 경계선(30/60%) — 100%는 트랙 오른쪽 끝 자체라 별도 선 불필요 */}
-                  {[30, 60].map(t => (
-                    <div key={t} className={styles.thresholdMark} style={{ left: `${t}%` }} />
+                  {/* 기준 구간 경계선(30/60/100%) — 선 + 수치 라벨 */}
+                  {[30, 60, 100].map(t => (
+                    <div key={t} className={styles.thresholdMark} style={{ left: `${t}%` }}>
+                      <span className={styles.thresholdLabel}>{t}%</span>
+                    </div>
                   ))}
                   <div
-                    className={`${styles.bar} ${over ? styles.barOver : ''}`}
+                    className={styles.bar}
                     style={{ width: `${barW}%`, background: color }}
                   />
                 </div>
