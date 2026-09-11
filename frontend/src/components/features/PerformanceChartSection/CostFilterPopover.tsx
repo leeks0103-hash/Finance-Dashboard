@@ -1,23 +1,27 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Button, FilterSelect } from '@/components/ui';
+import { Button } from '@/components/ui';
+import { stripPartPrefix } from '@/utils';
 import styles from './CostFilterPopover.module.css';
 
 interface Props {
   teams:        string[];
   selectedTeam: string;
   onTeamChange: (v: string) => void;
-  /** 이미 팀에 맞춰 좁혀진 목록 — 첫 항목이 '전체' */
-  parts:        string[];
+  /** 팀 → 소속 파트(원문, 접두어 포함) — 패널 안에서 팀을 펼치면 그 파트들이 하위 목록으로 나온다 */
+  teamParts:    Record<string, string[]>;
+  /** 접두어 제거된 값. '전체'가 기본 */
   selectedPart: string;
   onPartChange: (v: string) => void;
 }
 
 /**
- * 원가 비율 카드 제목줄의 ⚙ 버튼 — 눌러야 팀/파트 셀렉트 2개가 뜨는 설정 패널.
- * 제목줄엔 칸이 부족하고 그래프도 줄이고 싶지 않아서, 평소엔 숨겨뒀다 클릭할 때만 노출.
+ * 원가 비율 카드 제목줄의 ⚙ 버튼 — 눌러야 뜨는 설정 패널.
+ * 팀을 눌러 펼치면 그 안에 소속 파트가 하위 목록(드롭다운 안의 드롭다운)으로 나오고,
+ * 파트를 고르면 팀·파트가 한 번에 정해지며 패널이 닫힌다.
  */
-const CostFilterPopover = ({ teams, selectedTeam, onTeamChange, parts, selectedPart, onPartChange }: Props) => {
+const CostFilterPopover = ({ teams, selectedTeam, onTeamChange, teamParts, selectedPart, onPartChange }: Props) => {
   const [open, setOpen] = useState(false);
+  const [expandedTeam, setExpandedTeam] = useState<string>(selectedTeam);
   const wrapRef = useRef<HTMLDivElement>(null);
 
   const close = useCallback(() => setOpen(false), []);
@@ -38,8 +42,15 @@ const CostFilterPopover = ({ teams, selectedTeam, onTeamChange, parts, selectedP
 
   const active = selectedTeam !== '' || selectedPart !== '전체';
 
+  const pickAll = () => { onTeamChange(''); onPartChange('전체'); close(); };
+  const pickPart = (team: string, rawPart: string) => {
+    onTeamChange(team);
+    onPartChange(stripPartPrefix(rawPart));
+    close();
+  };
+
   return (
-    <div className={styles.wrap} ref={wrapRef}>
+    <div className={`${styles.wrap} chart-title-filter`} ref={wrapRef}>
       <Button
         unstyled
         className={`${styles.trigger} ${active ? styles.active : ''}`}
@@ -53,25 +64,50 @@ const CostFilterPopover = ({ teams, selectedTeam, onTeamChange, parts, selectedP
 
       {open && (
         <div className={styles.panel}>
-          <div className={styles.row}>
-            <span className={styles.rowLabel}>팀</span>
-            <FilterSelect
-              value={selectedTeam}
-              // 팀을 바꾸면 파트도 '전체'로 — 이전 팀의 파트가 새 팀엔 없을 수 있어서
-              onChange={v => { onTeamChange(v); onPartChange('전체'); }}
-              options={teams}
-              allLabel="전체"
-            />
-          </div>
-          <div className={styles.row}>
-            <span className={styles.rowLabel}>파트</span>
-            <FilterSelect
-              value={selectedPart}
-              onChange={onPartChange}
-              options={parts}
-              allLabel={null}
-            />
-          </div>
+          <Button
+            unstyled
+            className={`${styles.allItem} ${!active ? styles.itemActive : ''}`}
+            onClick={pickAll}
+          >
+            전체
+          </Button>
+
+          <ul className={styles.teamList}>
+            {teams.map(team => {
+              const isExpanded = expandedTeam === team;
+              const parts = teamParts[team] ?? [];
+              return (
+                <li key={team}>
+                  <Button
+                    unstyled
+                    className={`${styles.teamItem} ${selectedTeam === team ? styles.itemActive : ''}`}
+                    onClick={() => setExpandedTeam(isExpanded ? '' : team)}
+                    aria-expanded={isExpanded}
+                  >
+                    <span className={styles.caret}>{isExpanded ? '▾' : '▸'}</span>
+                    {team}
+                  </Button>
+
+                  {/* 드롭다운 안의 드롭다운 — 팀을 펼치면 그 소속 파트만 하위 목록으로 */}
+                  {isExpanded && parts.length > 0 && (
+                    <ul className={styles.partList}>
+                      {parts.map(p => (
+                        <li key={p}>
+                          <Button
+                            unstyled
+                            className={`${styles.partItem} ${selectedTeam === team && selectedPart === stripPartPrefix(p) ? styles.itemActive : ''}`}
+                            onClick={() => pickPart(team, p)}
+                          >
+                            {stripPartPrefix(p)}
+                          </Button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
         </div>
       )}
     </div>

@@ -136,8 +136,10 @@
   color: var(--text);
 }
 
-/* 모달 헤더 안의 드롭다운은 크게 보기에서 불필요 — 숨김 */
-.modalHeader select { display: none; }
+/* 모달 헤더 안의 드롭다운·필터 버튼은 크게 보기에서 불필요 — 숨김.
+   컴팩트 카드 제목줄 전용 컨트롤은 이 전역(비모듈) 클래스를 붙여서 여기 걸리게 한다 */
+.modalHeader select,
+.modalHeader :global(.chart-title-filter) { display: none; }
 
 .modalClose {
   flex-shrink: 0;

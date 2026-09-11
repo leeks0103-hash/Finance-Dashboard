@@ -334,7 +334,7 @@ const PerformanceChartSection = () => {
             teams={vm.teams}
             selectedTeam={vm.selectedCostTeam}
             onTeamChange={vm.setSelectedCostTeam}
-            parts={vm.partOptions}
+            teamParts={vm.chartData?.teamParts ?? {}}
             selectedPart={vm.selectedCostPart}
             onPartChange={vm.setSelectedCostPart}
           />

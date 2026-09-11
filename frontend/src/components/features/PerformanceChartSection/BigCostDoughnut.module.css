@@ -22,7 +22,9 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px 18px;
-  margin: 10px 2px 0;
+  /* 캔버스가 max-height로 잡혀서 남는 세로 공간이 생기면, 그 공간을 범례 위쪽으로 몰아서
+     범례를 카드 바닥에 붙임 — 밑에 빈 여백이 뜨는 것보다 이쪽이 자연스러움 */
+  margin: auto 2px 0;
   padding: 10px 2px 0;
   border-top: 1px solid var(--border);
   list-style: none;

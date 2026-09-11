@@ -25,27 +25,70 @@
   top: calc(100% + 6px);
   right: 0;
   z-index: 20;
-  min-width: 200px;
+  min-width: 190px;
+  max-height: 320px;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 12px;
+  gap: 2px;
+  padding: 6px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow-md);
 }
 
-.row {
+/* 목록 항목 공통 리셋 — <Button unstyled> */
+.allItem,
+.teamItem,
+.partItem {
+  appearance: none;
+  font: inherit;
+  color: var(--text);
+  text-align: left;
+  width: 100%;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  gap: 4px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.allItem:hover, .teamItem:hover, .partItem:hover { background: var(--bg-subtle); }
+.itemActive { color: var(--brand-mid); font-weight: 700; }
+
+.allItem {
+  font-weight: 700;
+  font-size: 0.8rem;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  margin-bottom: 2px;
 }
 
-.rowLabel {
-  font-size: 0.72rem;
+.teamList { list-style: none; }
+
+.teamItem {
+  font-size: 0.78rem;
   font-weight: 600;
-  color: var(--text-muted);
+}
+.caret {
   flex-shrink: 0;
+  width: 12px;
+  color: var(--text-muted);
+  font-size: 0.65rem;
+}
+
+/* 드롭다운 안의 드롭다운 — 팀 펼치면 나오는 파트 하위 목록 */
+.partList {
+  list-style: none;
+  margin-left: 16px;
+  padding-left: 8px;
+  border-left: 1px solid var(--border);
+}
+.partItem {
+  font-size: 0.76rem;
+  color: var(--text-sub);
+  padding: 5px 8px;
 }
