@@ -192,14 +192,15 @@ const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, searchE
     <div ref={wrapRef} className={styles.wrapper} style={{ '--kpi-rows': visibleRows } as React.CSSProperties}>
       {/* 툴바 — 행 수 조절 + 검색 (왼쪽 정렬, 뷰 토글은 outerTitle로 이동) */}
       <div className={styles.toolbar}>
-        <div aria-hidden className={styles.toolbarPhantom} />
-        <div className={styles.toolbarRight}>
+        <div className={styles.toolbarLeft}>
           {serverPagination && (
             <select className={styles.pageSizeSelect} value={serverPagination.pageSize}
               onChange={e => serverPagination.onPageSizeChange(Number(e.target.value))}>
               {[10, 20, 30, 50].map(n => <option key={n} value={n}>{n}행</option>)}
             </select>
           )}
+        </div>
+        <div className={styles.toolbarRight}>
           {serverSearch && (
             <div className={styles.searchWrap}>
               {searchExtra}
