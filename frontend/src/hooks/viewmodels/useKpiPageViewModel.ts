@@ -8,7 +8,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { makeBarOptions } from '@/utils/chartOptions';
 import { getChartPalette, getChartTheme } from '@/utils/chartColors';
 import { sortKpiRawCols } from '@/utils/kpiColumns';
-import type { KpiRawRow } from '@/types/kpi.types';
+import type { KpiRawRow, KpiAnomaly } from '@/types/kpi.types';
 import type { ServerPagination, ServerSearch } from '@/components/ui/DataTable';
 import type { ChartOptions } from 'chart.js';
 
@@ -64,6 +64,9 @@ export interface KpiPageViewModel {
   rawCols:          string[];
   serverPagination: ServerPagination;
   serverSearch:     ServerSearch;
+  /** 보고단계 완료 전인데 실적 조기입력된 행 수 — 0이면 배너 미노출 */
+  anomalyCount:     number;
+  anomalies:        KpiAnomaly[];
 }
 
 const fmtNum = (v: number) => v !== 0 ? v.toLocaleString() : '0';
@@ -189,6 +192,8 @@ export const useKpiPageViewModel = (summaryPart = ''): KpiPageViewModel => {
     summaryRows,
     rawRows,
     rawCols,
+    anomalyCount: summary?.anomaly_count ?? 0,
+    anomalies:    summary?.anomalies ?? [],
 
     serverPagination: {
       page:             pagination.page,

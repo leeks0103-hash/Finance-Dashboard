@@ -11,7 +11,7 @@ import {
   useColumnHighlight, useClipboardPopup, useTableEscapePriority, useTableDndSensors,
   SortableHeaderCell, CellPopup, TableTitleBar,
 } from '@/components/ui';
-import { cellVal, isImplausibleScoreRow } from '@/utils/kpiColumns';
+import { cellVal, isImplausibleScoreRow, isPrematureActualRow } from '@/utils/kpiColumns';
 import styles from './KpiRawTable.module.css';
 
 export const KPI_METRICS = [
@@ -253,7 +253,7 @@ const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, searchE
                   <tr key={`${code}-${stage}-${mi}`}
                     className={[
                       mi % 2 === 0 ? styles.even : '',
-                      isImplausibleScoreRow(row, m.key) ? styles.suspicious : '',
+                      (isImplausibleScoreRow(row, m.key) || isPrematureActualRow(row, m.key)) ? styles.suspicious : '',
                     ].join(' ')}
                   >
                     {orderedCols.map(col => {

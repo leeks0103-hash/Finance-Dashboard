@@ -184,6 +184,22 @@
 .cellProfit { color: var(--profit); font-weight: 600; }
 .cellWarn   { color: var(--warn); }
 
+/* 조기입력 의심 데이터 배너 — KPI 취합 표 위, 완료 전 단계인데 실적 채워진 행 안내 */
+.anomalyBanner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  border-radius: var(--radius);
+  background: var(--danger-bg);
+  border: 1px solid var(--danger);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+}
+.anomalyIcon { flex-shrink: 0; }
+.anomalyText b { color: var(--danger); }
+
 /* ── KPI 집계 카드 리스트 ─── */
 .kpiList {
   display: flex;

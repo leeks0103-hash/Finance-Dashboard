@@ -218,6 +218,16 @@ const KpiPage = () => {
 
       {/* KPI 취합 — flat / rowspan 토글 (툴바에 통합) */}
       <FadeInSection delay={200}>
+          {vm.anomalyCount > 0 && (
+            <div className={styles.anomalyBanner}>
+              <span className={styles.anomalyIcon}>⚠</span>
+              <span className={styles.anomalyText}>
+                보고단계가 <b>완료</b>가 아닌데 실적이 이미 입력된 항목이 <b>{vm.anomalyCount}건</b> 있습니다 —
+                조기입력 오류일 수 있으니 아래 표에서 빨간 행을 확인해주세요
+                (KPI 상세 뷰 전환 시 표시됩니다).
+              </span>
+            </div>
+          )}
           {(() => {
             const viewToggle = (
               <div className={styles.viewToggle}>

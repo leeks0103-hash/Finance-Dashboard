@@ -122,8 +122,8 @@ def _load_kpi_via_com() -> tuple[pd.DataFrame, pd.DataFrame]:
 # 예외 하드코딩 — "(정부 교육부) 25년 영남대학교 RISE-MEGA_신사업_완료.pptx"가 청탁 업체 3곳
 # 때문에 프로젝트코드 3개(E145600125110002/E146600425120002/E146600425120003)로 쪼개져
 # 있는데, 실제로는 같은 프로젝트 1건 — 2026-09-14 사용자 확인. KPI에서만 예외 적용(재무는 그대로).
+# 표시 라벨은 코드가 아니라 파일명 기준 — "{파일명}(프로젝트 3개 병합)" (사용자 지정).
 _RISE_MEGA_CODES = ["E145600125110002", "E146600425120002", "E146600425120003"]
-_RISE_MEGA_LABEL = "E145600125110002(프로젝트 3개 병합)"
 
 
 def _merge_rise_mega_rows(df: pd.DataFrame, code_col: str) -> pd.DataFrame:
@@ -132,6 +132,10 @@ def _merge_rise_mega_rows(df: pd.DataFrame, code_col: str) -> pd.DataFrame:
     컬럼별 규칙: 3행 값이 전부 같으면(=목표처럼 프로젝트 단위 값이 중복 기재된 경우) 그대로
     1개만 남기고, 값이 다르고 전부 숫자면(=실적처럼 업체별로 쪼개져 기재된 경우) 합산.
     그 외(텍스트가 갈리는 경우)는 첫 행 값을 그대로 사용.
+
+    ⚠️ 병합 후 코드 컬럼 값을 파일명 기반 라벨로 바꾸므로, 이 함수는 _build_agg_df()가
+    _real_code() 정식코드 필터를 이미 적용한 *이후*에만 호출해야 함(먼저 호출하면 라벨이
+    정식코드 형식이 아니라서 필터에 걸려 통째로 제외됨).
     """
     mask = df[code_col].isin(_RISE_MEGA_CODES)
     group = df[mask]
@@ -142,6 +146,11 @@ def _merge_rise_mega_rows(df: pd.DataFrame, code_col: str) -> pd.DataFrame:
                 len(_RISE_MEGA_CODES), len(group),
             )
         return df
+
+    file_col = next((c for c in group.columns if "파일명" in str(c)), None)
+    filename = str(group.iloc[0][file_col]).strip() if file_col else str(group.iloc[0][code_col])
+    filename = re.sub(r"\.pptx?$", "", filename, flags=re.IGNORECASE)
+    label = f"{filename}(프로젝트 3개 병합)"
 
     merged = group.iloc[0].copy()
     for col in group.columns:
@@ -154,7 +163,7 @@ def _merge_rise_mega_rows(df: pd.DataFrame, code_col: str) -> pd.DataFrame:
         if nums.notna().all():
             merged[col] = nums.sum()
         # 텍스트가 갈리는 경우는 iloc[0] 값(위에서 이미 복사됨) 유지
-    merged[code_col] = _RISE_MEGA_LABEL
+    merged[code_col] = label
 
     return pd.concat(
         [df[~mask], merged.to_frame().T],
@@ -292,6 +301,48 @@ def get_kpi_df() -> pd.DataFrame:
                 logger.error("load_kpi_excel() 실패: %s", e)
                 _kpi_cached_mtime = current_mtime
     return _kpi_raw_df
+
+
+_COMPLETE_STAGE = "완료"
+
+
+def _is_real_value(v) -> bool:
+    if v is None:
+        return False
+    s = str(v).strip()
+    return s not in ("", "0", "0.0", "N", "n", "nan", "NaN")
+
+
+def _find_premature_actual_rows() -> list:
+    """보고단계가 '완료'가 아닌데 실적(PJ실적)이 이미 채워진 행 — 조기입력 의심 (2026-09-14).
+
+    KPI 취합 표에서 빨간 행 표시(kpiColumns.ts isPrematureActualRow)와 같은 판정 기준 —
+    프론트가 이걸 다시 계산하지 않고 이 목록을 그대로 팝업/배지에 쓴다.
+    """
+    df = get_kpi_df()
+    if df.empty:
+        return []
+    stage_col = next((c for c in df.columns if "보고단계" in str(c)), None)
+    code_col  = next((c for c in df.columns if "프로젝트코드" in str(c)), None)
+    file_col  = next((c for c in df.columns if "파일명" in str(c)), None)
+    if stage_col is None:
+        return []
+    actual_cols = [c for c in df.columns if str(c).endswith("_PJ실적")]
+
+    out = []
+    for _, row in df.iterrows():
+        stage = str(row[stage_col]).strip()
+        if not stage or stage == _COMPLETE_STAGE:
+            continue
+        for col in actual_cols:
+            if _is_real_value(row[col]):
+                out.append({
+                    "project_code": str(row[code_col]).strip() if code_col else "",
+                    "stage":        stage,
+                    "metric":       col[:-len("_PJ실적")],
+                    "file":         str(row[file_col]).strip() if file_col else "",
+                })
+    return out
 
 
 def _load_kpi_items_from_cache() -> list:
@@ -645,7 +696,10 @@ def api_kpi_summary():
         for idx, row in enumerate(result):
             row["plan_target"] = _PLAN_TARGETS[idx] if idx < len(_PLAN_TARGETS) else "-"
 
-        return jsonify({"available": True, "items": result})
+        anomalies = _find_premature_actual_rows()
+
+        return jsonify({"available": True, "items": result,
+                         "anomaly_count": len(anomalies), "anomalies": anomalies[:30]})
 
     except Exception as e:
         logger.error("api_kpi_summary 오류: %s", e)

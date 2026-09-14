@@ -64,3 +64,19 @@ export const isImplausibleScoreRow = (row: Record<string, unknown>, metricKey: s
     return Number.isFinite(n) && n > IMPLAUSIBLE_SCORE_THRESHOLD;
   });
 };
+
+const COMPLETE_STAGE = '완료';
+
+/**
+ * 보고단계가 "완료"가 아닌데(제안·착수·중간 등) 해당 항목의 실적(PJ실적)이 이미 채워진 행 —
+ * 조기입력 의심 (2026-09-14, 사용자가 직접 4건 발견 후 자동 감지로 전환).
+ * 백엔드 kpi.py `_find_premature_actual_rows()`와 판정 기준 동일하게 유지할 것.
+ */
+export const isPrematureActualRow = (row: Record<string, unknown>, metricKey: string): boolean => {
+  const stage = String(row['보고단계'] ?? '').trim();
+  if (!stage || stage === COMPLETE_STAGE) return false;
+  const v = row[`${metricKey}_PJ실적`];
+  if (v === null || v === undefined || v === '' || v === 0 || v === '0') return false;
+  const s = String(v).trim();
+  return s !== 'N' && s !== 'n';
+};

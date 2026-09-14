@@ -9,10 +9,20 @@ export interface KpiSummaryItem {
   plan_target:  string;
 }
 
+export interface KpiAnomaly {
+  project_code: string;
+  stage:        string;
+  metric:       string;
+  file:         string;
+}
+
 export interface KpiSummary {
-  available: boolean;
-  message?:  string;
-  items?:    KpiSummaryItem[];
+  available:      boolean;
+  message?:       string;
+  items?:         KpiSummaryItem[];
+  /** 보고단계가 완료 전인데 실적이 이미 채워진 행 — 조기입력 의심 (kpi.py _find_premature_actual_rows) */
+  anomaly_count?: number;
+  anomalies?:     KpiAnomaly[];
 }
 
 // 취합 시트 — 컬럼이 동적이므로 Record 사용
