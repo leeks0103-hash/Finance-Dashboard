@@ -146,8 +146,8 @@ export const useKpiPageViewModel = (summaryPart = ''): KpiPageViewModel => {
         // 3계열 한 세트 — categoryPercentage 0.66으로 세트 사이 간격 확보,
         // barPercentage 0.82로 세트 안 3개 막대에도 살짝 마진
         { label: '26년 목표 KPI',       data: planTargets, backgroundColor: palette.cost,    borderRadius: 0, barPercentage: 0.82, categoryPercentage: 0.66 },  // 원가 그래프색(Gold)
-        { label: '26년 목표(프로젝트)', data: targets,     backgroundColor: palette.plan,    borderRadius: 0, barPercentage: 0.82, categoryPercentage: 0.66 },  // 중립 회색
-        { label: '26년 실적',           data: actuals,     backgroundColor: palette.revenue, borderRadius: 0, barPercentage: 0.82, categoryPercentage: 0.66 },
+        { label: '26년 계획(프로젝트)', data: targets,     backgroundColor: palette.plan,    borderRadius: 0, barPercentage: 0.82, categoryPercentage: 0.66 },  // 중립 회색
+        { label: '26년 실적(프로젝트)', data: actuals,     backgroundColor: palette.revenue, borderRadius: 0, barPercentage: 0.82, categoryPercentage: 0.66 },
       ],
     };
   }, [items, chartOptions, palette, labelColor]);

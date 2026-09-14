@@ -47,14 +47,14 @@ const KpiPage = () => {
     // 사업계획 목표는 고정값(ViewModel PLAN_TARGETS) — 프로젝트 목표와 구분되도록 헤더에 명시
     sh.accessor('planTarget', { header: '26년 목표(사업계획)', size: 170, meta: { staticCol: true } }),
     sh.accessor('agg',        { header: '집계방식', size: 110 }),
-    sh.accessor('targetStr',  { header: '26년 목표(프로젝트)', size: 190, enableSorting: true,
+    sh.accessor('targetStr',  { header: '26년 계획(프로젝트)', size: 190, enableSorting: true,
       cell: i => (
         <Button unstyled className={styles.cellBtn} onClick={() => setBreakdown({ name: i.row.original.name, metric: 'target' })}>
           <KpiValueCell value={i.getValue() as string} />
         </Button>
       ),
     }),
-    sh.accessor('actual',     { header: '26년 실적', size: 220, enableSorting: true,
+    sh.accessor('actual',     { header: '26년 실적(프로젝트)', size: 220, enableSorting: true,
       cell: i => (
         <Button unstyled className={styles.cellBtn} onClick={() => setBreakdown({ name: i.row.original.name, metric: 'actual' })}>
           <KpiValueCell value={i.getValue() as string} />
