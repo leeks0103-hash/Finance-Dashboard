@@ -119,8 +119,55 @@ def _load_kpi_via_com() -> tuple[pd.DataFrame, pd.DataFrame]:
             pass
 
 
+# 예외 하드코딩 — "(정부 교육부) 25년 영남대학교 RISE-MEGA_신사업_완료.pptx"가 청탁 업체 3곳
+# 때문에 프로젝트코드 3개(E145600125110002/E146600425120002/E146600425120003)로 쪼개져
+# 있는데, 실제로는 같은 프로젝트 1건 — 2026-09-14 사용자 확인. KPI에서만 예외 적용(재무는 그대로).
+_RISE_MEGA_CODES = ["E145600125110002", "E146600425120002", "E146600425120003"]
+_RISE_MEGA_LABEL = "E145600125110002(프로젝트 3개 병합)"
+
+
+def _merge_rise_mega_rows(df: pd.DataFrame, code_col: str) -> pd.DataFrame:
+    """RISE-MEGA 3개 코드 행을 1행으로 병합.
+
+    컬럼별 규칙: 3행 값이 전부 같으면(=목표처럼 프로젝트 단위 값이 중복 기재된 경우) 그대로
+    1개만 남기고, 값이 다르고 전부 숫자면(=실적처럼 업체별로 쪼개져 기재된 경우) 합산.
+    그 외(텍스트가 갈리는 경우)는 첫 행 값을 그대로 사용.
+    """
+    mask = df[code_col].isin(_RISE_MEGA_CODES)
+    group = df[mask]
+    if len(group) != len(_RISE_MEGA_CODES):
+        if len(group) > 0:
+            logger.warning(
+                "RISE-MEGA 병합 스킵 — 기대한 %d행이 아니라 %d행 발견(재추출로 데이터가 바뀌었을 수 있음)",
+                len(_RISE_MEGA_CODES), len(group),
+            )
+        return df
+
+    merged = group.iloc[0].copy()
+    for col in group.columns:
+        if col == code_col:
+            continue
+        vals = group[col]
+        if vals.nunique(dropna=False) <= 1:
+            continue  # 3행 동일 — 그대로 둠
+        nums = pd.to_numeric(vals, errors="coerce")
+        if nums.notna().all():
+            merged[col] = nums.sum()
+        # 텍스트가 갈리는 경우는 iloc[0] 값(위에서 이미 복사됨) 유지
+    merged[code_col] = _RISE_MEGA_LABEL
+
+    return pd.concat(
+        [df[~mask], merged.to_frame().T],
+        ignore_index=True,
+    )
+
+
 def _post_process_raw(df: pd.DataFrame) -> pd.DataFrame:
-    """취합 시트 공통 후처리 (프로젝트코드 정제 + fillna)."""
+    """취합 시트 공통 후처리 (프로젝트코드 정제 + fillna).
+
+    ⚠️ RISE-MEGA 병합은 여기서 하지 않음 — "KPI 취합" 표는 원본 그대로(3행) 노출해야 함
+    (2026-09-14 사용자 지정). 병합은 _build_agg_df()가 만드는 집계 전용 df에만 적용.
+    """
     if df.empty:
         return df
     code_col = next((c for c in df.columns if "프로젝트코드" in str(c)), None)
@@ -182,6 +229,11 @@ def _build_agg_df(df: pd.DataFrame) -> pd.DataFrame:
          .reset_index(drop=True)
     )
     logger.info("KPI 집계 대상: 단계 중복 제거 후 %d행", len(d))
+
+    # RISE-MEGA 3코드 병합 — 집계(KPI 집계 카드, KPI 목표 vs 실적 차트)에만 적용.
+    # "KPI 취합" 표는 _kpi_raw_df(이 함수의 입력 df)를 그대로 쓰므로 영향 없음.
+    d = _merge_rise_mega_rows(d, code_col).reset_index(drop=True)
+
     return d
 
 
@@ -533,13 +585,11 @@ def api_kpi_summary():
         result = []
         for i, kpi in enumerate(kpi_items):
             is_count_type = isinstance(kpi.get("target", 0), str) and "신규" in str(kpi.get("target", ""))
-            # 신규/기존 건수 타입: 파트 필터 없으면 kpi 집계 시트 목표 그대로(per-project PJ목표가 "N"),
-            # 파트 필터가 있으면 그 파트의 per-project 집계값을 사용(시트값은 파트 구분 불가)
-            target = (
-                (targets[i] if (part and i < len(targets)) else kpi["target"])
-                if is_count_type
-                else (targets[i] if i < len(targets) else kpi["target"])
-            )
+            # 신규/기존 건수 타입도 다른 항목과 동일하게 dedup 재집계값(targets[i])을 사용.
+            # (예전엔 파트 필터 없을 때 'kpi 집계' 시트 고정값을 그대로 썼는데, 그 값은 보고단계
+            #  중복이 안 제거된 채 계산돼 있어 드릴다운 표(dedup 기준)와 숫자가 어긋났음 — 2026-09-14
+            #  실측: "기존 사업 건수" 시트값 14 vs dedup 재집계 11. 항상 재집계값으로 통일)
+            target = targets[i] if i < len(targets) else kpi["target"]
             actual = actuals[i] if i < len(actuals) else 0.0
             prev   = prevs[i]   if i < len(prevs)   else 0.0
 
@@ -714,9 +764,10 @@ def api_kpi_summary_breakdown():
         else:
             total = round(sum(vals) / len(vals), 2)
 
+        # 2026-09-14: 신규/기존 건수 목표도 api_kpi_summary()가 이제 이 dedup 기준과 동일한
+        # 재집계값을 쓰도록 통일해서, 예전에 여기 있던 "시트 고정값이라 다를 수 있음" 예외 note는
+        # 더 이상 해당 사항 없음(삭제).
         note = "프로젝트당 최우선 보고단계 1건만 반영 (완료 > 중간 > 착수 > 제안)"
-        if is_count_type and metric == "target":
-            note = "신규/기존 건수의 목표는 프로젝트별 값이 아니라 KPI 집계 시트 고정값이라 여기 목록과 다를 수 있습니다."
 
         return jsonify({
             "available":     True,

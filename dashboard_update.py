@@ -29,7 +29,7 @@ def run(script_name):
         text=True,
         encoding="utf-8",
         errors="replace",
-        timeout=300,
+        timeout=1800,  # 평소엔 1~30개라 5분(300s)로 충분했는데, 대량 재수정 시(예: 211개) 부족했음
     )
     if result.stdout:
         print(result.stdout[-500:].encode('utf-8','replace').decode('utf-8','replace'))
