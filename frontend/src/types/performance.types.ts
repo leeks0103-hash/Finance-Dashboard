@@ -127,9 +127,9 @@ export interface PerfTotal {
   count:            number;
   // ── 파생값 (백엔드 계산) ──────────────────────────────
   /** 계획 매출이익 = 계획매출 − 계획원가 (천원) */
-  plan_gross?:      number;
+  plan_gross:       number;
   /** 연간 추정 매출이익 = 추정매출 − 추정원가 (천원) */
-  est_gross?:       number;
+  est_gross:        number;
   /** 계획 대비 누계 진행률(%) = 누계매출 ÷ 계획매출 × 100. 계획 0 이하면 null */
   achieve_rate?:    number | null;
   /** 전월대비 매출 diff (천원). 전월 데이터 없으면 null */

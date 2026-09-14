@@ -17,7 +17,7 @@ import type { ServerPagination, ServerSearch } from '@/components/ui/DataTable';
 
 const FINANCE_EMPTY_FILTERS: Filters = { years: [], parts: [], stages: [] };
 
-// 천원 → 억원. 백엔드에 없는 필드(서버 재시작 전 등)가 들어와도 NaN 대신 0이 되도록 방어
+// 천원 → 억원 — 표시 단위 변환(순수 포맷팅). null/undefined가 들어와도 NaN 대신 0으로 방어
 const toEokNum = (v: number | null | undefined) =>
   Number.isFinite(Number(v)) ? +(Number(v) / 100_000).toFixed(1) : 0;
 
@@ -182,10 +182,10 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
       mk('revenue',     '매출 (계획/추정)', 'brand',  total.plan_initial,   total.jun_check_total),
       mk('cost',        '원가 (계획/추정)', 'purple', total.plan_cost,      total.jun_cost),
       mk('grossProfit', '매출이익 (계획/추정)',
-         (total.est_gross ?? 0) >= 0 ? 'profit' : 'loss',
-         // 매출이익 = 매출 − 원가. 백엔드 계산값 사용 (재시작 전 폴백만 인라인)
-         total.plan_gross ?? (total.plan_initial - total.plan_cost),
-         total.est_gross  ?? (total.jun_check_total - total.jun_cost)),
+         total.est_gross >= 0 ? 'profit' : 'loss',
+         // 매출이익 = 매출 − 원가. 백엔드 계산값(performance.py plan_gross/est_gross) 그대로 사용
+         total.plan_gross,
+         total.est_gross),
     ];
 
     return [

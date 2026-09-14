@@ -10,8 +10,7 @@ import { sortParts } from '@/utils/partOrder';
 import { PERF_MONTH, stripPartPrefix } from '@/utils';
 import type { ChartOptions } from 'chart.js';
 
-// 천원 → 억원. 백엔드가 아직 옛 코드라 새 필드를 안 내려주는 경우(서버 재시작 전)
-// undefined가 들어와 차트에 NaN이 찍히므로 0으로 방어한다.
+// 천원 → 억원 — 표시 단위 변환(순수 포맷팅). undefined가 들어와 차트에 NaN이 찍히는 것만 방어한다.
 const toEokNum = (v: number | null | undefined) =>
   Number.isFinite(Number(v)) ? +(Number(v) / 100_000).toFixed(1) : 0;
 
