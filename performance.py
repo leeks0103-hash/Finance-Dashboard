@@ -217,6 +217,9 @@ _PERF_COL_MAPS = {
     "2026년 (6월 집계)": _PERF_COL_MAP_JUN,
     "2026년 (7월 추정)": _PERF_COL_MAP_JUL,
     "2026년 (8월 추정)": _PERF_COL_MAP_AUG,
+    # ver8.4_260908: "8월 집계"(확정실적) 시트 신규 추가 — check_perf_headers.py로 대조 시
+    # "8월 추정"과 컬럼 구조(104개, 순서) 완전 동일 확인 → 같은 맵 재사용
+    "2026년 (8월 집계)": _PERF_COL_MAP_AUG,
 }
 
 
