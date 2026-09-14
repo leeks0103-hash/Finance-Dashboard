@@ -1,9 +1,7 @@
 import { useMemo } from 'react';
 import { createColumnHelper } from '@tanstack/react-table';
 import { usePerformanceInsightViewModel } from '@/hooks/viewmodels';
-// 아래 코드 컬럼 cell(주석 처리됨)을 되살릴 때 CopyText 도 다시 import 할 것 —
-// 쓰지 않는 import 가 남아 있으면 build(noUnusedLocals)가 실패한다
-import { DataTable } from '@/components/ui';
+import { DataTable, CopyText } from '@/components/ui';
 import { useQuickSearchStore } from '@/store/quickSearch.store';
 import FinanceDetailPanel from './FinanceDetailPanel';
 import type { Project } from '@/types';
@@ -34,7 +32,7 @@ const PerformanceInsightSection = () => {
         return <span title={reason}>{reason}</span>;
       },
     }),
-    h.accessor('filename', { header: '파일명', size: 320, cell: i => <span title={i.getValue()}>{i.getValue()}</span> }),
+    h.accessor('filename', { header: '파일명', size: 320, cell: i => <CopyText text={i.getValue()} /> }),
   ], [setPerfSearch]);
 
   return (

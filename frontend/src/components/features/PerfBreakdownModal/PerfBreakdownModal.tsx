@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom';
-import { Button } from '@/components/ui';
+import { Button, CopyText } from '@/components/ui';
 import { useScrollLock } from '@/hooks/useScrollLock';
 import { useEscToClose } from '@/hooks/useEscToClose';
 import {
@@ -48,7 +48,7 @@ const PerfBreakdownModal = ({ target, onClose }: Props) => {
         sortValue: r => r.project_code,
         render: r => (
           <>
-            {r.project_code || '—'}
+            {r.project_code ? <CopyText text={r.project_code} /> : '—'}
             {r.project_name && <span className={styles.pname}> · {r.project_name}</span>}
           </>
         ),

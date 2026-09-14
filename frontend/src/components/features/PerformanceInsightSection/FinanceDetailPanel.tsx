@@ -1,4 +1,4 @@
-import { Button } from '@/components/ui';
+import { Button, CopyText } from '@/components/ui';
 import { formatBillion, formatRate } from '@/utils';
 import type { Project } from '@/types';
 import styles from './FinanceDetailPanel.module.css';
@@ -19,7 +19,7 @@ const FinanceDetailPanel = ({ project: p, onClose }: Props) => {
   return (
     <div className={styles.panel}>
       <div className={styles.header}>
-        <span className={styles.title}>재무 데이터(PPT) 상세 — {p.project_code}</span>
+        <span className={styles.title}>재무 데이터(PPT) 상세 — <CopyText text={p.project_code} /></span>
         <Button unstyled className={styles.closeBtn} onClick={onClose} aria-label="닫기">✕</Button>
       </div>
 
@@ -44,7 +44,7 @@ const FinanceDetailPanel = ({ project: p, onClose }: Props) => {
         <div className={styles.triRow}>
           <div className={styles.row}><span className={styles.key}>이익율</span><span className={styles.val}>{formatRate(p.profit_rate)}</span></div>
           <div className={styles.row}><span className={styles.key}>미수사유</span><span className={styles.val} title={missedBidReason}>{missedBidReason}</span></div>
-          <div className={styles.row}><span className={styles.key}>파일명</span><span className={styles.val} title={p.filename}>{p.filename}</span></div>
+          <div className={styles.row}><span className={styles.key}>파일명</span><span className={styles.val}><CopyText text={p.filename} /></span></div>
         </div>
       </div>
     </div>
