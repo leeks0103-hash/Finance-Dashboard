@@ -27,19 +27,19 @@
 }
 
 .label {
-  font-size: 0.65rem;
+  font-size: 0.8rem;
   font-weight: 700;
-  color: var(--text-muted);
+  color: var(--text-primary);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   white-space: nowrap;
   flex-shrink: 0;
 }
 
 :global([data-theme="dark"]) .label {
   color: var(--brand-mid);
-  opacity: 0.85;
-  font-size: 0.6rem;
+  opacity: 0.95;
+  font-size: 0.8rem;
 }
 
 .chips {
@@ -72,6 +72,7 @@
   position: relative;
   display: inline-flex;
   align-items: center;
+  gap: 8px;
 }
 
 .teamSelect {
@@ -83,8 +84,8 @@
   padding: 5px 24px 5px 10px;
   border-radius: 6px;
   border: 1.5px solid var(--border);
-  background: var(--bg-card);
-  color: var(--text-main);
+  background: var(--surface);
+  color: var(--text-primary);
   font-size: 0.8rem;
   font-weight: 500;
   font-family: inherit;
