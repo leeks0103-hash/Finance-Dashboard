@@ -41,12 +41,16 @@ def _port_alive(port: int, timeout: float = 0.5) -> bool:
 def _pids_listening_on(port: int) -> set[int]:
     """해당 포트를 LISTENING 중인 프로세스 PID 집합 (netstat 파싱)."""
     try:
-        out = subprocess.run(
+        raw = subprocess.run(
             ["netstat", "-ano", "-p", "TCP"],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True, timeout=10,
         ).stdout
     except Exception:
         return set()
+    # text=True는 내부 리더 스레드가 로케일 인코딩(cp949)으로 즉시 디코드하다가
+    # 디코드 불가 바이트를 만나면 스레드 안에서 예외를 던져 죽음 → bytes로 받고
+    # 여기서 errors="replace"로 안전하게 디코드
+    out = raw.decode("cp949", errors="replace")
 
     pids: set[int] = set()
     for line in out.splitlines():

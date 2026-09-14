@@ -280,12 +280,26 @@ def load_perf_excel():
     df.columns = [col_map[i] for i in col_indices]
     df.columns = [col_map[i] for i in col_indices]
 
-    df = df[df["project_code"].notna()]
-    df["project_code"] = df["project_code"].astype(str).str.strip()
-    df = df[df["project_code"] != ""]
+    # 프로젝트코드(O열)가 비어있어도 실제 매출/원가가 있는 행이면 집계에서 빠지면 안 됨
+    # (2026-09-14 실측: K뉴딜 아카데미 2건이 코드 미기재로 통째로 누락돼 실적현황 합계가
+    #  23.6억 적게 잡히는 문제 확인). 코드가 비면 프로젝트명으로 대체해서 식별자로 쓰고,
+    # 상세 테이블(api_perf_data)에도 이 대체값이 그대로 노출된다.
+    df["project_code"] = df["project_code"].fillna("").astype(str).str.strip()
+    df["project_code"] = df["project_code"].replace({"nan": "", "<NA>": "", "NaN": ""})
+    df["project_name"] = df["project_name"].fillna("").astype(str).str.strip()
+    df["project_name"] = df["project_name"].replace({"nan": "", "<NA>": "", "NaN": ""})
+    blank_code = df["project_code"] == ""
+    if blank_code.any():
+        logger.warning(
+            "프로젝트코드 미기재 %d행 — 프로젝트명으로 대체 (use_yn/category 필터 전 집계, "
+            "실제 반영분은 이보다 적음)", int(blank_code.sum()),
+        )
+        df.loc[blank_code, "project_code"] = df.loc[blank_code, "project_name"]
     df["use_yn"] = df["use_yn"].astype(str).str.strip()
     df = df[df["use_yn"] == "사용"]
     df = df[df["category"].isin(["매출", "원가"])]
+    # 코드도 이름도 둘 다 없는 완전 빈 행만 제외 (빈 줄/서식용 더미행 방지)
+    df = df[df["project_code"] != ""]
 
     str_cols = [
         "tech_category", "team", "part", "biz_division", "biz_type", "customer_type",
@@ -297,6 +311,11 @@ def load_perf_excel():
         if col in df.columns:
             df[col] = df[col].fillna("").astype(str).str.strip()
             df[col] = df[col].replace({"nan": "", "<NA>": "", "NaN": ""})
+
+    # K뉴딜TF 파트가 원본에 "⑦ K뉴딜TF" / "⑦ K뉴딜TF(SW)" / "⑦ K뉴딜TF(EM)" 3갈래로 나뉘어
+    # 있음 — 사실상 같은 파트라 "⑦ K뉴딜TF"로 통합 (표기 채택본). by_part/options 등
+    # 이 df["part"]를 그대로 groupby하는 모든 곳에 한 번에 반영됨.
+    df["part"] = df["part"].str.replace(r"⑦ K뉴딜TF\(.+?\)", "⑦ K뉴딜TF", regex=True)
 
     num_cols = [
         "actual_2025", "plan_initial", "plan_cost_rate",
