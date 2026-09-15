@@ -149,10 +149,12 @@
 /* 컬럼 숨김 */
 .colToggleWrap { position: relative; }
 
+/* 컬럼 ▾ 버튼은 툴바 왼쪽에 있어서 right:0(왼쪽으로 펼침)이면 화면 왼쪽 밖으로 잘릴 수 있음 —
+   버튼 기준 왼쪽에 붙여 오른쪽으로 펼치는 쪽이 항상 안전 */
 .colMenu {
   position: absolute;
   top: calc(100% + 4px);
-  right: 0;
+  left: 0;
   z-index: 200;
   background: var(--bg-subtle);
   border: 1px solid var(--border);
