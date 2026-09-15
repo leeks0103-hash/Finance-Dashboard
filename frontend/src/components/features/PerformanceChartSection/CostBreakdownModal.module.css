@@ -89,6 +89,7 @@
 .cols4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 
 .partCard {
+  position: relative;   /* .expandBtn 절대배치 기준 */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -98,6 +99,35 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 10px 10px 12px;
+}
+
+/* 카드 우측상단 "⤢ 확대" 버튼 — 클릭하면 전사평균과 나란히 비교(previewWrap로 전환) */
+.expandBtn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: none;
+  border-radius: 3px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.85rem;
+  line-height: 1;
+  opacity: 0.6;
+  transition: background 0.14s ease, color 0.14s ease, opacity 0.14s ease;
+}
+.expandBtn:hover {
+  background: var(--bg-subtle);
+  color: var(--text-primary);
+  opacity: 1;
 }
 
 .partLabel {
@@ -121,6 +151,35 @@
 .cols4 .smallChart { height: 230px; }
 .cols4 .partCard    { padding: 8px 8px 10px; }
 .cols4 .partLabel   { font-size: 0.68rem; }
+
+/* 카드 "⤢" 클릭 시 — 그리드 자리를 대체하는 확대 미리보기(전사평균과 나란히 비교) */
+.previewWrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+}
+.previewHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.previewCloseBtn {
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 3px 10px;
+  color: var(--text-sub);
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+.previewCloseBtn:hover {
+  background: var(--bg-subtle);
+  color: var(--text-primary);
+}
 
 @media (max-width: 900px) {
   .wrap     { flex-direction: column; }
