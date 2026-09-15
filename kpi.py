@@ -890,6 +890,7 @@ def api_kpi_open_file():
         return jsonify({"ok": False, "message": "파일명이 없습니다."}), 400
 
     path = _find_kpi_file_path(filename)
+    logger.info("[파일 열기/KPI] filename=%s -> path=%s", filename, path)
     if not path or not os.path.exists(path):
         return jsonify({
             "ok": False,
