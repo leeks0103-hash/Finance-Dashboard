@@ -165,6 +165,9 @@ interface Props<T> {
   hideableColumns?:   HideableColumn[];
   defaultPageSize?:   number;
   pageSizeOptions?:   number[];
+  /** 결과가 적을 때 테이블 본문이 확보하는 최소 행 수(기본 5) — 검색 결과 패널처럼
+   *  1~2건만 나와도 본문이 너무 작아 보이지 않아야 할 때 올려서 쓴다 */
+  minRows?:           number;
   searchable?:        boolean;
   searchPlaceholder?: string;
   stickyFirstCol?:    boolean;
@@ -239,6 +242,7 @@ const DataTable = <T extends object>({
   hideableColumns,
   defaultPageSize   = 30,
   pageSizeOptions   = DEFAULT_PAGE_SIZES,
+  minRows           = MIN_TABLE_ROWS,
   searchable        = false,
   searchPlaceholder = '검색… (Esc: 초기화)',
   stickyFirstCol    = false,
@@ -555,7 +559,7 @@ const DataTable = <T extends object>({
   }, [isServerMode, serverPagination, table, isInfiniteMode, infiniteLoadMore, globalFilter, filtered, data.length, rows.length]);
 
   // 실제 보여지는 행 수 기준 — pageSize를 다 못 채워도(검색 결과 적음) 그만큼만 여백 확보
-  const dtRows = Math.max(MIN_TABLE_ROWS, Math.min(pagination.pageSize, rows.length));
+  const dtRows = Math.max(minRows, Math.min(pagination.pageSize, rows.length));
 
   // ── 서버/클라이언트 검색 통합 ──
   const tableSearch = useMemo(() => {

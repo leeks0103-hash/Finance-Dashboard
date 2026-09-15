@@ -253,7 +253,7 @@ const PerformanceChartSection = () => {
       },
     }), scaleOverride),
     scales: {
-      x: { ...scaleOverride.x, stacked: false, offset: true, ticks: { ...scaleOverride.x.ticks, align: 'center' } },
+      x: { ...scaleOverride.x, stacked: false, offset: true, ticks: { ...scaleOverride.x.ticks, align: 'center' as const } },
       y: { ...scaleOverride.y, ticks: { ...scaleOverride.y.ticks, callback: (v: string | number) => v + '억' } },
     },
   }), [vm.showLabels, labelColor, scaleOverride]);

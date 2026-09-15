@@ -54,6 +54,8 @@ const FinanceSearchResults = ({ results, searchTerm, info }: Props) => {
         info={info}
         defaultPageSize={10}
         pageSizeOptions={[10, 20]}
+        // 검색 결과가 1~2건이어도 본문이 너무 작아 보이지 않도록 최소 행 수 확보
+        minRows={8}
         emptyIcon="🔍"
         emptyTitle="재무 데이터 없음"
         emptyDescription={`"${searchTerm}"에 해당하는 재무 데이터가 없습니다.`}

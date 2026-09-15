@@ -32,9 +32,13 @@ export interface OpenFileResult {
   message?: string;
 }
 
-/** 파일명으로 원본 PPT 위치를 찾아 서버(로컬 PC)에서 직접 실행 — NAS 이전 전 로컬 경로 기준 */
+/** 파일명으로 원본 PPT 위치를 찾아 서버(로컬 PC)에서 직접 실행.
+ *  실패(404 못 찾음 · 409 이미 열려있음)도 axios가 던지는 예외가 아니라
+ *  { ok:false, message } 형태로 정상 resolve — 호출부가 항상 .then(r => r.ok)만 보면 되게 */
 export const openFinanceFile = (filename: string): Promise<OpenFileResult> =>
-  client.post<OpenFileResult>('/finance/open-file', { filename }).then(r => r.data);
+  client.post<OpenFileResult>('/finance/open-file', { filename })
+    .then(r => r.data)
+    .catch((err): OpenFileResult => err?.response?.data ?? { ok: false, message: '파일을 열 수 없습니다.' });
 
 // ── 재무 차트 막대/조각 드릴다운 (어떤 프로젝트 행들을 합산했는지) ──
 export interface FinanceBreakdownRow {

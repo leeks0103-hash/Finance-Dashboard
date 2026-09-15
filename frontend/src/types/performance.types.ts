@@ -88,6 +88,12 @@ export interface PerfProject {
 
 export interface PerfPartStats {
   plan_initial:     number;
+  /** 계획 원가 */
+  plan_cost:        number;
+  cost_direct:      number;
+  cost_labor:       number;
+  cost_overhead:    number;
+  cost_mgmt:        number;
   /** 누계 매출 (1~기준월) */
   jun_actual:       number;
   /** 누계 원가 (1~기준월) */

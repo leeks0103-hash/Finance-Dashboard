@@ -39,7 +39,7 @@ export const useBackgroundPrefetch = () => {
       // ── KPI ──────────────────────────────────────────────────
       qc.prefetchQuery({
         queryKey: ['kpi-summary'],
-        queryFn:  getKpiSummary,
+        queryFn:  () => getKpiSummary(),
         staleTime: STALE_5MIN,
       });
       qc.prefetchInfiniteQuery({

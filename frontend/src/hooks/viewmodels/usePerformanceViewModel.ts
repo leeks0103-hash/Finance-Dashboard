@@ -159,10 +159,6 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
   const kpiCards: PerfKpiCard[] = useMemo(() => {
     if (!total) return [];
 
-    // 전월대비 diff(천원) — 배지는 뗐지만 accent 방향(흑자/적자 등) 계산엔 계속 사용
-    const momRevK  = total.mom_revenue ?? null;
-    const momProfK = total.mom_gross   ?? null;
-
     // 계획 → 추정(연간) 2값 비교 카드. 값은 매출행/원가행 각각의 합 (천원 → 억)
     const mk = (
       id: string, label: string, accent: PerfAccent, planK: number, estK: number,

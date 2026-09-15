@@ -42,6 +42,7 @@ export const CellPopup = ({ title, popup, copied, onClose, onCopy }: Props) => {
         ) : (
           <div className={styles.popupBody}>{popup.text}</div>
         )}
+        {/* 파일 바로가기 버튼 — 일단 전부 주석 처리 (2026-09-15)
         {popup.onOpen && (
           <div className={styles.popupActions}>
             <Button variant="primary" size="sm" className={styles.openFileBtn} onClick={popup.onOpen}>
@@ -49,6 +50,7 @@ export const CellPopup = ({ title, popup, copied, onClose, onCopy }: Props) => {
             </Button>
           </div>
         )}
+        */}
       </div>
     </div>,
     document.body,

@@ -34,7 +34,7 @@ const PerformanceInsightSection = () => {
     h.accessor('missed_bid_reason', {
       header: '미수사유',
       size: 260,
-      cell: i => i.getValue() ? <CopyText text={i.getValue()} /> : <span>-</span>,
+      cell: i => { const v = i.getValue(); return v ? <CopyText text={v} /> : <span>-</span>; },
     }),
     h.accessor('filename', { header: '파일명', size: 320, cell: i => <CopyText text={i.getValue()} onOpen={openFile} /> }),
   ], [setPerfSearch]);

@@ -29,14 +29,20 @@ export const getKpiData = (
 export const reloadKpiData = () =>
   client.post('/kpi/reload').then(r => r.data);
 
-export interface OpenFileResult {
+// finance.api.ts의 OpenFileResult와 구조가 같아 재사용해도 되지만, api/index.ts에서
+// export *로 재수출할 때 동일 이름 충돌(TS2308)이 나서 여긴 모듈 내부 전용으로 둔다
+interface KpiOpenFileResult {
   ok:       boolean;
   message?: string;
 }
 
-/** 파일명으로 원본 PPT 위치를 찾아 서버(로컬 PC)에서 직접 실행 — NAS 이전 전 로컬 경로 기준 */
-export const openKpiFile = (filename: string): Promise<OpenFileResult> =>
-  client.post<OpenFileResult>('/kpi/open-file', { filename }).then(r => r.data);
+/** 파일명으로 원본 PPT 위치를 찾아 서버(로컬 PC)에서 직접 실행.
+ *  실패(404 못 찾음 · 409 이미 열려있음)도 axios가 던지는 예외가 아니라
+ *  { ok:false, message } 형태로 정상 resolve — 호출부가 항상 .then(r => r.ok)만 보면 되게 */
+export const openKpiFile = (filename: string): Promise<KpiOpenFileResult> =>
+  client.post<KpiOpenFileResult>('/kpi/open-file', { filename })
+    .then(r => r.data)
+    .catch((err): KpiOpenFileResult => err?.response?.data ?? { ok: false, message: '파일을 열 수 없습니다.' });
 
 // ── KPI 집계 막대 드릴다운 (어떤 행들을 합/평균했는지) ──
 export interface KpiBreakdownRow {

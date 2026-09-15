@@ -59,12 +59,25 @@ export interface PerformanceChartViewModel {
   teams:            string[];
   selectedCostTeam: string;
   setSelectedCostTeam: (v: string) => void;
+  /** "전체" + 접두어 뗀 파트명 목록 — 원가 비율 카드 파트 선택 드롭다운용 */
+  partOptions:      string[];
+  selectedCostPart: string;
+  setSelectedCostPart: (v: string) => void;
   progress: {
     labels:       string[];
     revenues:     number[];
     expenditures: number[];
     options:      ChartOptions<'bar'>;
   };
+  /** 원가 비율 확대 모달(CostBreakdownModal)이 직접 쓰는 원본 구성비 데이터.
+   *  로딩 중이거나 데이터가 없으면 null. */
+  chartData: {
+    costBreakdownTotal:  { labels: string[]; values: number[] };
+    costBreakdownByPart: Record<string, { labels: string[]; values: number[] }>;
+    costBreakdownByTeam: Record<string, { labels: string[]; values: number[] }>;
+    partsRaw:            string[];
+    teamParts:           Record<string, string[]>;
+  } | null;
 }
 
 export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {

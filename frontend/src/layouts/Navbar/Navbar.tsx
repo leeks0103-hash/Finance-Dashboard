@@ -7,7 +7,7 @@ import KpiActionBar from '@/components/features/KpiActionBar';
 import NgvLogo from './NgvLogo';
 import { useTheme } from '@/hooks';
 import { useDataHealth } from '@/hooks/useDataHealth';
-import { useOpenFile } from '@/hooks/useOpenFile';
+// import { useOpenFile } from '@/hooks/useOpenFile';   // 파일 바로가기 버튼 주석 처리로 미사용(2026-09-15)
 import { useUiStore } from '@/store';
 import { pathToTab } from '@/utils/routing';
 import styles from './Navbar.module.css';
@@ -27,7 +27,7 @@ const Navbar = () => {
   const healthRows = health?.rows ?? [];
   const [healthOpen, setHealthOpen] = useState(false);
   const healthRef = useRef<HTMLDivElement>(null);
-  const { openFile } = useOpenFile();
+  // const { openFile } = useOpenFile();   // 파일 바로가기 버튼 주석 처리로 미사용(2026-09-15)
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -85,6 +85,7 @@ const Navbar = () => {
                       <li key={row.file} className={styles.healthItem}>
                         <div className={styles.healthFileRow}>
                           <div className={styles.healthFile}>{row.file}</div>
+                          {/* 파일 바로가기 버튼 — 일단 전부 주석 처리 (2026-09-15)
                           <Button unstyled
                             className={styles.healthOpenBtn}
                             onClick={() => openFile(row.file)}
@@ -93,6 +94,7 @@ const Navbar = () => {
                           >
                             ↗
                           </Button>
+                          */}
                         </div>
                         <div className={styles.healthCodes}>
                           <span>재무: {row.finance_codes.join(', ') || '—'}</span>

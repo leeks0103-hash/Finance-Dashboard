@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 from flask import Blueprint, jsonify, request, make_response
 from markupsafe import escape as html_escape
 
-from shared import is_ranked_valid_code
+from shared import is_ranked_valid_code, is_file_locked
 import paths
 
 load_dotenv()
@@ -668,6 +668,15 @@ def api_finance_open_file():
             "ok": False,
             "message": "원본 위치를 찾을 수 없습니다 — 폴더가 이동했거나 재추출이 필요할 수 있습니다.",
         }), 404
+
+    # 한 대의 PC(호스트)를 여러 사람이 공유해서 보는 구조 — 누군가 이미 열어둔 파일을
+    # 또 열려고 하면 막는다. "닫혔는지"는 이 잠금파일이 사라졌는지로 자동 판단되므로
+    # 별도로 닫힘을 추적할 필요가 없다.
+    if is_file_locked(path):
+        return jsonify({
+            "ok": False,
+            "message": "다른 사람이 이미 열어둔 파일입니다 — 닫힌 뒤 다시 시도해주세요.",
+        }), 409
 
     try:
         os.startfile(path)
