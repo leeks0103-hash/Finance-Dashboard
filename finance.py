@@ -463,6 +463,63 @@ def api_summary():
     })
 
 
+_FIN_BREAKDOWN_FIELDS = {
+    # field -> (엑셀 컬럼, 라벨, 단위) — 단위가 "억원"이면 원본(원) 값을 1e8로 나눠 보여줌
+    "revenue":          ("revenue",          "매출",    "억원"),
+    "expenditure":      ("expenditure",      "지출",    "억원"),
+    "operating_profit": ("operating_profit", "경상이익", "억원"),
+    "profit_rate":      ("profit_rate",      "이익율",  "%"),
+    "direct_cost":      ("direct_cost",      "직접원가", "억원"),
+    "labor_cost":       ("labor_cost",       "인건비",  "억원"),
+    "overhead":         ("overhead",         "공통원가", "억원"),
+}
+
+
+@finance_bp.route("/api/summary/breakdown")
+def api_summary_breakdown():
+    """차트 막대/조각 하나가 '어떤 프로젝트 행들을 합산해서' 나온 값인지 드릴다운.
+    KPI/실적현황의 breakdown과 같은 패턴 — 반환 total이 그 막대·조각 값과 일치한다."""
+    field = request.args.get("field", "").strip()
+    dim   = request.args.get("dim", "").strip()   # "part" | "stage" | "" (원가구성 도넛은 필터 전체)
+    key   = request.args.get("key", "").strip()
+
+    if field not in _FIN_BREAKDOWN_FIELDS:
+        return jsonify({"available": False, "message": f"알 수 없는 항목: {field}"})
+
+    df = apply_filters(get_df())
+    if dim in ("part", "stage") and key:
+        df = df[df[dim] == key]
+
+    col, label, unit = _FIN_BREAKDOWN_FIELDS[field]
+    is_eok = unit == "억원"
+    rows_df = df[df[col] != 0]
+
+    rows = [
+        {
+            "project_code": r["project_code"],
+            "filename":     r["filename"],
+            "part":         r["part"],
+            "stage":        r["stage"],
+            "value":        round(float(r[col]) / 1e8, 2) if is_eok else round(float(r[col]), 1),
+        }
+        for _, r in rows_df.iterrows()
+    ]
+
+    if field == "profit_rate":
+        rev_sum = float(df["revenue"].sum())
+        total = round(float(df["operating_profit"].sum()) / rev_sum * 100, 1) if rev_sum else 0.0
+    elif is_eok:
+        total = round(float(rows_df[col].sum()) / 1e8, 1)
+    else:
+        total = round(float(rows_df[col].sum()), 1)
+
+    return jsonify({
+        "available": True,
+        "label": label, "unit": unit, "dim": dim, "key": key,
+        "rows": rows, "count": len(rows), "total": total,
+    })
+
+
 @finance_bp.route("/api/insights")
 def api_insights():
     df    = apply_filters(get_df())

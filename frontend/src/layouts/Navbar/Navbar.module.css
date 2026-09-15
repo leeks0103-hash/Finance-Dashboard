@@ -80,6 +80,121 @@
   gap: 14px;
 }
 
+/* 데이터 이상 감지 뱃지 — KPI/재무가 같은 파일에서 프로젝트코드를 다르게 뽑은 경우에만 등장.
+   평소엔 렌더 자체가 안 됨(healthRows.length === 0) */
+.health { position: relative; }
+
+.healthBtn {
+  background: var(--danger-bg, rgba(230,51,18,0.14));
+  border: 1px solid var(--danger, #e63312);
+  border-radius: 50%;
+  color: var(--danger, #e63312);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 800;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  animation: healthPulse 2s ease-in-out infinite;
+}
+.healthBtn:hover {
+  background: var(--danger, #e63312);
+  color: #fff;
+}
+
+@keyframes healthPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(230,51,18,0.45); }
+  50%      { box-shadow: 0 0 0 4px rgba(230,51,18,0); }
+}
+
+.healthDropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  min-width: 340px;
+  max-width: 440px;
+  z-index: 200;
+  animation: dropIn 0.15s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.healthHeader {
+  padding: 10px 14px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--danger, #e63312);
+  border-bottom: 1px solid var(--border);
+}
+
+.healthList {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.healthItem {
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.healthItem:last-child { border-bottom: none; }
+
+.healthFileRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.healthFile {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  word-break: break-all;
+  flex: 1;
+}
+
+/* 원본 PPT 바로 열기 — 기존 파일열기 기능(kpi/finance open-file) 재사용, 작은 아이콘 버튼만 배치.
+   Button unstyled는 네이티브 <button> 크롬(테두리/배경/패딩)을 그대로 남기므로 전부 리셋 필요 */
+.healthOpenBtn {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  border-radius: 4px;
+  color: var(--text-sub);
+  font-size: 0.8rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.healthOpenBtn:hover {
+  background: var(--bg-subtle);
+  color: var(--danger, #e63312);
+}
+
+.healthCodes {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.7rem;
+  color: var(--text-sub);
+}
+
 /* 설정 버튼 + 드롭다운 */
 .settings { position: relative; }
 

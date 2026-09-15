@@ -10,12 +10,12 @@
 }
 
 /* 캔버스 박스 — 항상 정사각형(1:1)으로 고정해서 도넛이 잘리거나 찌그러지지 않게.
-   컨테이너 폭에 따라 크기는 줄어들 수 있어도 가로세로 비율은 절대 안 바뀜 */
+   부모(.left) 폭을 그대로 따라가고(예전엔 max-width:420px로 불필요하게 좁혀놔서 outsideLabels
+   padding이 상대적으로 커져 인출선·글자가 잘렸음), 세로 공간이 부족하면 aspect-ratio가 알아서 줄임 */
 .canvasBox {
   position: relative;
   flex-shrink: 0;
   width: 100%;
-  max-width: 420px;
   aspect-ratio: 1 / 1;
   margin: 0 auto;
 }
@@ -33,7 +33,6 @@
   flex-shrink: 0;
   /* .canvasBox와 같은 폭으로 — 도넛보다 범례가 더 넓어 보이지 않게 */
   width: 100%;
-  max-width: 420px;
 }
 
 @media (max-width: 480px) {

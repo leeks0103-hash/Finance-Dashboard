@@ -179,6 +179,9 @@ const PerformancePage = () => {
             storageKey="performance-project"
             // 글씨 많은 컬럼(프로젝트명·사유·중복점검 등) 기본 폭을 넓히면서 저장된 폭 1회 무효화
             sizeVersion={2}
+            // 예전 세션에 저장된 컬럼 표시/숨김 값이 그 뒤 추가된 컬럼(월별 컬럼·계획 대비 추정
+            // 실적 차이 금액 등)을 계속 기본 숨김 취급하게 만들던 문제 — 저장값 1회 무효화
+            visibilityVersion={1}
             expandableRow={{
               getKey: (row) => String(row._row_num),
               excludeColumns: ['filename'],

@@ -6,6 +6,8 @@ import type { TabId } from '@/components/ui/TabNav/TabNav';
 import KpiActionBar from '@/components/features/KpiActionBar';
 import NgvLogo from './NgvLogo';
 import { useTheme } from '@/hooks';
+import { useDataHealth } from '@/hooks/useDataHealth';
+import { useOpenFile } from '@/hooks/useOpenFile';
 import { useUiStore } from '@/store';
 import { pathToTab } from '@/utils/routing';
 import styles from './Navbar.module.css';
@@ -20,6 +22,12 @@ const Navbar = () => {
   const activeTab = pathToTab(pathname);
   const setTab = (tab: TabId) => navigate(`/${tab}`);
 
+  // KPI ↔ 재무 데이터 프로젝트코드 불일치 감지 — 평소엔 안 보이고, 있을 때만 ⚙ 왼쪽에 경고 뱃지
+  const { data: health } = useDataHealth();
+  const healthRows = health?.rows ?? [];
+  const [healthOpen, setHealthOpen] = useState(false);
+  const healthRef = useRef<HTMLDivElement>(null);
+  const { openFile } = useOpenFile();
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -28,6 +36,14 @@ const Navbar = () => {
     if (open) document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [open]);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (healthRef.current && !healthRef.current.contains(e.target as Node)) setHealthOpen(false);
+    };
+    if (healthOpen) document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [healthOpen]);
 
   return (
     <header className={styles.header}>
@@ -46,6 +62,49 @@ const Navbar = () => {
         {/* 우측 — (KPI 탭) 다운로드 + 설정 */}
         <div className={styles.right}>
           {activeTab === 'kpi' && <KpiActionBar />}
+
+          {healthRows.length > 0 && (
+            <div className={styles.health} ref={healthRef}>
+              <Button unstyled
+                className={styles.healthBtn}
+                onClick={() => setHealthOpen(v => !v)}
+                aria-label={`KPI/재무 데이터 불일치 ${healthRows.length}건`}
+                aria-expanded={healthOpen}
+                title={`KPI/재무 데이터 프로젝트코드 불일치 ${healthRows.length}건`}
+              >
+                !
+              </Button>
+
+              {healthOpen && (
+                <div className={styles.healthDropdown}>
+                  <div className={styles.healthHeader}>
+                    KPI ↔ 재무 프로젝트코드 불일치 · {healthRows.length}건
+                  </div>
+                  <ul className={styles.healthList}>
+                    {healthRows.map(row => (
+                      <li key={row.file} className={styles.healthItem}>
+                        <div className={styles.healthFileRow}>
+                          <div className={styles.healthFile}>{row.file}</div>
+                          <Button unstyled
+                            className={styles.healthOpenBtn}
+                            onClick={() => openFile(row.file)}
+                            title="원본 PPT 열기"
+                            aria-label="원본 PPT 열기"
+                          >
+                            ↗
+                          </Button>
+                        </div>
+                        <div className={styles.healthCodes}>
+                          <span>재무: {row.finance_codes.join(', ') || '—'}</span>
+                          <span>KPI: {row.kpi_codes.join(', ') || '—'}</span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className={styles.settings} ref={ref}>
           <Button unstyled

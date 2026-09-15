@@ -5,13 +5,15 @@
   overflow: hidden;
 }
 
-/* 왼쪽 — 전사평균 큰 도넛. 오른쪽 선택과 무관하게 항상 고정 */
+/* 왼쪽 — 전사평균 큰 도넛. 오른쪽 선택과 무관하게 항상 고정.
+   우측과 경계가 안 보여 헷갈리던 것 — 세로 구분선 추가 */
 .left {
   flex: 0 0 36%;
   display: flex;
   flex-direction: column;
   gap: 8px;
   min-height: 0;
+  border-right: 1px solid var(--border);
 }
 
 /* 오른쪽 — 위 팀/파트 모드 토글 / 아래 비교용 미니 도넛 그리드 */

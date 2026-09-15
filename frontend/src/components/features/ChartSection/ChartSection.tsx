@@ -14,6 +14,8 @@ import { makeBarOptions } from '@/utils/chartOptions';
 import { getChartPalette, getChartTheme } from '@/utils/chartColors';
 import { isAllSelected } from '@/utils/array';
 import { ChartCard, BarChart, DoughnutChart, Toggle, useTableDndSensors } from '@/components/ui';
+import FinanceBreakdownModal from '@/components/features/FinanceBreakdownModal/FinanceBreakdownModal';
+import type { FinanceBreakdownTarget } from '@/hooks/viewmodels/useFinanceBreakdownViewModel';
 import type { ChartOptions } from 'chart.js';
 import styles from './ChartSection.module.css';
 
@@ -83,6 +85,9 @@ const ChartSection = () => {
 
   // 파트별 이익율 카드 — 토글 켜면 이익율(%) 대신 이익액(억원) 표시
   const [showProfitAmount, setShowProfitAmount] = useState(true);
+
+  // 차트 막대/조각 클릭 → 드릴다운 모달 (KPI·실적현황과 동일 패턴)
+  const [breakdown, setBreakdown] = useState<FinanceBreakdownTarget | null>(null);
 
   const { labelColor, gridColor, tickColor } = getChartTheme(dark);
 
@@ -189,6 +194,10 @@ const ChartSection = () => {
               : { label: '이익율(%)',  data: vm.profitRate.rates, backgroundColor: profitColors }
             ]}
             options={showProfitAmount ? profitAmountOptions : profitRateOptions}
+            onClick={label => setBreakdown({
+              field: showProfitAmount ? 'operating_profit' : 'profit_rate',
+              dim: 'part', key: label,
+            })}
           />
         </ChartCard.Body>
       </ChartCard>
@@ -205,6 +214,10 @@ const ChartSection = () => {
               { label: '지출(억)', data: vm.revExp.expenditures, backgroundColor: palette.cost    },
             ]}
             options={revExpOptions}
+            onClick={(label, datasetIndex) => setBreakdown({
+              field: datasetIndex === 1 ? 'expenditure' : 'revenue',
+              dim: 'part', key: label,
+            })}
           />
         </ChartCard.Body>
       </ChartCard>
@@ -222,6 +235,10 @@ const ChartSection = () => {
             colors={doughnutColors}
             showLabels={vm.showLabels}
             outsideLabels
+            onSliceClick={index => setBreakdown({
+              field: index === 1 ? 'labor_cost' : index === 2 ? 'overhead' : 'direct_cost',
+              dim: '', key: '',
+            })}
           />
         </ChartCard.Body>
       </ChartCard>
@@ -238,6 +255,10 @@ const ChartSection = () => {
               { label: '지출(억)', data: vm.stageChart.expenditures, backgroundColor: palette.cost    },
             ]}
             options={stageChartOptions}
+            onClick={(label, datasetIndex) => setBreakdown({
+              field: datasetIndex === 1 ? 'expenditure' : 'revenue',
+              dim: 'stage', key: label,
+            })}
           />
         </ChartCard.Body>
       </ChartCard>
@@ -257,14 +278,19 @@ const ChartSection = () => {
     : visibleCharts.map(c => <SortableChart key={c.id} id={c.id}>{c.node}</SortableChart>);
 
   return (
-    <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handleChartDragEnd}>
-      <SortableContext items={visibleCharts.map(c => c.id)} strategy={rectSortingStrategy}>
-        {/* key: 테마 전환·상태 전환마다 완전 리마운트 → 색상 보장 + fade-in 재생 */}
-        <div className={styles.grid} key={`${dark ? 'dark' : 'light'}-${chartState}`}>
-          {content}
-        </div>
-      </SortableContext>
-    </DndContext>
+    <>
+      <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handleChartDragEnd}>
+        <SortableContext items={visibleCharts.map(c => c.id)} strategy={rectSortingStrategy}>
+          {/* key: 테마 전환·상태 전환마다 완전 리마운트 → 색상 보장 + fade-in 재생 */}
+          <div className={styles.grid} key={`${dark ? 'dark' : 'light'}-${chartState}`}>
+            {content}
+          </div>
+        </SortableContext>
+      </DndContext>
+      {breakdown && (
+        <FinanceBreakdownModal target={breakdown} onClose={() => setBreakdown(null)} />
+      )}
+    </>
   );
 };
 

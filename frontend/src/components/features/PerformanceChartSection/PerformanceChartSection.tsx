@@ -12,7 +12,8 @@ import { useTheme } from '@/hooks';
 import { makeBarOptions } from '@/utils/chartOptions';
 import { getChartPalette, getChartTheme } from '@/utils/chartColors';
 // Toggle — 파트별 경상이익 토글 비활성화로 미사용(주석 처리). 복구 시 함께 import
-import { ChartCard, BarChart, DoughnutChart, useTableDndSensors, InfoButton } from '@/components/ui';
+import { createColumnHelper } from '@tanstack/react-table';
+import { ChartCard, BarChart, DoughnutChart, DataTable, useTableDndSensors, InfoButton } from '@/components/ui';
 import CostFilterPopover from './CostFilterPopover';
 import PerfBreakdownModal from '@/components/features/PerfBreakdownModal/PerfBreakdownModal';
 import CostBreakdownModal from './CostBreakdownModal';
@@ -54,6 +55,17 @@ const PROFIT_PADDING = { top: 22, right: 12, bottom: 12, left: 4 };
 //     (Number(ctx.dataset.data[ctx.dataIndex]) >= 0 ? 'top' : 'bottom'),
 //   offset: 6,   // 막대 끝과 수치 사이 간격 — 2는 붙어 보여서 키움 (위/아래 동일 적용)
 // };
+
+// "파트별 추정 매출/원가" 확대 모달의 검증용 표 — 컬럼은 상태 의존 없어 모듈 스코프
+interface PartRevCostRow { part: string; revenue: number; cost: number; costRate: number | null; profit: number; }
+const prc = createColumnHelper<PartRevCostRow>();
+const partRevCostColumns = [
+  prc.accessor('part',     { header: '파트',        size: 110 }),
+  prc.accessor('revenue',  { header: '매출(억)',    size: 100, cell: i => i.getValue().toLocaleString() }),
+  prc.accessor('cost',     { header: '원가(억)',    size: 100, cell: i => i.getValue().toLocaleString() }),
+  prc.accessor('costRate', { header: '원가율(%)',   size: 100, cell: i => i.getValue() == null ? '—' : `${i.getValue()}%` }),
+  prc.accessor('profit',   { header: '매출이익(억)', size: 110, cell: i => i.getValue().toLocaleString() }),
+];
 
 // 팔레트의 rgba(...) 문자열 알파값만 교체 — 미래 월/보조 계열 흐림 처리용
 const fadeAlpha = (rgba: string, alpha: number) => rgba.replace(/[\d.]+\)$/, `${alpha})`);
@@ -125,6 +137,9 @@ const PerformanceChartSection = () => {
 
   // 막대 클릭 → 드릴다운 모달. 축 라벨 클릭(datasetIndex -1)은 첫 시리즈로.
   const [breakdown, setBreakdown] = useState<PerfBreakdownTarget | null>(null);
+  // "파트별 추정 매출/원가"의 x축 라벨 클릭 — 다른 차트처럼 드릴다운을 여는 대신, 그 파트를
+  // 차트에서 숨김/복원 토글(다시 클릭하면 되돌아옴). 데이터가 많아 복잡할 때 걸러보기 위함
+  const [hiddenParts, setHiddenParts] = useState<Set<string>>(new Set());
   const openBreakdown = useCallback(
     (chart: PerfBreakdownChart) => (key: string, dsIndex: number) =>
       setBreakdown({ chart, series: dsIndex < 0 ? 0 : dsIndex, key }),
@@ -227,10 +242,11 @@ const PerformanceChartSection = () => {
       layout: { padding: { ...PROFIT_PADDING, top: 36 } },
       plugins: {
         datalabels: {
+          // font는 지정 안 함 — makeBarOptions 기본값(13px bold HyundaiSans)을 그대로 써서
+          // 다른 차트들과 수치 폰트를 통일 (이전엔 여기만 10px로 작게 오버라이드돼 있었음)
           anchor: 'end',
           align: 'end',
           offset: 2,
-          font: { size: 10 },
           formatter: (v: number) => `${v}억`,
         },
       },
@@ -240,6 +256,21 @@ const PerformanceChartSection = () => {
       y: { ...scaleOverride.y, ticks: { ...scaleOverride.y.ticks, callback: (v: string | number) => v + '억' } },
     },
   }), [vm.showLabels, labelColor, scaleOverride]);
+
+  // "파트별 추정 매출/원가" 확대 모달 전용 — 차트 밑에 원본 수치 표를 같이 보여줘서
+  // 막대를 하나씩 클릭하지 않아도 전체 파트를 한 번에 검증할 수 있게 함 (2026-09-15 시범)
+  const partRevCostRows = useMemo(
+    () => vm.profitRate.labels.map((part, i) => {
+      const revenue = vm.profitRate.revenues[i];
+      const cost    = vm.profitRate.costs[i];
+      return {
+        part, revenue, cost,
+        costRate: revenue > 0 ? +(cost / revenue * 100).toFixed(1) : null,
+        profit:   +(revenue - cost).toFixed(1),
+      };
+    }),
+    [vm.profitRate.labels, vm.profitRate.revenues, vm.profitRate.costs],
+  );
 
   // progress 차트 비활성으로 미사용 — 복구 시 함께 주석 해제
   // const progressOptions = useMemo(
@@ -289,30 +320,100 @@ const PerformanceChartSection = () => {
         </ChartCard.Body>
       </ChartCard>
     ),
-    profitRate: () => (
-      <ChartCard>
-        <ChartCard.Title>
-          <span className={styles.chartTitle}>파트별 추정 매출/원가<InfoButton>{INFO_PROFIT_RATE}</InfoButton></span>
-          {/* 이익율/이익액 토글 비활성화(담당자 지정) — 매출/원가 2계열 고정 표시로 대체. 복구 시 주석 해제
-          <span className={styles.toggleGroup}>
-            <span className={styles.badge}>{showProfitAmount ? '경상이익' : '평균 이익율'}</span>
-            <Toggle checked={showProfitAmount} onChange={() => setShowProfitAmount(v => !v)} danger={showProfitAmount} />
-          </span>
-          */}
-        </ChartCard.Title>
-        <ChartCard.Body>
-          <BarChart
-            onClick={openBreakdown('profitRate')}
-            labels={vm.profitRate.labels}
-            datasets={[
-              { label: '매출', data: vm.profitRate.revenues, backgroundColor: palette.revenue },
-              { label: '원가', data: vm.profitRate.costs,    backgroundColor: palette.cost },
-            ]}
-            options={partRevCostOptions}
-          />
-        </ChartCard.Body>
-      </ChartCard>
-    ),
+    profitRate: () => {
+      // 이상치 표시(시범) — 원가가 매출을 넘는(매출이익 마이너스) 파트의 원가 막대를 손실색으로 강조
+      // (작은 카드·확대 모달 둘 다 적용 — 목표선과 달리 이건 항상 보여도 되는 정보라 공통)
+      const lossParts = new Set(partRevCostRows.filter(r => r.profit < 0).map(r => r.part));
+      // x축 라벨 클릭으로 숨긴 파트는 배열에서 통째로 제외 — 차트에서 그 파트가 사라진다
+      const visibleIdx = vm.profitRate.labels
+        .map((_, i) => i)
+        .filter(i => !hiddenParts.has(vm.profitRate.labels[i]));
+      const pick = <T,>(arr: T[]) => visibleIdx.map(i => arr[i]);
+      const visibleLabels  = pick(vm.profitRate.labels);
+      const visibleCostColors = pick(vm.profitRate.labels.map(p => lossParts.has(p) ? palette.loss : palette.cost));
+      const baseDatasets = [
+        { label: '매출', data: pick(vm.profitRate.revenues), backgroundColor: palette.revenue },
+        { label: '원가', data: pick(vm.profitRate.costs),    backgroundColor: visibleCostColors },
+      ];
+      // x축 라벨 클릭 — 다른 차트(드릴다운)와 달리 이 차트는 그 파트를 숨김/복원 토글.
+      // 막대 자체를 클릭한 경우(datasetIndex >= 0)는 기존처럼 드릴다운 유지.
+      const handleAxisToggle = (label: string, datasetIndex: number) => {
+        if (datasetIndex >= 0) { openBreakdown('profitRate')(label, datasetIndex); return; }
+        setHiddenParts(prev => {
+          const next = new Set(prev);
+          if (next.has(label)) next.delete(label); else next.add(label);
+          return next;
+        });
+      };
+      // 작은 카드 — 목표선 없이 매출/원가만 (좁은 공간에서 라인까지 겹치면 복잡해짐)
+      const chartEl = (
+        <BarChart
+          onClick={handleAxisToggle}
+          labels={visibleLabels}
+          datasets={baseDatasets}
+          options={partRevCostOptions}
+        />
+      );
+      // 확대 모달 전용 — 목표선(매출/원가 계획) 겹쳐서 계획 대비 실제를 바로 대조 + 표로 전체 파트 검증 (시범)
+      // 온오프는 별도 토글 없이 범례 클릭으로 — Chart.js 기본 동작(범례 클릭 시 그 데이터셋만
+      // 숨김/복원)을 그대로 씀. 토글 스위치를 따로 두니 x축 그래프 조작이 오히려 헷갈린다는 피드백
+      const modalChartEl = (
+        <BarChart
+          // exportable   // PNG 내보내기 — 일단 주석 처리(마음에 들지만 보류)
+          onClick={handleAxisToggle}
+          labels={visibleLabels}
+          datasets={[
+            ...baseDatasets,
+            // 매출/원가 계획 목표선 — 일단 주석 처리 (2026-09-15)
+            // {
+            //   type: 'line' as const, label: '매출 계획',
+            //   data: pick(vm.profitRate.planRevenue),
+            //   borderColor: palette.plan, borderWidth: 2, borderDash: [6, 4],
+            //   pointRadius: 3, pointBackgroundColor: palette.plan,
+            //   fill: false, order: 1,
+            // },
+            // {
+            //   type: 'line' as const, label: '원가 계획',
+            //   data: pick(vm.profitRate.planCost),
+            //   borderColor: fadeAlpha(palette.plan, 0.45), borderWidth: 2, borderDash: [2, 3],
+            //   pointRadius: 3, pointBackgroundColor: fadeAlpha(palette.plan, 0.45),
+            //   fill: false, order: 1,
+            // },
+          ]}
+          options={partRevCostOptions}
+        />
+      );
+      const modalContent = (
+        <div className={styles.chartModalWithTable}>
+          <div className={styles.chartModalChart}>{modalChartEl}</div>
+          <div className={styles.chartModalTable}>
+            <DataTable<PartRevCostRow>
+              data={partRevCostRows}
+              columns={partRevCostColumns as never}
+              getRowId={r => r.part}
+              compact
+              hideToolbar
+              defaultPageSize={partRevCostRows.length || 1}
+              pageSizeOptions={[partRevCostRows.length || 1]}
+            />
+          </div>
+        </div>
+      );
+      return (
+        <ChartCard modalContent={modalContent} modalHeight="94vh">
+          <ChartCard.Title>
+            <span className={styles.chartTitle}>파트별 추정 매출/원가<InfoButton>{INFO_PROFIT_RATE}</InfoButton></span>
+            {/* 이익율/이익액 토글 비활성화(담당자 지정) — 매출/원가 2계열 고정 표시로 대체. 복구 시 주석 해제
+            <span className={styles.toggleGroup}>
+              <span className={styles.badge}>{showProfitAmount ? '경상이익' : '평균 이익율'}</span>
+              <Toggle checked={showProfitAmount} onChange={() => setShowProfitAmount(v => !v)} danger={showProfitAmount} />
+            </span>
+            */}
+          </ChartCard.Title>
+          <ChartCard.Body>{chartEl}</ChartCard.Body>
+        </ChartCard>
+      );
+    },
     costBreakdown: () => (
       <ChartCard
         modalContent={

@@ -1,7 +1,7 @@
 import { createPortal } from 'react-dom';
 import { Button, CopyText } from '@/components/ui';
-import { useScrollLock } from '@/hooks/useScrollLock';
-import { useEscToClose } from '@/hooks/useEscToClose';
+import { useScrollLock } from '@/components/ui/useScrollLock';
+import { useEscToClose } from '@/components/ui/useEscToClose';
 import {
   usePerfBreakdownViewModel,
   type PerfBreakdownTarget,

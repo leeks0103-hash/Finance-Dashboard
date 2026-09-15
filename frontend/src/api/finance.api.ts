@@ -35,3 +35,37 @@ export interface OpenFileResult {
 /** 파일명으로 원본 PPT 위치를 찾아 서버(로컬 PC)에서 직접 실행 — NAS 이전 전 로컬 경로 기준 */
 export const openFinanceFile = (filename: string): Promise<OpenFileResult> =>
   client.post<OpenFileResult>('/finance/open-file', { filename }).then(r => r.data);
+
+// ── 재무 차트 막대/조각 드릴다운 (어떤 프로젝트 행들을 합산했는지) ──
+export interface FinanceBreakdownRow {
+  project_code: string;
+  filename:     string;
+  part:         string;
+  stage:        string;
+  value:        number;
+}
+
+export interface FinanceBreakdown {
+  available: boolean;
+  message?:  string;
+  label?:    string;
+  unit?:     string;
+  dim?:      string;
+  key?:      string;
+  rows?:     FinanceBreakdownRow[];
+  count?:    number;
+  total?:    number;
+}
+
+export const getFinanceBreakdown = (
+  filters: Filters,
+  field: string,
+  dim: 'part' | 'stage' | '',
+  key: string,
+): Promise<FinanceBreakdown> => {
+  const params = buildFilterParams(filters);
+  params.set('field', field);
+  if (dim) params.set('dim', dim);
+  if (key) params.set('key', key);
+  return client.get<FinanceBreakdown>('/summary/breakdown', { params }).then(r => r.data);
+};

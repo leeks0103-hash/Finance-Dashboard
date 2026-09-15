@@ -1,3 +1,5 @@
+export * from './useScrollLock';
+export * from './useEscToClose';
 export * from './KpiCard';
 export * from './FilterChip';
 export * from './FilterPanelView';

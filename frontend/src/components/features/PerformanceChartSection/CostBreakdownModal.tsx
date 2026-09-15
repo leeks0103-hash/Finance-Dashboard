@@ -187,6 +187,8 @@ const CostBreakdownModal = ({ total, byPart, partsRaw, teams, teamParts, colors,
                 data={previewCell.data.values}
                 colors={colors}
                 showLabels={showLabels}
+                outsideLabels
+                outsideLabelsSize="lg"
               />
             </div>
           </div>

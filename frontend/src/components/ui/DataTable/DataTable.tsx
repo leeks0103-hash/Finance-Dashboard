@@ -191,6 +191,12 @@ interface Props<T> {
    * 안 올리면 이미 저장된 localStorage 폭이 이겨서 새 기본값이 화면에 반영되지 않음.
    */
   sizeVersion?: string | number;
+  /**
+   * initialColumnVisibility에 컬럼을 추가/제거했을 때 올리는 값 — 저장된 표시/숨김 상태만
+   * 무효화한다. 안 올리면 예전에 저장된 localStorage 값(당시엔 없던 컬럼이라 기본 숨김으로
+   * 저장돼 있을 수 있음)이 새 기본값을 이겨서 컬럼이 계속 안 보이는 채로 남는다.
+   */
+  visibilityVersion?: string | number;
   /** 툴바 우측에 추가 렌더링할 요소 (뷰 전환 토글 등) */
   toolbarExtra?: ReactNode;
   /** 검색행 안, 검색범위 셀렉트와 입력창 사이에 끼워 넣을 요소 (파트/보고단계 필터 등) */
@@ -249,6 +255,7 @@ const DataTable = <T extends object>({
   initialColumnVisibility = {},
   storageKey,
   sizeVersion,
+  visibilityVersion,
   toolbarExtra,
   searchExtra,
   info,
@@ -267,7 +274,7 @@ const DataTable = <T extends object>({
   // ── 컬럼 순서 (DnD + localStorage) ────────────────────────────
   const lsKey      = storageKey ? `dnd-cols-${storageKey}`   : null;
   const lsSizeKey  = storageKey ? `col-sizes-${storageKey}${sizeVersion ? `-v${sizeVersion}` : ''}` : null;
-  const lsVisKey   = storageKey ? `col-visibility-${storageKey}` : null;
+  const lsVisKey   = storageKey ? `col-visibility-${storageKey}${visibilityVersion ? `-v${visibilityVersion}` : ''}` : null;
 
   const [colOrder, setColOrder] = useState<string[]>(() => {
     if (!lsKey) return [];
@@ -300,8 +307,12 @@ const DataTable = <T extends object>({
     cell: ({ row, table: t }) => {
       // row.index는 원본 data 배열 기준 고정값이라 정렬 후에는 화면 위치와 어긋남 —
       // 반드시 현재 렌더링(정렬 반영)된 rows에서의 위치를 id로 다시 찾아야 함
-      // 서버가 묶음 번호를 내려준 경우 그대로 사용 (페이지 간 연속성 보장)
-      if (getRowNumber) return getRowNumber(row.original);
+      // 서버가 묶음 번호를 내려준 경우 그대로 사용 (페이지 간 연속성 보장) — 단, 사용자가
+      // 다른 컬럼(예: 프로젝트명)을 클릭해 정렬을 바꾸면 그 고정값이 화면 순서와 안 맞아
+      // "4,1,2,3"처럼 뒤섞여 보이므로, 정렬 중엔 getRowNumber를 쓰지 않고 항상 현재 화면
+      // 순서를 그대로 따라가는 순번을 매긴다 (No.는 항상 순차적/역순이어야 함)
+      const isSorted = t.getState().sorting.length > 0;
+      if (getRowNumber && !isSorted) return getRowNumber(row.original);
 
       const pageRows  = t.getRowModel().rows;
       const posInPage = pageRows.findIndex(r => r.id === row.id);

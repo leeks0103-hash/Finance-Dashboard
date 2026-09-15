@@ -108,3 +108,22 @@
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.45; }
 }
+
+/* "파트별 추정 매출/원가" 확대 모달 전용 — 차트(목표선 포함, 범례 클릭으로 온오프) + 검증용 표.
+   modalHeight="94vh"로 기본 모달보다 키워서(ChartCard) 표가 스크롤 없이 다 보이게 함 */
+.chartModalWithTable {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  gap: 10px;
+}
+.chartModalChart {
+  flex: 1;
+  min-height: 0;
+}
+.chartModalTable {
+  flex-shrink: 0;
+  max-height: 360px;
+  overflow: auto;
+}

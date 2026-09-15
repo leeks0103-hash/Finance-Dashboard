@@ -1,8 +1,8 @@
 import { Children, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/Button';
-import { useScrollLock } from '@/hooks/useScrollLock';
-import { useEscToClose } from '@/hooks/useEscToClose';
+import { useScrollLock } from '@/components/ui/useScrollLock';
+import { useEscToClose } from '@/components/ui/useEscToClose';
 import styles from './ChartCard.module.css';
 
 // 마커 컴포넌트 — 실제 렌더링(클래스·배치)은 Root가 전담. 호출부 가독성을 위한 자리 표시자.
@@ -18,9 +18,12 @@ interface RootProps {
   expandable?: boolean;
   /** 모달 확대 시 body 대신 렌더링할 커스텀 콘텐츠 (미지정 시 body 그대로) */
   modalContent?: ReactNode;
+  /** 확대 모달 높이 직접 지정(예: "90vh") — 미지정 시 기본값(min(820px, 88vh)) 그대로.
+   *  차트+표처럼 기본 모달이 좁아 스크롤이 생기는 특정 카드에서만 opt-in */
+  modalHeight?: string;
 }
 
-const Root = ({ children, compact = true, expandable = true, modalContent }: RootProps) => {
+const Root = ({ children, compact = true, expandable = true, modalContent, modalHeight }: RootProps) => {
   const [title, body] = Children.toArray(children);
   const [expanded, setExpanded] = useState(false);
 
@@ -53,6 +56,7 @@ const Root = ({ children, compact = true, expandable = true, modalContent }: Roo
     <div className={styles.modalOverlay} onClick={() => setExpanded(false)} role="presentation">
       <div
         className={styles.modalCard}
+        style={modalHeight ? { height: modalHeight } : undefined}
         role="dialog"
         aria-modal="true"
         onClick={e => e.stopPropagation()}

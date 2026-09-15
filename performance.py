@@ -599,6 +599,7 @@ def api_perf_summary():
         cost_grp = cost[cost["part"] == part_name]
         by_part[part_name] = {
             "plan_initial":     float(rev_grp["plan_initial"].sum()),
+            "plan_cost":        float(cost_grp["plan_initial"].sum()),
             "jun_actual":       float(rev_grp["jun_actual"].sum()),
             "jun_cost":         float(cost_grp["jun_actual"].sum()),
             "jun_check_total":  float(rev_grp["jun_check_total"].sum()),

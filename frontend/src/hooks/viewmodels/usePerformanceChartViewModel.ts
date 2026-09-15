@@ -46,6 +46,9 @@ export interface PerformanceChartViewModel {
     // "파트별 추정 매출/원가" 카드용 — 연간 추정 매출/원가 2계열 (담당자 지정)
     revenues: number[];
     costs:    number[];
+    // 목표선(시범) — 파트별 매출/원가 계획
+    planRevenue: number[];
+    planCost:    number[];
     options:  ChartOptions<'bar'>;
   };
   costBreakdown: {
@@ -174,6 +177,8 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
         // "파트별 추정 매출/원가" — 누계(jun_actual/jun_cost)가 아니라 연간 추정치 기준
         revenues: parts.map(p => toEokNum(summary.by_part[p].jun_check_total)),
         costs:    parts.map(p => toEokNum(summary.by_part[p].jun_cost_check)),
+        planRevenue: parts.map(p => toEokNum(summary.by_part[p].plan_initial)),
+        planCost:    parts.map(p => toEokNum(summary.by_part[p].plan_cost)),
       },
       // 전체 합계 구성비(금액 가중). 프로젝트별 비율의 단순평균이 아님 (직접원가 합계 67.5% vs 단순평균 56.7%).
       //    2026-09-10 경상손익(BF열) 조각 추가 — 매출행 기준. 이제 5조각 합 ≈ 매출(BH)이라
@@ -231,7 +236,7 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
       isLoading, isError, isEmpty: false, showLabels, labelColor,
       monthly:          { labels: [], revenues: [], costs: [], isFuture: [], options: monthlyOptions },
       planVsActual:     { labels: [], planInitial: [], junCheckTotal: [], options: planVsActualOptions },
-      profitRate:       { labels: [], rates: [], profits: [], isProfit: [], revenues: [], costs: [], options: profitRateOptions },
+      profitRate:       { labels: [], rates: [], profits: [], isProfit: [], revenues: [], costs: [], planRevenue: [], planCost: [], options: profitRateOptions },
       costBreakdown:    { labels: [], values: [] },
       progress:         { labels: [], revenues: [], expenditures: [], options: progressOptions },
       partOptions:      ['전체'],
