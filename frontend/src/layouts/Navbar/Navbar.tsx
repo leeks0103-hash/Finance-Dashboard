@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Toggle, Button } from '@/components/ui';
+import { Toggle, Button, CopyText } from '@/components/ui';
 import TabNav from '@/components/ui/TabNav/TabNav';
 import type { TabId } from '@/components/ui/TabNav/TabNav';
 import KpiActionBar from '@/components/features/KpiActionBar';
@@ -84,7 +84,7 @@ const Navbar = () => {
                     {healthRows.map(row => (
                       <li key={row.file} className={styles.healthItem}>
                         <div className={styles.healthFileRow}>
-                          <div className={styles.healthFile}>{row.file}</div>
+                          <CopyText text={row.file} className={styles.healthFile} />
                           {/* 파일 바로가기 버튼 — 일단 전부 주석 처리 (2026-09-15)
                           <Button unstyled
                             className={styles.healthOpenBtn}
