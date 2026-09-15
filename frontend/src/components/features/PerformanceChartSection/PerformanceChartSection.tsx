@@ -242,11 +242,12 @@ const PerformanceChartSection = () => {
       layout: { padding: { ...PROFIT_PADDING, top: 36 } },
       plugins: {
         datalabels: {
-          // font는 지정 안 함 — makeBarOptions 기본값(13px bold HyundaiSans)을 그대로 써서
-          // 다른 차트들과 수치 폰트를 통일 (이전엔 여기만 10px로 작게 오버라이드돼 있었음)
+          // makeBarOptions 기본(13px)보다 살짝만 작게 — 이전엔 10px로 너무 작게 오버라이드돼
+          // 있었고, 기본값 그대로 쓰니 이 차트(파트 수 많고 막대 2개씩)에서는 조금 커서 재조정
           anchor: 'end',
           align: 'end',
           offset: 2,
+          font: { size: 11, weight: 'bold', family: "'HyundaiSans', 'Malgun Gothic', sans-serif" },
           formatter: (v: number) => `${v}억`,
         },
       },
