@@ -75,8 +75,14 @@ def save_pids(data: dict):
 
 
 def is_running() -> bool:
-    """백엔드 또는 프론트 포트 중 하나라도 응답하면 running (반쪽 상태도 running 으로 봐서 stop 이 정리)."""
-    return any(_port_alive(p) for p in PORTS.values())
+    """백엔드·프론트 둘 다 응답해야 running.
+
+    한쪽만 응답하는 반쪽 상태(예: 백엔드 콘솔창만 닫아서 백엔드만 죽은 경우)는
+    running 이 아니라고 봐야 --status 가 거짓으로 "정상 실행 중"을 표시하지 않고,
+    토글 버튼을 누르면 start()가 먼저 잔여 포트를 정리한 뒤 깨끗하게 재시작한다
+    (2026-09-15 실측: 백엔드만 죽은 채로 프론트가 계속 살아있어 UI가 "실행 중"으로 오표시됨).
+    """
+    return all(_port_alive(p) for p in PORTS.values())
 
 
 # ── 시작 / 종료 ───────────────────────────────────────────────────
@@ -167,6 +173,13 @@ def main():
     if "--status" in sys.argv:
         print("running" if is_running() else "stopped")
         return
+
+    # 바로가기(.bat)용 — 토글 없이 항상 "시작"만 보장. start()가 내부에서 먼저
+    # 잔여 포트를 정리하므로 이미 떠 있어도 안전하게 재시작된다.
+    if "--start" in sys.argv:
+        print("[대시보드 서버 시작]")
+        start()
+        sys.exit(0)
 
     if is_running():
         print("[대시보드 서버 종료]")
