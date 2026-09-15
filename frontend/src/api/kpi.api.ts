@@ -18,14 +18,25 @@ export const getKpiOptions = (): Promise<KpiOptions> =>
 export const getKpiData = (
   filters: Filters,
   page: PageParams,
+  anomalyOnly = false,
 ): Promise<PagedResponse<KpiRawRow>> => {
   const params = buildFilterParams(filters);
   appendPageParams(params, page);
+  if (anomalyOnly) params.set('anomaly_only', '1');
   return client.get<PagedResponse<KpiRawRow>>('/kpi/data', { params }).then(r => r.data);
 };
 
 export const reloadKpiData = () =>
   client.post('/kpi/reload').then(r => r.data);
+
+export interface OpenFileResult {
+  ok:       boolean;
+  message?: string;
+}
+
+/** 파일명으로 원본 PPT 위치를 찾아 서버(로컬 PC)에서 직접 실행 — NAS 이전 전 로컬 경로 기준 */
+export const openKpiFile = (filename: string): Promise<OpenFileResult> =>
+  client.post<OpenFileResult>('/kpi/open-file', { filename }).then(r => r.data);
 
 // ── KPI 집계 막대 드릴다운 (어떤 행들을 합/평균했는지) ──
 export interface KpiBreakdownRow {

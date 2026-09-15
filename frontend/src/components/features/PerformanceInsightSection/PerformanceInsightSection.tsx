@@ -3,8 +3,13 @@ import { createColumnHelper } from '@tanstack/react-table';
 import { usePerformanceInsightViewModel } from '@/hooks/viewmodels';
 import { DataTable, CopyText } from '@/components/ui';
 import { useQuickSearchStore } from '@/store/quickSearch.store';
+import { openFinanceFile } from '@/api/finance.api';
 import FinanceDetailPanel from './FinanceDetailPanel';
 import type { Project } from '@/types';
+
+const openFile = (filename: string) => {
+  openFinanceFile(filename).then(r => { if (!r.ok) window.alert(r.message ?? '파일을 열 수 없습니다.'); });
+};
 
 const h = createColumnHelper<Project>();
 
@@ -23,16 +28,15 @@ const PerformanceInsightSection = () => {
     //   cell: i => <CopyText text={i.getValue()} onSearch={setPerfSearch} />,
     // }),
     h.accessor('part', { header: '파트', size: 90 }),
-    h.accessor('note', { header: '비고', size: 220, cell: i => <span title={i.getValue()}>{i.getValue() || '-'}</span> }),
+    // 글씨가 짧아도(길이 무관) 복사 가능해야 해서 DataTable의 20자 이상 자동팝업 대신
+    // CopyText를 직접 씀(2026-09-15 사용자 지정 — 특히 비고·미수사유)
+    h.accessor('note', { header: '비고', size: 220, cell: i => i.getValue() ? <CopyText text={i.getValue()} /> : <span>-</span> }),
     h.accessor('missed_bid_reason', {
       header: '미수사유',
       size: 260,
-      cell: i => {
-        const reason = i.getValue() || '-';
-        return <span title={reason}>{reason}</span>;
-      },
+      cell: i => i.getValue() ? <CopyText text={i.getValue()} /> : <span>-</span>,
     }),
-    h.accessor('filename', { header: '파일명', size: 320, cell: i => <CopyText text={i.getValue()} /> }),
+    h.accessor('filename', { header: '파일명', size: 320, cell: i => <CopyText text={i.getValue()} onOpen={openFile} /> }),
   ], [setPerfSearch]);
 
   return (

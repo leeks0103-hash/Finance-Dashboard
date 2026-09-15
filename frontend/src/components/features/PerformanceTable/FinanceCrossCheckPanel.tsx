@@ -4,8 +4,13 @@ import { useClipboardPopup } from '@/components/ui/DataTable/useClipboardPopup';
 import { CellPopup }         from '@/components/ui/DataTable/CellPopup';
 import { useFinanceCrossCheckViewModel } from '@/hooks/viewmodels';
 import { formatBillion, formatRate } from '@/utils';
+import { openFinanceFile } from '@/api/finance.api';
 import type { Project } from '@/types/finance.types';
 import styles from './FinanceCrossCheckPanel.module.css';
+
+const openFile = (filename: string) => {
+  openFinanceFile(filename).then(r => { if (!r.ok) window.alert(r.message ?? '파일을 열 수 없습니다.'); });
+};
 
 // v2 — 표시 컬럼을 재무 PPT 추출 전체 항목으로 확장(7 → 15개)하며 저장된 폭 무효화
 const LS_KEY = 'finance-cross-check-col-widths-v2';
@@ -47,7 +52,7 @@ function stageColor(stage: string) {
   return '#6b6257';
 }
 
-interface RowProps { r: Project; onCell: (text: string, copyable?: boolean) => void; }
+interface RowProps { r: Project; onCell: (text: string, copyable?: boolean, onOpen?: () => void) => void; }
 function TableRow({ r, onCell }: RowProps) {
   const isLoss = r.operating_profit < 0;
   const dash   = (v?: string) => (v && v.trim()) || '-';
@@ -80,7 +85,7 @@ function TableRow({ r, onCell }: RowProps) {
       <td className={styles.yearCell}>{dash(r.processed_at)}</td>
       <td className={styles.yearCell}>{dash(r.reflected_at)}</td>
       <td className={`${styles.fileCell} ${styles.clickable}`}
-          title={fname} onClick={() => onCell(fname, true)}>{fname}</td>
+          title={fname} onClick={() => onCell(fname, true, () => openFile(fname))}>{fname}</td>
     </tr>
   );
 }

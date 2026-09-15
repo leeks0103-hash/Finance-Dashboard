@@ -267,6 +267,7 @@ const DataTable = <T extends object>({
   // ── 컬럼 순서 (DnD + localStorage) ────────────────────────────
   const lsKey      = storageKey ? `dnd-cols-${storageKey}`   : null;
   const lsSizeKey  = storageKey ? `col-sizes-${storageKey}${sizeVersion ? `-v${sizeVersion}` : ''}` : null;
+  const lsVisKey   = storageKey ? `col-visibility-${storageKey}` : null;
 
   const [colOrder, setColOrder] = useState<string[]>(() => {
     if (!lsKey) return [];
@@ -348,7 +349,15 @@ const DataTable = <T extends object>({
   // 클라이언트 검색 상태 (서버모드에선 사용 안 함)
   const [searchInput,      setSearchInput]      = useState('');
   const [globalFilter,     setGlobalFilter]     = useState('');
-  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(initialColumnVisibility);
+  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(() => {
+    if (!lsVisKey) return initialColumnVisibility;
+    try {
+      const saved: Record<string, boolean> = JSON.parse(localStorage.getItem(lsVisKey) ?? '{}');
+      // 디폴트 위에 저장값을 얹음 — 사용자가 안 건드린 컬럼(신규 포함)은 디폴트 유지,
+      // 건드린 컬럼은 껐든 켰든 그 상태 그대로 복원
+      return { ...initialColumnVisibility, ...saved };
+    } catch { return initialColumnVisibility; }
+  });
   const [showColMenu,      setShowColMenu]      = useState(false);
   const colMenuRef = useRef<HTMLDivElement>(null);
 
@@ -405,7 +414,13 @@ const DataTable = <T extends object>({
     columnResizeMode: storageKey ? 'onChange' : undefined,
     getRowId,
     onGlobalFilterChange:     isServerMode ? undefined : setGlobalFilter,
-    onColumnVisibilityChange: setColumnVisibility,
+    onColumnVisibilityChange: (updater) => {
+      setColumnVisibility(prev => {
+        const next = typeof updater === 'function' ? updater(prev) : updater;
+        if (lsVisKey) localStorage.setItem(lsVisKey, JSON.stringify(next));
+        return next;
+      });
+    },
     onColumnSizingChange: storageKey ? (updater) => {
       setColSizing(prev => {
         const next = typeof updater === 'function' ? updater(prev) : updater;
@@ -735,7 +750,10 @@ const DataTable = <T extends object>({
                               key={cell.id}
                               rowSpan={isMerged ? group.length : undefined}
                               title={text || undefined}
-                              onClick={isLong ? () => openPopup(text, true) : undefined}
+                              onClick={isLong ? () => {
+                                const onOpenFile = cell.column.columnDef.meta?.onOpenFile;
+                                openPopup(text, true, onOpenFile ? () => onOpenFile(text) : undefined);
+                              } : undefined}
                               onDoubleClick={
                                 canExpand
                                   ? () => setExpandedKey(k => k === expandKey ? null : expandKey!)

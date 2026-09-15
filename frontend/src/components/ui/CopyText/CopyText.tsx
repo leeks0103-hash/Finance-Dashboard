@@ -1,16 +1,19 @@
 import { useState, useCallback, type MouseEvent } from 'react';
 import HighlightText from '@/components/ui/HighlightText/HighlightText';
+import { Button } from '@/components/ui/Button';
 import styles from './CopyText.module.css';
 
 interface Props {
   text: string;
   className?: string;
   highlight?: string;
-  /** 제공 시: 클릭→onSearch 호출, 더블클릭→복사. 미제공 시: 클릭→복사(기존 동작) */
+  /** 제공 시: 더블클릭→onSearch 호출(클릭은 항상 복사). 미제공 시: 더블클릭 동작 없음 */
   onSearch?: (text: string) => void;
+  /** 제공 시: 텍스트 옆에 "↗" 버튼이 항상 보이고, 클릭하면 onOpen 호출 — 파일명 셀의 "원본 열기" 용도 */
+  onOpen?: (text: string) => void;
 }
 
-const CopyText = ({ text, className, highlight, onSearch }: Props) => {
+const CopyText = ({ text, className, highlight, onSearch, onOpen }: Props) => {
   const [copied, setCopied] = useState(false);
 
   const copy = useCallback(async () => {
@@ -34,21 +37,38 @@ const CopyText = ({ text, className, highlight, onSearch }: Props) => {
     ? (e: MouseEvent) => { e.stopPropagation(); onSearch(text); }
     : undefined;
 
+  const title = onSearch
+    ? `클릭: 복사 / 더블클릭: 검색 — ${text}`
+    : (copied ? '복사됨!' : text);
+
   return (
-    <span
-      className={`${styles.root} ${copied ? styles.copied : ''} ${className ?? ''}`}
-      onClick={handleClick}
-      onDoubleClick={handleDblClick}
-      title={onSearch ? `클릭: 복사 / 더블클릭: 검색 — ${text}` : (copied ? '복사됨!' : text)}
-      role="button"
-      tabIndex={0}
-      onKeyDown={e => e.key === 'Enter' && copy()}
-    >
-      <HighlightText text={text} query={highlight} />
-      {/* 복사 후: 텍스트 체크마크 / 복사 전: CSS로만 만든 아이콘 */}
-      <span className={`${styles.icon} ${copied ? styles.check : ''}`}>
-        {copied ? '✓' : ''}
+    <span className={styles.wrap}>
+      <span
+        className={`${styles.root} ${copied ? styles.copied : ''} ${className ?? ''}`}
+        onClick={handleClick}
+        onDoubleClick={handleDblClick}
+        title={title}
+        role="button"
+        tabIndex={0}
+        onKeyDown={e => e.key === 'Enter' && copy()}
+      >
+        <HighlightText text={text} query={highlight} />
+        {/* 복사 후: 텍스트 체크마크 / 복사 전: CSS로만 만든 아이콘 */}
+        <span className={`${styles.icon} ${copied ? styles.check : ''}`}>
+          {copied ? '✓' : ''}
+        </span>
       </span>
+      {onOpen && (
+        <Button
+          unstyled
+          className={styles.openBtn}
+          title={`바로가기 — ${text}`}
+          aria-label="바로가기"
+          onClick={e => { e.stopPropagation(); onOpen(text); }}
+        >
+          ↗
+        </Button>
+      )}
     </span>
   );
 };

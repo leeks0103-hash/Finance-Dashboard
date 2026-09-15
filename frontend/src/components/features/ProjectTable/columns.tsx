@@ -2,6 +2,11 @@ import { createColumnHelper } from '@tanstack/react-table';
 import type { Project } from '@/types';
 import { formatBillion, formatRate, getNoteVariant } from '@/utils';
 import { Badge, NegCell, CopyText, HighlightText } from '@/components/ui';
+import { openFinanceFile } from '@/api/finance.api';
+
+const openFile = (filename: string) => {
+  openFinanceFile(filename).then(r => { if (!r.ok) window.alert(r.message ?? '파일을 열 수 없습니다.'); });
+};
 
 const h = createColumnHelper<Project>();
 
@@ -40,6 +45,8 @@ export const columns = [
   }),
   h.accessor('filename', {
     header: '원본파일명',
+    // 파일명이 길어서(20자↑) 클릭 시 DataTable 기본 팝업(복사 + 이 meta로 "바로가기" 버튼 추가)이 뜬다
     cell: i => <HighlightText text={i.getValue()} query={i.table.options.meta?.searchQuery} />,
+    meta: { onOpenFile: openFile },
   }),
 ];

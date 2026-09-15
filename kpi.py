@@ -586,6 +586,14 @@ def api_kpi_data():
 
     df = apply_kpi_filters(df)
 
+    if request.args.get("anomaly_only") == "1":
+        anomalies = _find_premature_actual_rows()
+        keys = {(a["project_code"], a["stage"]) for a in anomalies}
+        code_col  = next((c for c in df.columns if "프로젝트코드" in str(c)), None)
+        stage_col = next((c for c in df.columns if "보고단계" in str(c)), None)
+        if code_col and stage_col:
+            df = df[df.apply(lambda r: (str(r[code_col]).strip(), str(r[stage_col]).strip()) in keys, axis=1)]
+
     search = request.args.get("search", "").strip()
     field  = request.args.get("field", "").strip()
     if search:
@@ -854,3 +862,44 @@ def api_kpi_reload():
     except Exception as e:
         logger.error("api_kpi_reload 실패: %s", e)
         return jsonify({"ok": False, "error": str(e)}), 500
+
+
+def _find_kpi_file_path(filename: str) -> str | None:
+    """'처리 이력' 시트에서 파일명으로 전체경로를 찾는다 (finance.py _find_file_path와 동일 패턴).
+    같은 파일명이 여러 번 재처리됐으면 가장 최근(처리일시 최대) 걸 사용."""
+    if not filename or not os.path.exists(KPI_EXCEL_PATH):
+        return None
+    try:
+        hist = pd.read_excel(KPI_EXCEL_PATH, sheet_name="처리 이력", header=0, engine="openpyxl")
+    except Exception as e:
+        logger.warning("KPI 처리 이력 시트 읽기 실패: %s", e)
+        return None
+    matches = hist[hist["파일명"] == filename]
+    if matches.empty:
+        return None
+    matches = matches.sort_values("처리일시")
+    path = str(matches.iloc[-1]["전체경로"]).strip()
+    return path or None
+
+
+@kpi_bp.route("/api/kpi/open-file", methods=["POST"])
+def api_kpi_open_file():
+    data = request.get_json(silent=True) or {}
+    filename = str(data.get("filename", "")).strip()
+    if not filename:
+        return jsonify({"ok": False, "message": "파일명이 없습니다."}), 400
+
+    path = _find_kpi_file_path(filename)
+    if not path or not os.path.exists(path):
+        return jsonify({
+            "ok": False,
+            "message": "원본 위치를 찾을 수 없습니다 — 폴더가 이동했거나 재추출이 필요할 수 있습니다.",
+        }), 404
+
+    try:
+        os.startfile(path)
+    except Exception as e:
+        logger.error("파일 열기 실패(%s): %s", path, e)
+        return jsonify({"ok": False, "message": f"파일 실행 실패: {e}"}), 500
+
+    return jsonify({"ok": True})

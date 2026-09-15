@@ -16,5 +16,10 @@ declare module '@tanstack/react-table' {
      * 변동 컬럼과 시각적으로 구분한다 (예: KPI 집계의 KPI 항목·26년 목표(사업계획))
      */
     staticCol?: boolean;
+    /**
+     * 제공 시, 이 컬럼의 셀(20자 이상 자동 팝업)이 열릴 때 팝업에 "↗ 바로가기" 버튼이
+     * 추가로 뜬다 — 파일명처럼 원본을 직접 열어야 하는 컬럼용 (예: 재무 PPT 파일명)
+     */
+    onOpenFile?: (value: string) => void;
   }
 }

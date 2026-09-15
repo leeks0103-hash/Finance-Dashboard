@@ -1,8 +1,13 @@
 import { useMemo, type ReactNode } from 'react';
 import { createColumnHelper } from '@tanstack/react-table';
 import { DataTable, CopyText, HighlightText } from '@/components/ui';
+import { openFinanceFile } from '@/api/finance.api';
 import type { Project } from '@/types/finance.types';
 import styles from './FinanceSearchResults.module.css';
+
+const openFile = (filename: string) => {
+  openFinanceFile(filename).then(r => { if (!r.ok) window.alert(r.message ?? '파일을 열 수 없습니다.'); });
+};
 
 const ch = createColumnHelper<Project>();
 
@@ -30,10 +35,12 @@ const FinanceSearchResults = ({ results, searchTerm, info }: Props) => {
     }),
     ch.accessor('filename', {
       header: '파일명',
+      // 파일명이 길어서(20자↑) 클릭 시 DataTable 기본 팝업(복사 + 이 meta로 "바로가기" 버튼 추가)이 뜬다
       cell: i => {
         const v = i.getValue();
         return v ? <HighlightText text={v} query={searchTerm} /> : <span style={{ color: 'var(--text-muted)' }}>-</span>;
       },
+      meta: { onOpenFile: openFile },
     }),
   ], [searchTerm]);
 

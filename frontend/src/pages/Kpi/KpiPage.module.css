@@ -198,7 +198,20 @@
   font-size: 0.85rem;
 }
 .anomalyIcon { flex-shrink: 0; }
+.anomalyText { flex: 1; }
 .anomalyText b { color: var(--danger); }
+
+.anomalyViewBtn {
+  flex-shrink: 0;
+  margin-left: auto;
+  white-space: nowrap;
+  border-color: var(--danger) !important;
+  color: var(--danger) !important;
+}
+.anomalyViewBtn:hover {
+  background: var(--danger) !important;
+  color: #fff !important;
+}
 
 /* ── KPI 집계 카드 리스트 ─── */
 .kpiList {

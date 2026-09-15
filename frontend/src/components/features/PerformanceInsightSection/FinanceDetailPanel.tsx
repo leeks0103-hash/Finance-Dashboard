@@ -1,7 +1,12 @@
 import { Button, CopyText } from '@/components/ui';
 import { formatBillion, formatRate } from '@/utils';
+import { openFinanceFile } from '@/api/finance.api';
 import type { Project } from '@/types';
 import styles from './FinanceDetailPanel.module.css';
+
+const openFile = (filename: string) => {
+  openFinanceFile(filename).then(r => { if (!r.ok) window.alert(r.message ?? '파일을 열 수 없습니다.'); });
+};
 
 interface Props {
   project: Project;
@@ -44,7 +49,7 @@ const FinanceDetailPanel = ({ project: p, onClose }: Props) => {
         <div className={styles.triRow}>
           <div className={styles.row}><span className={styles.key}>이익율</span><span className={styles.val}>{formatRate(p.profit_rate)}</span></div>
           <div className={styles.row}><span className={styles.key}>미수사유</span><span className={styles.val} title={missedBidReason}>{missedBidReason}</span></div>
-          <div className={styles.row}><span className={styles.key}>파일명</span><span className={styles.val}><CopyText text={p.filename} /></span></div>
+          <div className={styles.row}><span className={styles.key}>파일명</span><span className={styles.val}><CopyText text={p.filename} onOpen={openFile} /></span></div>
         </div>
       </div>
     </div>

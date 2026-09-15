@@ -18,10 +18,10 @@ export const useKpiSummary = (part = '') =>
     meta: { queryType: 'kpi-summary' },
   });
 
-export const useKpiDataPaged = (page: PageParams, filters: Filters = EMPTY_FILTERS) =>
+export const useKpiDataPaged = (page: PageParams, filters: Filters = EMPTY_FILTERS, anomalyOnly = false) =>
   useQuery({
-    queryKey:          ['kpi-data-paged', page, filters],
-    queryFn:           () => getKpiData(filters, page),
+    queryKey:          ['kpi-data-paged', page, filters, anomalyOnly],
+    queryFn:           () => getKpiData(filters, page, anomalyOnly),
     select:            (raw) => ({ rows: raw.data, total: raw.total }),
     placeholderData:   keepPreviousData,
     structuralSharing: true,

@@ -8,10 +8,15 @@ import { ChartCard, BarChart, DataTable, CopyText, HighlightText, Button, Spinne
 import { FadeInSection } from '@/components/FadeInSection';
 import KpiRawTable from '@/components/features/KpiRawTable/KpiRawTable';
 import KpiBreakdownModal from '@/components/features/KpiBreakdownModal/KpiBreakdownModal';
+import { openKpiFile } from '@/api/kpi.api';
 import { kpiColLabel } from '@/utils/kpiColumns';
 import type { KpiRawRow } from '@/types/kpi.types';
 import type { KpiSummaryRow } from '@/hooks/viewmodels/useKpiPageViewModel';
 import styles from './KpiPage.module.css';
+
+const openFile = (filename: string) => {
+  openKpiFile(filename).then(r => { if (!r.ok) window.alert(r.message ?? '파일을 열 수 없습니다.'); });
+};
 
 // 신규:N건/기존:N건 패턴을 뱃지 2개로 분할 렌더링
 function CountCell({ value }: { value: string }) {
@@ -35,7 +40,9 @@ const rh = createColumnHelper<KpiRawRow>();
 const KpiPage = () => {
   // ── 필터 A: KPI 목표 vs 실적 차트 + KPI 집계 표에만 적용 (취합 표와 완전 별개) ──
   const [summaryPart, setSummaryPart] = useState('');
-  const vm = useKpiPageViewModel(summaryPart);
+  // 조기입력 의심 배너 "한눈에 보기" → KPI 상세 뷰로 전환 + 문제 행만 서버측 필터링
+  const [anomalyOnly, setAnomalyOnly] = useState(false);
+  const vm = useKpiPageViewModel(summaryPart, anomalyOnly);
   const [rawView, setRawView] = useState<'flat' | 'rowspan'>('flat');
   // KPI 목표 vs 실적 막대 또는 KPI 집계 표 셀 클릭 → 드릴다운 모달
   const [breakdown, setBreakdown] = useState<{ name: string; metric: 'target' | 'actual' | 'prev' } | null>(null);
@@ -107,6 +114,7 @@ const KpiPage = () => {
             return <CopyText text={v} highlight={query} />;
           return <HighlightText text={String(v)} query={query} />;
         },
+        meta: col === '파일명' ? { onOpenFile: openFile } : undefined,
       })
     ),
     [vm.rawCols],
@@ -223,9 +231,21 @@ const KpiPage = () => {
               <span className={styles.anomalyIcon}>⚠</span>
               <span className={styles.anomalyText}>
                 보고단계가 <b>완료</b>가 아닌데 실적이 이미 입력된 항목이 <b>{vm.anomalyCount}건</b> 있습니다 —
-                조기입력 오류일 수 있으니 아래 표에서 빨간 행을 확인해주세요
-                (KPI 상세 뷰 전환 시 표시됩니다).
+                조기입력 오류일 수 있으니 확인해주세요.
               </span>
+              {anomalyOnly ? (
+                <Button variant="ghost" size="sm" className={styles.anomalyViewBtn} onClick={() => setAnomalyOnly(false)}>
+                  전체 보기
+                </Button>
+              ) : (
+                <Button variant="ghost" size="sm" className={styles.anomalyViewBtn} onClick={() => {
+                  setRawView('rowspan');
+                  setAnomalyOnly(true);
+                  vm.serverPagination.onPageChange(1);
+                }}>
+                  한눈에 보기
+                </Button>
+              )}
             </div>
           )}
           {(() => {

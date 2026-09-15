@@ -81,3 +81,14 @@
   color: var(--text-muted);
   white-space: nowrap;
 }
+
+.popupActions {
+  padding: 12px 16px 16px;
+  margin-top: 4px;
+  border-top: 1px solid var(--border);
+}
+
+.openFileBtn {
+  width: 100%;
+  justify-content: center;
+}

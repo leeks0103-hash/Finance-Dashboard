@@ -26,3 +26,12 @@ export const getPdfUrl = (filters: Filters): string =>
 /** 재무 PPT 이력이 있는 프로젝트코드 → 건수. 실적현황 표의 2뎁스 보유 배지용 */
 export const getFinanceCodes = (): Promise<Record<string, number>> =>
   client.get<{ codes: Record<string, number> }>('/finance/codes').then(r => r.data.codes);
+
+export interface OpenFileResult {
+  ok:       boolean;
+  message?: string;
+}
+
+/** 파일명으로 원본 PPT 위치를 찾아 서버(로컬 PC)에서 직접 실행 — NAS 이전 전 로컬 경로 기준 */
+export const openFinanceFile = (filename: string): Promise<OpenFileResult> =>
+  client.post<OpenFileResult>('/finance/open-file', { filename }).then(r => r.data);

@@ -12,6 +12,7 @@ import {
   SortableHeaderCell, CellPopup, TableTitleBar,
 } from '@/components/ui';
 import { cellVal, isImplausibleScoreRow, isPrematureActualRow } from '@/utils/kpiColumns';
+import { openKpiFile } from '@/api/kpi.api';
 import styles from './KpiRawTable.module.css';
 
 export const KPI_METRICS = [
@@ -136,6 +137,13 @@ const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, searchE
 
   // ── 파일명 복사 팝업 ──────────────────────────────────────
   const { popup, copied: popupCopied, openPopup, closePopup, copyPopupText } = useClipboardPopup();
+
+  // "↗ 바로가기" — 처리 이력 시트의 전체경로로 서버가 직접 파일 실행 (NAS 이전 전 로컬 경로 기준)
+  const handleOpenFile = useCallback(async (filename: string) => {
+    const result = await openKpiFile(filename);
+    if (!result.ok) window.alert(result.message ?? '파일을 열 수 없습니다.');
+    closePopup();
+  }, [closePopup]);
 
   // Esc — 팝업 닫기 > 하이라이트 해제 > 검색 초기화 (DataTable과 동일한 우선순위)
   useTableEscapePriority([
@@ -271,7 +279,7 @@ const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, searchE
                             highlightedCol === col.id ? styles.tdHighlighted : '',
                           ].join(' ')}
                           title={val}
-                          onClick={col.id === 'filename' && val ? () => openPopup(val, true) : undefined}
+                          onClick={col.id === 'filename' && val ? () => openPopup(val, true, () => handleOpenFile(val)) : undefined}
                         >
                           {col.id === 'code'
                             ? <CopyText text={val} highlight={serverSearch?.value} />

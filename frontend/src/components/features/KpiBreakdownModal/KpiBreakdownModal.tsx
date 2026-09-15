@@ -5,9 +5,13 @@ import { useEscToClose } from '@/hooks/useEscToClose';
 import { useKpiBreakdownViewModel } from '@/hooks/viewmodels/useKpiBreakdownViewModel';
 import { downloadCsvFile } from '@/hooks/useExport';
 import { stripPartPrefix } from '@/utils/format';
-import type { KpiBreakdownRow } from '@/api/kpi.api';
+import { openKpiFile, type KpiBreakdownRow } from '@/api/kpi.api';
 import BreakdownTable, { type BreakdownColumn } from '@/components/features/BreakdownModal/BreakdownTable';
 import styles from './KpiBreakdownModal.module.css';
+
+const openFile = (filename: string) => {
+  openKpiFile(filename).then(r => { if (!r.ok) window.alert(r.message ?? '파일을 열 수 없습니다.'); });
+};
 
 interface Props {
   name:    string;
@@ -90,7 +94,7 @@ const KpiBreakdownModal = ({ name, metric, onClose }: Props) => {
             {
               key: 'file', header: '파일명', wrap: true,
               sortValue: r => r.file,
-              render: r => (r.file ? <CopyText text={r.file} /> : '—'),
+              render: r => (r.file ? <CopyText text={r.file} onOpen={openFile} /> : '—'),
             },
           ] satisfies BreakdownColumn<KpiBreakdownRow>[]}
           rows={vm.rows}

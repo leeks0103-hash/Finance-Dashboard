@@ -578,6 +578,48 @@ def api_reload():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+def _find_file_path(filename: str) -> str | None:
+    """처리이력 시트에서 파일명으로 전체경로를 찾는다 — 재추출 없이 이미 매 실행 기록되고
+    있던 절대경로를 그대로 활용(2026-09-15, NAS 이전 전 로컬 경로로 먼저 검증).
+    같은 파일명이 여러 번 재처리됐으면 가장 최근(처리일시 최대) 걸 사용."""
+    if not filename or not os.path.exists(EXCEL_PATH):
+        return None
+    try:
+        hist = pd.read_excel(EXCEL_PATH, sheet_name="처리이력", header=0, engine="openpyxl")
+    except Exception as e:
+        logger.warning("처리이력 시트 읽기 실패: %s", e)
+        return None
+    matches = hist[hist["파일명"] == filename]
+    if matches.empty:
+        return None
+    matches = matches.sort_values("처리일시")
+    path = str(matches.iloc[-1]["전체경로"]).strip()
+    return path or None
+
+
+@finance_bp.route("/api/finance/open-file", methods=["POST"])
+def api_finance_open_file():
+    data = request.get_json(silent=True) or {}
+    filename = str(data.get("filename", "")).strip()
+    if not filename:
+        return jsonify({"ok": False, "message": "파일명이 없습니다."}), 400
+
+    path = _find_file_path(filename)
+    if not path or not os.path.exists(path):
+        return jsonify({
+            "ok": False,
+            "message": "원본 위치를 찾을 수 없습니다 — 폴더가 이동했거나 재추출이 필요할 수 있습니다.",
+        }), 404
+
+    try:
+        os.startfile(path)
+    except Exception as e:
+        logger.error("파일 열기 실패(%s): %s", path, e)
+        return jsonify({"ok": False, "message": f"파일 실행 실패: {e}"}), 500
+
+    return jsonify({"ok": True})
+
+
 @finance_bp.route("/api/export/pdf")
 def api_export_pdf():
     from reportlab.lib.pagesizes import A4

@@ -87,8 +87,9 @@ const SEARCH_FIELD_OPTIONS = [
 /**
  * @param summaryPart  KPI 목표vs실적 차트 + KPI 집계 표에만 적용되는 파트 필터 ('' = 전체).
  *                     KPI 취합 표 필터(useKpiFilterStore)와는 완전히 별개.
+ * @param anomalyOnly  true면 KPI 취합 표를 조기입력 의심 행만으로 서버측 필터링 (배너 "한눈에 보기").
  */
-export const useKpiPageViewModel = (summaryPart = ''): KpiPageViewModel => {
+export const useKpiPageViewModel = (summaryPart = '', anomalyOnly = false): KpiPageViewModel => {
   const pagination = useReactPagination(20);   // KPI 취합 — 30행은 너무 길어서 20행 기본
   const [searchField, setSearchField] = useState('');
   const search = useDebouncedSearch(350);
@@ -104,6 +105,7 @@ export const useKpiPageViewModel = (summaryPart = ''): KpiPageViewModel => {
   } = useKpiDataPaged(
     { page: pagination.page, pageSize: pagination.pageSize, search: search.debouncedValue, field: searchField },
     { years, parts, stages },
+    anomalyOnly,
   );
 
   const isLoading = sumLoading || dataLoading;

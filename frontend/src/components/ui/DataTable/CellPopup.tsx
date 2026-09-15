@@ -6,6 +6,7 @@ import styles from './CellPopup.module.css';
 interface PopupState {
   text:     string;
   copyable: boolean;
+  onOpen?:  () => void;
 }
 
 interface Props {
@@ -40,6 +41,13 @@ export const CellPopup = ({ title, popup, copied, onClose, onCopy }: Props) => {
           </div>
         ) : (
           <div className={styles.popupBody}>{popup.text}</div>
+        )}
+        {popup.onOpen && (
+          <div className={styles.popupActions}>
+            <Button variant="primary" size="sm" className={styles.openFileBtn} onClick={popup.onOpen}>
+              ↗ 원본 파일 열기
+            </Button>
+          </div>
         )}
       </div>
     </div>,
