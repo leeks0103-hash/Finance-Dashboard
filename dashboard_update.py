@@ -15,7 +15,6 @@ if sys.stdout.encoding != 'utf-8':
 
 ROOT       = Path(__file__).parent
 PYTHON     = sys.executable
-PPT_FOLDER = r"C:\Users\aaa\Desktop\5. 보고서 수집"
 API_RELOAD = "http://localhost:5000/api/reload"
 
 
@@ -23,7 +22,9 @@ def run(script_name):
     script = ROOT / "scripts" / script_name
     print(f"[실행] {script_name}")
     result = subprocess.run(
-        [PYTHON, str(script), PPT_FOLDER],
+        # CLI 인수를 안 넘겨야 스크립트 자체의 .env(EXTRACT_BASE_DIR/EXTRACT_KPI_ROOT_DIR)
+        # 폴백 로직이 그대로 적용됨 — 여기서 폴더를 하드코딩하면 .env를 바꿔도 무시됨(2026-09-16 버그)
+        [PYTHON, str(script)],
         cwd=str(ROOT),
         capture_output=True,
         text=True,
