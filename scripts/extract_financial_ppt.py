@@ -563,6 +563,50 @@ def upsert_rows(data_ws, rows):
     return inserted, updated
 
 
+def cleanup_stale_rows(data_ws, all_records):
+    """PPT 안의 값(코드·연도·파트·구분)이 수정되면 make_row_key() 결과가 바뀌어 upsert_rows()가
+    새 행을 추가하고, 옛 키의 행은 그대로 남는다 — 파일명이 그대로라 cleanup_deleted_files()가
+    못 잡는다. (실사례: 코드가 H095600126040001 → H095600126050002 로 정정된 제안 보고서 —
+    2026-09-16, 옛 코드 행이 안 지워지고 그대로 남아 KPI/재무 코드 불일치로 발견됨)
+
+    KPI 추출(extract_kpi_ppt.py cleanup_stale_rows)과 동일한 방식 — **이번 실행에서 실제로
+    행이 나온 파일**에 한해, 이번 실행이 쓰지 않은 (파일명, 코드, 연도, 파트, 구분) 키의 행을
+    제거한다. 추출 실패/데이터 없음으로 행이 하나도 안 나온 파일은 손대지 않아 일시적 실패로
+    기존 데이터가 사라지지 않게 한다.
+    """
+    written_keys = set()
+    files_with_records = set()
+    for row_data in all_records:
+        fname = normalize_text(row_data[12]) if len(row_data) > 12 else ""
+        if not fname:
+            continue
+        files_with_records.add(fname)
+        written_keys.add(make_row_key(row_data[0], row_data[1], row_data[2], row_data[3], fname))
+
+    rows_to_delete = []
+    for row_num in range(2, data_ws.max_row + 1):
+        fname = normalize_text(data_ws.cell(row=row_num, column=13).value)
+        if fname not in files_with_records:
+            continue
+        code = data_ws.cell(row=row_num, column=1).value
+        year = data_ws.cell(row=row_num, column=2).value
+        part = data_ws.cell(row=row_num, column=3).value
+        gubun = data_ws.cell(row=row_num, column=4).value
+        key = make_row_key(code, year, part, gubun, fname)
+        if key not in written_keys:
+            rows_to_delete.append(row_num)
+            log(
+                f"[정리] 옛 키 행 제거 예정: 행={row_num}, 코드={normalize_text(code)}, "
+                f"파트={normalize_text(part)}, 단계={normalize_text(gubun)}, 파일={fname}"
+            )
+
+    for row_num in reversed(rows_to_delete):
+        data_ws.delete_rows(row_num)
+    if rows_to_delete:
+        log(f"[정리] 취합 시트 {len(rows_to_delete)}행 제거 (PPT 안에서 값이 바뀐 옛 키)")
+    return len(rows_to_delete)
+
+
 # =========================
 # PowerPoint 읽기
 # =========================
@@ -1000,6 +1044,7 @@ def main():
     total_inserted = 0
     total_updated = 0
     total_extracted = 0
+    all_extracted_records = []  # cleanup_stale_rows용 — 이번 실행에서 실제로 나온 행 전부
 
     try:
         ppt_app = create_powerpoint_app()
@@ -1030,6 +1075,7 @@ def main():
                     continue
 
                 inserted, updated = upsert_rows(data_ws, extracted_rows)
+                all_extracted_records.extend(extracted_rows)
                 total_inserted += inserted
                 total_updated += updated
                 total_extracted += len(extracted_rows)
@@ -1069,6 +1115,10 @@ def main():
             else:
                 log("[retry] 모든 파일 처리 완료 — 실패 목록 초기화")
 
+        stale_removed = 0
+        if not RETRY_MODE:
+            stale_removed = cleanup_stale_rows(data_ws, all_extracted_records)
+
         apply_number_formats(data_ws)
         apply_sheet_layout(data_ws)
         wb.save(TARGET_EXCEL)
@@ -1080,6 +1130,7 @@ def main():
         log(f"- 총 추출 건수: {total_extracted}")
         log(f"- 추가 건수: {total_inserted}")
         log(f"- 갱신 건수: {total_updated}")
+        log(f"- 정리(옛 키 제거) 건수: {stale_removed}")
         log(f"- 결과 파일: {TARGET_EXCEL}")
         log(f"- 로그 파일: {LOG_FILE}")
 
