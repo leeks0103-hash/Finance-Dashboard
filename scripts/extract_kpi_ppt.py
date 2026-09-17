@@ -409,7 +409,18 @@ def append_history(ws, file_meta: Dict[str, str], status: str, message: str):
 
 # 프로젝트 코드가 이 값이면 "미배정" 상태로 간주 — 서로 다른 프로젝트가 같은 값을
 # 공유해도 충돌(덮어쓰기)하지 않도록 중복 판별 키에 파일명을 추가로 사용
-PLACEHOLDER_CODES = {"", "0", "생성예정", "미정", "tbd", "(생성 필요)", "선정 시 생성 예정"}
+PLACEHOLDER_CODES = {"", "-", "0", "생성예정", "미정", "tbd", "(생성 필요)", "선정 시 생성 예정"}
+# "[신규/미생성]"류 대괄호 표기도 placeholder — extract_financial_ppt.py의 _is_placeholder()와
+# 동일 패턴. 이게 없으면 이런 코드도 "정식 코드"로 취급돼 무관한 파일과 충돌(코드충돌)로
+# 잘못 잡힌다(2026-09-17 — 프로젝트 코드 없는 파일은 원래 무시하기로 한 건데 경고가 뜸)
+_PLACEHOLDER_RE = re.compile(r'^\[.*(?:미생성|신규|생성|tbd)\]$', re.IGNORECASE)
+
+
+def _is_placeholder(code: str) -> bool:
+    c = normalize_text(code)
+    return c in PLACEHOLDER_CODES or bool(_PLACEHOLDER_RE.match(c))
+
+
 FILENAME_COL = 45  # '취합' 시트 파일명 컬럼(1-based)
 # strip_stage_suffix()는 shared.py로 이동 — kpi.py(대시보드 집계 dedup)와 기준을 공유하기 위함.
 # 정식 코드도 서로 다른 프로젝트가 우연히 같은 코드를 쓰는 사례가 있어(예: E158600126060001)
@@ -424,7 +435,7 @@ def find_existing_data_row(ws, key1: str, key2: str, key4: str, filename: str = 
     """프로젝트코드 + 수행연도 + 보고단계 3중 키로 중복 판별 (착수/중간/완료 구분).
     코드가 미배정 플레이스홀더(생성예정 등)면 서로 다른 프로젝트가 같은 값을 공유해도
     충돌하지 않도록 파일명(단계 제거 기준명)도 같이 비교한다."""
-    is_placeholder = key1 in PLACEHOLDER_CODES
+    is_placeholder = _is_placeholder(key1)
     file_base = strip_stage_suffix(filename) if is_placeholder else ""
     for row_idx in range(2, ws.max_row + 1):
         v1 = normalize_text(ws.cell(row=row_idx, column=1).value)

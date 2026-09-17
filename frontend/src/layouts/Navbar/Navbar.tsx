@@ -94,7 +94,9 @@ const Navbar = () => {
                             </div>
                             <div className={styles.healthCodes}>
                               <span>{c.source} · {c.files.length}개 파일이 같은 코드 사용</span>
-                              {c.files.map(f => <span key={f}>· {f}</span>)}
+                              {c.files.map(f => (
+                                <span key={f}>· <CopyText text={f} /></span>
+                              ))}
                             </div>
                           </li>
                         ))}
