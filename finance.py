@@ -43,7 +43,7 @@ _cached_mtime = None
 _cache_lock = threading.Lock()
 _last_correction_count = 0
 
-_STAGE_PRIORITY = ["검토", "사업계획", "사전검토", "제안", "착수", "중간", "완료"]
+_STAGE_PRIORITY = ["검토", "사업계획", "사전검토", "제안", "추가제안", "착수", "중간", "완료"]
 
 
 def _empty_df() -> pd.DataFrame:

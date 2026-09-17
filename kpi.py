@@ -212,6 +212,9 @@ def _build_agg_df(df: pd.DataFrame) -> pd.DataFrame:
              (생성예정 / 미정 / "-" / 숫자만 / 빈값 등).
     규칙 2 — 같은 프로젝트(정식코드+수행연도)에 완료·중간·착수·제안이 여러 건이면
              전부 더하지 않고 가장 진행된 단계 1건만 사용 (완료>중간>착수>제안>…).
+    규칙 3 — "추가제안" 단계는 집계·차트에서 완전히 제외(로우데이터에만 노출되는
+             임시 보고단계, 2026-09-17 추가). 우선순위로 낮추는 게 아니라 아예 빼야
+             그 프로젝트에 다른 정식 단계 행이 없을 때도 집계에 안 걸림.
     """
     if df.empty:
         return df
@@ -229,6 +232,11 @@ def _build_agg_df(df: pd.DataFrame) -> pd.DataFrame:
     n_all = len(d)
     d = d[d["_real"] != ""].copy()
     logger.info("KPI 집계 대상: 정식 코드 %d행 (비정식 코드 %d행 제외)", len(d), n_all - len(d))
+
+    n_before_stage_filter = len(d)
+    d = d[d[stage_col].astype(str).str.strip() != "추가제안"].copy()
+    if len(d) != n_before_stage_filter:
+        logger.info("KPI 집계 대상: 추가제안 %d행 제외", n_before_stage_filter - len(d))
 
     d["_stage_rank"] = d[stage_col].map(lambda s: _STAGE_PRIORITY.get(str(s).strip(), -1))
     subset = ["_real"] + ([year_col] if year_col else [])
@@ -559,7 +567,9 @@ def apply_kpi_filters(df: pd.DataFrame) -> pd.DataFrame:
     if parts:
         df = df[df["파트명"].isin(parts)]
     if stages:
-        df = df[df["보고단계"].isin(stages)]
+        # "추가제안"은 필터 칩 옵션 목록에 없어서(/api/kpi/options 제외) 선택 대상 자체가
+        # 아님 — 칩 선택 상태와 무관하게 항상 통과시켜야 KPI 취합 표에서 계속 보인다
+        df = df[df["보고단계"].isin(stages) | (df["보고단계"] == "추가제안")]
     return df
 
 
@@ -572,10 +582,12 @@ def api_kpi_options():
     df = get_kpi_df()
     if df.empty:
         return jsonify({"years": [], "parts": [], "stages": []})
+    # "추가제안"은 로우데이터(KPI 취합)에만 노출되는 임시 보고단계 — 필터 칩 옵션에는 불필요
+    stages = [s for s in df["보고단계"].dropna().unique().tolist() if s != "추가제안"]
     return jsonify({
         "years":  sorted(df["수행연도"].dropna().unique().tolist()),
         "parts":  sorted(df["파트명"].dropna().unique().tolist()),
-        "stages": sorted(df["보고단계"].dropna().unique().tolist()),
+        "stages": sorted(stages),
     })
 
 
