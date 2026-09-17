@@ -51,19 +51,30 @@ const PerformanceFilterBar = () => {
 
   return (
     <div className={styles.panel}>
-      <div className={styles.teamWrap}>
+      <div className={`${styles.group} ${styles.chipsOnly}`}>
         <span className={styles.label}>팀</span>
-        <select
-          className={`${styles.teamSelect} ${selectedTeam ? styles.active : ''}`}
-          value={selectedTeam}
-          onChange={e => handleTeamChange(e.target.value)}
-        >
-          <option value="">전체 팀</option>
+        <div className={styles.chips}>
+          <FilterChip label="전체" checked={!selectedTeam} onChange={() => handleTeamChange('')} />
           {teams.map(team => (
-            <option key={team} value={team}>{team}</option>
+            <FilterChip key={team} label={team} checked={selectedTeam === team}
+              onChange={() => handleTeamChange(team)} />
           ))}
-        </select>
-        <span className={styles.teamArrow}>▾</span>
+        </div>
+      </div>
+      <div className={styles.dropdownOnly}>
+        <div className={styles.teamWrap}>
+          <select
+            className={`${styles.teamSelect} ${selectedTeam ? styles.active : ''}`}
+            value={selectedTeam}
+            onChange={e => handleTeamChange(e.target.value)}
+          >
+            <option value="">전체 팀</option>
+            {teams.map(team => (
+              <option key={team} value={team}>{team}</option>
+            ))}
+          </select>
+          <span className={styles.teamArrow}>▾</span>
+        </div>
       </div>
       <div className={`${styles.group} ${styles.chipsOnly}`}>
         <span className={styles.label}>파트</span>
