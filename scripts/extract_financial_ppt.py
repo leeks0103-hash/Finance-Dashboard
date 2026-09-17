@@ -38,6 +38,11 @@ os.makedirs(_DATA_DIR, exist_ok=True)
 TARGET_EXCEL  = _paths.FINANCE_EXCEL_PATH   # paths.py 단일 관리 (.env: EXCEL_PATH)
 TARGET_SHEET  = "취합"
 HISTORY_SHEET = "처리이력"
+# 같은 (코드/연도/파트/구분) 키를 서로 다른 파일이 공유해서 upsert_rows()가 덮어쓸 때마다 기록.
+# 이런 파일은 KPI/재무 데이터 이상 배지(app.py /api/data-health)가 "같은 파일명에 양쪽 데이터가
+# 있을 때만" 비교해서 놓친다 — 덮어써진 쪽은 자기 이름으로 된 행이 아예 안 남기 때문(2026-09-17 발견)
+CONFLICT_SHEET  = "코드충돌"
+CONFLICT_HEADERS = ["코드", "연도", "파트", "구분", "기존파일", "신규파일", "발견일시"]
 TITLE_KEYWORD = "[내부용①] 재무관점 필수 데이터"
 SUPPORTED_EXTENSIONS = {".ppt", ".pptx"}
 LOG_FILE       = _paths.FINANCE_LOG_FILE
@@ -510,7 +515,7 @@ def cleanup_deleted_files(data_ws, history_ws, base_dir):
     return len(rows_to_delete)
 
 
-def upsert_rows(data_ws, rows):
+def upsert_rows(data_ws, rows, conflict_ws=None):
     index_map = build_data_index(data_ws)
     inserted = 0
     updated = 0
@@ -529,6 +534,11 @@ def upsert_rows(data_ws, rows):
                     f"[경고] 코드 충돌 의심 - 서로 다른 파일이 같은 (코드/연도/파트/구분) 키를 공유함: "
                     f"기존='{existing_filename}' 신규='{new_filename}' 키={key[:4]}"
                 )
+                if conflict_ws is not None:
+                    conflict_ws.append([
+                        key[0], key[1], key[2], key[3],
+                        existing_filename, new_filename, now_str(),
+                    ])
 
             # 비고(12열)는 새 값이 비어있고 기존 값이 있으면 유지 — 완료본이 착수본보다
             # 먼저 처리되어 비고를 채워둔 뒤, 착수본(비고 공백)이 나중에 덮어써 유실되는 것을 방지
@@ -1009,6 +1019,7 @@ def main():
 
     data_ws = get_or_create_sheet(wb, TARGET_SHEET, OUTPUT_HEADERS)
     history_ws = get_or_create_sheet(wb, HISTORY_SHEET, HISTORY_HEADERS)
+    conflict_ws = get_or_create_sheet(wb, CONFLICT_SHEET, CONFLICT_HEADERS)
     apply_sheet_layout(data_ws)
 
     # 소스 폴더에 없는 파일 데이터 자동 정리 (파일 삭제 시 엑셀에도 반영)
@@ -1036,6 +1047,17 @@ def main():
         wb.save(TARGET_EXCEL)
         log("[완료] 처리할 신규/변경 PowerPoint 파일이 없습니다.")
         return 0
+
+    # 이번 실행에서 재처리되는 파일이 연관된 옛 충돌 기록만 제거 — 재무는 변경분만 증분
+    # 재처리라, 전체를 매번 비우면 이번에 안 건드린 파일의 충돌 기록이 같이 사라짐(오탐 방지).
+    # 재처리되는 파일 쪽만 지우고 새로 평가 → 해소됐으면 재등록 안 되고, 여전하면 다시 기록됨
+    target_basenames = {os.path.basename(p) for p in target_files}
+    conflict_rows_to_delete = [
+        r for r in range(2, conflict_ws.max_row + 1)
+        if conflict_ws.cell(r, 5).value in target_basenames or conflict_ws.cell(r, 6).value in target_basenames
+    ]
+    for r in reversed(conflict_rows_to_delete):
+        conflict_ws.delete_rows(r)
 
     pythoncom.CoInitialize()
     ppt_app = None
@@ -1076,7 +1098,7 @@ def main():
                     log("  └ 추출 데이터 없음")
                     continue
 
-                inserted, updated = upsert_rows(data_ws, extracted_rows)
+                inserted, updated = upsert_rows(data_ws, extracted_rows, conflict_ws)
                 all_extracted_records.extend(extracted_rows)
                 total_inserted += inserted
                 total_updated += updated

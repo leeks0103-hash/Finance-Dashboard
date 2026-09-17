@@ -49,6 +49,11 @@ TARGET_EXCEL_PATH = Path(_paths.KPI_EXCEL_PATH)   # paths.py 단일 관리 (.env
 TARGET_EXCEL_NAME = TARGET_EXCEL_PATH.name
 DATA_SHEET_NAME = "취합"
 HISTORY_SHEET_NAME = "처리 이력"
+# 같은 (코드/연도/단계) 키를 서로 다른 파일이 공유해서 upsert_data_rows()가 덮어쓸 때마다 기록.
+# 덮어써진 쪽은 KPI 취합에 자기 이름으로 된 행이 아예 안 남아 app.py /api/data-health가
+# 놓친다(같은 파일명에 재무·KPI 양쪽 데이터가 있을 때만 비교하기 때문) — 2026-09-17 발견
+CONFLICT_SHEET_NAME = "코드충돌"
+CONFLICT_HEADERS = ["코드", "연도", "단계", "기존파일", "신규파일", "발견일시"]
 SUMMARY_SHEET_NAME = "kpi 집계"
 
 TITLE_KEYWORD = "KPI/경영현황"
@@ -506,7 +511,7 @@ def cleanup_stale_rows(data_ws, all_records: List[List]) -> int:
     return len(rows_to_delete)
 
 
-def upsert_data_rows(ws, rows: List[List]) -> Tuple[int, int]:
+def upsert_data_rows(ws, rows: List[List], conflict_ws=None) -> Tuple[int, int]:
     inserted = 0
     updated = 0
 
@@ -525,6 +530,8 @@ def upsert_data_rows(ws, rows: List[List]) -> Tuple[int, int]:
                     f"코드 충돌 의심 - 서로 다른 파일이 같은 (코드/연도/단계) 키를 공유함: "
                     f"기존='{existing_filename}' 신규='{new_filename}' 코드={key1} 연도={key2} 단계={key4}"
                 )
+                if conflict_ws is not None:
+                    conflict_ws.append([key1, key2, key4, existing_filename, new_filename, now_str()])
             target_row = existing_row
             updated += 1
             logger.info(f"기존 데이터 덮어쓰기: 행={target_row}, 코드={key1}, 연도={key2}, 단계={key4}")
@@ -1167,10 +1174,19 @@ def main():
     data_ws = get_or_create_sheet(wb, DATA_SHEET_NAME)
     history_ws = get_or_create_sheet(wb, HISTORY_SHEET_NAME)
     summary_ws = get_or_create_sheet(wb, SUMMARY_SHEET_NAME)
+    conflict_ws = get_or_create_sheet(wb, CONFLICT_SHEET_NAME)
 
     ensure_data_sheet_layout(data_ws)
     ensure_history_sheet_if_empty(history_ws)
     ensure_summary_sheet_layout(summary_ws)
+    if conflict_ws.max_row == 1 and conflict_ws.max_column == 1 and conflict_ws["A1"].value is None:
+        for idx, hd in enumerate(CONFLICT_HEADERS, start=1):
+            conflict_ws.cell(row=1, column=idx, value=hd)
+    # KPI는 매 일반 실행마다 전체 재파싱이라 매번 전부 새로 평가 — 옛 충돌 기록을 통째로
+    # 비우고 이번 실행에서 실제로 감지된 것만 남김(해소된 충돌이 안 남게). --retry는 실패
+    # 목록 일부만 재처리하는 부분 실행이라 여기서는 건드리지 않음(전량 재파싱 아님)
+    if not RETRY_MODE and conflict_ws.max_row > 1:
+        conflict_ws.delete_rows(2, conflict_ws.max_row - 1)
 
     # --retry: kpi_aip_failed.txt에 기록된 파일만 재처리
     if RETRY_MODE:
@@ -1244,7 +1260,7 @@ def main():
         wb.save(excel_path)
 
     if all_records:
-        inserted, updated = upsert_data_rows(data_ws, all_records)
+        inserted, updated = upsert_data_rows(data_ws, all_records, conflict_ws)
         logger.info(f"전체 데이터 적재 완료: 신규 {inserted}건 / 덮어쓰기 {updated}건")
 
     # 소스 폴더에 없는 파일 데이터 자동 정리

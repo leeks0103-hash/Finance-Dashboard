@@ -4,10 +4,11 @@ import numpy as np
 from dotenv import load_dotenv
 from flask import Flask, jsonify, render_template
 from flask.json.provider import DefaultJSONProvider
+from openpyxl import load_workbook
 
-from finance import finance_bp, get_df, load_excel, _sort_stages, _cache_lock
+from finance import finance_bp, get_df, load_excel, _sort_stages, _cache_lock, EXCEL_PATH
 from performance import perf_bp
-from kpi import kpi_bp, get_kpi_df, _real_code
+from kpi import kpi_bp, get_kpi_df, _real_code, KPI_EXCEL_PATH
 from downloads import download_bp
 
 load_dotenv()
@@ -75,7 +76,48 @@ def api_data_health():
             "kpi_codes": sorted(kset),
         })
 
-    return jsonify({"count": len(rows), "rows": rows})
+    conflicts = _read_code_conflicts()
+    return jsonify({
+        "count": len(rows) + len(conflicts),
+        "rows": rows,
+        "conflicts": conflicts,
+    })
+
+
+def _read_code_conflicts():
+    """추출 스크립트가 남긴 '코드충돌' 시트를 읽어 합쳐서 반환.
+
+    서로 다른 PPT가 같은 (코드/연도/단계) 키를 공유하면 뒤에 처리된 파일이 앞 파일의 행을
+    덮어써서, **덮어써진 쪽은 취합 시트에 자기 파일명으로 된 행이 아예 안 남는다.**
+    위 불일치 검사는 '같은 파일명에 재무·KPI 양쪽 데이터가 있을 때'만 비교하므로 이 경우를
+    통째로 놓친다(2026-09-17 실제로 놓친 사례 발견) — 그래서 추출 시점에 기록해둔 충돌을
+    여기서 함께 노출한다.
+    """
+    # 충돌은 A→B, B→A 양방향으로 기록되므로 (소스, 코드) 단위로 묶어 관련 파일 집합만 남긴다
+    grouped = {}
+    for source, path in (("재무", EXCEL_PATH), ("KPI", KPI_EXCEL_PATH)):
+        try:
+            wb = load_workbook(path, data_only=True, read_only=True)
+        except Exception:
+            continue
+        try:
+            if "코드충돌" not in wb.sheetnames:
+                continue
+            for r in wb["코드충돌"].iter_rows(min_row=2, values_only=True):
+                if not r or not r[0]:
+                    continue
+                # 재무는 (코드,연도,파트,구분,기존,신규,발견일시) / KPI는 (코드,연도,단계,기존,신규,발견일시)
+                existing, new = (r[4], r[5]) if source == "재무" else (r[3], r[4])
+                entry = grouped.setdefault((source, str(r[0])), {
+                    "source": source, "code": str(r[0]), "files": [],
+                })
+                for f in (existing, new):
+                    f = str(f or "").strip()
+                    if f and f not in entry["files"]:
+                        entry["files"].append(f)
+        finally:
+            wb.close()
+    return sorted(grouped.values(), key=lambda e: (-len(e["files"]), e["code"]))
 
 
 @app.route("/")

@@ -25,6 +25,10 @@ const Navbar = () => {
   // KPI ↔ 재무 데이터 프로젝트코드 불일치 감지 — 평소엔 안 보이고, 있을 때만 ⚙ 왼쪽에 경고 뱃지
   const { data: health } = useDataHealth();
   const healthRows = health?.rows ?? [];
+  // 코드 충돌(서로 다른 PPT가 같은 키를 공유해 한쪽이 덮어써진 경우) — 덮어써진 파일은
+  // healthRows(파일명 기준 비교)로는 안 잡히므로 별도로 노출
+  const healthConflicts = health?.conflicts ?? [];
+  const healthTotal = healthRows.length + healthConflicts.length;
   const [healthOpen, setHealthOpen] = useState(false);
   const healthRef = useRef<HTMLDivElement>(null);
   // const { openFile } = useOpenFile();   // 파일 바로가기 버튼 주석 처리로 미사용(2026-09-15)
@@ -63,20 +67,43 @@ const Navbar = () => {
         <div className={styles.right}>
           {activeTab === 'kpi' && <KpiActionBar />}
 
-          {healthRows.length > 0 && (
+          {healthTotal > 0 && (
             <div className={styles.health} ref={healthRef}>
               <Button unstyled
                 className={styles.healthBtn}
                 onClick={() => setHealthOpen(v => !v)}
-                aria-label={`KPI/재무 데이터 불일치 ${healthRows.length}건`}
+                aria-label={`KPI/재무 데이터 이상 ${healthTotal}건`}
                 aria-expanded={healthOpen}
-                title={`KPI/재무 데이터 프로젝트코드 불일치 ${healthRows.length}건`}
+                title={`KPI/재무 데이터 이상 ${healthTotal}건 (코드 불일치 ${healthRows.length} / 코드 충돌 ${healthConflicts.length})`}
               >
                 !
               </Button>
 
               {healthOpen && (
                 <div className={styles.healthDropdown}>
+                  {healthConflicts.length > 0 && (
+                    <>
+                      <div className={styles.healthHeader}>
+                        코드 충돌 — 다른 PPT와 같은 코드 · {healthConflicts.length}건
+                      </div>
+                      <ul className={styles.healthList}>
+                        {healthConflicts.map(c => (
+                          <li key={`${c.source}-${c.code}`} className={styles.healthItem}>
+                            <div className={styles.healthFileRow}>
+                              <CopyText text={c.code} className={styles.healthFile} />
+                            </div>
+                            <div className={styles.healthCodes}>
+                              <span>{c.source} · {c.files.length}개 파일이 같은 코드 사용</span>
+                              {c.files.map(f => <span key={f}>· {f}</span>)}
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
+
+                  {healthRows.length > 0 && (
+                  <>
                   <div className={styles.healthHeader}>
                     KPI ↔ 재무 프로젝트코드 불일치 · {healthRows.length}건
                   </div>
@@ -103,6 +130,8 @@ const Navbar = () => {
                       </li>
                     ))}
                   </ul>
+                  </>
+                  )}
                 </div>
               )}
             </div>
