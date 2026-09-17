@@ -7,8 +7,8 @@ import { useEscToClose } from '@/components/ui/useEscToClose';
 import styles from './AiInsightWidget.module.css';
 
 const TAB_LABEL: Record<AiTab, string> = {
-  finance: 'AI 경영실적 분석',
-  kpi:     'AI KPI 분석',
+  finance: '경영실적 인사이트',
+  kpi:     'KPI 현황 인사이트',
 };
 
 interface Props {
@@ -75,13 +75,12 @@ const AiInsightWidget = ({ aiTab }: Props) => {
   return (
     <>
       <Button
-        unstyled
-        className={styles.iconBtn}
+        variant="primary"
+        size="sm"
         onClick={() => setOpen(true)}
-        aria-label="AI 분석 보기"
         title="AI 분석 보기"
       >
-        🤖
+        🤖 {TAB_LABEL[aiTab]}
       </Button>
 
       {open && createPortal(
