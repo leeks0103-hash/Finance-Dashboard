@@ -6,17 +6,22 @@
 // 필요해지면 usePerformanceSummary + fmtTs 되살려서 버튼 옆에 다시 붙일 것.
 import { useDownloadFiles } from '@/hooks/useDownloadFiles';
 import { DownloadMenu } from '@/components/ui';
+import AiInsightWidget from '@/components/features/AiInsightWidget';
+import styles from './PerformanceActionBar.module.css';
 
 const PerformanceActionBar = () => {
   const { data: files, isLoading } = useDownloadFiles();
 
   return (
-    <DownloadMenu
-      items={files ?? []}
-      isLoading={isLoading}
-      hrefOf={key => `/api/download/${key}`}
-      buttonLabel="↓ 로우데이터 다운로드"
-    />
+    <div className={styles.bar}>
+      <AiInsightWidget aiTab="finance" />
+      <DownloadMenu
+        items={files ?? []}
+        isLoading={isLoading}
+        hrefOf={key => `/api/download/${key}`}
+        buttonLabel="↓ 로우데이터 다운로드"
+      />
+    </div>
   );
 };
 

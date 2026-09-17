@@ -1,7 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { useLocation } from 'react-router-dom';
 import { createPortal } from 'react-dom';
-import { pathToTab } from '@/utils/routing';
 import { useAiAnalysis, type AiTab } from '@/hooks';
 import { Button } from '@/components/ui';
 import { useScrollLock } from '@/components/ui/useScrollLock';
@@ -12,6 +10,11 @@ const TAB_LABEL: Record<AiTab, string> = {
   finance: 'AI 경영실적 분석',
   kpi:     'AI KPI 분석',
 };
+
+interface Props {
+  /** 이 위젯이 어떤 탭의 분석을 보여줄지 — 호출부(KpiActionBar/PerformanceActionBar)가 지정 */
+  aiTab: AiTab;
+}
 
 /**
  * 아주 가벼운 마크다운 렌더러 — 라이브러리 없이 H-Chat 응답에 자주 나오는
@@ -60,25 +63,20 @@ const renderMarkdown = (text: string): ReactNode[] => {
   return blocks;
 };
 
-const AiInsightWidget = () => {
-  const activeTab = pathToTab(useLocation().pathname);
-  const aiTab: AiTab | null = activeTab === 'performance' ? 'finance' : activeTab === 'kpi' ? 'kpi' : null;
+const AiInsightWidget = ({ aiTab }: Props) => {
   const [open, setOpen] = useState(false);
 
-  // aiTab이 null이어도 훅은 항상 호출(rules-of-hooks) — enabled로만 실제 요청 여부 제어
   const { text, generatedAt, isLoading, isError, refresh, isRefreshing } =
-    useAiAnalysis(aiTab ?? 'finance', aiTab !== null && open);
+    useAiAnalysis(aiTab, open);
 
   useScrollLock(open);
   useEscToClose(() => setOpen(false), open);
-
-  if (!aiTab) return null;
 
   return (
     <>
       <Button
         unstyled
-        className={styles.fab}
+        className={styles.iconBtn}
         onClick={() => setOpen(true)}
         aria-label="AI 분석 보기"
         title="AI 분석 보기"
