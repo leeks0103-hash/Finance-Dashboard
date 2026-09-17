@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useAiAnalysis, type AiTab } from '@/hooks';
 import { Button } from '@/components/ui';
@@ -64,23 +64,40 @@ const renderMarkdown = (text: string): ReactNode[] => {
 };
 
 const AiInsightWidget = ({ aiTab }: Props) => {
+  // triggered=쿼리를 켰는지, open=모달을 실제로 띄웠는지 — 분리해서, 버튼 클릭 후
+  // 최초 로딩이 끝날 때까지는 버튼 자체가 "분석중…"으로 바뀌고, 다 되고 나서야
+  // 모달이 뜨게 함(모달 안에서 로딩 스피너 보여주는 대신)
+  const [triggered, setTriggered] = useState(false);
   const [open, setOpen] = useState(false);
 
   const { text, generatedAt, isLoading, isError, refresh, isRefreshing } =
-    useAiAnalysis(aiTab, open);
+    useAiAnalysis(aiTab, triggered);
+
+  // 최초 로딩이 끝나면(성공이든 실패든) 그제서야 모달을 연다
+  useEffect(() => {
+    if (triggered && !open && !isLoading) setOpen(true);
+  }, [triggered, open, isLoading]);
 
   useScrollLock(open);
   useEscToClose(() => setOpen(false), open);
+
+  const buttonLoading = triggered && !open && isLoading;
+
+  const handleClick = () => {
+    if (triggered) setOpen(true);   // 이미 캐시된 데이터가 있으면 바로 열기
+    else setTriggered(true);        // 처음이면 쿼리 시작(버튼이 로딩 상태로)
+  };
 
   return (
     <>
       <Button
         variant="danger"
         size="sm"
-        onClick={() => setOpen(true)}
+        onClick={handleClick}
+        disabled={buttonLoading}
         title="AI 분석 보기"
       >
-        {TAB_LABEL[aiTab]}
+        {buttonLoading ? 'AI 분석중…' : TAB_LABEL[aiTab]}
       </Button>
 
       {open && createPortal(
