@@ -37,8 +37,8 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-lg, 12px);
   box-shadow: var(--shadow-md);
-  width: min(560px, 100%);
-  max-height: min(720px, 80vh);
+  width: min(900px, 94vw);
+  max-height: min(880px, 88vh);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -84,25 +84,25 @@
 .body {
   flex: 1;
   overflow-y: auto;
-  padding: 16px 20px;
+  padding: 20px 28px;
 }
 
 .state {
   color: var(--text-muted);
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   text-align: center;
-  padding: 40px 0;
+  padding: 60px 0;
 }
 
 .content {
-  font-size: 0.85rem;
-  line-height: 1.65;
+  font-size: 0.92rem;
+  line-height: 1.7;
   color: var(--text-primary);
 }
 
-.h2 { font-size: 1.05rem; font-weight: 800; margin: 4px 0 10px; }
-.h3 { font-size: 0.95rem; font-weight: 700; margin: 16px 0 6px; }
-.h4 { font-size: 0.88rem; font-weight: 700; margin: 12px 0 4px; color: var(--text-sub); }
+.h2 { font-size: 1.2rem; font-weight: 800; margin: 4px 0 12px; }
+.h3 { font-size: 1.05rem; font-weight: 700; margin: 18px 0 8px; }
+.h4 { font-size: 0.95rem; font-weight: 700; margin: 14px 0 4px; color: var(--text-sub); }
 .p  { margin: 0 0 8px; white-space: pre-wrap; }
 .li { margin: 0 0 4px 4px; }
 .hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
