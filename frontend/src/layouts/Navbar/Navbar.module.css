@@ -118,8 +118,8 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow-md);
-  min-width: 340px;
-  max-width: 600px;
+  width: 600px;
+  max-width: 90vw;
   z-index: 200;
   animation: dropIn 0.15s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
