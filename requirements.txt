@@ -5,3 +5,4 @@ pandas>=2.0
 reportlab>=4.0
 python-dotenv>=1.0
 pyxlsb>=1.0
+httpx>=0.27

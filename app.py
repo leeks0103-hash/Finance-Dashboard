@@ -10,6 +10,7 @@ from finance import finance_bp, get_df, load_excel, _sort_stages, _cache_lock, E
 from performance import perf_bp
 from kpi import kpi_bp, get_kpi_df, _real_code, KPI_EXCEL_PATH
 from downloads import download_bp
+from ai_insight import ai_bp
 
 load_dotenv()
 
@@ -34,6 +35,7 @@ app.register_blueprint(finance_bp)
 app.register_blueprint(perf_bp)
 app.register_blueprint(kpi_bp)
 app.register_blueprint(download_bp)
+app.register_blueprint(ai_bp)
 
 
 @app.route("/api/data-health")
