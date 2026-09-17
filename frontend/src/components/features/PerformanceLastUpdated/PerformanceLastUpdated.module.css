@@ -1,0 +1,6 @@
+.lastLoaded {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  line-height: 1;
+}

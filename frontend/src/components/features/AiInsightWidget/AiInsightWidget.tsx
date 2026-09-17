@@ -75,12 +75,12 @@ const AiInsightWidget = ({ aiTab }: Props) => {
   return (
     <>
       <Button
-        variant="primary"
+        variant="danger"
         size="sm"
         onClick={() => setOpen(true)}
         title="AI 분석 보기"
       >
-        🤖 {TAB_LABEL[aiTab]}
+        {TAB_LABEL[aiTab]}
       </Button>
 
       {open && createPortal(
