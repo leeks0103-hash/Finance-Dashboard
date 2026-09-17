@@ -20,7 +20,7 @@ from pathlib import Path
 
 ROOT     = Path(__file__).parent
 PID_FILE = ROOT / "dashboard.pids.json"
-PYTHON   = r"C:\Python314\python.exe"
+PYTHON   = r"C:\Users\USER\AppData\Local\Programs\Python\Python313\python.exe"
 FRONTEND = ROOT / "frontend"
 
 BACKEND_PORT  = 5000
