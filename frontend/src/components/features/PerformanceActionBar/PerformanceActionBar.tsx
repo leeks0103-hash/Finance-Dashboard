@@ -15,7 +15,7 @@ const PerformanceActionBar = () => {
       items={files ?? []}
       isLoading={isLoading}
       hrefOf={key => `/api/download/${key}`}
-      buttonLabel="↓ 다운로드"
+      buttonLabel="↓ 로우데이터 다운로드"
     />
   );
 };

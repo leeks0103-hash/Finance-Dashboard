@@ -1,3 +1,4 @@
+/* position: relative + isolate — ::before 펄스 링이 버튼 배경 뒤(z-index -1)에서만 돌게 */
 .fab {
   position: fixed;
   right: 24px;
@@ -15,14 +16,26 @@
   cursor: pointer;
   z-index: 300;
   border: none;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-  animation: fabPulse 2.4s ease-in-out infinite;
+  transition: transform 0.15s ease;
+  isolation: isolate;
 }
 .fab:hover { transform: scale(1.08); }
 
-@keyframes fabPulse {
-  0%, 100% { box-shadow: 0 8px 24px rgba(0,0,0,0.25), 0 0 0 0 color-mix(in srgb, var(--brand-mid, #002c5f) 40%, transparent); }
-  50%      { box-shadow: 0 8px 24px rgba(0,0,0,0.25), 0 0 0 8px color-mix(in srgb, var(--brand-mid, #002c5f) 0%, transparent); }
+/* 링 펄스는 transform·opacity만 애니메이션(컴포지터 전용) — box-shadow를 직접 무한
+   애니메이션하면 매 프레임 리페인트가 발생해서 계속 도는 위젯 버튼엔 부담이 큼 */
+.fab::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--brand-mid, #002c5f);
+  z-index: -1;
+  animation: fabPulseRing 2.4s ease-out infinite;
+}
+
+@keyframes fabPulseRing {
+  0%   { transform: scale(1);   opacity: 0.45; }
+  100% { transform: scale(1.6); opacity: 0; }
 }
 
 @media (max-width: 480px) {
