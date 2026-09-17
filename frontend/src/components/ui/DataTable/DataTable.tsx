@@ -760,11 +760,13 @@ const DataTable = <T extends object>({
                           const text = raw != null && raw !== '' ? String(raw) : '';
                           const isLong = text.length > 20;
                           const canExpand = !!expandableRow && !expandableRow.excludeColumns?.includes(cell.column.id);
+                          const formatTitle = cell.column.columnDef.meta?.formatTitle;
+                          const cellTitle = formatTitle ? formatTitle(raw) : (text || undefined);
                           return (
                             <td
                               key={cell.id}
                               rowSpan={isMerged ? group.length : undefined}
-                              title={text || undefined}
+                              title={cellTitle}
                               onClick={isLong ? () => {
                                 const onOpenFile = cell.column.columnDef.meta?.onOpenFile;
                                 openPopup(text, true, onOpenFile ? () => onOpenFile(text) : undefined);

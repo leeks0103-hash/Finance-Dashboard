@@ -52,6 +52,13 @@
   gap: 12px;
 }
 
+/* 아래 데이터 행은 .rowClickable(padding:5px 6px + margin:-5px -6px로 hover 배경을
+   테두리까지 꽉 채우는 트릭)이라 그리드 콘텐츠 영역이 좌우 6px씩 안쪽으로 줌 —
+   이 헤더 행(아래 값과 컬럼을 맞춰야 함)도 margin 없이 동일한 padding만 줘서 정렬 맞춤 */
+.headerRow {
+  padding: 0 6px;
+}
+
 /* 클릭 가능한 행 — Button unstyled(=<button>)의 기본값 리셋 + hover */
 .rowClickable {
   width: 100%;
@@ -143,6 +150,21 @@
   color: var(--text-muted);
   text-align: right;
   white-space: nowrap;
+}
+
+/* .vals 칸 위에 한 번만 — 어떤 값이 누계매출/계획매출인지 알아보기 쉽게. 글씨 크기·자간은
+   바로 아래 .vals와 맞춤(라벨만 유독 작아 보이지 않도록) */
+.valsHeaderLabel {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: normal;
+  color: var(--text-muted);
+  text-align: right;
+  white-space: nowrap;
+}
+
+@media (max-width: 700px) {
+  .valsHeaderLabel { display: none; }
 }
 
 .slash {

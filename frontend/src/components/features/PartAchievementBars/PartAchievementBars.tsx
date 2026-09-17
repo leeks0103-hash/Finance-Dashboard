@@ -50,7 +50,7 @@ const PartAchievementBars = ({ rows, month, info, onPartClick }: Props) => {
       <div className={`${styles.wrap} ${styles.wrapOpen}`}>
         <div className={styles.body}>
           {/* 기준 구간 수치(30/60/100%) — 행마다 반복하지 않고 맨 위에 한 번만, 막대 트랙 칸에 맞춰 정렬 */}
-          <div className={styles.row} aria-hidden>
+          <div className={`${styles.row} ${styles.headerRow}`} aria-hidden>
             <span />
             <div className={styles.thresholdHeaderTrack}>
               {[30, 60, 100].map(t => (
@@ -58,7 +58,7 @@ const PartAchievementBars = ({ rows, month, info, onPartClick }: Props) => {
               ))}
             </div>
             <span />
-            <span />
+            <span className={styles.valsHeaderLabel}>누계매출 / 계획매출</span>
           </div>
 
           {sorted.map(row => {

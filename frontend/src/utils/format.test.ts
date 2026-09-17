@@ -16,6 +16,11 @@ describe('formatBillion', () => {
     expect(formatBillion(5_000_000)).toBe('500만원');
   });
 
+  it('formats sub-1만원(몇천/몇백/몇십원대) values in 원 — not rounded to 0만원', () => {
+    expect(formatBillion(3_000)).toBe('3,000원');
+    expect(formatBillion(50)).toBe('50원');
+  });
+
   it('formats exact zero as 0.0억원, not 만원', () => {
     expect(formatBillion(0)).toBe('0.0억원');
   });
@@ -49,6 +54,15 @@ describe('formatCount', () => {
 describe('formatEok (천원 단위 입력)', () => {
   it('converts 천원 to 억 with 1 decimal', () => {
     expect(formatEok(150_000)).toBe('1.5억');
+  });
+
+  it('formats sub-0.1억(백만원대) values in 만 — not rounded to 0.0억', () => {
+    expect(formatEok(1_000)).toBe('100만');
+  });
+
+  it('formats sub-1만원(몇천/몇백/몇십원대) values in 원 — not rounded to 0만', () => {
+    expect(formatEok(3)).toBe('3,000원');
+    expect(formatEok(0.05)).toBe('50원');
   });
 
   it('returns - for zero', () => {

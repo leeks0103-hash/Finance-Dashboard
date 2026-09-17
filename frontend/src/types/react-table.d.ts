@@ -21,5 +21,12 @@ declare module '@tanstack/react-table' {
      * 추가로 뜬다 — 파일명처럼 원본을 직접 열어야 하는 컬럼용 (예: 재무 PPT 파일명)
      */
     onOpenFile?: (value: string) => void;
+    /**
+     * 제공 시, <td>의 title(마우스오버 툴팁)을 원본 raw 값 대신 이 함수의 결과로 대체.
+     * 셀이 raw 값을 그대로 안 보여주고 가공(억/만 단위 축약 등)해서 보여주는 컬럼에서,
+     * <td> 기본 title(raw 그대로)과 셀 안 커스텀 title이 따로 붙어 호버 위치에 따라
+     * 다른 값이 보이던 문제 방지 — title은 반드시 <td> 하나에만 있어야 함
+     */
+    formatTitle?: (value: unknown) => string | undefined;
   }
 }
