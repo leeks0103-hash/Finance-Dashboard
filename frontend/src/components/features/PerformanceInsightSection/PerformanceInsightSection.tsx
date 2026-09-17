@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { createColumnHelper } from '@tanstack/react-table';
 import { usePerformanceInsightViewModel } from '@/hooks/viewmodels';
-import { DataTable, CopyText } from '@/components/ui';
+import { DataTable, CopyText, CellPopup, useClipboardPopup } from '@/components/ui';
 import { useQuickSearchStore } from '@/store/quickSearch.store';
 import { openFinanceFile } from '@/api/finance.api';
 import FinanceDetailPanel from './FinanceDetailPanel';
@@ -16,6 +16,9 @@ const h = createColumnHelper<Project>();
 const PerformanceInsightSection = () => {
   const vm = usePerformanceInsightViewModel();
   const setPerfSearch = useQuickSearchStore(s => s.setPerf);
+  // 미수사유는 PPT 텍스트박스 원문이라 길어서(줄바꿈 포함) 셀에 그대로 못 담음 —
+  // 클릭 시 DataTable 기본 셀 팝업과 동일한 모달로 전체 내용을 보여줌
+  const reasonPopup = useClipboardPopup();
 
   // 미수주는 실적현황엔 없고 재무(PPT)에만 있는 데이터라 Project 원본으로 직접 컬럼 구성 —
   // 코드 컬럼만 CopyText(클릭 복사/더블클릭 검색) 담당, 나머지 셀 더블클릭은 expandableRow가 담당
@@ -34,12 +37,28 @@ const PerformanceInsightSection = () => {
     h.accessor('missed_bid_reason', {
       header: '미수사유',
       size: 260,
-      cell: i => { const v = i.getValue(); return v ? <CopyText text={v} /> : <span>-</span>; },
+      cell: i => {
+        const v = i.getValue();
+        if (!v) return <span>-</span>;
+        return (
+          <span
+            role="button"
+            tabIndex={0}
+            title="클릭해서 전체 내용 보기"
+            style={{ cursor: 'pointer', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+            onClick={e => { e.stopPropagation(); reasonPopup.openPopup(v, true); }}
+            onKeyDown={e => e.key === 'Enter' && reasonPopup.openPopup(v, true)}
+          >
+            {v}
+          </span>
+        );
+      },
     }),
     h.accessor('filename', { header: '파일명', size: 320, cell: i => <CopyText text={i.getValue()} onOpen={openFile} /> }),
-  ], [setPerfSearch]);
+  ], [setPerfSearch, reasonPopup.openPopup]);
 
   return (
+    <>
     <DataTable<Project>
       data={vm.missedBidProjects}
       columns={missedBidColumns as never}
@@ -64,6 +83,14 @@ const PerformanceInsightSection = () => {
         renderContent: (p, close) => <FinanceDetailPanel project={p} onClose={close} />,
       }}
     />
+    <CellPopup
+      title="미수사유"
+      popup={reasonPopup.popup}
+      copied={reasonPopup.copied}
+      onClose={reasonPopup.closePopup}
+      onCopy={reasonPopup.copyPopupText}
+    />
+    </>
   );
 };
 

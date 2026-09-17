@@ -664,9 +664,11 @@ def extract_missed_bid_reason_from_presentation(presentation):
                     if not m:
                         continue
                     reason = m.group(1)
-                    # PPT 단락 구분자(\x0b) 및 CR 정리
-                    reason = reason.replace("\r", "").replace("\x0b", " ")
-                    reason = re.sub(r" {3,}", " ", reason).strip()
+                    # PPT 단락 구분자(\r, \x0b)를 줄바꿈으로 보존 — 대시보드 모달에서
+                    # PPT 텍스트박스와 동일하게 줄바꿈되어 보이도록 함(공백으로 뭉개지 않음)
+                    reason = reason.replace("\r\n", "\n").replace("\r", "\n").replace("\x0b", "\n")
+                    reason = re.sub(r"[ \t]{3,}", " ", reason)
+                    reason = re.sub(r"\n{3,}", "\n\n", reason).strip()
                     if len(reason) > 5:
                         return reason[:2000]  # 최대 2000자
                 except Exception:
