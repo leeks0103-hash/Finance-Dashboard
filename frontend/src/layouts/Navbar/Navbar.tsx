@@ -4,6 +4,7 @@ import { Toggle, Button, CopyText } from '@/components/ui';
 import TabNav from '@/components/ui/TabNav/TabNav';
 import type { TabId } from '@/components/ui/TabNav/TabNav';
 import KpiActionBar from '@/components/features/KpiActionBar';
+import PerformanceActionBar from '@/components/features/PerformanceActionBar';
 import NgvLogo from './NgvLogo';
 import { useTheme } from '@/hooks';
 import { useDataHealth } from '@/hooks/useDataHealth';
@@ -63,9 +64,10 @@ const Navbar = () => {
           <TabNav active={activeTab} onChange={setTab} />
         </nav>
 
-        {/* 우측 — (KPI 탭) 다운로드 + 설정 */}
+        {/* 우측 — (KPI/실적현황 탭) 다운로드 + 설정 */}
         <div className={styles.right}>
           {activeTab === 'kpi' && <KpiActionBar />}
+          {activeTab === 'performance' && <PerformanceActionBar />}
 
           {healthTotal > 0 && (
             <div className={styles.health} ref={healthRef}>
