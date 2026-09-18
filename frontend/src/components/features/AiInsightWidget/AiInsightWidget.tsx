@@ -69,23 +69,31 @@ const AiInsightWidget = ({ aiTab }: Props) => {
   // 모달이 뜨게 함(모달 안에서 로딩 스피너 보여주는 대신)
   const [triggered, setTriggered] = useState(false);
   const [open, setOpen] = useState(false);
+  const [pendingOpen, setPendingOpen] = useState(false);
 
   const { text, generatedAt, isLoading, isError, refresh, isRefreshing } =
     useAiAnalysis(aiTab, triggered);
 
   // 최초 로딩이 끝나면(성공이든 실패든) 그제서야 모달을 연다
+  // pendingOpen 을 별도로 관리해, X로 닫은 뒤 자동 재오픈되는 버그 방지
   useEffect(() => {
-    if (triggered && !open && !isLoading) setOpen(true);
-  }, [triggered, open, isLoading]);
+    if (pendingOpen && !isLoading) {
+      setOpen(true);
+      setPendingOpen(false);
+    }
+  }, [pendingOpen, isLoading]);
 
   useScrollLock(open);
   useEscToClose(() => setOpen(false), open);
 
-  const buttonLoading = triggered && !open && isLoading;
+  const buttonLoading = pendingOpen && isLoading;
 
   const handleClick = () => {
     if (triggered) setOpen(true);   // 이미 캐시된 데이터가 있으면 바로 열기
-    else setTriggered(true);        // 처음이면 쿼리 시작(버튼이 로딩 상태로)
+    else {
+      setTriggered(true);           // 처음이면 쿼리 시작(버튼이 로딩 상태로)
+      setPendingOpen(true);
+    }
   };
 
   return (
