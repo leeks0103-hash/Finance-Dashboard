@@ -44,7 +44,7 @@ const PerfBreakdownModal = ({ target, onClose }: Props) => {
 
     const cols: BreakdownColumn<PerfBreakdownRow>[] = [
       {
-        key: 'code', header: '프로젝트코드',
+        key: 'code', header: '프로젝트코드', wrap: true,
         sortValue: r => r.project_code,
         render: r => (
           <>

@@ -89,7 +89,7 @@ const KpiBreakdownModal = ({ name, metric, onClose }: Props) => {
               ),
             },
             {
-              key: 'code', header: '프로젝트코드',
+              key: 'code', header: '프로젝트코드', wrap: true,
               sortValue: r => r.project_code,
               render: r => (
                 <>

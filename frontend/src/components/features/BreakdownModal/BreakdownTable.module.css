@@ -47,11 +47,22 @@
 .table tbody tr:last-child td { border-bottom: none; }
 .table tbody tr:hover td { background: var(--bg-subtle); }
 
-/* 코드·프로젝트명 칸만 줄바꿈 허용 — 나머지 컬럼(정렬·값)이 항상 보이도록 */
-.table td:first-child { white-space: normal; word-break: break-word; }
-
-/* 파일명처럼 긴 텍스트 컬럼 — nowrap이면 표가 옆으로 넘쳐서(스크롤 발생) 줄바꿈 허용 */
+/* 코드·프로젝트명·파일명처럼 긴 텍스트 컬럼 — nowrap이면 표가 옆으로 넘쳐서(스크롤 발생)
+   줄바꿈 허용. 예전엔 ":first-child"로 코드 컬럼을 잡았는데, KPI 모달에 체크박스 컬럼이
+   맨 앞에 추가되면서 위치가 밀려 안 먹던 버그가 있었음 — 컬럼별 wrap prop으로 명시 지정 */
 .wrapCell { white-space: normal; word-break: break-word; }
+
+/* 헤더 텍스트 — 엑셀 원본 컬럼명(예: "값" 컬럼 헤더)처럼 어절 단위로 끊을 수 없는 긴 한글이
+   그대로 폭을 넓혀 가로스크롤을 만들던 것을 방지. 줄바꿈 대신 말줄임 + 마우스오버 시
+   th의 title 속성으로 전체 텍스트 툴팁 노출(아래 th title 참고) */
+.headerLabel {
+  display: inline-block;
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
 
 .right { text-align: right; font-variant-numeric: tabular-nums; }
 .table td.right { font-weight: 600; }

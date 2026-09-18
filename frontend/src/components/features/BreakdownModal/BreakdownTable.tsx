@@ -67,8 +67,9 @@ export function BreakdownTable<R>({
                 key={c.key}
                 className={`${alignClass(c.align)} ${sort.key === c.key ? styles.active : ''}`}
                 onClick={() => onHeader(c.key)}
+                title={c.header}
               >
-                {c.header}
+                <span className={styles.headerLabel}>{c.header}</span>
                 <span className={styles.sortIcon}>{arrow(sort.key === c.key ? sort.dir : null)}</span>
               </th>
             ))}
