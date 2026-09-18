@@ -118,11 +118,12 @@
   min-height: 0;
   gap: 10px;
 }
-/* 계획 목표선 토글 바 — 범례(색 스와치)와 온오프 토글을 한 줄에 */
+/* 계획 목표선 — 범례 항목 자체가 토글 버튼(Chart.js 범례 클릭과 같은 느낌). 매출/원가
+   계획선을 하나로 묶지 않고 각자 클릭해서 개별로 껐다 켤 수 있게 */
 .planLineBar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 10px;
   flex-shrink: 0;
   font-size: 0.78rem;
   color: var(--text-sub, var(--text-muted));
@@ -130,16 +131,27 @@
 .planLineLegend {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 12px;
+}
+.planLineLegendItem {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  transition: opacity 0.15s ease;
+}
+.planLineLegendItem[aria-pressed="false"] {
+  opacity: 0.4;
+  text-decoration: line-through;
 }
 .planLineSwatch {
   display: inline-block;
   width: 14px;
   height: 3px;
   border-radius: 1px;
-  margin-right: 2px;
+  margin-right: 4px;
 }
-.planLineSwatch + .planLineSwatch { margin-left: 10px; }
 
 .chartModalChart {
   flex: 1;

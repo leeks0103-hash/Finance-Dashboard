@@ -13,7 +13,7 @@ import { makeBarOptions } from '@/utils/chartOptions';
 import { getChartPalette, getChartTheme } from '@/utils/chartColors';
 // Toggle — 파트별 경상이익 토글 비활성화로 미사용(주석 처리). 복구 시 함께 import
 import { createColumnHelper } from '@tanstack/react-table';
-import { ChartCard, BarChart, DoughnutChart, DataTable, Toggle, useTableDndSensors, InfoButton } from '@/components/ui';
+import { ChartCard, BarChart, DoughnutChart, DataTable, Button, useTableDndSensors, InfoButton } from '@/components/ui';
 import type { Plugin } from 'chart.js';
 import CostFilterPopover from './CostFilterPopover';
 import PerfBreakdownModal from '@/components/features/PerfBreakdownModal/PerfBreakdownModal';
@@ -191,8 +191,10 @@ const PerformanceChartSection = () => {
   // "파트별 추정 매출/원가"의 x축 라벨 클릭 — 다른 차트처럼 드릴다운을 여는 대신, 그 파트를
   // 차트에서 숨김/복원 토글(다시 클릭하면 되돌아옴). 데이터가 많아 복잡할 때 걸러보기 위함
   const [hiddenParts, setHiddenParts] = useState<Set<string>>(new Set());
-  // "파트별 추정 매출/원가" 확대 모달 전용 — 계획 목표선(매출/원가 계획) 오버레이 온오프
-  const [showPlanLine, setShowPlanLine] = useState(true);
+  // "파트별 추정 매출/원가" 확대 모달 전용 — 계획 목표선(매출/원가 계획) 오버레이 온오프.
+  // 두 선을 하나로 묶지 않고 개별로 껐다 켤 수 있게 분리(매출 계획만 보고 싶을 때 등)
+  const [showPlanRevenue, setShowPlanRevenue] = useState(true);
+  const [showPlanCost, setShowPlanCost] = useState(true);
   const openBreakdown = useCallback(
     (chart: PerfBreakdownChart) => (key: string, dsIndex: number) =>
       setBreakdown({ chart, series: dsIndex < 0 ? 0 : dsIndex, key }),
@@ -414,13 +416,13 @@ const PerformanceChartSection = () => {
       // 막대 엘리먼트 위치에 직접 그리는 방식으로 전환 — 그래서 온오프도 범례 클릭 대신
       // 명시적 토글 버튼으로(더 이상 진짜 Chart.js 데이터셋이 아니라 범례에 안 잡힘)
       // useMemo 없이 매 렌더 재생성 — 작은 배열 리터럴이라 비용 무시 가능하고, 이 함수 자체가
-      // chartRenderers 레코드에 담겨 조건적으로 호출되는 위치라 hooks 규칙상 useMemo를 쓰면 안 됨
-      const planLinePlugins: Plugin<'bar'>[] = showPlanLine ? [
-        makePlanLinePlugin([
-          { barIndex: 0, values: pick(vm.profitRate.planRevenue), color: planColor, dash: [6, 4] },
-          { barIndex: 1, values: pick(vm.profitRate.planCost), color: fadeAlpha(planColor, 0.7), dash: [3, 3] },
-        ]),
-      ] : [];
+      // chartRenderers 레코드에 담겨 조건적으로 호출되는 위치라 hooks 규칙상 useMemo를 쓰면 안 됨.
+      // 매출/원가 계획선을 하나로 묶지 않고 각자 켜져 있을 때만 series에 포함 — 개별 온오프
+      const planLineSeries = [
+        ...(showPlanRevenue ? [{ barIndex: 0, values: pick(vm.profitRate.planRevenue), color: planColor, dash: [6, 4] }] : []),
+        ...(showPlanCost ? [{ barIndex: 1, values: pick(vm.profitRate.planCost), color: fadeAlpha(planColor, 0.7), dash: [3, 3] }] : []),
+      ];
+      const planLinePlugins: Plugin<'bar'>[] = planLineSeries.length ? [makePlanLinePlugin(planLineSeries)] : [];
       const modalChartEl = (
         <BarChart
           // exportable   // PNG 내보내기 — 일단 주석 처리(마음에 들지만 보류)
@@ -434,13 +436,24 @@ const PerformanceChartSection = () => {
       const modalContent = (
         <div className={styles.chartModalWithTable}>
           <div className={styles.planLineBar}>
+            <span className={styles.badge}>계획 목표선</span>
             <span className={styles.planLineLegend}>
-              <i className={styles.planLineSwatch} style={{ background: planColor }} />매출 계획
-              <i className={styles.planLineSwatch} style={{ background: fadeAlpha(planColor, 0.7) }} />원가 계획
-            </span>
-            <span className={styles.toggleGroup}>
-              <span className={styles.badge}>계획 목표선</span>
-              <Toggle checked={showPlanLine} onChange={() => setShowPlanLine(v => !v)} />
+              <Button
+                unstyled
+                className={styles.planLineLegendItem}
+                aria-pressed={showPlanRevenue}
+                onClick={() => setShowPlanRevenue(v => !v)}
+              >
+                <i className={styles.planLineSwatch} style={{ background: planColor }} />매출 계획
+              </Button>
+              <Button
+                unstyled
+                className={styles.planLineLegendItem}
+                aria-pressed={showPlanCost}
+                onClick={() => setShowPlanCost(v => !v)}
+              >
+                <i className={styles.planLineSwatch} style={{ background: fadeAlpha(planColor, 0.7) }} />원가 계획
+              </Button>
             </span>
           </div>
           <div className={styles.chartModalChart}>{modalChartEl}</div>
