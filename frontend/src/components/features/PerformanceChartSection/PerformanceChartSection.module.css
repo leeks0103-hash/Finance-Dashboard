@@ -110,48 +110,16 @@
 }
 
 /* "파트별 추정 매출/원가" 확대 모달 전용 — 차트(목표선 포함, 범례 클릭으로 온오프) + 검증용 표.
-   modalHeight="94vh"로 기본 모달보다 키워서(ChartCard) 표가 스크롤 없이 다 보이게 함 */
+   modalHeight="94vh"로 기본 모달보다 키워서(ChartCard) 표가 스크롤 없이 다 보이게 함.
+   매출 계획/원가 계획 온오프는 커스텀 HTML 버튼이 아니라 Chart.js 기본 범례(매출/원가가 이미
+   쓰던 그 범례) 항목으로 통합돼 있어서(PerformanceChartSection.tsx generateLabels 참고)
+   여기 CSS에서 별도로 관리하는 건 없음 */
 .chartModalWithTable {
   display: flex;
   flex-direction: column;
   height: 100%;
   min-height: 0;
   gap: 10px;
-}
-/* 차트 확대 모달의 범례 — Chart.js 기본 범례(매출/원가) 대신 여기서 전부 직접 그림.
-   매출/원가(막대, 그냥 표시용) + 매출 계획/원가 계획(목표선, 클릭해서 개별 온오프)이
-   차트 바로 아래 한 줄에 나란히 있는 게 보기 좋다는 피드백 반영 */
-.planLineBar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 16px;
-  flex-shrink: 0;
-  font-size: 0.78rem;
-  color: var(--text-sub, var(--text-muted));
-}
-.planLineLegendItem {
-  display: inline-flex;
-  align-items: center;
-  color: inherit;
-  font: inherit;
-}
-/* 클릭 가능한 목표선 항목만 — 매출/원가(막대)는 표시용이라 커서·딤 처리 없음 */
-.planLineToggle {
-  cursor: pointer;
-  transition: opacity 0.15s ease;
-}
-.planLineToggle[aria-pressed="false"] {
-  opacity: 0.4;
-  text-decoration: line-through;
-}
-.planLineSwatch {
-  display: inline-block;
-  width: 14px;
-  height: 3px;
-  border-radius: 1px;
-  margin-right: 4px;
 }
 
 .chartModalChart {

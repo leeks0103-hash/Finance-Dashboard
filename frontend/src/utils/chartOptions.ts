@@ -1,7 +1,9 @@
 import type { ChartOptions, ChartEvent, LegendItem, LegendElement } from 'chart.js';
 
-/** 범례 라디오 클릭 — 클릭한 시리즈만 단독 표시, 다시 클릭하면 전체 복원 */
-const legendRadioClick = (_e: ChartEvent, legendItem: LegendItem, legend: LegendElement<'bar'>) => {
+/** 범례 라디오 클릭 — 클릭한 시리즈만 단독 표시, 다시 클릭하면 전체 복원.
+ *  기본 legend.onClick을 직접 커스텀해야 하는 차트(예: 합성 범례 항목을 섞는 경우)가
+ *  실제 막대 항목에서는 이 동작을 그대로 재사용할 수 있도록 export */
+export const legendRadioClick = (_e: ChartEvent, legendItem: LegendItem, legend: LegendElement<'bar'>) => {
   const chart = legend.chart;
   const idx   = legendItem.datasetIndex ?? 0;
   const metas = chart.data.datasets.map((_, i) => chart.getDatasetMeta(i));

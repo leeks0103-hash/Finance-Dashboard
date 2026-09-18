@@ -9,12 +9,12 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { usePerformanceChartViewModel } from '@/hooks/viewmodels';
 import { useTheme } from '@/hooks';
-import { makeBarOptions } from '@/utils/chartOptions';
+import { makeBarOptions, legendRadioClick } from '@/utils/chartOptions';
 import { getChartPalette, getChartTheme } from '@/utils/chartColors';
 // Toggle — 파트별 경상이익 토글 비활성화로 미사용(주석 처리). 복구 시 함께 import
 import { createColumnHelper } from '@tanstack/react-table';
-import { ChartCard, BarChart, DoughnutChart, DataTable, Button, useTableDndSensors, InfoButton } from '@/components/ui';
-import type { Plugin } from 'chart.js';
+import { ChartCard, BarChart, DoughnutChart, DataTable, useTableDndSensors, InfoButton } from '@/components/ui';
+import type { Plugin, Chart, LegendItem, LegendElement, ChartEvent } from 'chart.js';
 import CostFilterPopover from './CostFilterPopover';
 import PerfBreakdownModal from '@/components/features/PerfBreakdownModal/PerfBreakdownModal';
 import CostBreakdownModal from './CostBreakdownModal';
@@ -77,10 +77,23 @@ const fadeAlpha = (rgba: string, alpha: number) => rgba.replace(/[\d.]+\)$/, `${
 // 참여하지 않고 항상 카테고리 중앙 픽셀을 씀). 대신 캔버스 플러그인으로 실제 렌더링된 막대
 // 엘리먼트의 x 픽셀(el.x)을 직접 읽어 그 위에 정확히 겹쳐 그린다 — 특정 막대(barIndex)와
 // 항상 픽셀 단위로 정렬됨.
+//
+// ⚠️ 플러그인 인스턴스는 반드시 모듈 스코프에 "한 번만" 만들어서 재사용할 것 — react-chartjs-2는
+// <Bar plugins={...}> prop을 차트 최초 생성(new Chart(...)) 시점에만 읽고, 이후 리렌더로 배열이
+// 바뀌어도 다시 반영하지 않는다(node_modules/react-chartjs-2 ChartComponent 소스 확인 — plugins는
+// useEffect 의존성에 없음). 그래서 예전처럼 매 렌더 클로저로 새 plugin을 만들어 넘기면, 토글을
+// 눌러도 최초 마운트 시점 값으로 고정된 옛 plugin 인스턴스만 계속 그려서 "꺼도 안 지워지는" 버그가
+// 났음. 대신 이 plugin은 리렌더와 무관한 고정 인스턴스로 두고, 그릴 때마다 chart.options에서
+// 최신 series를 읽는다 — options는 매 렌더 새로 내려가고 react-chartjs-2가 그건 제대로
+// chart.update()로 반영하므로, 여기서 매번 최신값을 볼 수 있다.
 interface PlanLineSeries { barIndex: number; values: (number | null)[]; color: string; dash: number[]; }
-const makePlanLinePlugin = (series: PlanLineSeries[]): Plugin<'bar'> => ({
+interface PlanLinePluginOpts { series: PlanLineSeries[]; }
+const planLinePlugin: Plugin<'bar'> = {
   id: 'planLine',
   afterDatasetsDraw(chart) {
+    const opts = (chart.options.plugins as { planLine?: PlanLinePluginOpts } | undefined)?.planLine;
+    const series = opts?.series ?? [];
+    if (!series.length) return;
     const { ctx } = chart;
     series.forEach(({ barIndex, values, color, dash }) => {
       const meta = chart.getDatasetMeta(barIndex);
@@ -112,7 +125,7 @@ const makePlanLinePlugin = (series: PlanLineSeries[]): Plugin<'bar'> => ({
       ctx.restore();
     });
   },
-});
+};
 
 // x축 stacked 해제 + 테마(격자·눈금) 색 오버라이드 병합 — 그룹형 바 차트 여러 개가 공유하는 패턴
 const withUnstackedTheme = (
@@ -412,21 +425,45 @@ const PerformanceChartSection = () => {
       );
       // 확대 모달 전용 — 목표선(매출/원가 계획)을 캔버스 플러그인으로 겹쳐 그려서 계획 대비
       // 실제를 바로 대조 + 표로 전체 파트 검증. line 데이터셋으로 넣으면 그룹 막대(매출/원가)
-      // 사이 카테고리 중앙에 점이 찍히는 문제가 있어(makePlanLinePlugin 주석 참고) 대신 실제
-      // 막대 엘리먼트 위치에 직접 그리는 방식으로 전환 — 그래서 온오프도 범례 클릭 대신
-      // 명시적 토글 버튼으로(더 이상 진짜 Chart.js 데이터셋이 아니라 범례에 안 잡힘)
-      // useMemo 없이 매 렌더 재생성 — 작은 배열 리터럴이라 비용 무시 가능하고, 이 함수 자체가
-      // chartRenderers 레코드에 담겨 조건적으로 호출되는 위치라 hooks 규칙상 useMemo를 쓰면 안 됨.
-      // 매출/원가 계획선을 하나로 묶지 않고 각자 켜져 있을 때만 series에 포함 — 개별 온오프
+      // 사이 카테고리 중앙에 점이 찍히는 문제가 있어(planLinePlugin 주석 참고) 대신 실제 막대
+      // 엘리먼트 위치에 직접 그리는 방식으로 전환. 온오프는 커스텀 HTML 버튼이 아니라 —
+      // "기존이랑 UI 통일 + x축 캔버스에서 관리해야지" 피드백에 따라 — Chart.js 기본 범례
+      // (매출/원가가 이미 쓰던 그 범례) 안에 매출 계획/원가 계획 항목 2개를 끼워 넣어서, 클릭하면
+      // 그 항목만 취소선 처리되는 Chart.js 기본 동작을 그대로 쓴다. 매출/원가 클릭은 기존
+      // legendRadioClick(단독표시) 그대로 유지 — 여기서 새로 안 건드림
       const planLineSeries = [
         ...(showPlanRevenue ? [{ barIndex: 0, values: pick(vm.profitRate.planRevenue), color: planColor, dash: [6, 4] }] : []),
         ...(showPlanCost ? [{ barIndex: 1, values: pick(vm.profitRate.planCost), color: fadeAlpha(planColor, 0.7), dash: [3, 3] }] : []),
       ];
-      const planLinePlugins: Plugin<'bar'>[] = planLineSeries.length ? [makePlanLinePlugin(planLineSeries)] : [];
-      // 모달만 범례를 끄고 아래에 직접 그린다 — 매출/원가(막대)와 매출 계획/원가 계획(목표선)이
-      // 한 줄에 나란히 있는 게 보기 좋다는 피드백. Chart.js 기본 범례(막대만)를 그대로 두고
-      // 목표선 범례를 따로 위에 얹으면 두 줄로 떨어져 보였음
-      const modalOptions = { ...partRevCostOptions, plugins: { ...partRevCostOptions.plugins, legend: { display: false } } };
+      const modalOptions = {
+        ...partRevCostOptions,
+        plugins: {
+          ...partRevCostOptions.plugins,
+          planLine: { series: planLineSeries },
+          legend: {
+            ...partRevCostOptions.plugins?.legend,
+            labels: {
+              generateLabels: (chart: Chart) => {
+                const barItems: LegendItem[] = chart.data.datasets.map((ds, i) => {
+                  const meta = chart.getDatasetMeta(i);
+                  const bg = Array.isArray(ds.backgroundColor) ? (ds.backgroundColor[0] as string) : (ds.backgroundColor as string);
+                  return { text: ds.label ?? '', datasetIndex: i, fillStyle: bg, strokeStyle: bg, lineWidth: 0, hidden: !!meta.hidden } as LegendItem;
+                });
+                const planItems: LegendItem[] = [
+                  { text: '매출 계획', datasetIndex: -1, fillStyle: planColor, strokeStyle: planColor, lineWidth: 0, hidden: !showPlanRevenue } as LegendItem,
+                  { text: '원가 계획', datasetIndex: -2, fillStyle: fadeAlpha(planColor, 0.7), strokeStyle: fadeAlpha(planColor, 0.7), lineWidth: 0, hidden: !showPlanCost } as LegendItem,
+                ];
+                return [...barItems, ...planItems];
+              },
+            },
+            onClick: (e: ChartEvent, legendItem: LegendItem, legend: LegendElement<'bar'>) => {
+              if (legendItem.datasetIndex === -1) { setShowPlanRevenue(v => !v); return; }
+              if (legendItem.datasetIndex === -2) { setShowPlanCost(v => !v); return; }
+              legendRadioClick(e, legendItem, legend);
+            },
+          },
+        },
+      };
       const modalChartEl = (
         <BarChart
           // exportable   // PNG 내보내기 — 일단 주석 처리(마음에 들지만 보류)
@@ -434,36 +471,12 @@ const PerformanceChartSection = () => {
           labels={visibleLabels}
           datasets={baseDatasets}
           options={modalOptions}
-          plugins={planLinePlugins}
+          plugins={[planLinePlugin]}
         />
       );
       const modalContent = (
         <div className={styles.chartModalWithTable}>
           <div className={styles.chartModalChart}>{modalChartEl}</div>
-          <div className={styles.planLineBar}>
-            <span className={styles.planLineLegendItem}>
-              <i className={styles.planLineSwatch} style={{ background: palette.revenue }} />매출
-            </span>
-            <span className={styles.planLineLegendItem}>
-              <i className={styles.planLineSwatch} style={{ background: palette.cost }} />원가
-            </span>
-            <Button
-              unstyled
-              className={`${styles.planLineLegendItem} ${styles.planLineToggle}`}
-              aria-pressed={showPlanRevenue}
-              onClick={() => setShowPlanRevenue(v => !v)}
-            >
-              <i className={styles.planLineSwatch} style={{ background: planColor }} />매출 계획
-            </Button>
-            <Button
-              unstyled
-              className={`${styles.planLineLegendItem} ${styles.planLineToggle}`}
-              aria-pressed={showPlanCost}
-              onClick={() => setShowPlanCost(v => !v)}
-            >
-              <i className={styles.planLineSwatch} style={{ background: fadeAlpha(planColor, 0.7) }} />원가 계획
-            </Button>
-          </div>
           <div className={styles.chartModalTable}>
             <DataTable<PartRevCostRow>
               data={partRevCostRows}
