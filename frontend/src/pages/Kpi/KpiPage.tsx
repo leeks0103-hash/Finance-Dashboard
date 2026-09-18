@@ -8,6 +8,7 @@ import { ChartCard, BarChart, DataTable, CopyText, HighlightText, Button, Spinne
 import { FadeInSection } from '@/components/FadeInSection';
 import KpiRawTable from '@/components/features/KpiRawTable/KpiRawTable';
 import KpiBreakdownModal from '@/components/features/KpiBreakdownModal/KpiBreakdownModal';
+import KpiExcludeIndicator from '@/components/features/KpiExcludeIndicator/KpiExcludeIndicator';
 import { openKpiFile } from '@/api/kpi.api';
 import { kpiColLabel } from '@/utils/kpiColumns';
 import type { KpiRawRow } from '@/types/kpi.types';
@@ -172,6 +173,7 @@ const KpiPage = () => {
                   onChange={setSummaryPart}
                   options={partOptions}
                 />
+                <KpiExcludeIndicator />
               </div>
             </ChartCard.Title>
             <ChartCard.Body>

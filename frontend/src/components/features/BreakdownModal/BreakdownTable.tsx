@@ -27,13 +27,15 @@ interface Props<R> {
   totalSpan:  number;
   /** 초기 정렬 컬럼 key (기본: 마지막 컬럼, 내림차순) */
   defaultSortKey?: string;
+  /** 행별 추가 클래스(예: 임시 제외된 행 흐리게) — 지정 없으면 기존과 동일 */
+  rowClassName?: (row: R) => string | undefined;
 }
 
 const arrow = (state: 'asc' | 'desc' | null) =>
   state === 'asc' ? '▲' : state === 'desc' ? '▼' : '↕';
 
 export function BreakdownTable<R>({
-  columns, rows, totalLabel, totalValue, totalSpan, defaultSortKey,
+  columns, rows, totalLabel, totalValue, totalSpan, defaultSortKey, rowClassName,
 }: Props<R>) {
   const lastKey = columns[columns.length - 1]?.key;
   const [sort, setSort] = useState<{ key: string; dir: 'asc' | 'desc' }>(
@@ -74,7 +76,7 @@ export function BreakdownTable<R>({
         </thead>
         <tbody>
           {sorted.map((row, i) => (
-            <tr key={i}>
+            <tr key={i} className={rowClassName?.(row)}>
               {columns.map(c => (
                 <td key={c.key} className={`${alignClass(c.align)} ${c.wrap ? styles.wrapCell : ''}`}>
                   {c.render(row)}

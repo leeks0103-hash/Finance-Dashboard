@@ -73,7 +73,21 @@ const KpiBreakdownModal = ({ name, metric, onClose }: Props) => {
         </div>
 
         <BreakdownTable
+          rowClassName={r => r.excluded ? styles.rowExcluded : undefined}
           columns={[
+            {
+              key: 'include', header: '포함', align: 'center',
+              sortValue: r => r.excluded ? 0 : 1,
+              render: r => (
+                <input
+                  type="checkbox"
+                  checked={!r.excluded}
+                  disabled={!r.file}
+                  title={r.file ? '체크 해제하면 이번 집계에서만 임시로 뺍니다(새로고침하면 복원)' : '파일명이 없어 제외할 수 없습니다'}
+                  onChange={() => r.file && vm.toggleExclude(r.file)}
+                />
+              ),
+            },
             {
               key: 'code', header: '프로젝트코드',
               sortValue: r => r.project_code,
@@ -100,7 +114,7 @@ const KpiBreakdownModal = ({ name, metric, onClose }: Props) => {
           rows={vm.rows}
           totalLabel={`${vm.aggLabel} (${vm.count}건)`}
           totalValue={vm.totalStr}
-          totalSpan={3}
+          totalSpan={4}
         />
       </>
     );

@@ -9,8 +9,13 @@ export interface KpiOptions {
   stages: string[];
 }
 
-export const getKpiSummary = (part = ''): Promise<KpiSummary> =>
-  client.get<KpiSummary>('/kpi/summary', { params: part ? { part } : undefined }).then(r => r.data);
+export const getKpiSummary = (part = '', exclude: string[] = []): Promise<KpiSummary> =>
+  client.get<KpiSummary>('/kpi/summary', {
+    params: {
+      ...(part ? { part } : undefined),
+      ...(exclude.length ? { exclude: exclude.join(',') } : undefined),
+    },
+  }).then(r => r.data);
 
 export const getKpiOptions = (): Promise<KpiOptions> =>
   client.get<KpiOptions>('/kpi/options').then(r => r.data);
@@ -52,6 +57,9 @@ export interface KpiBreakdownRow {
   stage: string;
   file:  string;
   value: number;
+  /** 임시 제외 목록(exclude 파라미터)에 이 행의 파일명이 포함돼있는지 — true면 합계/평균에서
+   *  이미 빠진 상태(행 자체는 계속 보여줘서 체크박스로 다시 포함시킬 수 있게 함) */
+  excluded: boolean;
 }
 
 export interface KpiBreakdown {
@@ -73,5 +81,8 @@ export interface KpiBreakdown {
 export const getKpiBreakdown = (
   name: string,
   metric: 'target' | 'actual' | 'prev',
+  exclude: string[] = [],
 ): Promise<KpiBreakdown> =>
-  client.get<KpiBreakdown>('/kpi/summary/breakdown', { params: { name, metric } }).then(r => r.data);
+  client.get<KpiBreakdown>('/kpi/summary/breakdown', {
+    params: { name, metric, ...(exclude.length ? { exclude: exclude.join(',') } : undefined) },
+  }).then(r => r.data);

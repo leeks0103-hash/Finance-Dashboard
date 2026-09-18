@@ -117,6 +117,15 @@
 /* 표 자체 스타일·정렬은 BreakdownTable 컴포넌트로 이동 */
 .pname { color: var(--text-muted); }
 
+/* 체크박스로 임시 제외한 행 — 합계에서 빠졌다는 걸 바로 알 수 있게 흐리게+취소선 */
+.rowExcluded {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+.rowExcluded input[type="checkbox"] {
+  text-decoration: none;
+}
+
 /* explain 박스 바로 아래, 표 위로 옮김(스크롤해야만 보이지 않도록) — 여백은 위 대신 아래로 */
 .foot {
   display: flex;

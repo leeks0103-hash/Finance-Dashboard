@@ -419,8 +419,22 @@ def _filter_part(df: pd.DataFrame, part: str | None) -> pd.DataFrame:
     return df[df[pcol].astype(str).str.strip() == part]
 
 
-def _aggregate_kpi_col(kpi_items: list, col_keyword: str, part: str | None = None) -> list:
+def _exclude_by_file(df: pd.DataFrame, exclude_files: set[str] | None) -> pd.DataFrame:
+    """특정 프로젝트(파일명 기준)를 집계에서 임시 제외 — "이 항목은 이번엔 빼고 보고 싶다"는
+    사용자 요청 대응. 엑셀·NAS 원본은 전혀 안 건드리고, 요청마다 넘어온 exclude 목록으로
+    df만 걸러서 집계한다(서버 재시작·새로고침하면 그대로 원복 — 상태를 어디에도 저장 안 함)."""
+    if not exclude_files or df.empty:
+        return df
+    file_col = next((c for c in df.columns if "파일명" in str(c)), None)
+    if file_col is None:
+        return df
+    return df[~df[file_col].astype(str).str.strip().isin(exclude_files)]
+
+
+def _aggregate_kpi_col(kpi_items: list, col_keyword: str, part: str | None = None,
+                        exclude_files: set[str] | None = None) -> list:
     df = _filter_part(_kpi_dedup_df if not _kpi_dedup_df.empty else _kpi_raw_df, part)
+    df = _exclude_by_file(df, exclude_files)
     if df.empty:
         return [0.0] * len(kpi_items)
 
@@ -510,7 +524,8 @@ def _parse_col_num(val_str: str) -> float | None:
         return None
 
 
-def _compute_achieve_rates(kpi_items: list, part: str | None = None) -> list:
+def _compute_achieve_rates(kpi_items: list, part: str | None = None,
+                            exclude_files: set[str] | None = None) -> list:
     """
     평균형 KPI: 프로젝트별 actual_i/target_i * 100 의 평균 — 부서별 목표가 달라도 올바른 집계.
     합계형 KPI: sum(actual_i) / sum(target_i) * 100.
@@ -518,6 +533,7 @@ def _compute_achieve_rates(kpi_items: list, part: str | None = None) -> list:
     집계는 프로젝트별 최우선 단계 1건만 사용 (완료>중간>착수>제안).
     """
     df = _filter_part(_kpi_dedup_df if not _kpi_dedup_df.empty else _kpi_raw_df, part)
+    df = _exclude_by_file(df, exclude_files)
     if df.empty:
         return [None] * len(kpi_items)
 
@@ -644,15 +660,18 @@ def api_kpi_summary():
         return jsonify({"available": False, "message": "kpi 집계 시트를 읽을 수 없습니다."})
 
     part = request.args.get("part", "").strip() or None
+    # 임시 제외(사용자가 드릴다운 모달에서 체크박스로 뺀 프로젝트) — 파일명 기준, 서버에
+    # 아무것도 저장하지 않고 매 요청마다 이 파라미터로만 반영(새로고침하면 그냥 사라짐)
+    exclude_files = {f.strip() for f in request.args.get("exclude", "").split(",") if f.strip()}
 
     try:
         kpi_items = _load_kpi_items_from_cache()
         # 목표/실적/유사 모두 dedup 기준으로 집계 (프로젝트별 최우선 단계 1건). part 지정 시 그 파트만
-        targets = _aggregate_kpi_col(kpi_items, "PJ목표", part)
-        actuals = _aggregate_kpi_col(kpi_items, "PJ실적", part)
-        prevs   = _aggregate_kpi_col(kpi_items, "PJ유사", part)
+        targets = _aggregate_kpi_col(kpi_items, "PJ목표", part, exclude_files)
+        actuals = _aggregate_kpi_col(kpi_items, "PJ실적", part, exclude_files)
+        prevs   = _aggregate_kpi_col(kpi_items, "PJ유사", part, exclude_files)
         # avg 타입 달성률: 프로젝트별 (실적/목표*100) 평균 — dedup 기준
-        avg_achieve_rates = _compute_achieve_rates(kpi_items, part)
+        avg_achieve_rates = _compute_achieve_rates(kpi_items, part, exclude_files)
 
         result = []
         for i, kpi in enumerate(kpi_items):
@@ -746,6 +765,10 @@ def api_kpi_summary_breakdown():
     metric = request.args.get("metric", "actual").strip()
     if metric not in _BD_METRIC_COL:
         metric = "actual"
+    # 임시 제외 목록 — api_kpi_summary()와 동일한 파라미터. 여기서는 행 자체를 지우지 않고
+    # (체크박스를 다시 켤 수 있어야 하므로) "excluded" 플래그만 붙이고, total/count만 그
+    # 플래그를 뺀 값으로 계산한다 — 그래야 모달에 계속 전체 행이 보이면서 합계만 바뀐다
+    exclude_files = {f.strip() for f in request.args.get("exclude", "").split(",") if f.strip()}
 
     get_kpi_df()
     if _kpi_agg_df.empty:
@@ -821,23 +844,25 @@ def api_kpi_summary_breakdown():
                     continue
                 value = round(num, 4)
 
+            file_val = str(r[file_col]).strip() if file_col and r[file_col] not in (None, 0) else ""
             rows_out.append({
                 "project_code": str(r[code_col]).strip() if code_col and r[code_col] not in (None, 0) else "",
                 "project_name": str(r[pname_col]).strip() if pname_col and r[pname_col] not in (None, 0) else "",
                 "part":  str(r[part_col]).strip()  if part_col  and r[part_col]  not in (None, 0) else "",
                 "stage": str(r[stage_col]).strip() if stage_col and r[stage_col] not in (None, 0) else "",
-                "file":  str(r[file_col]).strip()  if file_col  and r[file_col]  not in (None, 0) else "",
+                "file":  file_val,
                 "value": value,
+                "excluded": file_val in exclude_files if file_val else False,
             })
 
-        vals    = [x["value"] for x in rows_out]
+        active_vals = [x["value"] for x in rows_out if not x["excluded"]]
         use_sum = is_count_type or kpi["agg"] == "sum"
-        if not vals:
+        if not active_vals:
             total = 0.0
         elif use_sum:
-            total = round(sum(vals), 2)
+            total = round(sum(active_vals), 2)
         else:
-            total = round(sum(vals) / len(vals), 2)
+            total = round(sum(active_vals) / len(active_vals), 2)
 
         # 2026-09-14: 신규/기존 건수 목표도 api_kpi_summary()가 이제 이 dedup 기준과 동일한
         # 재집계값을 쓰도록 통일해서, 예전에 여기 있던 "시트 고정값이라 다를 수 있음" 예외 note는
@@ -852,7 +877,7 @@ def api_kpi_summary_breakdown():
             "agg":           "sum" if use_sum else "avg",
             "column":        str(col),
             "rows":          rows_out,
-            "count":         len(rows_out),
+            "count":         len(active_vals),
             "total":         total,
             "is_count_type": is_count_type,
             "sub":           sub,
