@@ -423,40 +423,47 @@ const PerformanceChartSection = () => {
         ...(showPlanCost ? [{ barIndex: 1, values: pick(vm.profitRate.planCost), color: fadeAlpha(planColor, 0.7), dash: [3, 3] }] : []),
       ];
       const planLinePlugins: Plugin<'bar'>[] = planLineSeries.length ? [makePlanLinePlugin(planLineSeries)] : [];
+      // 모달만 범례를 끄고 아래에 직접 그린다 — 매출/원가(막대)와 매출 계획/원가 계획(목표선)이
+      // 한 줄에 나란히 있는 게 보기 좋다는 피드백. Chart.js 기본 범례(막대만)를 그대로 두고
+      // 목표선 범례를 따로 위에 얹으면 두 줄로 떨어져 보였음
+      const modalOptions = { ...partRevCostOptions, plugins: { ...partRevCostOptions.plugins, legend: { display: false } } };
       const modalChartEl = (
         <BarChart
           // exportable   // PNG 내보내기 — 일단 주석 처리(마음에 들지만 보류)
           onClick={handleAxisToggle}
           labels={visibleLabels}
           datasets={baseDatasets}
-          options={partRevCostOptions}
+          options={modalOptions}
           plugins={planLinePlugins}
         />
       );
       const modalContent = (
         <div className={styles.chartModalWithTable}>
-          <div className={styles.planLineBar}>
-            <span className={styles.badge}>계획 목표선</span>
-            <span className={styles.planLineLegend}>
-              <Button
-                unstyled
-                className={styles.planLineLegendItem}
-                aria-pressed={showPlanRevenue}
-                onClick={() => setShowPlanRevenue(v => !v)}
-              >
-                <i className={styles.planLineSwatch} style={{ background: planColor }} />매출 계획
-              </Button>
-              <Button
-                unstyled
-                className={styles.planLineLegendItem}
-                aria-pressed={showPlanCost}
-                onClick={() => setShowPlanCost(v => !v)}
-              >
-                <i className={styles.planLineSwatch} style={{ background: fadeAlpha(planColor, 0.7) }} />원가 계획
-              </Button>
-            </span>
-          </div>
           <div className={styles.chartModalChart}>{modalChartEl}</div>
+          <div className={styles.planLineBar}>
+            <span className={styles.planLineLegendItem}>
+              <i className={styles.planLineSwatch} style={{ background: palette.revenue }} />매출
+            </span>
+            <span className={styles.planLineLegendItem}>
+              <i className={styles.planLineSwatch} style={{ background: palette.cost }} />원가
+            </span>
+            <Button
+              unstyled
+              className={`${styles.planLineLegendItem} ${styles.planLineToggle}`}
+              aria-pressed={showPlanRevenue}
+              onClick={() => setShowPlanRevenue(v => !v)}
+            >
+              <i className={styles.planLineSwatch} style={{ background: planColor }} />매출 계획
+            </Button>
+            <Button
+              unstyled
+              className={`${styles.planLineLegendItem} ${styles.planLineToggle}`}
+              aria-pressed={showPlanCost}
+              onClick={() => setShowPlanCost(v => !v)}
+            >
+              <i className={styles.planLineSwatch} style={{ background: fadeAlpha(planColor, 0.7) }} />원가 계획
+            </Button>
+          </div>
           <div className={styles.chartModalTable}>
             <DataTable<PartRevCostRow>
               data={partRevCostRows}

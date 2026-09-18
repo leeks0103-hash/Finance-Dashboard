@@ -118,30 +118,31 @@
   min-height: 0;
   gap: 10px;
 }
-/* 계획 목표선 — 범례 항목 자체가 토글 버튼(Chart.js 범례 클릭과 같은 느낌). 매출/원가
-   계획선을 하나로 묶지 않고 각자 클릭해서 개별로 껐다 켤 수 있게 */
+/* 차트 확대 모달의 범례 — Chart.js 기본 범례(매출/원가) 대신 여기서 전부 직접 그림.
+   매출/원가(막대, 그냥 표시용) + 매출 계획/원가 계획(목표선, 클릭해서 개별 온오프)이
+   차트 바로 아래 한 줄에 나란히 있는 게 보기 좋다는 피드백 반영 */
 .planLineBar {
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 16px;
   flex-shrink: 0;
   font-size: 0.78rem;
   color: var(--text-sub, var(--text-muted));
 }
-.planLineLegend {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
 .planLineLegendItem {
   display: inline-flex;
   align-items: center;
-  cursor: pointer;
   color: inherit;
   font: inherit;
+}
+/* 클릭 가능한 목표선 항목만 — 매출/원가(막대)는 표시용이라 커서·딤 처리 없음 */
+.planLineToggle {
+  cursor: pointer;
   transition: opacity 0.15s ease;
 }
-.planLineLegendItem[aria-pressed="false"] {
+.planLineToggle[aria-pressed="false"] {
   opacity: 0.4;
   text-decoration: line-through;
 }
