@@ -167,13 +167,13 @@ const KpiPage = () => {
             <ChartCard.Title>
               <div className={styles.titleWithFilter}>
                 <span>KPI 목표 vs 실적 (2026년)</span>
+                <div className={styles.titleMiddle}><KpiExcludeIndicator /></div>
                 <FilterSelect
                   label="파트"
                   value={summaryPart}
                   onChange={setSummaryPart}
                   options={partOptions}
                 />
-                <KpiExcludeIndicator />
               </div>
             </ChartCard.Title>
             <ChartCard.Body>

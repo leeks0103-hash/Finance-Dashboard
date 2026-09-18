@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { getKpiBreakdown } from '@/api/kpi.api';
 import { useKpiExcludeStore } from '@/store/kpiExclude.store';
 import type { KpiBreakdownRow } from '@/api/kpi.api';
@@ -37,6 +37,10 @@ export const useKpiBreakdownViewModel = (
     queryKey:  ['kpi-breakdown', name, metric, excludedFiles],
     queryFn:   () => getKpiBreakdown(name as string, metric, excludedFiles),
     enabled:   !!name,
+    // 체크박스로 exclude 목록이 바뀌면 queryKey가 바뀌어 다시 로딩 상태가 되는데,
+    // 그 사이 "불러오는 중…" 문구(짧은 높이)가 잠깐 보였다가 표가 다시 뜨면서
+    // 모달이 작아졌다 커지는 것처럼 보였음 — 새 데이터 올 때까지 이전 표를 그대로 유지
+    placeholderData: keepPreviousData,
     staleTime: STALE_5MIN,
     gcTime:    GC_10MIN,
   });

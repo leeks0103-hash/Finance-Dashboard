@@ -42,13 +42,21 @@
 /* 기본값 — 실제 높이는 KPI 항목 수에 비례해 인라인 스타일로 늘어남(막대·숫자 겹침 방지) */
 .chartWrap { height: 320px; }
 
-/* 차트 제목줄 — 제목은 왼쪽 끝, 파트 필터는 오른쪽 */
+/* 차트 제목줄 — 제목은 왼쪽 끝, 파트 필터는 오른쪽 고정.
+   중간 슬롯(.titleMiddle)이 flex:1로 남는 공간을 다 먹어서, 그 안의 임시제외 배지가
+   나타나거나 사라져도 제목·파트 필터 위치는 안 흔들림(예전엔 justify-content:space-between +
+   조건부 3번째 자식이라 배지 유무에 따라 파트 셀렉트가 가운데↔끝으로 튀었음) */
 .titleWithFilter {
   flex: 1;
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 16px;
+  min-width: 0;
+}
+.titleMiddle {
+  flex: 1;
+  display: flex;
+  justify-content: center;
   min-width: 0;
 }
 
