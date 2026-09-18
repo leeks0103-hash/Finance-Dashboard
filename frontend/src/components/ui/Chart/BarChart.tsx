@@ -4,7 +4,7 @@ import {
   Chart, CategoryScale, LinearScale, BarElement, Tooltip, Legend,
   LineElement, PointElement, LineController,
 } from 'chart.js';
-import type { ChartData, ChartDataset, ChartOptions, ChartEvent, ActiveElement } from 'chart.js';
+import type { ChartData, ChartDataset, ChartOptions, ChartEvent, ActiveElement, Plugin } from 'chart.js';
 import { Button } from '@/components/ui/Button';
 // datalabels 등록 + "그래프 수치" 토글 켤 때 숫자 페이드인 (side-effect)
 import '@/utils/datalabelFade';
@@ -32,12 +32,16 @@ interface Props {
   onClick?:    (label: string, datasetIndex: number) => void;
   /** true면 우측 상단에 "이미지로 저장" 버튼 노출 — 필요한 차트에서만 opt-in */
   exportable?: boolean;
+  /** 이 차트 인스턴스에만 적용할 Chart.js 플러그인 — 전역 Chart.register 대신 로컬 스코프로 등록.
+   *  그룹형 막대 위에 특정 막대와 픽셀 단위로 정렬되는 오버레이(목표선 등)를 그릴 때 사용
+   *  (line 타입 데이터셋은 카테고리 중앙에 찍혀 그룹 막대 중 하나와 정렬되지 않는 문제 회피) */
+  plugins?: Plugin<'bar'>[];
 }
 
 // rgba(r,g,b,a) → rgba(r,g,b,1) — 호버 시 완전 불투명으로 밝게
 const toHoverColor = (c: string) => c.replace(/[\d.]+\)$/, '1)');
 
-const BarChart = ({ labels, datasets, horizontal = false, options, onClick, exportable = false }: Props) => {
+const BarChart = ({ labels, datasets, horizontal = false, options, onClick, exportable = false, plugins }: Props) => {
   const chartRef = useRef<Chart<'bar'> | null>(null);
 
   const boosted = datasets.map(d => (
@@ -141,6 +145,7 @@ const BarChart = ({ labels, datasets, horizontal = false, options, onClick, expo
         ref={chartRef}
         data={{ labels, datasets: boosted as ChartData<'bar'>['datasets'] }}
         options={merged}
+        plugins={plugins}
       />
     </div>
   );

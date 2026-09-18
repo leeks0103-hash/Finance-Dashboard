@@ -118,6 +118,29 @@
   min-height: 0;
   gap: 10px;
 }
+/* 계획 목표선 토글 바 — 범례(색 스와치)와 온오프 토글을 한 줄에 */
+.planLineBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  font-size: 0.78rem;
+  color: var(--text-sub, var(--text-muted));
+}
+.planLineLegend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.planLineSwatch {
+  display: inline-block;
+  width: 14px;
+  height: 3px;
+  border-radius: 1px;
+  margin-right: 2px;
+}
+.planLineSwatch + .planLineSwatch { margin-left: 10px; }
+
 .chartModalChart {
   flex: 1;
   min-height: 0;

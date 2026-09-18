@@ -13,7 +13,8 @@ import { makeBarOptions } from '@/utils/chartOptions';
 import { getChartPalette, getChartTheme } from '@/utils/chartColors';
 // Toggle — 파트별 경상이익 토글 비활성화로 미사용(주석 처리). 복구 시 함께 import
 import { createColumnHelper } from '@tanstack/react-table';
-import { ChartCard, BarChart, DoughnutChart, DataTable, useTableDndSensors, InfoButton } from '@/components/ui';
+import { ChartCard, BarChart, DoughnutChart, DataTable, Toggle, useTableDndSensors, InfoButton } from '@/components/ui';
+import type { Plugin } from 'chart.js';
 import CostFilterPopover from './CostFilterPopover';
 import PerfBreakdownModal from '@/components/features/PerfBreakdownModal/PerfBreakdownModal';
 import CostBreakdownModal from './CostBreakdownModal';
@@ -69,6 +70,49 @@ const partRevCostColumns = [
 
 // 팔레트의 rgba(...) 문자열 알파값만 교체 — 미래 월/보조 계열 흐림 처리용
 const fadeAlpha = (rgba: string, alpha: number) => rgba.replace(/[\d.]+\)$/, `${alpha})`);
+
+// "파트별 추정 매출/원가" 확대 모달의 계획 목표선 — line 타입 데이터셋으로 넣으면 Chart.js가
+// 그룹형 막대(매출/원가 2개)의 카테고리 중앙에 점을 찍어서 두 막대 "사이"에 점이 찍히는
+// 문제가 있었음(그룹 막대는 중앙 기준 좌우로 나뉘어 그려지는데, line 데이터셋은 그 나눔에
+// 참여하지 않고 항상 카테고리 중앙 픽셀을 씀). 대신 캔버스 플러그인으로 실제 렌더링된 막대
+// 엘리먼트의 x 픽셀(el.x)을 직접 읽어 그 위에 정확히 겹쳐 그린다 — 특정 막대(barIndex)와
+// 항상 픽셀 단위로 정렬됨.
+interface PlanLineSeries { barIndex: number; values: (number | null)[]; color: string; dash: number[]; }
+const makePlanLinePlugin = (series: PlanLineSeries[]): Plugin<'bar'> => ({
+  id: 'planLine',
+  afterDatasetsDraw(chart) {
+    const { ctx } = chart;
+    series.forEach(({ barIndex, values, color, dash }) => {
+      const meta = chart.getDatasetMeta(barIndex);
+      const yScale = chart.scales[meta?.yAxisID ?? 'y'];
+      if (!meta?.data?.length || !yScale) return;
+      const pts = meta.data.map((el, i) => {
+        const v = values[i];
+        return v == null ? null : { x: (el as unknown as { x: number }).x, y: yScale.getPixelForValue(v) };
+      });
+      ctx.save();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.setLineDash(dash);
+      ctx.beginPath();
+      let started = false;
+      pts.forEach(p => {
+        if (!p) { started = false; return; }
+        if (!started) { ctx.moveTo(p.x, p.y); started = true; } else ctx.lineTo(p.x, p.y);
+      });
+      ctx.stroke();
+      ctx.setLineDash([]);
+      pts.forEach(p => {
+        if (!p) return;
+        ctx.beginPath();
+        ctx.fillStyle = color;
+        ctx.arc(p.x, p.y, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.restore();
+    });
+  },
+});
 
 // x축 stacked 해제 + 테마(격자·눈금) 색 오버라이드 병합 — 그룹형 바 차트 여러 개가 공유하는 패턴
 const withUnstackedTheme = (
@@ -140,6 +184,8 @@ const PerformanceChartSection = () => {
   // "파트별 추정 매출/원가"의 x축 라벨 클릭 — 다른 차트처럼 드릴다운을 여는 대신, 그 파트를
   // 차트에서 숨김/복원 토글(다시 클릭하면 되돌아옴). 데이터가 많아 복잡할 때 걸러보기 위함
   const [hiddenParts, setHiddenParts] = useState<Set<string>>(new Set());
+  // "파트별 추정 매출/원가" 확대 모달 전용 — 계획 목표선(매출/원가 계획) 오버레이 온오프
+  const [showPlanLine, setShowPlanLine] = useState(true);
   const openBreakdown = useCallback(
     (chart: PerfBreakdownChart) => (key: string, dsIndex: number) =>
       setBreakdown({ chart, series: dsIndex < 0 ? 0 : dsIndex, key }),
@@ -355,37 +401,41 @@ const PerformanceChartSection = () => {
           options={partRevCostOptions}
         />
       );
-      // 확대 모달 전용 — 목표선(매출/원가 계획) 겹쳐서 계획 대비 실제를 바로 대조 + 표로 전체 파트 검증 (시범)
-      // 온오프는 별도 토글 없이 범례 클릭으로 — Chart.js 기본 동작(범례 클릭 시 그 데이터셋만
-      // 숨김/복원)을 그대로 씀. 토글 스위치를 따로 두니 x축 그래프 조작이 오히려 헷갈린다는 피드백
+      // 확대 모달 전용 — 목표선(매출/원가 계획)을 캔버스 플러그인으로 겹쳐 그려서 계획 대비
+      // 실제를 바로 대조 + 표로 전체 파트 검증. line 데이터셋으로 넣으면 그룹 막대(매출/원가)
+      // 사이 카테고리 중앙에 점이 찍히는 문제가 있어(makePlanLinePlugin 주석 참고) 대신 실제
+      // 막대 엘리먼트 위치에 직접 그리는 방식으로 전환 — 그래서 온오프도 범례 클릭 대신
+      // 명시적 토글 버튼으로(더 이상 진짜 Chart.js 데이터셋이 아니라 범례에 안 잡힘)
+      // useMemo 없이 매 렌더 재생성 — 작은 배열 리터럴이라 비용 무시 가능하고, 이 함수 자체가
+      // chartRenderers 레코드에 담겨 조건적으로 호출되는 위치라 hooks 규칙상 useMemo를 쓰면 안 됨
+      const planLinePlugins: Plugin<'bar'>[] = showPlanLine ? [
+        makePlanLinePlugin([
+          { barIndex: 0, values: pick(vm.profitRate.planRevenue), color: planColor, dash: [6, 4] },
+          { barIndex: 1, values: pick(vm.profitRate.planCost), color: fadeAlpha(planColor, 0.7), dash: [3, 3] },
+        ]),
+      ] : [];
       const modalChartEl = (
         <BarChart
           // exportable   // PNG 내보내기 — 일단 주석 처리(마음에 들지만 보류)
           onClick={handleAxisToggle}
           labels={visibleLabels}
-          datasets={[
-            ...baseDatasets,
-            // 매출/원가 계획 목표선 — 일단 주석 처리 (2026-09-15)
-            // {
-            //   type: 'line' as const, label: '매출 계획',
-            //   data: pick(vm.profitRate.planRevenue),
-            //   borderColor: palette.plan, borderWidth: 2, borderDash: [6, 4],
-            //   pointRadius: 3, pointBackgroundColor: palette.plan,
-            //   fill: false, order: 1,
-            // },
-            // {
-            //   type: 'line' as const, label: '원가 계획',
-            //   data: pick(vm.profitRate.planCost),
-            //   borderColor: fadeAlpha(palette.plan, 0.45), borderWidth: 2, borderDash: [2, 3],
-            //   pointRadius: 3, pointBackgroundColor: fadeAlpha(palette.plan, 0.45),
-            //   fill: false, order: 1,
-            // },
-          ]}
+          datasets={baseDatasets}
           options={partRevCostOptions}
+          plugins={planLinePlugins}
         />
       );
       const modalContent = (
         <div className={styles.chartModalWithTable}>
+          <div className={styles.planLineBar}>
+            <span className={styles.planLineLegend}>
+              <i className={styles.planLineSwatch} style={{ background: planColor }} />매출 계획
+              <i className={styles.planLineSwatch} style={{ background: fadeAlpha(planColor, 0.7) }} />원가 계획
+            </span>
+            <span className={styles.toggleGroup}>
+              <span className={styles.badge}>계획 목표선</span>
+              <Toggle checked={showPlanLine} onChange={() => setShowPlanLine(v => !v)} />
+            </span>
+          </div>
           <div className={styles.chartModalChart}>{modalChartEl}</div>
           <div className={styles.chartModalTable}>
             <DataTable<PartRevCostRow>

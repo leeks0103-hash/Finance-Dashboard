@@ -11,6 +11,7 @@ docs/dashboard-analysis-guide.md Part 6·7의 해석 규칙을 시스템 프롬�
 import json
 import logging
 import os
+import re
 import threading
 from datetime import datetime
 
@@ -29,6 +30,14 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 ai_bp = Blueprint("ai", __name__)
+
+# 파트명 앞 원문자(①~⑳) 제거 — performance.py _PART_PREFIX_RE와 동일 범위.
+# AI가 서술할 때 번호까지 같이 읽어주면 불필요하게 딱딱해져서, 프롬프트에 넘기기 전에 벗겨낸다.
+_PART_PREFIX_RE = re.compile(r"^[①-⑳]\s*")
+
+
+def _strip_part_prefix(part: str) -> str:
+    return _PART_PREFIX_RE.sub("", str(part)).strip()
 
 H_CHAT_API_KEY  = os.environ.get("H_CHAT_API_KEY", "")
 H_CHAT_BASE_URL = os.environ.get(
@@ -113,7 +122,7 @@ def _build_finance_metrics() -> dict:
         month_avg_so_far = ac / month if month else 0
         month_avg_needed = remain_needed / max(12 - month, 1)
         by_part.append({
-            "파트": part, "건수": int(len(g)),
+            "파트": _strip_part_prefix(part), "건수": int(len(g)),
             "계획_억": _round1(pl / 1e5), "누계_억": _round1(ac / 1e5), "연간추정_억": _round1(es / 1e5),
             "손익률_pct": _round1(g["operating_profit"].sum() / es * 100) if es > 0 else None,
             "원가율_pct": _round1(tc / es * 100) if es > 0 else None,
@@ -355,7 +364,7 @@ def _build_kpi_metrics() -> dict:
     by_part = []
     if "파트명" in df.columns:
         for part, g in df.groupby("파트명"):
-            by_part.append({"파트": part, "프로젝트수": int(len(g))})
+            by_part.append({"파트": _strip_part_prefix(part), "프로젝트수": int(len(g))})
 
     return {
         "기준월": current_month,
