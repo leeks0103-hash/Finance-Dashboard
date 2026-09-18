@@ -66,14 +66,20 @@ const Navbar = () => {
 
         {/* 우측 — (KPI/실적현황 탭) 다운로드 + 설정 */}
         <div className={styles.right}>
-          {activeTab === 'kpi' && <KpiActionBar />}
-          {activeTab === 'performance' && <PerformanceActionBar />}
-
-          {healthTotal > 0 && (
-            <div className={styles.health} ref={healthRef}>
+          {/* 인사이트 버튼(각 ActionBar의 첫 자식) 왼쪽에 배치 — 항상 마운트해두고 없을 때만
+              visibility:hidden으로 숨김(display:none/조건부 마운트 대신). 그래야 이상 건수가
+              0→N으로 바뀌는 순간에도 이 자리(너비+gap)가 그대로라 옆 버튼들이 리플로우로
+              밀리지 않음(예전엔 조건부 렌더로 나타날 때마다 ActionBar가 옆으로 밀렸음) */}
+          <div
+            className={styles.health}
+            ref={healthRef}
+            style={{ visibility: healthTotal > 0 ? 'visible' : 'hidden' }}
+            aria-hidden={healthTotal === 0}
+          >
               <Button unstyled
                 className={styles.healthBtn}
                 onClick={() => setHealthOpen(v => !v)}
+                tabIndex={healthTotal > 0 ? 0 : -1}
                 aria-label={`KPI/재무 데이터 이상 ${healthTotal}건`}
                 aria-expanded={healthOpen}
                 title={`KPI/재무 데이터 이상 ${healthTotal}건 (코드 불일치 ${healthRows.length} / 코드 충돌 ${healthConflicts.length})`}
@@ -81,7 +87,7 @@ const Navbar = () => {
                 !
               </Button>
 
-              {healthOpen && (
+              {healthOpen && healthTotal > 0 && (
                 <div className={styles.healthDropdown}>
                   {healthConflicts.length > 0 && (
                     <>
@@ -138,8 +144,10 @@ const Navbar = () => {
                   )}
                 </div>
               )}
-            </div>
-          )}
+          </div>
+
+          {activeTab === 'kpi' && <KpiActionBar />}
+          {activeTab === 'performance' && <PerformanceActionBar />}
 
           <div className={styles.settings} ref={ref}>
           <Button unstyled
