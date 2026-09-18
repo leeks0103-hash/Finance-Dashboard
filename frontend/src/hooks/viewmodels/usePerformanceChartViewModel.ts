@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { usePerformanceSummary } from '@/hooks/usePerformanceSummary';
+import { usePerformanceSummaryAll } from '@/hooks/usePerformanceSummaryAll';
 import { usePerformanceOptions } from '@/hooks/usePerformanceData';
 import { useUiStore } from '@/store';
 import { useTheme } from '@/hooks/useTheme';
@@ -63,6 +64,8 @@ export interface PerformanceChartViewModel {
   partOptions:      string[];
   selectedCostPart: string;
   setSelectedCostPart: (v: string) => void;
+  /** selectedCostPart의 원본 파트명(접두어 포함) — 드릴다운 breakdown 조회의 partOverride용 */
+  selectedCostPartRaw?: string;
   progress: {
     labels:       string[];
     revenues:     number[];
@@ -82,6 +85,8 @@ export interface PerformanceChartViewModel {
 
 export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
   const { data: summary, isLoading, isError } = usePerformanceSummary();
+  // "전체 평균 원가 비율" 카드만 메인 필터와 무관하게 항상 전체 데이터 기준
+  const { data: summaryAll } = usePerformanceSummaryAll();
   const { data: options } = usePerformanceOptions();
   const showLabels = useUiStore(s => s.showChartLabels);
   const { theme } = useTheme();
@@ -166,8 +171,13 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
 
     const monthly = summary.monthly;
     const parts   = sortParts(Object.keys(summary.by_part));
-    const total   = summary.total;
     const progressEntries = sortProgress(Object.keys(summary.by_progress ?? {}));
+
+    // 원가 비율 카드용 — 메인 필터 무관, 항상 전체 데이터 기준(summaryAll이 아직 안 왔으면
+    // 잠깐 메인 summary로 대체 — 로딩 중 빈 화면 대신 뭐라도 보여줌)
+    const costSummary = summaryAll ?? summary;
+    const costParts    = sortParts(Object.keys(costSummary.by_part));
+    const costTotal    = costSummary.total;
 
     return {
       isEmpty: parts.length === 0 && monthly.length === 0,
@@ -198,11 +208,11 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
       //    "매출이 어디에 쓰였고 얼마 남았나" 구성이 됨(담당자 요청).
       costBreakdownTotal: {
         labels: ['직접원가', '인건비', '공통원가', '관리비', '경상손익'],
-        values: [total.cost_direct, total.cost_labor, total.cost_overhead, total.cost_mgmt, total.operating_profit].map(toEokNum),
+        values: [costTotal.cost_direct, costTotal.cost_labor, costTotal.cost_overhead, costTotal.cost_mgmt, costTotal.operating_profit].map(toEokNum),
       },
       costBreakdownByPart: Object.fromEntries(
-        parts.map(p => {
-          const bp = summary.by_part[p];
+        costParts.map(p => {
+          const bp = costSummary.by_part[p];
           return [p, {
             labels: ['직접원가', '인건비', '공통원가', '관리비', '경상손익'],
             values: [bp.cost_direct ?? 0, bp.cost_labor ?? 0, bp.cost_overhead ?? 0, bp.cost_mgmt ?? 0, bp.operating_profit ?? 0].map(toEokNum),
@@ -215,17 +225,17 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
         teams.map(team => {
           const allowed = new Set(teamParts[team] ?? []);
           const sums = [0, 0, 0, 0, 0];
-          parts.forEach(p => {
+          costParts.forEach(p => {
             if (!allowed.has(p)) return;
-            const bp = summary.by_part[p];
+            const bp = costSummary.by_part[p];
             [bp.cost_direct ?? 0, bp.cost_labor ?? 0, bp.cost_overhead ?? 0, bp.cost_mgmt ?? 0, bp.operating_profit ?? 0]
               .forEach((v, i) => { sums[i] += v; });
           });
           return [team, { labels: ['직접원가', '인건비', '공통원가', '관리비', '경상손익'], values: sums.map(toEokNum) }];
         })
       ),
-      partOptions: ['전체', ...parts.map(stripPartPrefix)],
-      partsRaw: parts,
+      partOptions: ['전체', ...costParts.map(stripPartPrefix)],
+      partsRaw: costParts,
       teamParts,
       progress: {
         labels:       progressEntries,
@@ -233,16 +243,22 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
         expenditures: progressEntries.map(p => toEokNum(summary.by_progress[p].cost)),
       },
     };
-  }, [summary, isLoading, teams, teamParts]);
+  }, [summary, summaryAll, isLoading, teams, teamParts]);
+
+  // 원가 비율 카드에서 고른 파트(접두어 뗀 이름) → 원본 파트명. 드릴다운 모달이 메인 필터
+  // 대신 이 카드의 선택 기준으로만 조회하도록 넘겨주기 위함(partOverride)
+  const selectedCostPartRaw = useMemo(() => {
+    if (!chartData || selectedCostPart === '전체') return undefined;
+    return chartData.partsRaw.find(p => stripPartPrefix(p) === selectedCostPart);
+  }, [chartData, selectedCostPart]);
 
   // 전체 > 팀 > 파트 배타적 선택 — 팀이 골라져 있으면 팀 구성비, 아니면 파트, 둘 다 없으면 전체
   const costBreakdown = useMemo(() => {
     if (!chartData) return { labels: [], values: [] };
     if (selectedCostTeam) return chartData.costBreakdownByTeam[selectedCostTeam] ?? chartData.costBreakdownTotal;
     if (selectedCostPart === '전체') return chartData.costBreakdownTotal;
-    const rawPart = chartData.partsRaw.find(p => stripPartPrefix(p) === selectedCostPart);
-    return rawPart ? chartData.costBreakdownByPart[rawPart] : chartData.costBreakdownTotal;
-  }, [chartData, selectedCostTeam, selectedCostPart]);
+    return selectedCostPartRaw ? chartData.costBreakdownByPart[selectedCostPartRaw] : chartData.costBreakdownTotal;
+  }, [chartData, selectedCostTeam, selectedCostPart, selectedCostPartRaw]);
 
   if (!chartData || isLoading) {
     return {
@@ -254,7 +270,7 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
       progress:         { labels: [], revenues: [], expenditures: [], options: progressOptions },
       partOptions:      ['전체'],
       teams, selectedCostTeam, setSelectedCostTeam,
-      selectedCostPart, setSelectedCostPart,
+      selectedCostPart, setSelectedCostPart, selectedCostPartRaw,
       chartData: null,
     };
   }
@@ -268,7 +284,7 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
     progress:         { ...chartData.progress,     options: progressOptions },
     partOptions:      chartData.partOptions,
     teams, selectedCostTeam, setSelectedCostTeam,
-    selectedCostPart, setSelectedCostPart,
+    selectedCostPart, setSelectedCostPart, selectedCostPartRaw,
     chartData,
   };
 };

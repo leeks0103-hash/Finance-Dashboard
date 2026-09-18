@@ -426,7 +426,13 @@ const PerformanceChartSection = () => {
             teamParts={vm.chartData?.teamParts ?? {}}
             colors={doughnutColors}
             showLabels={vm.showLabels}
-            onSliceClick={i => setBreakdown({ chart: 'costBreakdown', series: i, key: '' })}
+            onSliceClick={i => setBreakdown({
+              chart: 'costBreakdown', series: i, key: '',
+              // 이 카드는 메인 필터 무관 — 카드 자체 팀/파트 선택 기준으로만 조회
+              ignoreMainFilter: true,
+              partOverride: vm.selectedCostPartRaw,
+              teamOverride: vm.selectedCostTeam,
+            })}
           />
         }
       >
@@ -448,7 +454,13 @@ const PerformanceChartSection = () => {
             colors={doughnutColors}
             showLabels={vm.showLabels}
             outsideLabels
-            onSliceClick={i => setBreakdown({ chart: 'costBreakdown', series: i, key: '' })}
+            onSliceClick={i => setBreakdown({
+              chart: 'costBreakdown', series: i, key: '',
+              // 이 카드는 메인 필터 무관 — 카드 자체 팀/파트 선택 기준으로만 조회
+              ignoreMainFilter: true,
+              partOverride: vm.selectedCostPartRaw,
+              teamOverride: vm.selectedCostTeam,
+            })}
           />
         </ChartCard.Body>
       </ChartCard>

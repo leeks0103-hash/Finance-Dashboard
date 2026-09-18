@@ -8,9 +8,14 @@ export interface PerfBreakdownTarget {
   chart:  PerfBreakdownChart;
   series: number;   // 0 | 1
   key:    string;   // 월 라벨 또는 파트명
-  /** 페이지 필터(usePerfStore) 대신 이 파트 하나로만 조회 — 원가 비율 모달에서
-   *  카드로 파트를 골라둔 상태에서 도넛을 클릭했을 때 그 파트 기준으로 보여주기 위함 */
+  /** true면 페이지 필터(usePerfStore)를 아예 무시 — "전체 평균 원가 비율" 카드는
+   *  메인 필터와 무관하게 항상 자기 자신의 팀/파트 선택기 기준으로만 동작해야 해서
+   *  (2026-09-18) 이 카드에서 도넛 클릭 시 항상 true로 전달 */
+  ignoreMainFilter?: boolean;
+  /** ignoreMainFilter일 때만 사용 — 원가 비율 카드에서 골라둔 파트/팀 하나로만 조회.
+   *  둘 다 비어있으면 "전체" 기준(카드 도넛과 동일 범위) */
   partOverride?: string;
+  teamOverride?: string;
 }
 
 export interface PerfBreakdownViewModel {
@@ -36,13 +41,18 @@ const fmt = (v: number): string =>
 export const usePerfBreakdownViewModel = (
   target: PerfBreakdownTarget | null,
 ): PerfBreakdownViewModel => {
-  const selectedParts = usePerfStore(s => s.selectedParts);
-  const selectedTeam  = usePerfStore(s => s.selectedTeam);
-  const parts = target?.partOverride ? [target.partOverride] : selectedParts;
+  const storeParts = usePerfStore(s => s.selectedParts);
+  const storeTeam  = usePerfStore(s => s.selectedTeam);
+  const parts = target?.ignoreMainFilter
+    ? (target.partOverride ? [target.partOverride] : [])
+    : storeParts;
+  const team = target?.ignoreMainFilter
+    ? (target.teamOverride ?? '')
+    : storeTeam;
 
   const { data, isLoading, isError } = useQuery({
-    queryKey:  ['perf-breakdown', target, parts, selectedTeam],
-    queryFn:   () => getPerfBreakdown(target!.chart, target!.series, target!.key, parts, selectedTeam),
+    queryKey:  ['perf-breakdown', target, parts, team],
+    queryFn:   () => getPerfBreakdown(target!.chart, target!.series, target!.key, parts, team),
     enabled:   !!target,
     staleTime: STALE_5MIN,
     gcTime:    GC_10MIN,
