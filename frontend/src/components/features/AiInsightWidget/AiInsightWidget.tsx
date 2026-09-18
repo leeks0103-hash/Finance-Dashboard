@@ -104,6 +104,7 @@ const AiInsightWidget = ({ aiTab }: Props) => {
         onClick={handleClick}
         disabled={buttonLoading}
         title="AI 분석 보기"
+        className={styles.triggerBtn}
       >
         {buttonLoading ? 'AI 분석중…' : TAB_LABEL[aiTab]}
       </Button>

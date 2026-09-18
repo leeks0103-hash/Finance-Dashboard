@@ -104,6 +104,15 @@
   font-weight: 700;
 }
 
+/* 책임님이 고른 색 — 브랜드 팔레트 토큰은 아니지만 책임님 선택 우선(2026-09-18) */
+.triggerBtn {
+  background: rgb(255, 158, 27) !important;
+  box-shadow: 0 1px 4px rgba(255, 158, 27, 0.3) !important;
+}
+.triggerBtn:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
 .footer {
   padding: 8px 16px;
   border-top: 1px solid var(--border);
