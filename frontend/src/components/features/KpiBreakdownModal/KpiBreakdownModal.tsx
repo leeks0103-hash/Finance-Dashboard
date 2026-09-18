@@ -89,14 +89,11 @@ const KpiBreakdownModal = ({ name, metric, onClose }: Props) => {
               ),
             },
             {
-              key: 'code', header: '프로젝트코드', wrap: true,
+              // 코드만 보이게 좁게 — 프로젝트명까지 옆에 붙이면 컬럼이 넓어져 가로스크롤 유발.
+              // 코드만 있어도 CopyText가 호버 시 복사 아이콘 보여주고, title에도 코드 그대로 노출
+              key: 'code', header: '프로젝트코드',
               sortValue: r => r.project_code,
-              render: r => (
-                <>
-                  {r.project_code ? <CopyText text={r.project_code} /> : '—'}
-                  {r.project_name && <span className={styles.pname}> · {r.project_name}</span>}
-                </>
-              ),
+              render: r => r.project_code ? <CopyText text={r.project_code} /> : '—',
             },
             { key: 'part',  header: '파트',     align: 'center', sortValue: r => stripPartPrefix(r.part), render: r => stripPartPrefix(r.part) || '—' },
             { key: 'stage', header: '보고단계', align: 'center', sortValue: r => r.stage, render: r => r.stage || '—' },

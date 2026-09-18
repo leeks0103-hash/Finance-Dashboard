@@ -115,7 +115,6 @@
 }
 
 /* 표 자체 스타일·정렬은 BreakdownTable 컴포넌트로 이동 */
-.pname { color: var(--text-muted); }
 
 /* 체크박스로 임시 제외한 행 — 합계에서 빠졌다는 걸 바로 알 수 있게 흐리게+취소선 */
 .rowExcluded {

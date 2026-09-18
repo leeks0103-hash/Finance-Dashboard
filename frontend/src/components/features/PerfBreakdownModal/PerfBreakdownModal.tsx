@@ -44,14 +44,11 @@ const PerfBreakdownModal = ({ target, onClose }: Props) => {
 
     const cols: BreakdownColumn<PerfBreakdownRow>[] = [
       {
-        key: 'code', header: '프로젝트코드', wrap: true,
+        // 코드만 보이게 좁게 — 프로젝트명까지 붙이면 컬럼이 넓어져 가로스크롤 유발 (KPI 드릴다운
+        // 모달과 동일 이유로 통일)
+        key: 'code', header: '프로젝트코드',
         sortValue: r => r.project_code,
-        render: r => (
-          <>
-            {r.project_code ? <CopyText text={r.project_code} /> : '—'}
-            {r.project_name && <span className={styles.pname}> · {r.project_name}</span>}
-          </>
-        ),
+        render: r => r.project_code ? <CopyText text={r.project_code} /> : '—',
       },
       { key: 'part', header: '파트', align: 'center', sortValue: r => stripPartPrefix(r.part), render: r => stripPartPrefix(r.part) || '—' },
       { key: 'team', header: '팀',   align: 'center', sortValue: r => r.team, render: r => r.team || '—' },

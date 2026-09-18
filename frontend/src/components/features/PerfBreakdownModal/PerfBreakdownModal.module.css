@@ -154,7 +154,6 @@
 }
 
 /* 표 자체 스타일·정렬은 BreakdownTable 컴포넌트로 이동 */
-.pname { color: var(--text-muted); }
 
 .foot {
   display: flex;
