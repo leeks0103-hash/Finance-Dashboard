@@ -151,19 +151,26 @@ function SortableChart({ id, fullRow, spanClassName, children }: SortableChartPr
   );
 }
 
-// 로딩/에러/데이터없음 플레이스홀더 — 카드 개수만큼 반복, 첫 칸은 monthly 자리라 전체 폭
-interface ChartStateGridProps { variant: 'skeleton' | 'error' | 'empty'; icon?: string; message?: string; count: number; }
-function ChartStateGrid({ variant, icon, message, count }: ChartStateGridProps) {
+// 로딩/에러/데이터없음 플레이스홀더 — 실제 차트와 같은 id 목록·span을 그대로 써서 레이아웃을
+// 맞춘다. 예전엔 카드 span 없이 고정 개수(5)만 찍어서, 2번째 줄(카드 3개, span 5+3+4=12)이
+// 에러/빈 상태가 되면 각 칸이 span 없는 기본 1칸으로 쪼그라들어 오른쪽이 텅 비어 보였음
+interface ChartStateGridProps { variant: 'skeleton' | 'error' | 'empty'; icon?: string; message?: string; ids: string[]; }
+function ChartStateGrid({ variant, icon, message, ids }: ChartStateGridProps) {
   return (
     <>
-      {Array.from({ length: count }, (_, i) => i).map(i => variant === 'skeleton' ? (
-        <div key={i} className={`${styles.skeleton} ${i === 0 ? styles.fullRow : ''}`} />
-      ) : (
-        <div key={i} className={`${variant === 'error' ? styles.errorCard : styles.emptyCard} ${i === 0 ? styles.fullRow : ''}`}>
-          <span className={variant === 'error' ? styles.errorIcon : styles.emptyIcon}>{icon}</span>
-          <span>{message}</span>
-        </div>
-      ))}
+      {ids.map(id => {
+        const full = id === FULL_ROW_ID;
+        const spanClassName = full ? '' : (styles[SPAN_BY_ID[id] ?? 'spanMid'] ?? '');
+        const className = [full ? styles.fullRow : '', spanClassName].filter(Boolean).join(' ');
+        return variant === 'skeleton' ? (
+          <div key={id} className={`${styles.skeleton} ${className}`} />
+        ) : (
+          <div key={id} className={`${variant === 'error' ? styles.errorCard : styles.emptyCard} ${className}`}>
+            <span className={variant === 'error' ? styles.errorIcon : styles.emptyIcon}>{icon}</span>
+            <span>{message}</span>
+          </div>
+        );
+      })}
     </>
   );
 }
@@ -540,9 +547,9 @@ const PerformanceChartSection = () => {
 
   const chartState = vm.isLoading ? 'loading' : vm.isError ? 'error' : vm.isEmpty ? 'empty' : 'ready';
 
-  const content = chartState === 'loading' ? <ChartStateGrid variant="skeleton" count={5} />
-    : chartState === 'error' ? <ChartStateGrid variant="error" icon="⚠" message="데이터를 불러올 수 없습니다" count={5} />
-    : chartState === 'empty' ? <ChartStateGrid variant="empty" icon="📊" message="데이터 없음" count={5} />
+  const content = chartState === 'loading' ? <ChartStateGrid variant="skeleton" ids={chartOrder} />
+    : chartState === 'error' ? <ChartStateGrid variant="error" icon="⚠" message="데이터를 불러올 수 없습니다" ids={chartOrder} />
+    : chartState === 'empty' ? <ChartStateGrid variant="empty" icon="📊" message="데이터 없음" ids={chartOrder} />
     : visibleCharts.map(c => (
         <SortableChart
           key={c.id}
