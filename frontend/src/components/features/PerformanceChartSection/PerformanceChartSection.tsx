@@ -87,7 +87,7 @@ const fadeAlpha = (rgba: string, alpha: number) => rgba.replace(/[\d.]+\)$/, `${
 // 최신 series를 읽는다 — options는 매 렌더 새로 내려가고 react-chartjs-2가 그건 제대로
 // chart.update()로 반영하므로, 여기서 매번 최신값을 볼 수 있다.
 interface PlanLineSeries { barIndex: number; values: (number | null)[]; color: string; dash: number[]; }
-interface PlanLinePluginOpts { series: PlanLineSeries[]; }
+interface PlanLinePluginOpts { series: PlanLineSeries[]; showLabels?: boolean; labelColor?: string; }
 const planLinePlugin: Plugin<'bar'> = {
   id: 'planLine',
   afterDatasetsDraw(chart) {
@@ -99,9 +99,12 @@ const planLinePlugin: Plugin<'bar'> = {
       const meta = chart.getDatasetMeta(barIndex);
       const yScale = chart.scales[meta?.yAxisID ?? 'y'];
       if (!meta?.data?.length || !yScale) return;
+      // v(원본 값)도 같이 들고 있어야 수치 라벨을 찍을 수 있음 — 막대는 chartjs-plugin-datalabels가
+      // 알아서 그려주지만, 이 목표선은 실제 데이터셋이 아니라 캔버스 직접 그리기라 그 플러그인이
+      // 아예 보지 못함(그래서 "매출 계획/원가 계획에는 수치가 안 보인다"는 문제) — 여기서 직접 그림
       const pts = meta.data.map((el, i) => {
         const v = values[i];
-        return v == null ? null : { x: (el as unknown as { x: number }).x, y: yScale.getPixelForValue(v) };
+        return v == null ? null : { x: (el as unknown as { x: number }).x, y: yScale.getPixelForValue(v), v };
       });
       ctx.save();
       ctx.strokeStyle = color;
@@ -122,6 +125,16 @@ const planLinePlugin: Plugin<'bar'> = {
         ctx.arc(p.x, p.y, 3.5, 0, Math.PI * 2);
         ctx.fill();
       });
+      if (opts?.showLabels) {
+        ctx.font = "bold 11px 'HyundaiSans', 'Malgun Gothic', sans-serif";
+        ctx.fillStyle = opts.labelColor ?? color;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        pts.forEach(p => {
+          if (!p) return;
+          ctx.fillText(`${p.v}억`, p.x, p.y - 6);
+        });
+      }
       ctx.restore();
     });
   },
@@ -439,7 +452,7 @@ const PerformanceChartSection = () => {
         ...partRevCostOptions,
         plugins: {
           ...partRevCostOptions.plugins,
-          planLine: { series: planLineSeries },
+          planLine: { series: planLineSeries, showLabels: vm.showLabels, labelColor },
           legend: {
             ...partRevCostOptions.plugins?.legend,
             labels: {
