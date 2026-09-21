@@ -507,7 +507,7 @@ def api_perf_data():
 
     search   = request.args.get("search", "").strip()
     field    = request.args.get("field", "").strip()
-    str_cols = ["project_code", "project_name", "manager", "part", "team"]
+    str_cols = ["project_code", "project_name", "manager", "part", "team", "progress"]
     if search:
         s = search.lower()
         if field in str_cols and field in rows.columns:

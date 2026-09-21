@@ -113,6 +113,12 @@
   filter: brightness(1.08);
 }
 
+.helper {
+  font-size: 0.8em;
+  color: var(--text-muted);
+  margin: 4px 0 8px;
+}
+
 .footer {
   padding: 8px 16px;
   border-top: 1px solid var(--border);

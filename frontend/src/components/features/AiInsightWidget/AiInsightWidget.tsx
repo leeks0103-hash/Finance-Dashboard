@@ -57,6 +57,7 @@ const renderMarkdown = (text: string): ReactNode[] => {
     if (t.startsWith('# '))   { blocks.push(<h2 key={i} className={styles.h2}>{renderInline(t.slice(2))}</h2>); return; }
     if (/^[-*]\s+/.test(t))   { blocks.push(<div key={i} className={styles.li}>• {renderInline(t.replace(/^[-*]\s+/, ''))}</div>); return; }
     if (t === '---')          { blocks.push(<hr key={i} className={styles.hr} />); return; }
+    if (t.startsWith('> '))   { blocks.push(<div key={i} className={styles.helper}>{renderInline(t.slice(2))}</div>); return; }
     blocks.push(<p key={i} className={styles.p}>{renderInline(t)}</p>);
   });
   flushTable();

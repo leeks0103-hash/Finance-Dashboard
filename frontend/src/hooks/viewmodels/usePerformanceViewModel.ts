@@ -103,6 +103,7 @@ const SEARCH_FIELD_OPTIONS = [
   { value: 'manager',      label: '담당자' },
   { value: 'part',         label: '파트' },
   { value: 'team',         label: '팀' },
+  { value: 'progress',     label: '진행' },
 ];
 
 export const usePerformanceViewModel = (): PerformanceViewModel => {
