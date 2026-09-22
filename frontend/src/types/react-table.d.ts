@@ -36,5 +36,11 @@ declare module '@tanstack/react-table' {
      * 다른 값이 보이던 문제 방지 — title은 반드시 <td> 하나에만 있어야 함
      */
     formatTitle?: (value: unknown) => string | undefined;
+    /**
+     * 제공 시, 행 데이터를 받아 true면 그 <td>에 회색 음영(cellMuted)을 입힌다 —
+     * "값 없음/해당 없음이 정상"임을 대시(-) 텍스트보다 더 눈에 띄게 표시하고 싶을 때
+     * 사용(예: 완료 단계 보고서의 매출·직접원가 외 항목, 2026-09-22).
+     */
+    cellMuted?: (row: TData) => boolean;
   }
 }

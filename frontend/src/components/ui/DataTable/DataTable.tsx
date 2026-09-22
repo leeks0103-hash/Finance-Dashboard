@@ -834,6 +834,7 @@ const DataTable = <T extends object>({
                           const canExpand = !!expandableRow && !expandableRow.excludeColumns?.includes(cell.column.id);
                           const formatTitle = cell.column.columnDef.meta?.formatTitle;
                           const cellTitle = formatTitle ? formatTitle(raw) : (text || undefined);
+                          const isMuted = !!cell.column.columnDef.meta?.cellMuted?.(row.original);
                           return (
                             <td
                               key={cell.id}
@@ -858,6 +859,7 @@ const DataTable = <T extends object>({
                                 cell.column.id === '__index' ? styles.indexCell : '',
                                 cell.column.columnDef.meta?.staticCol ? styles.staticCol : '',
                                 highlightedCol === cell.column.id ? styles.tdHighlighted : '',
+                                isMuted ? styles.cellMuted : '',
                               ].join(' ') || undefined}
                             >
                               {flexRender(cell.column.columnDef.cell, cell.getContext())}

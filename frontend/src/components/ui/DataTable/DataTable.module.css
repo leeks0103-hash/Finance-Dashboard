@@ -323,6 +323,10 @@
    여기에 상한을 걸면 핸들을 260px 넘게 끌어도 텍스트가 안 늘어 "폭 조절이 안 되는" 것처럼 보임 */
 .table:not(.tableFixed) td { max-width: 260px; }
 
+/* cellMuted — 값이 없는 게 정상인 셀(예: 완료 단계 보고서의 매출·직접원가 외 항목)을
+   회색 음영으로 표시 — 대시(-) 텍스트보다 눈에 더 잘 띔(2026-09-22) */
+.table td.cellMuted { background: var(--bg-subtle) !important; color: var(--text-muted); }
+
 /* border-right는 모든 셀에 유지 — wrapper overflow:hidden 이 우측 클리핑 담당
    :last-child 제거 → DnD 컬럼 순서 변경 후에도 일관성 유지 */
 
