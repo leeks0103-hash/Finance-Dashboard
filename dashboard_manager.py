@@ -11,6 +11,7 @@
 """
 
 import json
+import os
 import re
 import socket
 import subprocess
@@ -18,9 +19,15 @@ import sys
 import time
 from pathlib import Path
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 ROOT     = Path(__file__).parent
 PID_FILE = ROOT / "dashboard.pids.json"
-PYTHON   = r"C:\Users\USER\AppData\Local\Programs\Python\Python313\python.exe"
+# PC마다 파이썬 설치 경로가 달라(EXCEL_PATH와 동일한 문제) — .env의 PYTHON_EXE로 override,
+# 없으면 지금 이 스크립트를 실행 중인 인터프리터를 그대로 사용(대부분의 경우 이걸로 충분)
+PYTHON   = os.environ.get("PYTHON_EXE", "").strip() or sys.executable
 FRONTEND = ROOT / "frontend"
 
 BACKEND_PORT  = 5000
