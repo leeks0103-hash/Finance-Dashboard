@@ -22,6 +22,7 @@ from flask import Blueprint, jsonify, request
 
 import performance as P
 import kpi as K
+import finance as F
 import paths as _paths
 
 load_dotenv()
@@ -168,12 +169,36 @@ def _build_finance_metrics() -> dict:
             "연간전망률_pct": _round1(tot_est / tot_plan * 100) if tot_plan else None,
             "안분기준선_pct": _round1(month / 12 * 100),
         },
-        "파트별": sorted(by_part, key=lambda r: (r["경상이익_억"] or 0)),
+        "파트별": sorted(by_part, key=lambda r: (r["경상이익_억"] or 0), reverse=True),
         "사업구분별_손익률상하위": {"상위": biz_rows[:3], "하위": biz_rows[-3:]},
         "교육형태별_손익률상하위": {"상위": edu_rows[:3], "하위": edu_rows[-3:]},
         "계획누락_건수": int(len(noplan)), "계획누락_금액_억": _round1(noplan["jun_check_total"].sum() / 1e5),
         "미착수_건수": int(len(noact)), "미착수_계획액_억": _round1(noact["plan_initial"].sum() / 1e5),
+        "미수주": _build_missed_bid_metrics(),
     }
+
+
+def _build_missed_bid_metrics() -> list:
+    """finance.py 재무 데이터에서 미수주 프로젝트 목록과 사유를 추출."""
+    try:
+        df = F.get_df()
+        missed = df[df["note"].str.contains("[미수주]", na=False, regex=False)].copy()
+        if missed.empty:
+            return []
+        result = []
+        for _, row in missed.iterrows():
+            note = str(row.get("note", "")).replace("[미수주]", "").replace("[미수주] :", "").strip(" :").strip()
+            reason = str(row.get("missed_bid_reason", "")) if pd.notna(row.get("missed_bid_reason")) else ""
+            result.append({
+                "파트": _strip_part_prefix(str(row.get("part", "-"))),
+                "매출_억": _round1(float(row.get("revenue", 0) or 0) / 1e8),
+                "이익률_pct": _round1(float(row.get("profit_rate", 0) or 0)),
+                "미수주사유": note[:120] if note else (reason[:120] if reason else "-"),
+            })
+        return result
+    except Exception as e:
+        logger.warning("미수주 데이터 추출 실패: %s", e)
+        return []
 
 
 _FINANCE_SYSTEM_PROMPT = """당신은 현대엔지비 기술교육 조직의 경영관리 수석 애널리스트입니다.
@@ -193,10 +218,10 @@ _FINANCE_SYSTEM_PROMPT = """당신은 현대엔지비 기술교육 조직의 경
    명시하세요.
 5. **비교 기준 없는 숫자 금지** — 반드시 계획/기준선/다른 파트와 비교해 의미를 부여하세요.
 6. 이모지·신호등 아이콘 사용 금지. 강조는 **굵은 글씨**로만.
-7. **정보가 부족하면 추측하지 마세요.** 판단하기 애매하거나 근거가 부족하면
+8. **정보가 부족하면 추측하지 마세요.** 판단하기 애매하거나 근거가 부족하면
    "자료만으로는 판단하기 어렵습니다"라고 명시하세요. 원인 추정 등 서술은 반드시 전달된
    데이터 안에서만 근거를 찾고, 학습된 일반 지식·업계 통념으로 채우지 마세요.
-8. **건수(건수 필드)가 5건 미만인 파트는 순위·추세·다른 파트와의 비교를 하지 마세요.**
+9. **건수(건수 필드)가 5건 미만인 파트는 순위·추세·다른 파트와의 비교를 하지 마세요.**
    건수를 반드시 함께 적고, 그 파트에 대해서는 개별 사실만 서술하세요
    (예: "K뉴딜TF는 3건으로 표본이 적어 추세 판단은 보류합니다").
 
@@ -241,11 +266,23 @@ _FINANCE_SYSTEM_PROMPT = """당신은 현대엔지비 기술교육 조직의 경
 필요배수 2 이상 파트는 연말까지 집중 관리하면 만회 가능한 파트로 긍정적으로 표현합니다.
 
 ### 3. 수익성 분석
-사업구분별·교육형태별 손익률 상·하위를 **표로 요약**한 뒤,
-**3~4문장 서술**로 강점 구조를 먼저 설명하고, 매출이익이 낮은 파트는
-원가 구조를 보완했을 때의 발전 가능성을 서술합니다.
+사업구분별·교육형태별 손익률 상·하위를 각각 **표 1개씩** 으로 요약합니다.
+표 컬럼은 아래와 같이 구성하고, **"구분"(상위/하위 표시) 컬럼은 넣지 마세요**:
+| 사업구분(또는 교육형태) | 건수 | 추정매출(억) | 손익률(%) |
+상위 3개와 하위 3개는 하나의 표 안에 구분 없이 손익률 높은 순으로 나열합니다.
+표 작성 후 **3~4문장 서술**로 강점 구조를 먼저 설명하고, 매출이익이 낮은 구분은
+"원가 구조를 보완한다면 수익성이 더욱 향상될 것으로 기대됩니다"처럼 발전 가능성으로 서술합니다.
 
-### 4. 발전을 위한 제언
+### 4. 미수주 프로젝트 분석
+전달된 "미수주" 리스트를 바탕으로 분석합니다.
+미수주가 0건이면 이 섹션은 "이번 집계 기간 미수주 프로젝트가 없습니다."로 한 줄만 표기하세요.
+미수주가 있으면 **표 1개**로 먼저 정리합니다:
+| 파트 | 매출규모(억) | 이익률(%) | 미수주 사유 요약 |
+표 작성 후 **3~4문장 서술**로 미수주 사유의 공통 패턴, 파트별 특징,
+향후 유사 입찰에서 보완할 수 있는 방향을 긍정적·발전적 시각으로 서술합니다.
+사유 텍스트가 길면 핵심 키워드 중심으로 요약하세요.
+
+### 5. 발전을 위한 제언
 표 없이 **순수 서술형**으로만 작성합니다.
 경영전문가 애널리스트 관점에서, 현재 잘 되고 있는 방향을 유지하면서
 어떤 부분을 보완하면 더 좋은 성과로 이어질지를 이어지는 문장으로 서술합니다.
@@ -253,8 +290,6 @@ _FINANCE_SYSTEM_PROMPT = """당신은 현대엔지비 기술교육 조직의 경
 각 항목은 "[대상] 현황 인정 → 보완 방향 → 기대되는 발전 효과"가 한 문단 안에 담기도록
 쓰되, 문장 연결 방식은 항목마다 다르게 가져가세요(같은 어미·같은 연결어구 반복 금지).
 
-### 5. 데이터 확인 요청 (해당 시에만)
-계획누락·미착수 건수가 있을 경우 안내합니다.
 """
 
 
