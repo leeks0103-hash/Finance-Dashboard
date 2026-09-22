@@ -5,6 +5,7 @@ import TabNav from '@/components/ui/TabNav/TabNav';
 import type { TabId } from '@/components/ui/TabNav/TabNav';
 import KpiActionBar from '@/components/features/KpiActionBar';
 import PerformanceActionBar from '@/components/features/PerformanceActionBar';
+import FinanceDataModal from '@/components/features/FinanceDataModal';
 import NgvLogo from './NgvLogo';
 import { useTheme } from '@/hooks';
 import { useDataHealth } from '@/hooks/useDataHealth';
@@ -17,6 +18,7 @@ const Navbar = () => {
   const { theme, toggle: toggleTheme } = useTheme();
   const { showChartLabels, toggleChartLabels } = useUiStore();
   const [open, setOpen] = useState(false);
+  const [financeModalOpen, setFinanceModalOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const { pathname } = useLocation();
   const navigate = useNavigate();
@@ -34,7 +36,10 @@ const Navbar = () => {
   const allConflicts = health?.conflicts ?? [];
   const healthConflicts = allConflicts.filter(c => c.verdict !== 'likely_same_project');
   const likelyOkConflicts = allConflicts.filter(c => c.verdict === 'likely_same_project');
-  const healthTotal = healthRows.length + healthConflicts.length;
+  // "완료" 단계인데 매출·직접원가 외 값이 채워진 파일 — PPT 양식 정책상 있으면 안 되는 값
+  // (2026-09-22 요청, app.py _read_finished_report_anomalies)
+  const finishedAnomalies = health?.finished_anomalies ?? [];
+  const healthTotal = healthRows.length + healthConflicts.length + finishedAnomalies.length;
   const [healthOpen, setHealthOpen] = useState(false);
   const healthRef = useRef<HTMLDivElement>(null);
   // const { openFile } = useOpenFile();   // 파일 바로가기 버튼 주석 처리로 미사용(2026-09-15)
@@ -87,17 +92,21 @@ const Navbar = () => {
                 tabIndex={healthTotal > 0 ? 0 : -1}
                 aria-label={`KPI/재무 데이터 이상 ${healthTotal}건`}
                 aria-expanded={healthOpen}
-                title={`KPI/재무 데이터 이상 ${healthTotal}건 (코드 불일치 ${healthRows.length} / 코드 충돌 ${healthConflicts.length})`}
+                title={`KPI/재무 데이터 이상 ${healthTotal}건 (코드 충돌 ${healthConflicts.length} / KPI↔재무 코드 불일치 ${healthRows.length} / 완료보고 이상 ${finishedAnomalies.length})`}
               >
                 !
               </Button>
 
               {healthOpen && healthTotal > 0 && (
                 <div className={styles.healthDropdown}>
+                  {/* 문제 유형별로 섹션을 분리 — 각 섹션 아이콘·좌측 악센트로 종류를 한눈에
+                      구분(2026-09-22, "코드충돌인지 중복인지 완료보고 문제인지 영역 잘 나눠라") */}
                   {healthConflicts.length > 0 && (
-                    <>
+                    <section className={`${styles.healthSection} ${styles.accentConflict}`}>
                       <div className={styles.healthHeader}>
+                        <span className={styles.healthIcon}>⚔</span>
                         코드 충돌 · {healthConflicts.length}건
+                        <span className={styles.healthHeaderSub}>같은 코드를 서로 다른 PPT가 사용</span>
                       </div>
                       <ul className={styles.healthList}>
                         {healthConflicts.map(c => (
@@ -114,7 +123,65 @@ const Navbar = () => {
                           </li>
                         ))}
                       </ul>
-                    </>
+                    </section>
+                  )}
+
+                  {healthRows.length > 0 && (
+                    <section className={`${styles.healthSection} ${styles.accentMismatch}`}>
+                      <div className={styles.healthHeader}>
+                        <span className={styles.healthIcon}>⇄</span>
+                        KPI ↔ 재무 코드 불일치 · {healthRows.length}건
+                        <span className={styles.healthHeaderSub}>같은 파일인데 양쪽에서 뽑힌 코드가 다름</span>
+                      </div>
+                      <ul className={styles.healthList}>
+                        {healthRows.map(row => (
+                          <li key={row.file} className={styles.healthItem}>
+                            <div className={styles.healthFileRow}>
+                              <CopyText text={row.file} className={styles.healthFile} />
+                              {/* 파일 바로가기 버튼 — 일단 전부 주석 처리 (2026-09-15)
+                              <Button unstyled
+                                className={styles.healthOpenBtn}
+                                onClick={() => openFile(row.file)}
+                                title="원본 PPT 열기"
+                                aria-label="원본 PPT 열기"
+                              >
+                                ↗
+                              </Button>
+                              */}
+                            </div>
+                            <div className={styles.healthCodes}>
+                              <span>재무: {row.finance_codes.join(', ') || '—'}</span>
+                              <span>KPI: {row.kpi_codes.join(', ') || '—'}</span>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
+                  )}
+
+                  {finishedAnomalies.length > 0 && (
+                    <section className={`${styles.healthSection} ${styles.accentFinished}`}>
+                      <div className={styles.healthHeader}>
+                        <span className={styles.healthIcon}>▤</span>
+                        완료보고 이상 · {finishedAnomalies.length}건
+                        <span className={styles.healthHeaderSub}>매출·직접원가 외 값이 채워짐 — PPT 확인 필요</span>
+                      </div>
+                      <ul className={styles.healthList}>
+                        {finishedAnomalies.map(a => (
+                          <li key={a.filename + a.project_code} className={styles.healthItem}>
+                            <div className={styles.healthFileRow}>
+                              <CopyText text={a.filename} className={styles.healthFile} />
+                            </div>
+                            <div className={styles.healthCodes}>
+                              <span>{a.part} · <CopyText text={a.project_code} /></span>
+                              <span className={styles.healthFields}>
+                                {a.fields.map(f => `${f.label} ${f.value.toLocaleString()}`).join(' · ')}
+                              </span>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
                   )}
 
                   {likelyOkConflicts.length > 0 && (
@@ -139,37 +206,6 @@ const Navbar = () => {
                         ))}
                       </ul>
                     </details>
-                  )}
-
-                  {healthRows.length > 0 && (
-                  <>
-                  <div className={styles.healthHeader}>
-                    KPI ↔ 재무 프로젝트코드 불일치 · {healthRows.length}건
-                  </div>
-                  <ul className={styles.healthList}>
-                    {healthRows.map(row => (
-                      <li key={row.file} className={styles.healthItem}>
-                        <div className={styles.healthFileRow}>
-                          <CopyText text={row.file} className={styles.healthFile} />
-                          {/* 파일 바로가기 버튼 — 일단 전부 주석 처리 (2026-09-15)
-                          <Button unstyled
-                            className={styles.healthOpenBtn}
-                            onClick={() => openFile(row.file)}
-                            title="원본 PPT 열기"
-                            aria-label="원본 PPT 열기"
-                          >
-                            ↗
-                          </Button>
-                          */}
-                        </div>
-                        <div className={styles.healthCodes}>
-                          <span>재무: {row.finance_codes.join(', ') || '—'}</span>
-                          <span>KPI: {row.kpi_codes.join(', ') || '—'}</span>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                  </>
                   )}
                 </div>
               )}
@@ -208,11 +244,23 @@ const Navbar = () => {
                   <Toggle checked={showChartLabels} onChange={toggleChartLabels} />
                 </div>
               </div>
+
+              <div className={styles.divider} />
+
+              {/* 재무 데이터 탭 자체가 네비게이션에서 빠져있어(TabNav 주석 참고) 재무 원본
+                  표만 단독으로 볼 방법이 없다는 요청으로 추가 — 탭 전환 없이 바로 모달로 확인 */}
+              <div className={styles.section}>
+                <Button unstyled className={styles.financeBtn} onClick={() => { setFinanceModalOpen(true); setOpen(false); }}>
+                  재무데이터 확인
+                </Button>
+              </div>
             </div>
           )}
           </div>
         </div>
       </div>
+
+      {financeModalOpen && <FinanceDataModal onClose={() => setFinanceModalOpen(false)} />}
     </header>
   );
 };

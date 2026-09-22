@@ -124,12 +124,38 @@
   animation: dropIn 0.15s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* 문제 유형별 섹션 — 좌측 악센트 컬러로 종류를 한눈에 구분(2026-09-22) */
+.healthSection { border-left: 3px solid transparent; }
+.healthSection + .healthSection { border-top: 1px solid var(--border); }
+.accentConflict  { border-left-color: var(--danger, #e63312); }
+.accentMismatch  { border-left-color: var(--brand-mid); }
+.accentFinished  { border-left-color: var(--warn, #a36b4f); }
+
 .healthHeader {
-  padding: 10px 14px;
+  padding: 10px 14px 6px;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px;
   font-size: 0.75rem;
   font-weight: 700;
-  color: var(--danger, #e63312);
-  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
+}
+
+.healthIcon {
+  font-size: 0.8rem;
+  line-height: 1;
+}
+
+.healthHeaderSub {
+  font-size: 0.68rem;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.healthFields {
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
 }
 
 .healthList {
@@ -312,6 +338,19 @@
   background: var(--border);
   margin: 4px 0;
 }
+
+.financeBtn {
+  width: 100%;
+  text-align: left;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-sub);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.financeBtn:hover { background: var(--brand-bg); color: var(--brand-mid); }
 
 @media (max-width: 640px) {
   .brand { display: none; }

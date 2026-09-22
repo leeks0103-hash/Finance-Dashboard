@@ -79,11 +79,51 @@ def api_data_health():
         })
 
     conflicts = _read_code_conflicts()
+    finished_anomalies = _read_finished_report_anomalies(fin_df)
     return jsonify({
-        "count": len(rows) + len(conflicts),
+        "count": len(rows) + len(conflicts) + len(finished_anomalies),
         "rows": rows,
         "conflicts": conflicts,
+        "finished_anomalies": finished_anomalies,
     })
+
+
+_FINISHED_ANOMALY_COLS = {
+    "expenditure":      "지출",
+    "labor_cost":       "직접 인건비",
+    "overhead":         "공통원가/관리비",
+    "operating_profit": "경상 이익",
+    "profit_rate":      "이익율",
+}
+
+
+def _read_finished_report_anomalies(fin_df):
+    """"완료" 단계 보고서는 매출·직접원가 외(지출/인건비/공통원가/경상이익/이익율)는 PPT
+    양식상 원래 안 채우는 게 정책(2026-09-21 담당자 결정) — 그런데 값이 들어있으면 PPT가
+    아직 안 고쳐졌거나 오입력일 가능성이 높아 확인 대상으로 노출한다."""
+    if fin_df.empty or "stage" not in fin_df.columns:
+        return []
+    done = fin_df[fin_df["stage"].astype(str).str.strip() == "완료"]
+    if done.empty:
+        return []
+    cols = list(_FINISHED_ANOMALY_COLS.keys())
+    mask = (done[cols] != 0).any(axis=1)
+    rows = []
+    for _, r in done[mask].iterrows():
+        fields = [
+            {"label": label, "value": float(r[col])}
+            for col, label in _FINISHED_ANOMALY_COLS.items()
+            if r[col]
+        ]
+        if not fields:
+            continue
+        rows.append({
+            "project_code": str(r.get("project_code", "")).strip(),
+            "part":         str(r.get("part", "")).strip(),
+            "filename":     str(r.get("filename", "")).strip(),
+            "fields":       fields,
+        })
+    return rows
 
 
 def _classify_conflict(code: str, fin_df, kpi_df, kpi_code_col: str, kpi_part_col: str):

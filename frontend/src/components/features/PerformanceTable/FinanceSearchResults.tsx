@@ -1,8 +1,9 @@
 import { useMemo, type ReactNode } from 'react';
 import { createColumnHelper } from '@tanstack/react-table';
-import { DataTable, Button, CopyText, HighlightText } from '@/components/ui';
+import { DataTable, Button, CopyText, HighlightText, NegCell } from '@/components/ui';
 import { openFinanceFile } from '@/api/finance.api';
 import { downloadCsvFile } from '@/hooks/useExport';
+import { formatBillion, formatBillionOrEmpty, formatRateOrEmpty } from '@/utils';
 import type { Project } from '@/types/finance.types';
 import styles from './FinanceSearchResults.module.css';
 
@@ -33,27 +34,55 @@ const FinanceSearchResults = ({ results, searchTerm, info }: Props) => {
 
   const columns = useMemo(() => [
     ch.accessor('project_code', {
-      header: '프로젝트코드',
+      header: '프로젝트코드', size: 150,
       cell: i => <CopyText text={i.getValue()} highlight={searchTerm} />,
     }),
-    ch.accessor('part',  { header: '파트',   cell: i => <HighlightText text={i.getValue()} query={searchTerm} /> }),
-    ch.accessor('year',  { header: '연도' }),
-    ch.accessor('stage', { header: '보고단계' }),
+    ch.accessor('part',  { header: '파트',     size: 70, cell: i => <HighlightText text={i.getValue()} query={searchTerm} /> }),
+    ch.accessor('year',  { header: '연도',     size: 60 }),
+    ch.accessor('stage', { header: '보고단계', size: 80 }),
+    // 재무 금액 컬럼 — CSV 내보내기(handleCsv)엔 원래 있었는데 화면 표에는 빠져 있던 것 보강
+    // (프로젝트코드/파트/연도/단계/비고/파일명만 보이던 문제, 2026-09-22)
+    // 매출·직접원가는 "완료" 단계에도 항상 채워지는 값이라 그대로 표시. 그 외 이익 관련
+    // 컬럼은 "완료" PPT 양식상 원래 안 채우는 항목이라 0이면 값없음(대시)으로 — 실제
+    // 대시보드 화면에서도 원본 엑셀에 적용한 음영 처리와 같은 의미로 보이게 함(2026-09-22)
+    ch.accessor('revenue',     { header: '매출',   size: 90, cell: i => formatBillion(i.getValue()) }),
+    ch.accessor('expenditure', { header: '지출',   size: 90,
+      cell: i => formatBillionOrEmpty(i.getValue(), i.row.original.stage === '완료') }),
+    ch.accessor('direct_cost', { header: '직접원가', size: 90, cell: i => formatBillion(i.getValue()) }),
+    ch.accessor('labor_cost',  { header: '인건비',  size: 90,
+      cell: i => formatBillionOrEmpty(i.getValue(), i.row.original.stage === '완료') }),
+    ch.accessor('overhead',    { header: '공통원가', size: 90,
+      cell: i => formatBillionOrEmpty(i.getValue(), i.row.original.stage === '완료') }),
+    ch.accessor('operating_profit', {
+      header: '경상이익', size: 90,
+      cell: i => {
+        const isEmpty = i.row.original.stage === '완료';
+        return <NegCell v={i.getValue()} text={formatBillionOrEmpty(i.getValue(), isEmpty)} />;
+      },
+    }),
+    ch.accessor('profit_rate', {
+      header: '이익율(%)', size: 80,
+      cell: i => {
+        const isEmpty = i.row.original.stage === '완료';
+        return <NegCell v={i.getValue()} text={formatRateOrEmpty(i.getValue(), isEmpty)} />;
+      },
+    }),
     ch.accessor('note',  {
-      header: '비고',
+      header: '비고', size: 200,
+      meta: { cellPopup: true },
       cell: i => {
         const v = i.getValue();
         return v ? <HighlightText text={v} query={searchTerm} /> : <span style={{ color: 'var(--text-muted)' }}>-</span>;
       },
     }),
     ch.accessor('filename', {
-      header: '파일명',
+      header: '파일명', size: 260,
       // 파일명이 길어서(20자↑) 클릭 시 DataTable 기본 팝업(복사 + 이 meta로 "바로가기" 버튼 추가)이 뜬다
       cell: i => {
         const v = i.getValue();
         return v ? <HighlightText text={v} query={searchTerm} /> : <span style={{ color: 'var(--text-muted)' }}>-</span>;
       },
-      meta: { onOpenFile: openFile },
+      meta: { onOpenFile: openFile, cellPopup: true },
     }),
   ], [searchTerm]);
 

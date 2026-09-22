@@ -111,7 +111,7 @@ const KpiPage = () => {
             return <CopyText text={v} highlight={query} />;
           return <HighlightText text={String(v)} query={query} />;
         },
-        meta: col === '파일명' ? { onOpenFile: openFile } : undefined,
+        meta: col === '파일명' ? { onOpenFile: openFile, cellPopup: true } : undefined,
       })
     ),
     [vm.rawCols],

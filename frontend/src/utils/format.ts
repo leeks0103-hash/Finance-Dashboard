@@ -18,11 +18,24 @@ export const formatBillion = (v: number): string => {
   return Math.round(v).toLocaleString() + '원';
 };
 
+/**
+ * formatBillion과 동일하되, isEmptyStage(예: 재무 "완료" 단계 — 매출·직접원가 외 항목은
+ * PPT 양식상 원래 안 채움)가 true면 0을 "값 없음"으로 보고 대시(-) 표시.
+ * formatBillion 자체의 "0도 실제 0원일 수 있다" 기본 동작은 다른 단계엔 그대로 유지해야 해서
+ * 별도 함수로 분리 — 호출부가 단계별로 골라 쓴다.
+ */
+export const formatBillionOrEmpty = (v: number, isEmptyStage: boolean): string =>
+  isEmptyStage && v === 0 ? '-' : formatBillion(v);
+
 export const formatRate = (v: number): string => {
   if (v == null || !isFinite(v)) return '-';
   // 부동소수점 오류 방지: 정수 변환 후 toFixed(2) (1.45 → "1.45%" 보장)
   return (Math.round(v * 100) / 100).toFixed(2) + '%';
 };
+
+/** formatRate의 isEmptyStage 버전 — formatBillionOrEmpty와 동일한 이유 */
+export const formatRateOrEmpty = (v: number, isEmptyStage: boolean): string =>
+  isEmptyStage && v === 0 ? '-' : formatRate(v);
 
 export const formatCount = (v: number): string =>
   v + '건';

@@ -63,7 +63,7 @@ export const perfColumns = [
   }),
   h.accessor('progress',     { header: '진행',       size: 78,  cell: txt }),
   h.accessor('category',     { header: '매출/원가',  size: 84,  cell: txt }),
-  h.accessor('project_name', { header: '프로젝트명', size: 320, cell: txt }),
+  h.accessor('project_name', { header: '프로젝트명', size: 320, cell: txt, meta: { cellPopup: true } }),
   h.accessor('manager',      { header: '담당자',     size: 78,  cell: txt }),
   h.accessor('plan_initial',      { header: '최초사업계획', size: 96, enableSorting: true, cell: i => eok(i.getValue()), meta: eokMeta }),
   h.accessor('plan_diff_amount',  { header: '계획 대비 추정 실적 차이 금액', size: 180, cell: i => eok(i.getValue()), meta: eokMeta }),
@@ -80,7 +80,7 @@ export const perfColumns = [
   h.accessor('chk_course',      { header: '과정',   size: 66, cell: i => num(i.getValue()) }),
   h.accessor('chk_session',     { header: '차수',   size: 66, cell: i => num(i.getValue()) }),
   h.accessor('chk_participant', { header: '인원',   size: 66, cell: i => num(i.getValue()) }),
-  h.accessor('change_note',     { header: '변동 검토의견', size: 240, cell: txt }),
+  h.accessor('change_note',     { header: '변동 검토의견', size: 240, cell: txt, meta: { cellPopup: true } }),
 
   // ── 기본 숨김 (컬럼 메뉴에서 체크하면 표시) ──
   // 파트 앞 원문자(①~⑦)는 차트·필터 칩 등에선 stripPartPrefix로 이미 떼고 보여주는데
@@ -106,13 +106,13 @@ export const perfColumns = [
   h.accessor('jun_cost_rate',  { header: `${PERF_MONTH} 원가율`, size: 80, cell: i => pct(i.getValue()) }),
   h.accessor('cost_rate_diff', { header: '원가율 차이', size: 84, cell: i => i.getValue() ? `${((i.getValue() as number) * 100).toFixed(1)}%p` : '-' }),
   h.accessor('est_vs_actual',  { header: '추정 대비',   size: 84, cell: i => eok(i.getValue()), meta: eokMeta }),
-  h.accessor('cost_rate_reason',{ header: '원가율 사유', size: 200, cell: txt }),
-  h.accessor('plan_diff_reason', { header: '사유',     size: 180, cell: txt }),
+  h.accessor('cost_rate_reason',{ header: '원가율 사유', size: 200, cell: txt, meta: { cellPopup: true } }),
+  h.accessor('plan_diff_reason', { header: '사유',     size: 180, cell: txt, meta: { cellPopup: true } }),
   h.accessor('profit_gross',      { header: '매출이익',  size: 84, cell: i => eok(i.getValue()), meta: eokMeta }),
   h.accessor('balance_amount', { header: '대차금액', size: 84,  cell: i => eok(i.getValue()), meta: eokMeta }),
   h.accessor('balance_rate',   { header: '대차비율', size: 76,  cell: i => i.getValue() ? `${((i.getValue() as number)*100).toFixed(1)}%` : '-' }),
-  h.accessor('dup_check',      { header: '중복점검', size: 200, cell: txt }),
-  h.accessor('ref_code',       { header: '참조코드', size: 220, cell: txt }),
+  h.accessor('dup_check',      { header: '중복점검', size: 200, cell: txt, meta: { cellPopup: true } }),
+  h.accessor('ref_code',       { header: '참조코드', size: 220, cell: txt, meta: { cellPopup: true } }),
   // 신사업 직접원가
   h.accessor('sa_direct_total',    { header: '직접원가 소계', cell: i => num(i.getValue()) }),
   h.accessor('sa_instructor',      { header: '강사비',        cell: i => num(i.getValue()) }),
@@ -133,8 +133,8 @@ export const perfColumns = [
   h.accessor('sa_regular',         { header: '정규직',      cell: i => num(i.getValue()) }),
   h.accessor('sa_overhead_cost',   { header: '제경비',      cell: i => num(i.getValue()) }),
   // 기타
-  h.accessor('note',        { header: '비고', size: 280, cell: txt }),
-  h.accessor('filename',    { header: '원본파일명', size: 300, cell: txt }),
+  h.accessor('note',        { header: '비고', size: 280, cell: txt, meta: { cellPopup: true } }),
+  h.accessor('filename',    { header: '원본파일명', size: 300, cell: txt, meta: { cellPopup: true } }),
 ];
 
 /** 기본 표시 컬럼 — 이 목록에 없는 컬럼은 전부 기본 숨김(컬럼 메뉴에서 체크하면 표시) */

@@ -23,10 +23,24 @@ export interface DataHealthConflict {
   reason?:  string;
 }
 
+/**
+ * "완료" 단계 보고서인데 매출·직접원가 외(지출/인건비/공통원가/경상이익/이익율) 값이
+ * 들어있는 파일 — 그 항목들은 완료 PPT 양식상 원래 비어있어야 함(담당자 정책, 2026-09-21).
+ * PPT가 아직 안 고쳐졌거나 오입력일 가능성이 높아 확인 대상.
+ */
+export interface DataHealthFinishedAnomaly {
+  project_code: string;
+  part:         string;
+  filename:     string;
+  /** 채워져 있으면 안 되는데 값이 들어간 필드들 */
+  fields: { label: string; value: number }[];
+}
+
 export interface DataHealthResponse {
   count: number;
   rows: DataHealthRow[];
   conflicts: DataHealthConflict[];
+  finished_anomalies: DataHealthFinishedAnomaly[];
 }
 
 /** KPI ↔ 재무 데이터가 같은 파일에서 서로 다른 프로젝트코드를 뽑아낸 경우 + 코드 충돌 목록 */

@@ -830,7 +830,7 @@ const DataTable = <T extends object>({
                           if (isMerged && i > 0) return null;   // 병합된 컬럼은 첫 행에서만 렌더
                           const raw = cell.getValue();
                           const text = raw != null && raw !== '' ? String(raw) : '';
-                          const isLong = text.length > 20;
+                          const isLong = text.length > 20 && !!cell.column.columnDef.meta?.cellPopup;
                           const canExpand = !!expandableRow && !expandableRow.excludeColumns?.includes(cell.column.id);
                           const formatTitle = cell.column.columnDef.meta?.formatTitle;
                           const cellTitle = formatTitle ? formatTitle(raw) : (text || undefined);
