@@ -48,34 +48,30 @@ const KpiPage = () => {
   // KPI 목표 vs 실적 막대 또는 KPI 집계 표 셀 클릭 → 드릴다운 모달
   const [breakdown, setBreakdown] = useState<{ name: string; metric: 'target' | 'actual' | 'prev' } | null>(null);
 
-  // KPI 집계 표 컬럼 — 목표/실적/전년 셀 클릭 시 그 값의 산출근거 모달(위 막대 클릭과 동일 모달)
+  // KPI 항목명 셀 — 복사만(모달 없음, 2026-09-21 요청 대상은 이 컬럼이었음)
+  const nameCell = (i: { getValue: () => unknown }) => <CopyText text={String(i.getValue() ?? '')} />;
+
+  // KPI 집계 표 목표/실적/전년 셀 — 클릭 시 그 값의 산출근거 모달(위 막대 클릭과 동일 모달).
+  // NPS(교육 만족도)만 설문 집계값이라 프로젝트별 산출근거가 의미 없어 모달 없이 바로 복사(예외 유지)
+  const breakdownCell = (metric: 'target' | 'actual' | 'prev') => (i: { getValue: () => unknown; row: { original: KpiSummaryRow } }) => {
+    const value = String(i.getValue() ?? '');
+    if (i.row.original.name === 'NPS') return <CopyText text={value} />;
+    return (
+      <Button unstyled className={styles.cellBtn} onClick={() => setBreakdown({ name: i.row.original.name, metric })}>
+        <KpiValueCell value={value} />
+      </Button>
+    );
+  };
+
   const summaryColumns = useMemo(() => [
     // KPI 항목·사업계획 목표는 필터와 무관한 고정값 — staticCol 음영으로 변동 컬럼과 구분
-    sh.accessor('name',       { header: 'KPI 항목', size: 420, meta: { staticCol: true } }),
+    sh.accessor('name',       { header: 'KPI 항목', size: 420, meta: { staticCol: true }, cell: nameCell }),
     // 사업계획 목표는 고정값(ViewModel PLAN_TARGETS) — 프로젝트 목표와 구분되도록 헤더에 명시
     sh.accessor('planTarget', { header: '26년 목표(사업계획)', size: 170, meta: { staticCol: true } }),
     sh.accessor('agg',        { header: '집계방식', size: 110 }),
-    sh.accessor('targetStr',  { header: '26년 계획(프로젝트)', size: 190, enableSorting: true,
-      cell: i => (
-        <Button unstyled className={styles.cellBtn} onClick={() => setBreakdown({ name: i.row.original.name, metric: 'target' })}>
-          <KpiValueCell value={i.getValue() as string} />
-        </Button>
-      ),
-    }),
-    sh.accessor('actual',     { header: '26년 실적(프로젝트)', size: 220, enableSorting: true,
-      cell: i => (
-        <Button unstyled className={styles.cellBtn} onClick={() => setBreakdown({ name: i.row.original.name, metric: 'actual' })}>
-          <KpiValueCell value={i.getValue() as string} />
-        </Button>
-      ),
-    }),
-    sh.accessor('prevActual', { header: '25년 실적', size: 220, enableSorting: true,
-      cell: i => (
-        <Button unstyled className={styles.cellBtn} onClick={() => setBreakdown({ name: i.row.original.name, metric: 'prev' })}>
-          <KpiValueCell value={i.getValue() as string} />
-        </Button>
-      ),
-    }),
+    sh.accessor('targetStr',  { header: '26년 계획(프로젝트)', size: 190, enableSorting: true, cell: breakdownCell('target') }),
+    sh.accessor('actual',     { header: '26년 실적(프로젝트)', size: 220, enableSorting: true, cell: breakdownCell('actual') }),
+    sh.accessor('prevActual', { header: '25년 실적', size: 220, enableSorting: true, cell: breakdownCell('prev') }),
   ], []);
 
   // 드롭박스 옵션 — "-"(파트/단계 미인식)는 목록에서만 제외. 표에는 그 행도 그대로 나옴
@@ -222,7 +218,9 @@ const KpiPage = () => {
             defaultPageSize={10}
             pageSizeOptions={[10]}
             storageKey="kpi-summary-v3"   /* 컬럼 순서 변경 — 저장된 순서·폭 1회 초기화 */
-            sizeVersion={3}   /* 반복 축소로 망가진 저장 폭 1회 초기화 (compact fit 버그 수정 후) */
+            /* sizeVersion 7 — 테이블 자체 렌더 폭을 인라인 px 대신 CSS width:100%로 맡겨서
+               반올림/테두리 오차가 오버플로우로 안 이어지게 함(DataTable.tsx) 반영 위해 초기화 */
+            sizeVersion={7}
           />
       </FadeInSection>
 

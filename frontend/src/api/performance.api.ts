@@ -20,8 +20,10 @@ export const getPerfData = (
   parts: string[],
   page: PageParams,
   team = '',
+  progress = '',
 ): Promise<PagedResponse<PerfProject>> => {
   const params = toParams(parts, team);
+  if (progress) params.set('progress', progress);
   appendPageParams(params, page);
   return client.get<PagedResponse<PerfProject>>('/performance/data', { params }).then(r => r.data);
 };

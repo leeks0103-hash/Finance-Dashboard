@@ -4,6 +4,7 @@ import { useAiAnalysis, type AiTab } from '@/hooks';
 import { Button } from '@/components/ui';
 import { useScrollLock } from '@/components/ui/useScrollLock';
 import { useEscToClose } from '@/components/ui/useEscToClose';
+import { useUiStore } from '@/store';
 import styles from './AiInsightWidget.module.css';
 
 const TAB_LABEL: Record<AiTab, string> = {
@@ -68,7 +69,13 @@ const AiInsightWidget = ({ aiTab }: Props) => {
   // triggered=쿼리를 켰는지, open=모달을 실제로 띄웠는지 — 분리해서, 버튼 클릭 후
   // 최초 로딩이 끝날 때까지는 버튼 자체가 "분석중…"으로 바뀌고, 다 되고 나서야
   // 모달이 뜨게 함(모달 안에서 로딩 스피너 보여주는 대신)
-  const [triggered, setTriggered] = useState(false);
+  //
+  // triggered는 컴포넌트 로컬 상태가 아니라 ui.store에 둔다 — 이 위젯은 Navbar의
+  // KpiActionBar/PerformanceActionBar 안에 있어 탭 전환 시 언마운트되는데, 로컬
+  // useState였다면 분석 중 다른 탭으로 갔다 돌아올 때마다 triggered가 false로 리셋돼
+  // 쿼리가 처음부터 다시 도는 것처럼 보였음(2026-09-21 — "탭 넘어가면 분석 멈추는듯" 보고)
+  const triggered = useUiStore(s => s.aiTriggered[aiTab] ?? false);
+  const setTriggered = useUiStore(s => s.setAiTriggered);
   const [open, setOpen] = useState(false);
   const [pendingOpen, setPendingOpen] = useState(false);
 
@@ -92,7 +99,7 @@ const AiInsightWidget = ({ aiTab }: Props) => {
   const handleClick = () => {
     if (triggered) setOpen(true);   // 이미 캐시된 데이터가 있으면 바로 열기
     else {
-      setTriggered(true);           // 처음이면 쿼리 시작(버튼이 로딩 상태로)
+      setTriggered(aiTab);          // 처음이면 쿼리 시작(버튼이 로딩 상태로)
       setPendingOpen(true);
     }
   };
@@ -125,7 +132,13 @@ const AiInsightWidget = ({ aiTab }: Props) => {
 
             <div className={styles.body}>
               {(isLoading || isRefreshing) && (
-                <div className={styles.state}>AI가 분석 중입니다… (최초 1회는 15~30초 정도 걸릴 수 있어요)</div>
+                <div className={styles.state}>
+                  <span className={styles.loadingDots} aria-hidden>
+                    <span /><span /><span />
+                  </span>
+                  <p className={styles.loadingText}>AI가 분석 중입니다…</p>
+                  <p className={styles.loadingSub}>지금 닫고 다른 작업을 하셔도 분석은 계속 진행됩니다</p>
+                </div>
               )}
               {!isLoading && !isRefreshing && isError && (
                 <div className={styles.state}>분석을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.</div>

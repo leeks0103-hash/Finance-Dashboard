@@ -16,6 +16,14 @@
   align-items: center;
   justify-content: center;
 }
+/* 마지막 컬럼의 핸들은 위 right:-4px 때문에 테이블 우측 바깥 허공으로 4px 튀어나가는데,
+   .scroll이 overflow:auto라 이 튀어나온 부분도 "스크롤해야 할 콘텐츠"로 잡혀버림 — 테이블
+   폭을 .scroll 컨테이너에 정확히 맞춰놔도 가로스크롤이 새로 생기던 실제 원인(2026-09-18 발견).
+   다른 컬럼은 이 4px이 옆 컬럼과 겹칠 뿐이라 테이블 안쪽이라 문제없음 — 마지막 컬럼만 안쪽으로 */
+.table th:last-child .resizeHandle {
+  right: 0;
+}
+
 /* 가운데 1px 선을 pseudo로 표시 — 항상 살짝 보임 */
 .resizeHandle::after {
   content: '';
@@ -44,6 +52,41 @@
   box-shadow: var(--shadow-sm);
   overflow: visible;          /* 드롭다운이 잘리지 않도록 — 테이블 클리핑은 .scroll이 담당 */
   transition: box-shadow 0.2s ease, height 0.2s ease;
+}
+
+/* compact — 부모 div(.wrapper/.scroll)에는 테두리를 전혀 안 주고, 테이블 자기 자신(.table)에
+   직접 테두리+둥근모서리를 줌. "부모 div css를 테이블에 그대로 옮기라"는 요청 반영 */
+.compact {
+  border: none;
+  box-shadow: none;
+  background: transparent;
+}
+.compact .table {
+  /* border-collapse:collapse 상태에선 테이블 자체 테두리보다 셀(th/td) 테두리가 우선이라
+     여기서 준 border가 셀 테두리에 묻혀 거의 안 보임 — separate로 바꿔서 테이블 자체
+     테두리가 우선순위 다툼 없이 항상 온전히 보이게 함 */
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: var(--radius-lg);
+  overflow: hidden;   /* 모서리 밖으로 셀 테두리가 삐져나오지 않게 */
+  /* border 대신 outline — <table>은 box-sizing:border-box를 줘도 border만큼 폭이 항상
+     더 커지는 크로미움 고질적 버그가 있음(실측: width:100%인데도 border 두께만큼 초과).
+     outline은 애초에 레이아웃 박스 크기에 전혀 관여하지 않아 이 문제 자체가 없음.
+     offset -1px로 안쪽에 딱 붙임, border-radius를 따라 모서리도 둥글게 잘림(최신 브라우저 지원) */
+  outline: 1px solid var(--border);
+  outline-offset: -1px;
+}
+/* th는 position:sticky + 자체 배경(--bg-header)이 있어서, outline의 상단 라인(-1px로 안쪽에
+   있음)이 그 배경에 가려 안 보임 — 좌/우/하단은 th 배경과 안 겹쳐서 보이는데 위쪽만 이 문제.
+   th 자체에 border-top을 줘서 th 배경과 같은 페인트 레이어에서 항상 같이 그려지게 함 */
+.compact .table thead th {
+  border-top: 1px solid var(--border);
+}
+/* .scroll의 기본 border-bottom(아래)은 가로스크롤 없는 일반 테이블에서 하단 테두리가 안 보이는
+   걸 막기 위한 것 — compact 테이블은 .table 자체가 이미 하단 테두리를 갖고 있어서 그대로 두면
+   테이블 바로 아래에 줄이 하나 더 남는 이중 테두리가 됨. compact만 없앰 */
+.compact .scroll {
+  border-bottom: none;
 }
 
 /* compact 모드는 내용에 맞게 (KPI 집계 등 소형 테이블) */
@@ -221,6 +264,14 @@
    pageSize 기준 여백 예약이 오히려 불필요한 빈 공간을 만들어서 내용 기준으로 되돌림 */
 .compact .scroll {
   min-height: 0;
+}
+
+/* .table의 기본 min-width:600px(아래)는 일반 테이블이 부모보다 너무 좁게 찌그러지는 걸 막기
+   위한 값인데, compact 테이블(KPI 집계·파트별 실적처럼 컬럼 5~6개짜리 소형 표)은 카드 폭이
+   600px보다 좁은 경우가 흔해서 이 하한선 자체가 가로스크롤의 원인이 됨 — 컬럼 폭을 아무리
+   좁혀도 테이블이 600px 밑으로 못 내려가니 항상 넘침. compact는 이 하한을 없앰 */
+.compact .table {
+  min-width: 0;
 }
 
 .fetching { opacity: 0.7; pointer-events: none; }

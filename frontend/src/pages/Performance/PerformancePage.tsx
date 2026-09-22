@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import { usePerformanceViewModel } from '@/hooks/viewmodels/usePerformanceViewModel';
 import { useFinanceCodes } from '@/hooks/useFinanceCodes';
-import { DataTable, InfoButton } from '@/components/ui';
+import { DataTable, InfoButton, FilterSelect } from '@/components/ui';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { FadeInSection } from '@/components/FadeInSection';
 import PerfBreakdownModal from '@/components/features/PerfBreakdownModal/PerfBreakdownModal';
@@ -137,9 +137,7 @@ const PerformancePage = () => {
             미수주 프로젝트
             <InfoButton>{INFO_INSIGHT}</InfoButton>
           </h3>
-          <div className={styles.section}>
-            <PerformanceInsightSection />
-          </div>
+          <PerformanceInsightSection />
         </div>
       </FadeInSection>
 
@@ -173,6 +171,16 @@ const PerformancePage = () => {
             serverPagination={vm.serverPagination}
             serverSearch={vm.serverSearch}
             searchPlaceholder="프로젝트코드·이름·담당자 검색…"
+            // 진행단계 — 값 종류가 적고 고정적(제안/착수/완료/드롭 등)이라 검색 필드 옵션 대신
+            // 전용 셀렉트로 분리(2026-09-21 요청 — "검색 필드"였을 땐 뭘 입력해야 할지 헷갈림)
+            searchExtra={
+              <FilterSelect
+                value={vm.selectedProgress}
+                onChange={vm.setProgress}
+                options={vm.progressOptions}
+                allLabel="진행단계 전체"
+              />
+            }
             emptyIcon="🔍"
             emptyTitle="검색 결과 없음"
             emptyDescription="다른 검색어나 필터 조건을 시도해보세요."

@@ -59,3 +59,16 @@ export const formatNum = (v: number): string =>
  */
 export const stripPartPrefix = (part: string): string =>
   String(part ?? '').replace(/^[①-⑳]\s*/, '');
+
+const VALUE_UNIT_RE = /^([-+]?[\d,]*\.?\d+)(.*)$/;
+
+/**
+ * "137.0억원" → { num: "137.0", unit: "억원" }. 숫자 자릿수가 카드마다 달라
+ * (10.0 vs 137.0) 단위가 뒤로/앞으로 밀려 보이는 문제 — 숫자와 단위를 분리 렌더링해서
+ * 숫자 칸 폭을 고정(text-align:right)하면 단위 위치가 항상 같은 자리에 고정된다.
+ * 숫자로 시작하지 않는 값("-" 등)은 그대로 num에, unit은 빈 문자열로 폴백.
+ */
+export const splitValueUnit = (value: string): { num: string; unit: string } => {
+  const m = value.match(VALUE_UNIT_RE);
+  return m ? { num: m[1], unit: m[2] } : { num: value, unit: '' };
+};

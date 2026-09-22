@@ -13,14 +13,14 @@ const selectPerfPage = (raw: PagedResponse<PerfProject>) => ({
   isEmpty: raw.total === 0,
 });
 
-export const usePerformanceData = (page: PageParams) => {
+export const usePerformanceData = (page: PageParams, progress = '') => {
   const selectedParts = usePerfStore(s => s.selectedParts);
   const selectedTeam  = usePerfStore(s => s.selectedTeam);
   const qc = useQueryClient();
 
   const query = useQuery({
-    queryKey:          ['perf-data', selectedParts, selectedTeam, page],
-    queryFn:           () => getPerfData(selectedParts, page, selectedTeam),
+    queryKey:          ['perf-data', selectedParts, selectedTeam, progress, page],
+    queryFn:           () => getPerfData(selectedParts, page, selectedTeam, progress),
     select:            selectPerfPage,
     placeholderData:   keepPreviousData,
     structuralSharing: true,
@@ -36,12 +36,12 @@ export const usePerformanceData = (page: PageParams) => {
     if (data && page.page < Math.ceil(data.total / page.pageSize)) {
       const nextPage = { ...page, page: page.page + 1 };
       qc.prefetchQuery({
-        queryKey: ['perf-data', selectedParts, selectedTeam, nextPage],
-        queryFn:  () => getPerfData(selectedParts, nextPage, selectedTeam),
+        queryKey: ['perf-data', selectedParts, selectedTeam, progress, nextPage],
+        queryFn:  () => getPerfData(selectedParts, nextPage, selectedTeam, progress),
         staleTime: STALE_5MIN,
       });
     }
-  }, [data, page, selectedParts, selectedTeam, qc]);
+  }, [data, page, selectedParts, selectedTeam, progress, qc]);
 
   return query;
 };

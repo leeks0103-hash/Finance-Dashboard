@@ -146,6 +146,22 @@
 }
 .healthItem:last-child { border-bottom: none; }
 
+/* likely_same_project — 오탐 확정된 건 참고용으로만, 기본 접힘 + 경고색 대신 muted */
+.healthDetails { border-bottom: 1px solid var(--border); }
+.healthHeaderMuted {
+  padding: 10px 14px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+.healthReason {
+  margin-top: 4px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
 .healthFileRow {
   display: flex;
   align-items: flex-start;

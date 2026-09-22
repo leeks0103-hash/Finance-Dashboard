@@ -3,15 +3,29 @@
   align-items: center;
   gap: 8px;
   padding: 8px 24px;
+  /* 불투명 배경(기본값) — backdrop-filter 미지원 브라우저 폴백. 지원 브라우저는 아래
+     @supports 블록이 반투명+블러로 덮어씀(2026-09-21 — "너무 심심하다"는 피드백으로
+     스크롤 시 카드가 은은히 비치는 유리 느낌 추가. 업계 표준값: 불투명도 78%·블러 14px·
+     saturate 160%로 과하지 않게) */
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: var(--navbar-height, 50px);
+  /* 드롭다운(9999) · 모달(portal, body 기준)보다는 항상 아래여야 함 — sticky 컨텍스트 안에서만
+     쓰는 값이라 90 그대로 유지 */
   z-index: 90;
   /* KPI 탭은 이 바 자체가 없어서(의도된 설계), KPI ↔ 재무/실적 탭 전환마다 이 바가
      마운트/언마운트되며 아래 콘텐츠가 훅 밀림 — 최소한 바 자체는 툭 튀어나오지 않고
      부드럽게 나타나도록 */
   animation: filterGroupIn 0.22s ease;
+}
+
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .filterGroup {
+    background: color-mix(in srgb, var(--surface) 78%, transparent);
+    backdrop-filter: saturate(160%) blur(14px);
+    -webkit-backdrop-filter: saturate(160%) blur(14px);
+  }
 }
 
 @keyframes filterGroupIn {

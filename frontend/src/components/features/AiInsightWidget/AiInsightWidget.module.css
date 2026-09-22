@@ -69,10 +69,46 @@
 }
 
 .state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   color: var(--text-muted);
   font-size: 0.9rem;
   text-align: center;
   padding: 60px 0;
+}
+
+/* 로딩 중 점 3개가 순서대로 튀는 애니메이션 — 정적인 텍스트만 있으면 멈춘 것처럼 보인다는 피드백 */
+.loadingDots {
+  display: inline-flex;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.loadingDots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--brand-mid);
+  animation: aiDotBounce 1.2s ease-in-out infinite;
+}
+.loadingDots span:nth-child(1) { animation-delay: 0s; }
+.loadingDots span:nth-child(2) { animation-delay: 0.15s; }
+.loadingDots span:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes aiDotBounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30%           { transform: translateY(-7px); opacity: 1; }
+}
+
+.loadingText { margin: 0; }
+.loadingSub {
+  margin: 6px 0 0;
+  font-size: 0.78rem;
+  opacity: 0.75;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loadingDots span { animation: none; opacity: 0.8; }
 }
 
 .content {

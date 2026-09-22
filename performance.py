@@ -484,15 +484,20 @@ def _ratio(numer: float, denom: float) -> "float | None":
 def api_perf_options():
     df = get_perf_df()
     if df.empty:
-        return jsonify({"parts": [], "teams": [], "team_parts": {}})
+        return jsonify({"parts": [], "teams": [], "team_parts": {}, "progress": []})
     parts = sorted(df["part"].dropna().unique().tolist())
     teams = sorted(df["team"].dropna().unique().tolist())
+    # 진행단계 — 값 종류가 적고 고정적(제안/착수/완료/드롭 등)이라 자유 검색보다 셀렉트박스가
+    # 맞음(2026-09-21 요청). _PROGRESS_PRIORITY 순서로 보여주고, 목록에 없는 값은 뒤에 덧붙임
+    progress_present = set(df["progress"].dropna().unique().tolist())
+    progress = [p for p in _PROGRESS_PRIORITY if p in progress_present] + \
+        sorted(p for p in progress_present if p not in _PROGRESS_PRIORITY)
     # 팀 → 그 팀 소속 파트 목록 — 원가 비율 카드에서 "팀 고르면 파트가 좁혀지는" 용도
     team_parts = {
         team: sorted(g["part"].dropna().unique().tolist())
         for team, g in df.dropna(subset=["team"]).groupby("team")
     }
-    return jsonify({"parts": parts, "teams": teams, "team_parts": team_parts})
+    return jsonify({"parts": parts, "teams": teams, "team_parts": team_parts, "progress": progress})
 
 
 @perf_bp.route("/api/performance/data")
@@ -504,6 +509,12 @@ def api_perf_data():
     # 값이 같은 컬럼은 세로 병합해서 보여준다. 집계(summary)는 계속 rev/cost를 분리해 사용.
     rows = df.copy()
     rows["_row_num"] = rows.index
+
+    # 진행단계 — 값 종류가 적고 고정적이라(제안/착수/완료/드롭 등) 자유 검색 대신 셀렉트박스로
+    # 정확히 골라서 필터링(2026-09-21 요청). 검색(search)과 별개로 항상 적용됨
+    progress = request.args.get("progress", "").strip()
+    if progress:
+        rows = rows[rows["progress"] == progress]
 
     search   = request.args.get("search", "").strip()
     field    = request.args.get("field", "").strip()

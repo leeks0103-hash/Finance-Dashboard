@@ -147,8 +147,20 @@
   font-weight: 700;
 }
 
+/* Button 컴포넌트(ghost variant)의 .ghost:hover:not(:disabled)이 클래스 3개(0,3,0)라
+   위 .viewToggle .toggleActive(0,2,0)보다 우선순위가 높음 — 선택된 토글을 마우스로 가리키면
+   브랜드색 채움이 풀리고 옅은 ghost-hover 톤으로 바뀌어 "클릭이 됐는지 안 됐는지" 헷갈리게
+   보였던 원인(2026-09-21). 클래스 4개(0,4,0)로 명시해 hover 중에도 선택 상태를 유지시킨다 */
+.viewToggle .toggleBtn.toggleActive:hover {
+  background: var(--brand);
+  color: #fff;
+}
+
 :global([data-theme="dark"]) .viewToggle .toggleActive {
   color: #04263a;   /* --brand(다크=Active Blue #00AAD2) 위에서는 짙은 네이비 글자가 대비가 큼 */
+}
+:global([data-theme="dark"]) .viewToggle .toggleBtn.toggleActive:hover {
+  color: #04263a;
 }
 
 /* 섹션 */

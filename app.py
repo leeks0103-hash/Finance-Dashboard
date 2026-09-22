@@ -86,14 +86,51 @@ def api_data_health():
     })
 
 
+def _classify_conflict(code: str, fin_df, kpi_df, kpi_code_col: str, kpi_part_col: str):
+    """코드충돌 1건이 '진짜 다른 프로젝트 충돌'인지 '한 파일에 여러 프로젝트가 있고 배치
+    보고서 제목만 단계마다 바뀐 것'(정상)인지 자동 판별.
+
+    2026-09-21: E040600126050001/E069600126050001("매치업" 계열) 사례를 사람이 직접
+    파트·금액·비고를 대조해 오탐으로 판정했던 근거를 규칙화 — 같은 코드로 취합 시트에 남은
+    모든 행이 파트도 같고 매출 금액도 서로 크게 다르지 않으면(배수 1.5배 이내) 같은 프로젝트가
+    단계별로 재보고된 것으로 보고 "likely_same_project", 아니면 "needs_review"로 표시.
+    파트가 갈리거나 금액이 크게 벌어지면 진짜 다른 프로젝트가 코드만 겹쳤을 가능성이 높음.
+    """
+    fin_rows = fin_df[fin_df["project_code"].astype(str).str.strip() == code]
+    if not fin_rows.empty:
+        parts = set(fin_rows["part"].astype(str).str.strip())
+        if len(parts) > 1:
+            return "needs_review", f"재무 취합에서 파트가 서로 다름: {sorted(parts)}"
+        revenues = [v for v in fin_rows["revenue"].tolist() if v and v > 0]
+        if revenues:
+            lo, hi = min(revenues), max(revenues)
+            if hi / lo > 1.5:
+                return "needs_review", f"재무 매출 금액 차이가 큼: {lo:,.0f}원 ~ {hi:,.0f}원"
+        return "likely_same_project", "재무 취합 기준 파트·매출 금액이 파일 간 일관됨"
+
+    if kpi_code_col and kpi_part_col:
+        kpi_rows = kpi_df[kpi_df[kpi_code_col].astype(str).str.strip() == code]
+        if not kpi_rows.empty:
+            parts = set(kpi_rows[kpi_part_col].astype(str).str.strip())
+            if len(parts) > 1:
+                return "needs_review", f"KPI 취합에서 파트가 서로 다름: {sorted(parts)}"
+            return "likely_same_project", "KPI 취합 기준 파트가 파일 간 일관됨"
+
+    return "needs_review", "취합 시트에서 해당 코드를 찾을 수 없음 — 직접 확인 필요"
+
+
 def _read_code_conflicts():
-    """추출 스크립트가 남긴 '코드충돌' 시트를 읽어 합쳐서 반환.
+    """추출 스크립트가 남긴 '코드충돌' 시트를 읽어 합치고, 각 건을 자동 분류해서 반환.
 
     서로 다른 PPT가 같은 (코드/연도/단계) 키를 공유하면 뒤에 처리된 파일이 앞 파일의 행을
     덮어써서, **덮어써진 쪽은 취합 시트에 자기 파일명으로 된 행이 아예 안 남는다.**
     위 불일치 검사는 '같은 파일명에 재무·KPI 양쪽 데이터가 있을 때'만 비교하므로 이 경우를
     통째로 놓친다(2026-09-17 실제로 놓친 사례 발견) — 그래서 추출 시점에 기록해둔 충돌을
     여기서 함께 노출한다.
+
+    ⚠️ 파일명 비교만으로는 "한 파일에 여러 프로젝트 + 단계마다 배치 제목이 바뀌는" 케이스를
+    구분 못 함(2026-09-18/21 발견, memory: kpi-finance-code-conflict-batch-file-limit) —
+    그래서 각 건을 _classify_conflict()로 한 번 더 걸러 verdict를 붙인다.
     """
     # 충돌은 A→B, B→A 양방향으로 기록되므로 (소스, 코드) 단위로 묶어 관련 파일 집합만 남긴다
     grouped = {}
@@ -119,7 +156,21 @@ def _read_code_conflicts():
                         entry["files"].append(f)
         finally:
             wb.close()
-    return sorted(grouped.values(), key=lambda e: (-len(e["files"]), e["code"]))
+
+    fin_df = get_df()
+    kpi_df = get_kpi_df()
+    kpi_code_col = next((c for c in kpi_df.columns if "프로젝트코드" in str(c)), None) if not kpi_df.empty else None
+    kpi_part_col = next((c for c in kpi_df.columns if "파트명" in str(c)), None) if not kpi_df.empty else None
+    for entry in grouped.values():
+        verdict, reason = _classify_conflict(entry["code"], fin_df, kpi_df, kpi_code_col, kpi_part_col)
+        entry["verdict"] = verdict
+        entry["reason"] = reason
+
+    # needs_review를 먼저 보여주고, 그다음 파일 개수 많은 순
+    return sorted(
+        grouped.values(),
+        key=lambda e: (e["verdict"] != "needs_review", -len(e["files"]), e["code"]),
+    )
 
 
 @app.route("/")

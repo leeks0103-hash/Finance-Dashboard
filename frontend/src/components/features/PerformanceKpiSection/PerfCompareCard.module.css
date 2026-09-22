@@ -81,6 +81,20 @@
   letter-spacing: -0.03em;
   line-height: 1.15;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: baseline;
+}
+
+/* 숫자 칸을 고정폭으로 — 계획/추정 자릿수가 달라도(0.0 vs 88.2) 칸 폭 자체가
+   안 바뀌니 "억원" 단위는 항상 같은 x 위치에서 시작함. 숫자 자체는 칸 왼쪽 끝에 맞춤 */
+.numPart {
+  min-width: 4.4ch;
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+}
+.unitPart {
+  flex-shrink: 0;
+  margin-left: 2px;
 }
 /* 슬래시가 plan 줄 끝에 바로 붙도록 — plan+slash를 한 줄(row)로 묶음, est는 그 아래 줄 */
 .planRow {

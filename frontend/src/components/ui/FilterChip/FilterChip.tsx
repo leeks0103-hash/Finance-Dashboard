@@ -16,7 +16,6 @@ const FilterChip = ({ label, checked, onChange, onHover }: Props) => (
     onMouseEnter={onHover}
     aria-pressed={checked}
   >
-    {checked && <span className={styles.checkIcon} aria-hidden>✓</span>}
     {label}
   </Button>
 );

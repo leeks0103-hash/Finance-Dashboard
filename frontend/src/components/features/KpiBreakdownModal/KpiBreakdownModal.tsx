@@ -90,8 +90,12 @@ const KpiBreakdownModal = ({ name, metric, onClose }: Props) => {
             },
             {
               // 코드만 보이게 좁게 — 프로젝트명까지 옆에 붙이면 컬럼이 넓어져 가로스크롤 유발.
-              // 코드만 있어도 CopyText가 호버 시 복사 아이콘 보여주고, title에도 코드 그대로 노출
-              key: 'code', header: '프로젝트코드',
+              // truncate 필수 — placeholder 코드(생성예정 등)는 파일명 기반 긴 문자열이 그대로
+              // project_code 자리에 들어올 때가 있어(예: "(정부 교육부) 25년 영남대학교
+              // RISE-MEGA_신사업_완료(프로젝트 3개 병합)") 그대로 두면 그 한 컬럼 때문에
+              // 표 전체가 가로로 넘침. 이 표는 컬럼 리사이즈가 안 되고 CopyText가 title로
+              // 전체 텍스트를 이미 보여주므로 wrap(여러 줄)보다 말줄임이 나음
+              key: 'code', header: '프로젝트코드', truncate: true,
               sortValue: r => r.project_code,
               render: r => r.project_code ? <CopyText text={r.project_code} /> : '—',
             },

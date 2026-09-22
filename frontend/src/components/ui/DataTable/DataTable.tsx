@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, useCallback, useEffect, Fragment, type CSSProperties, type ReactNode } from 'react';
+import { useState, useRef, useMemo, useCallback, useEffect, Fragment, type CSSProperties, type ReactNode, type PointerEvent as ReactPointerEvent } from 'react';
 import {
   useReactTable,
   getCoreRowModel, getSortedRowModel,
@@ -43,9 +43,51 @@ interface DraggableThProps<T> {
   isHighlighted: boolean;
   isFirst:       boolean;
   onHeaderClick: (columnId: string) => void;
+  /** compact 표 전용(시범) — 리사이즈 시 테이블 총 폭을 고정하고 바로 옆 컬럼에서 폭을 빌려옴.
+   *  기본 리사이즈(옆 컬럼은 안 건드리고 테이블만 넓어짐)는 미수주 프로젝트·KPI 집계처럼
+   *  가로스크롤이 없어야 하는 표에서 "한 컬럼 넓히면 뒤 컬럼이 화면 밖으로 밀려남" 문제가 있었음 */
+  fixedTotalWidth?: boolean;
 }
-function DraggableTh<T>({ header, isDraggable, isHighlighted, isFirst, onHeaderClick }: DraggableThProps<T>) {
+function DraggableTh<T>({ header, isDraggable, isHighlighted, isFirst, onHeaderClick, fixedTotalWidth }: DraggableThProps<T>) {
   const toggleSort = header.column.getToggleSortingHandler();
+  const [selfResizing, setSelfResizing] = useState(false);
+
+  // 옆 컬럼에서 폭을 빌려오는 리사이즈 — 합(=테이블 총 폭)이 항상 그대로 유지됨
+  const handleFixedResize = (startEvent: ReactPointerEvent) => {
+    const tanTable = header.getContext().table;
+    const cols = tanTable.getVisibleLeafColumns();
+    const idx = cols.findIndex(c => c.id === header.column.id);
+    const isLast = idx === cols.length - 1;
+    const neighbor = isLast ? cols[idx - 1] : cols[idx + 1];
+    if (!neighbor) return;   // 빌려올 옆 컬럼이 없으면(컬럼 1개) 아무것도 안 함
+
+    const startX = startEvent.clientX;
+    const startSelfW = header.getSize();
+    const startNeighborW = neighbor.getSize();
+    const MIN_W = 60;
+    const sign = isLast ? -1 : 1;   // 마지막 컬럼은 "앞" 컬럼에서 빌려오므로 부호가 뒤집힘
+
+    setSelfResizing(true);
+    const onMove = (e: PointerEvent) => {
+      const rawDelta = (e.clientX - startX) * sign;
+      const maxGrow = startNeighborW - MIN_W;          // 이웃이 줄어들 수 있는 최대치
+      const maxShrink = -(startSelfW - MIN_W);          // 내가 줄어들 수 있는 최대치
+      const delta = Math.max(maxShrink, Math.min(maxGrow, rawDelta));
+      tanTable.setColumnSizing(prev => ({
+        ...prev,
+        [header.column.id]: startSelfW + delta,
+        [neighbor.id]: startNeighborW - delta,
+      }));
+    };
+    const onUp = () => {
+      setSelfResizing(false);
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  };
+
   return (
     <SortableHeaderCell
       id={header.id}
@@ -69,8 +111,12 @@ function DraggableTh<T>({ header, isDraggable, isHighlighted, isFirst, onHeaderC
       )}
       {isDraggable && header.column.getCanResize() && (
         <div
-          onPointerDown={e => { e.stopPropagation(); header.getResizeHandler()(e as never); }}
-          onTouchStart={e => { e.stopPropagation(); header.getResizeHandler()(e as never); }}
+          onPointerDown={e => {
+            e.stopPropagation();
+            if (fixedTotalWidth) handleFixedResize(e);
+            else header.getResizeHandler()(e as never);
+          }}
+          onTouchStart={e => { e.stopPropagation(); if (!fixedTotalWidth) header.getResizeHandler()(e as never); }}
           onClick={e => e.stopPropagation()}
           onDoubleClick={e => {
             e.stopPropagation();
@@ -106,7 +152,7 @@ function DraggableTh<T>({ header, isDraggable, isHighlighted, isFirst, onHeaderC
             document.body.removeChild(span);
             tanTable.setColumnSizing(prev => ({ ...prev, [colId]: Math.min(Math.max(maxW, 60), 400) }));
           }}
-          className={`${styles.resizeHandle} ${header.column.getIsResizing() ? styles.resizing : ''}`}
+          className={`${styles.resizeHandle} ${(header.column.getIsResizing() || selfResizing) ? styles.resizing : ''}`}
         />
       )}
     </SortableHeaderCell>
@@ -398,6 +444,11 @@ const DataTable = <T extends object>({
 
   const tableWrapRef = useRef<HTMLDivElement>(null);
   const { highlightedCol, setHighlight, clearHighlight } = useColumnHighlight(tableWrapRef);
+  // compact 폭 맞춤 전용 — .wrapper(바깥 카드)가 아니라 실제 가로 스크롤이 일어나는 .scroll의
+  // 폭을 재야 함. 세로 스크롤바가 뜨면 .scroll의 실제 가용폭은 .wrapper보다 스크롤바 폭만큼
+  // 좁아지는데, 지금까지 tableWrapRef(.wrapper) 기준으로 재서 그만큼 항상 더 넓게 계산되고
+  // 있었음 — compact 테이블에서 가로스크롤이 안 없어지던 원인 중 하나(2026-09-18 발견)
+  const scrollWrapRef = useRef<HTMLDivElement>(null);
 
   // 셀 팝업은 항상 복사 가능 — 컬럼별 선별 없이 무조건 복사 기능 제공
   const { popup, copied: popupCopied, openPopup, closePopup, copyPopupText } = useClipboardPopup();
@@ -472,17 +523,29 @@ const DataTable = <T extends object>({
   useEffect(() => {
     if (!compact || !storageKey || compactFitRef.current) return;
     if (Object.keys(colSizing).length > 0) { compactFitRef.current = true; return; }  // 저장된 폭 존중
-    const wrapEl = tableWrapRef.current;
+    const wrapEl = scrollWrapRef.current;
     if (!wrapEl) return;
+    // 여기서 맞추는 건 컬럼 간 "비율"일 뿐, 테이블 자체 렌더 폭은 이제 항상 CSS width:100%가
+    // 최종 보장함(아래 <table> style 참고) — 그래서 1~2px 정도의 반올림/테두리 오차는
+    // 더 이상 실제 오버플로우로 안 이어짐
     const wrapW = wrapEl.clientWidth;
     const total = table.getTotalSize();
     if (!wrapW || total === wrapW) return;
     compactFitRef.current = true;
     const scale = wrapW / total;
     const next: Record<string, number> = {};
-    table.getVisibleLeafColumns().forEach(col => {
+    const cols = table.getVisibleLeafColumns();
+    cols.forEach(col => {
       next[col.id] = Math.round(col.getSize() * scale);
     });
+    // 컬럼마다 개별 반올림하면 오차가 쌓여 합계가 wrapW보다 몇 px 넘치거나 모자랄 수 있음
+    // ("테이블이 꽉 안 찬다"/살짝 넘치는 원인) — 가장 넓은 컬럼에서 그 차이만큼 보정해서
+    // 합계가 컨테이너 폭과 정확히 같아지게 함
+    const drift = wrapW - cols.reduce((sum, col) => sum + next[col.id], 0);
+    if (drift !== 0 && cols.length > 0) {
+      const widest = cols.reduce((a, b) => (next[a.id] >= next[b.id] ? a : b));
+      next[widest.id] += drift;
+    }
     setColSizing(next);
     if (lsSizeKey) localStorage.setItem(lsSizeKey, JSON.stringify(next));
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -644,6 +707,10 @@ const DataTable = <T extends object>({
           {/* 오른쪽: 검색 + 툴바 추가 요소 */}
           {showSearch && (
             <div className={styles.searchWrap}>
+              {/* searchExtra(파트/보고단계/진행단계 등 추가 필터)는 검색범위 select 앞에 —
+                  검색범위는 입력창과 한 쌍으로 붙어 있어야 "이게 검색 옵션"이라는 게 바로
+                  읽힘(2026-09-21 요청, KPI·재무 공통) */}
+              {searchExtra}
               {serverSearch?.fieldOptions && (
                 <FilterSelect
                   value={serverSearch.field ?? ''}
@@ -653,7 +720,6 @@ const DataTable = <T extends object>({
                   ariaLabel="검색 범위"
                 />
               )}
-              {searchExtra}
               <input
                 className={styles.search}
                 placeholder={searchPlaceholder}
@@ -681,7 +747,7 @@ const DataTable = <T extends object>({
           <span>{emptyDescription}</span>
         </div>
       ) : (
-        <div className={`${styles.scroll} ${isFetching ? styles.fetching : ''}`}>
+        <div ref={scrollWrapRef} className={`${styles.scroll} ${isFetching ? styles.fetching : ''}`}>
           {/* DndContext를 table 바깥으로 — thead 안에 div 자식이 생기는 HTML 오류 방지 */}
           <DndContext
             sensors={dndSensors}
@@ -695,7 +761,12 @@ const DataTable = <T extends object>({
               stickyFirstCol ? styles.stickyFirst : '',
               staticColShade === 'soft' ? styles.staticColSoft : '',
             ].filter(Boolean).join(' ')}
-            style={storageKey ? { width: table.getTotalSize() } : undefined}
+            /* compact는 인라인 px 폭을 안 줌 — .table의 width:100% CSS가 그대로 적용돼
+               테이블이 항상 부모 폭에 정확히 맞춰짐. table-layout:fixed에서 각 th의 px 폭은
+               "비율"로만 쓰이므로, colSizing 합이 1~2px 어긋나도(반올림 오차) 브라우저가
+               100% 안에 비례로 맞춰 그려서 더 이상 안 넘침 — JS로 정확한 px 합을 맞추려
+               애쓰던 것(반올림 보정·테두리 보정)보다 훨씬 견고함 */
+            style={storageKey && !compact ? { width: table.getTotalSize() } : undefined}
           >
             <thead>
               {table.getHeaderGroups().map(hg => (
@@ -713,6 +784,7 @@ const DataTable = <T extends object>({
                           isFirst={h.column.id === firstColId}
                           isHighlighted={highlightedCol === h.column.id}
                           onHeaderClick={setHighlight}
+                          fixedTotalWidth={compact}
                         />
                       ))}
                     </tr>

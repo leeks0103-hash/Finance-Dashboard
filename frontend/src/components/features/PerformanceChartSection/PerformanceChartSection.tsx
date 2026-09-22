@@ -25,6 +25,7 @@ import {
   INFO_PLAN_VS_ACTUAL,
 } from '@/utils/infoTexts';
 import type { ChartOptions } from 'chart.js';
+import { stripPartPrefix } from '@/utils/format';
 import styles from './PerformanceChartSection.module.css';
 
 // 레이아웃: 월별 실적 추이(전체 너비 1줄) → 파트별 이익율+원가구성(1줄) → 파트별 계획vs실적+진행단계(1줄)
@@ -68,6 +69,22 @@ const partRevCostColumns = [
   prc.accessor('profit',   { header: '매출이익(억)', size: 110, cell: i => i.getValue().toLocaleString() }),
 ];
 
+// "월별 실적 추이" 확대 모달의 검증용 표 — 그냥 확대만 되는 모달이라는 피드백에 따라
+// 월별 수치 + 누계(연 진행 추적용)를 표로 함께 노출. 컬럼은 상태 의존 없어 모듈 스코프
+interface MonthlyRow {
+  month: string; revenue: number; cost: number; profit: number;
+  cumRevenue: number; cumCost: number; cumProfit: number;
+}
+const mr = createColumnHelper<MonthlyRow>();
+const monthlyRowColumns = [
+  mr.accessor('month',      { header: '월',        size: 60 }),
+  mr.accessor('revenue',    { header: '매출(억)',   size: 90,  cell: i => i.getValue().toLocaleString() }),
+  mr.accessor('cost',       { header: '원가(억)',   size: 90,  cell: i => i.getValue().toLocaleString() }),
+  mr.accessor('profit',     { header: '손익(억)',   size: 90,  cell: i => i.getValue().toLocaleString() }),
+  mr.accessor('cumRevenue', { header: '누계매출(억)', size: 100, cell: i => i.getValue().toLocaleString() }),
+  mr.accessor('cumProfit',  { header: '누계손익(억)', size: 100, cell: i => i.getValue().toLocaleString() }),
+];
+
 // 팔레트의 rgba(...) 문자열 알파값만 교체 — 미래 월/보조 계열 흐림 처리용
 const fadeAlpha = (rgba: string, alpha: number) => rgba.replace(/[\d.]+\)$/, `${alpha})`);
 
@@ -104,7 +121,9 @@ const planLinePlugin: Plugin<'bar'> = {
       // 아예 보지 못함(그래서 "매출 계획/원가 계획에는 수치가 안 보인다"는 문제) — 여기서 직접 그림
       const pts = meta.data.map((el, i) => {
         const v = values[i];
-        return v == null ? null : { x: (el as unknown as { x: number }).x, y: yScale.getPixelForValue(v), v };
+        if (v == null) return null;
+        const barEl = el as unknown as { x: number; y: number };
+        return { x: barEl.x, y: yScale.getPixelForValue(v), v, barY: barEl.y };
       });
       ctx.save();
       ctx.strokeStyle = color;
@@ -132,6 +151,10 @@ const planLinePlugin: Plugin<'bar'> = {
         ctx.textBaseline = 'bottom';
         pts.forEach(p => {
           if (!p) return;
+          // 추정 실적(막대)과 계획(목표선) 수치가 비슷하면 막대 자체 수치 라벨과 같은 자리에
+          // 겹쳐 찍혀 글자가 뭉개짐 — 목표선이 막대 꼭짓점과 픽셀상 너무 가까우면 라벨을 생략
+          // (점선+점은 그대로 그려서 "거의 일치"라는 건 계속 보임, 수치는 막대 라벨로 충분)
+          if (Math.abs(p.y - p.barY) < 14) return;
           ctx.fillText(`${p.v}억`, p.x, p.y - 6);
         });
       }
@@ -217,6 +240,13 @@ const PerformanceChartSection = () => {
   // "파트별 추정 매출/원가"의 x축 라벨 클릭 — 다른 차트처럼 드릴다운을 여는 대신, 그 파트를
   // 차트에서 숨김/복원 토글(다시 클릭하면 되돌아옴). 데이터가 많아 복잡할 때 걸러보기 위함
   const [hiddenParts, setHiddenParts] = useState<Set<string>>(new Set());
+  const togglePart = useCallback((label: string) => {
+    setHiddenParts(prev => {
+      const next = new Set(prev);
+      if (next.has(label)) next.delete(label); else next.add(label);
+      return next;
+    });
+  }, []);
   // "파트별 추정 매출/원가" 확대 모달 전용 — 계획 목표선(매출/원가 계획) 오버레이 온오프.
   // 두 선을 하나로 묶지 않고 개별로 껐다 켤 수 있게 분리(매출 계획만 보고 싶을 때 등)
   const [showPlanRevenue, setShowPlanRevenue] = useState(true);
@@ -354,6 +384,25 @@ const PerformanceChartSection = () => {
     [vm.profitRate.labels, vm.profitRate.revenues, vm.profitRate.costs],
   );
 
+  // "월별 실적 추이" 확대 모달 전용 — 월별 매출/원가/손익 + 누계를 표로. 카드 확대가
+  // 그냥 크게 보여주기만 하는 게 심심하다는 피드백에 따라 다른 확대 모달처럼 표를 추가
+  const monthlyRows = useMemo(() => {
+    let cumRevenue = 0;
+    let cumCost = 0;
+    return vm.monthly.labels.map((month, i) => {
+      const revenue = vm.monthly.revenues[i];
+      const cost = vm.monthly.costs[i];
+      cumRevenue = +(cumRevenue + revenue).toFixed(1);
+      cumCost = +(cumCost + cost).toFixed(1);
+      return {
+        month, revenue, cost,
+        profit: +(revenue - cost).toFixed(1),
+        cumRevenue, cumCost,
+        cumProfit: +(cumRevenue - cumCost).toFixed(1),
+      };
+    });
+  }, [vm.monthly.labels, vm.monthly.revenues, vm.monthly.costs]);
+
   // progress 차트 비활성으로 미사용 — 복구 시 함께 주석 해제
   // const progressOptions = useMemo(
   //   () => withUnstackedTheme(vm.progress.options, scaleOverride),
@@ -361,30 +410,54 @@ const PerformanceChartSection = () => {
   // );
 
   const chartRenderers: Record<string, () => ReactNode | null> = {
-    monthly: () => (
-      <ChartCard>
-        <ChartCard.Title><span className={styles.chartTitle}>월별 실적 추이<InfoButton>{INFO_MONTHLY}</InfoButton></span></ChartCard.Title>
-        <ChartCard.Body>
-          <BarChart
-            onClick={openBreakdown('monthly')}
-            labels={vm.monthly.labels}
-            datasets={[
-              {
-                label: '매출', data: vm.monthly.revenues,
-                backgroundColor: vm.monthly.revenues.map((_, i) => vm.monthly.isFuture[i] ? fadeAlpha(palette.revenue, 0.25) : palette.revenue),
-                borderRadius: 4,
-              },
-              {
-                label: '원가', data: vm.monthly.costs,
-                backgroundColor: vm.monthly.costs.map((_, i) => vm.monthly.isFuture[i] ? fadeAlpha(palette.cost, 0.25) : palette.cost),
-                borderRadius: 4,
-              },
-            ]}
-            options={monthlyOptions}
-          />
-        </ChartCard.Body>
-      </ChartCard>
-    ),
+    monthly: () => {
+      const monthlyDatasets = [
+        {
+          label: '매출', data: vm.monthly.revenues,
+          backgroundColor: vm.monthly.revenues.map((_, i) => vm.monthly.isFuture[i] ? fadeAlpha(palette.revenue, 0.25) : palette.revenue),
+          borderRadius: 4,
+        },
+        {
+          label: '원가', data: vm.monthly.costs,
+          backgroundColor: vm.monthly.costs.map((_, i) => vm.monthly.isFuture[i] ? fadeAlpha(palette.cost, 0.25) : palette.cost),
+          borderRadius: 4,
+        },
+      ];
+      const chartEl = (
+        <BarChart
+          onClick={openBreakdown('monthly')}
+          labels={vm.monthly.labels}
+          datasets={monthlyDatasets}
+          options={monthlyOptions}
+        />
+      );
+      // 확대 모달 전용 — 그냥 크게 보이기만 하면 심심하다는 피드백에 따라 월별 매출/원가/손익 +
+      // 누계(연 진행 추적)를 표로 함께 노출
+      const modalContent = (
+        <div className={styles.chartModalWithTable}>
+          <div className={styles.chartModalChart}>{chartEl}</div>
+          <div className={styles.chartModalBottom}>
+            <div className={styles.chartModalTable}>
+              <DataTable<MonthlyRow>
+                data={monthlyRows}
+                columns={monthlyRowColumns as never}
+                getRowId={r => r.month}
+                compact
+                hideToolbar
+                defaultPageSize={monthlyRows.length || 1}
+                pageSizeOptions={[monthlyRows.length || 1]}
+              />
+            </div>
+          </div>
+        </div>
+      );
+      return (
+        <ChartCard modalContent={modalContent} modalHeight="86vh">
+          <ChartCard.Title><span className={styles.chartTitle}>월별 실적 추이<InfoButton>{INFO_MONTHLY}</InfoButton></span></ChartCard.Title>
+          <ChartCard.Body>{chartEl}</ChartCard.Body>
+        </ChartCard>
+      );
+    },
     planVsActual: () => (
       <ChartCard>
         <ChartCard.Title><span className={styles.chartTitle}>파트별 계획 vs 추정 실적<InfoButton>{INFO_PLAN_VS_ACTUAL}</InfoButton></span></ChartCard.Title>
@@ -421,11 +494,7 @@ const PerformanceChartSection = () => {
       // 막대 자체를 클릭한 경우(datasetIndex >= 0)는 기존처럼 드릴다운 유지.
       const handleAxisToggle = (label: string, datasetIndex: number) => {
         if (datasetIndex >= 0) { openBreakdown('profitRate')(label, datasetIndex); return; }
-        setHiddenParts(prev => {
-          const next = new Set(prev);
-          if (next.has(label)) next.delete(label); else next.add(label);
-          return next;
-        });
+        togglePart(label);
       };
       // 작은 카드 — 목표선 없이 매출/원가만 (좁은 공간에서 라인까지 겹치면 복잡해짐)
       const chartEl = (
@@ -490,21 +559,37 @@ const PerformanceChartSection = () => {
       const modalContent = (
         <div className={styles.chartModalWithTable}>
           <div className={styles.chartModalChart}>{modalChartEl}</div>
-          <div className={styles.chartModalTable}>
-            <DataTable<PartRevCostRow>
-              data={partRevCostRows}
-              columns={partRevCostColumns as never}
-              getRowId={r => r.part}
-              compact
-              hideToolbar
-              defaultPageSize={partRevCostRows.length || 1}
-              pageSizeOptions={[partRevCostRows.length || 1]}
-            />
+          <div className={styles.chartModalBottom}>
+            <div className={styles.chartModalTable}>
+              <DataTable<PartRevCostRow>
+                data={partRevCostRows}
+                columns={partRevCostColumns as never}
+                getRowId={r => r.part}
+                compact
+                hideToolbar
+                defaultPageSize={partRevCostRows.length || 1}
+                pageSizeOptions={[partRevCostRows.length || 1]}
+              />
+            </div>
+            <div className={styles.chartModalControls}>
+              <span className={styles.chartModalControlsTitle}>파트 표시</span>
+              {vm.profitRate.labels.map(part => (
+                <label key={part} className={styles.partCheckItem}>
+                  <input
+                    type="checkbox"
+                    className={styles.partCheckbox}
+                    checked={!hiddenParts.has(part)}
+                    onChange={() => togglePart(part)}
+                  />
+                  <span>{stripPartPrefix(part) || part}</span>
+                </label>
+              ))}
+            </div>
           </div>
         </div>
       );
       return (
-        <ChartCard modalContent={modalContent} modalHeight="94vh">
+        <ChartCard modalContent={modalContent} modalHeight="88vh">
           <ChartCard.Title>
             <span className={styles.chartTitle}>파트별 추정 매출/원가<InfoButton>{INFO_PROFIT_RATE}</InfoButton></span>
             {/* 이익율/이익액 토글 비활성화(담당자 지정) — 매출/원가 2계열 고정 표시로 대체. 복구 시 주석 해제

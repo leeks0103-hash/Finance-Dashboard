@@ -13,7 +13,7 @@ const PerformanceFilterBar = () => {
   const togglePart         = usePerfStore(s => s.togglePart);
   const selectedTeam       = usePerfStore(s => s.selectedTeam);
   const setTeam            = usePerfStore(s => s.setTeam);
-  const clearTeamLabel     = usePerfStore(s => s.clearTeamLabel);
+  const setTeamLabel       = usePerfStore(s => s.setTeamLabel);
   const initialized        = usePerfStore(s => s.initialized);
   const initializeDefaults = usePerfStore(s => s.initializeDefaults);
 
@@ -40,14 +40,17 @@ const PerformanceFilterBar = () => {
     setTeam(team, nextParts);
   };
 
-  // 팀 선택 상태에서 파트 칩을 수동으로 건드려 그 팀 소속 세트와 달라지면(추가/해제 모두)
-  // 팀 드롭박스를 "전체 팀"으로 되돌림 — 실제 필터(파트 선택)는 그대로 두고 라벨만 정정
+  // 파트 칩 선택이 바뀔 때마다 팀 라벨을 재계산 — 반대 방향(팀 클릭 → 파트 하이라이트)은
+  // handleTeamChange가 이미 처리하니, 여기서는 그 역방향(파트 클릭 → 팀 하이라이트)을 채움.
+  // 현재 선택된 파트 집합이 어느 한 팀의 소속 파트 집합과 정확히 같으면 그 팀을 하이라이트,
+  // 아니면(팀 선택 중 파트를 건드려 세트가 달라진 경우 포함) "전체 팀"으로 되돌림
   useEffect(() => {
-    if (!selectedTeam) return;
-    const expected = (teamParts[selectedTeam] ?? []).map(stripPartPrefix);
-    const matches = expected.length === selectedParts.length && expected.every(p => selectedParts.includes(p));
-    if (!matches) clearTeamLabel();
-  }, [selectedParts, selectedTeam, teamParts, clearTeamLabel]);
+    const matchedTeam = teams.find(team => {
+      const expected = (teamParts[team] ?? []).map(stripPartPrefix);
+      return expected.length === selectedParts.length && expected.every(p => selectedParts.includes(p));
+    }) ?? '';
+    setTeamLabel(matchedTeam);
+  }, [selectedParts, teams, teamParts, setTeamLabel]);
 
   return (
     <div className={styles.panel}>

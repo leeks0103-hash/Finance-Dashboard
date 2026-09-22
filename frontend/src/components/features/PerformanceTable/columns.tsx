@@ -2,7 +2,7 @@ import { createColumnHelper } from '@tanstack/react-table';
 import { HighlightText } from '@/components/ui';
 import type { HideableColumn } from '@/components/ui/DataTable';
 import type { PerfProject } from '@/types/performance.types';
-import { formatEok, formatPctRaw, formatNum, PERF_MONTH } from '@/utils';
+import { formatEok, formatPctRaw, formatNum, PERF_MONTH, stripPartPrefix } from '@/utils';
 import { countFinanceHistory } from '@/utils/projectCode';
 import styles from './columns.module.css';
 
@@ -83,7 +83,10 @@ export const perfColumns = [
   h.accessor('change_note',     { header: '변동 검토의견', size: 240, cell: txt }),
 
   // ── 기본 숨김 (컬럼 메뉴에서 체크하면 표시) ──
-  h.accessor('part',         { header: '파트',         size: 128, cell: txt }),
+  // 파트 앞 원문자(①~⑦)는 차트·필터 칩 등에선 stripPartPrefix로 이미 떼고 보여주는데
+  // 이 표만 원본 그대로 노출하고 있었음 — 여기선 번호가 필요 없다는 피드백으로 통일(2026-09-21)
+  h.accessor('part',         { header: '파트',         size: 128,
+    cell: i => <HighlightText text={stripPartPrefix(String(i.getValue() ?? ''))} query={i.table.options.meta?.searchQuery} /> }),
   h.accessor('team',         { header: '팀',           size: 172, cell: txt }),
   h.accessor('tech_category',{ header: '미래기술분류', size: 148, cell: txt }),
   h.accessor('biz_type',     { header: '사업구분',     size: 116, cell: txt }),

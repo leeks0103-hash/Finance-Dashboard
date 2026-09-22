@@ -13,6 +13,7 @@ from openpyxl import Workbook, load_workbook
 import sys as _sys_boot, os as _os_boot
 _sys_boot.path.insert(0, _os_boot.path.dirname(_os_boot.path.dirname(_os_boot.path.abspath(__file__))))
 import paths as _paths
+from shared import strip_stage_suffix as _shared_strip_stage_suffix
 
 load_dotenv()  # .env 파일이 있으면 환경변수로 로드 (없으면 무시)
 
@@ -64,8 +65,6 @@ _PLACEHOLDER_RE = re.compile(r'^\[.*(?:미생성|신규|생성|tbd)\]$', re.IGNO
 def _is_placeholder(code: str) -> bool:
     c = code.strip()
     return c in PLACEHOLDER_CODES or bool(_PLACEHOLDER_RE.match(c))
-
-_STAGE_SUFFIXES = ["사전검토", "착수", "중간", "완료", "제안"]
 
 
 class AipDecryptError(Exception):
@@ -447,11 +446,11 @@ def append_history(history_ws, signature, path, status, message=""):
 # =========================
 def strip_stage_suffix(filename):
     """파일명에서 착수/완료/제안 등 단계 표시를 제거해 '같은 프로젝트의 다른 단계 파일'인지
-    비교할 수 있는 기준 이름을 만든다. (완전한 판별은 아니고 충돌 경고용 휴리스틱)"""
-    name = os.path.splitext(normalize_text(filename))[0]
-    for suf in _STAGE_SUFFIXES:
-        name = re.sub(rf"[_\[\(]?{re.escape(suf)}[\]\)]?(_수정|_최종)?$", "", name).strip()
-    return name
+    비교할 수 있는 기준 이름을 만든다. (완전한 판별은 아니고 충돌 경고용 휴리스틱)
+    shared.py 공용 구현 사용 — extract_kpi_ppt.py/kpi.py와 같은 기준을 쓰도록 통일
+    (예전엔 이 파일이 자체 사본을 따로 들고 있었는데 "(수정)" 괄호 표기를 못 벗기는 버그가
+    shared.py에도 똑같이 있었지만 여기 사본은 그마저 "보고" 꼬리도 못 벗겨 더 뒤처져 있었음)"""
+    return _shared_strip_stage_suffix(normalize_text(filename))
 
 
 def make_row_key(code, year, part, gubun, filename):

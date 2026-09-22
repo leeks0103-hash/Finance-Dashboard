@@ -109,11 +109,13 @@
   50%       { opacity: 0.45; }
 }
 
-/* "파트별 추정 매출/원가" 확대 모달 전용 — 차트(목표선 포함, 범례 클릭으로 온오프) + 검증용 표.
-   modalHeight="94vh"로 기본 모달보다 키워서(ChartCard) 표가 스크롤 없이 다 보이게 함.
-   매출 계획/원가 계획 온오프는 커스텀 HTML 버튼이 아니라 Chart.js 기본 범례(매출/원가가 이미
-   쓰던 그 범례) 항목으로 통합돼 있어서(PerformanceChartSection.tsx generateLabels 참고)
-   여기 CSS에서 별도로 관리하는 건 없음 */
+/* "월별 실적 추이"·"파트별 추정 매출/원가" 확대 모달 공용 — 그냥 크게 보여주기만 하면 심심하다는
+   피드백에 따라, 차트 밑에 검증용 표(+파트별 카드는 파트 표시 체크박스까지)를 추가한 레이아웃.
+   modalHeight로 기본 모달보다 살짝 키워서(ChartCard) 표가 스크롤 없이 다 보이게 함
+   (파트별 카드는 94vh를 시도했다가 차트가 과하게 커져 수치 라벨이 붐벼 보여서 88vh로 축소).
+   파트별 카드의 매출 계획/원가 계획 온오프는 커스텀 HTML 버튼이 아니라 Chart.js 기본 범례
+   (매출/원가가 이미 쓰던 그 범례) 항목으로 통합돼 있어서(PerformanceChartSection.tsx
+   generateLabels 참고) 여기 CSS에서 별도로 관리하는 건 없음 */
 .chartModalWithTable {
   display: flex;
   flex-direction: column;
@@ -126,8 +128,56 @@
   flex: 1;
   min-height: 0;
 }
-.chartModalTable {
+
+/* 표 + 파트 표시 토글을 한 줄에 — 표는 전체폭 대신 남는 공간만 차지해 좁아짐 */
+.chartModalBottom {
+  display: flex;
   flex-shrink: 0;
-  max-height: 360px;
+  gap: 14px;
+  max-height: 260px;
+}
+
+.chartModalTable {
+  flex: 1 1 auto;
+  min-width: 0;
   overflow: auto;
+}
+
+.chartModalControls {
+  flex: 0 0 168px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding-left: 14px;
+  border-left: 1px solid var(--border);
+  overflow-y: auto;
+}
+
+.chartModalControlsTitle {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 2px;
+}
+
+/* 파트 표시 — 칩 대신 일반 체크박스 목록(왼쪽 체크 · 오른쪽 라벨) */
+.partCheckItem {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 0;
+  font-size: 0.8rem;
+  color: var(--text);
+  cursor: pointer;
+  user-select: none;
+}
+.partCheckbox {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--brand-mid);
+  cursor: pointer;
+  flex-shrink: 0;
 }

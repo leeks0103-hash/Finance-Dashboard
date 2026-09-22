@@ -94,6 +94,12 @@ export interface PerformanceViewModel {
   financeResults:    Project[];
   hasFinanceResults: boolean;
   financeSearchTerm: string;
+  /** 진행단계 — 값 종류가 적고 고정적이라 자유 검색 대신 셀렉트박스로 필터링(프로젝트 상세 전용,
+   *  2026-09-21 요청 — 예전엔 검색 필드 옵션 중 하나였는데 "뭘 검색해야 하는지 모르겠다"는
+   *  피드백으로 전용 셀렉트로 분리) */
+  progressOptions:  string[];
+  selectedProgress: string;
+  setProgress:      (v: string) => void;
 }
 
 const SEARCH_FIELD_OPTIONS = [
@@ -103,12 +109,12 @@ const SEARCH_FIELD_OPTIONS = [
   { value: 'manager',      label: '담당자' },
   { value: 'part',         label: '파트' },
   { value: 'team',         label: '팀' },
-  { value: 'progress',     label: '진행' },
 ];
 
 export const usePerformanceViewModel = (): PerformanceViewModel => {
   const pagination = useReactPagination(20);
   const [searchField, setSearchField] = useState('');
+  const [selectedProgress, setSelectedProgress] = useState('');
   const search = useDebouncedSearch(350);
 
   // 실적 인사이트 코드 클릭 → 검색창 자동 채우기
@@ -121,10 +127,15 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
     clearPerfQ('');
   }, [perfQuick]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const setProgress = (v: string) => {
+    setSelectedProgress(v);
+    pagination.resetToFirstPage();
+  };
+
   const { data: summary,    isLoading: sumLoading } = usePerformanceSummary();
   const { data: paged,      isLoading: projLoading, isFetching } = usePerformanceData({
     page: pagination.page, pageSize: pagination.pageSize, search: search.debouncedValue, field: searchField,
-  });
+  }, selectedProgress);
   const { data: options } = usePerformanceOptions();
 
   // 2depth: 실적 검색과 동일한 debounced 값으로 재무 API 병렬 조회
@@ -261,5 +272,9 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
     financeResults,
     hasFinanceResults: financeSearchEnabled && financeResults.length > 0,
     financeSearchTerm: search.debouncedValue,
+
+    progressOptions:  options?.progress ?? [],
+    selectedProgress,
+    setProgress,
   };
 };

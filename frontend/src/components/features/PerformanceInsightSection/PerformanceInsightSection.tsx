@@ -70,8 +70,9 @@ const PerformanceInsightSection = () => {
       hideToolbar
       /* storageKey — 헤더 드래그로 컬럼 순서 변경 + 폭 조절, localStorage 저장 */
       storageKey="perf-missed-bid"
-      /* sizeVersion — 컬럼별 size 신규 지정 + td max-width 상한 제거에 맞춰 저장된 폭 1회 초기화 */
-      sizeVersion={2}
+      /* sizeVersion 5 — 테이블 자체 렌더 폭을 인라인 px 대신 CSS width:100%로 맡겨서
+         반올림/테두리 오차가 오버플로우로 안 이어지게 함(DataTable.tsx) 반영 위해 초기화 */
+      sizeVersion={5}
       defaultPageSize={20}
       pageSizeOptions={[20]}
       emptyIcon="📋"

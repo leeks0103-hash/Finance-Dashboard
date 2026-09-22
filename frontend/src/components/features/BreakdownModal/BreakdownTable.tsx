@@ -8,6 +8,10 @@ export interface BreakdownColumn<R> {
   align?:    'left' | 'right' | 'center';
   /** 파일명처럼 긴 텍스트인데 nowrap이면 표가 옆으로 넘칠 수 있는 컬럼 — 줄바꿈 허용 */
   wrap?:     boolean;
+  /** 코드처럼 짧은 게 보통인데 placeholder 값이 길어질 수 있는 컬럼 — 말줄임표로 자르고
+   *  title(브라우저 기본 툴팁)로 전체 텍스트 확인. 이 표는 컬럼 리사이즈가 안 되고, 어차피
+   *  CopyText가 title로 전체 텍스트를 보여주므로 wrap(여러 줄)보다 이쪽이 행 높이가 안정적 */
+  truncate?: boolean;
   /** 정렬용 원시값 */
   sortValue: (row: R) => string | number;
   /** 화면 표시 */
@@ -79,7 +83,7 @@ export function BreakdownTable<R>({
           {sorted.map((row, i) => (
             <tr key={i} className={rowClassName?.(row)}>
               {columns.map(c => (
-                <td key={c.key} className={`${alignClass(c.align)} ${c.wrap ? styles.wrapCell : ''}`}>
+                <td key={c.key} className={`${alignClass(c.align)} ${c.wrap ? styles.wrapCell : ''} ${c.truncate ? styles.truncateCell : ''}`}>
                   {c.render(row)}
                 </td>
               ))}

@@ -27,8 +27,13 @@ const Navbar = () => {
   const { data: health } = useDataHealth();
   const healthRows = health?.rows ?? [];
   // 코드 충돌(서로 다른 PPT가 같은 키를 공유해 한쪽이 덮어써진 경우) — 덮어써진 파일은
-  // healthRows(파일명 기준 비교)로는 안 잡히므로 별도로 노출
-  const healthConflicts = health?.conflicts ?? [];
+  // healthRows(파일명 기준 비교)로는 안 잡히므로 별도로 노출.
+  // verdict로 한 번 더 걸러서, "한 파일에 여러 프로젝트 + 배치 보고서 제목만 단계마다 바뀐"
+  // 오탐(likely_same_project)은 배지 건수·경고 목록에서 빼고 참고용으로만 접어서 보여줌
+  // (2026-09-21 — 매치업 사례 실측 후 반영, app.py _classify_conflict 참고)
+  const allConflicts = health?.conflicts ?? [];
+  const healthConflicts = allConflicts.filter(c => c.verdict !== 'likely_same_project');
+  const likelyOkConflicts = allConflicts.filter(c => c.verdict === 'likely_same_project');
   const healthTotal = healthRows.length + healthConflicts.length;
   const [healthOpen, setHealthOpen] = useState(false);
   const healthRef = useRef<HTMLDivElement>(null);
@@ -92,7 +97,7 @@ const Navbar = () => {
                   {healthConflicts.length > 0 && (
                     <>
                       <div className={styles.healthHeader}>
-                        코드 충돌 — 다른 PPT와 같은 코드 · {healthConflicts.length}건
+                        코드 충돌 · {healthConflicts.length}건
                       </div>
                       <ul className={styles.healthList}>
                         {healthConflicts.map(c => (
@@ -110,6 +115,30 @@ const Navbar = () => {
                         ))}
                       </ul>
                     </>
+                  )}
+
+                  {likelyOkConflicts.length > 0 && (
+                    <details className={styles.healthDetails}>
+                      <summary className={styles.healthHeaderMuted}>
+                        확인 · {likelyOkConflicts.length}건
+                      </summary>
+                      <ul className={styles.healthList}>
+                        {likelyOkConflicts.map(c => (
+                          <li key={`${c.source}-${c.code}`} className={styles.healthItem}>
+                            <div className={styles.healthFileRow}>
+                              <CopyText text={c.code} className={styles.healthFile} />
+                            </div>
+                            <div className={styles.healthCodes}>
+                              <span>{c.source} · {c.files.length}개 파일이 같은 코드 사용</span>
+                              {c.files.map(f => (
+                                <span key={f}>· <CopyText text={f} /></span>
+                              ))}
+                            </div>
+                            {c.reason && <div className={styles.healthReason}>{c.reason}</div>}
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
                   )}
 
                   {healthRows.length > 0 && (

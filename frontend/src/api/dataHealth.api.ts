@@ -16,6 +16,11 @@ export interface DataHealthConflict {
   code:   string;
   /** 이 코드를 공유하는 PPT 파일들 (2개 이상) */
   files:  string[];
+  /** 자동 분류 — 'needs_review'(진짜 확인 필요) | 'likely_same_project'(한 파일에 여러
+   *  프로젝트가 있고 배치 보고서 제목만 단계마다 바뀐 것으로 추정, 오탐 가능성 높음) */
+  verdict?: 'needs_review' | 'likely_same_project';
+  /** verdict 판단 근거 (예: "파트·매출 금액이 파일 간 일관됨") */
+  reason?:  string;
 }
 
 export interface DataHealthResponse {
