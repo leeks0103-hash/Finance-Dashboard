@@ -1,14 +1,14 @@
 import { useMemo } from 'react';
 import { createColumnHelper } from '@tanstack/react-table';
 import { usePerformanceInsightViewModel } from '@/hooks/viewmodels';
-import { DataTable, CopyText, CellPopup, useClipboardPopup } from '@/components/ui';
+import { DataTable, CopyText, CellPopup, useClipboardPopup, alertDialog } from '@/components/ui';
 import { useQuickSearchStore } from '@/store/quickSearch.store';
 import { openFinanceFile } from '@/api/finance.api';
 import FinanceDetailPanel from './FinanceDetailPanel';
 import type { Project } from '@/types';
 
 const openFile = (filename: string) => {
-  openFinanceFile(filename).then(r => { if (!r.ok) window.alert(r.message ?? '파일을 열 수 없습니다.'); });
+  openFinanceFile(filename).then(r => { if (!r.ok) alertDialog(r.message ?? '파일을 열 수 없습니다.', { error: true }); });
 };
 
 const h = createColumnHelper<Project>();

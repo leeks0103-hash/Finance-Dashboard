@@ -11,9 +11,14 @@ const BLOB_URL_REVOKE_DELAY_MS = 1000;
 // 이보다 오래 걸릴 때만 로딩 모달 표시 — 짧은 다운로드에서 모달이 번쩍이는 것 방지
 const PDF_MODAL_DELAY_MS = 300;
 
-/** RFC 4180 — 쉼표/개행/따옴표가 포함된 필드를 안전하게 인용 */
+/**
+ * RFC 4180 — 쉼표/개행/따옴표가 포함된 필드를 안전하게 인용.
+ * 숫자는 천단위 구분 쉼표를 넣어 표시(2026-09-22, "쉼표라도 있어야지" 피드백) — downloadCsvFile을
+ * 쓰는 재무/KPI/실적/드릴다운 CSV 전부 공용이라 여기 한 곳만 고치면 전체에 반영됨.
+ * 쉼표가 들어간 값은 아래 인용 처리가 그대로 따옴표로 감싸 CSV 규격을 지킨다.
+ */
 const csvField = (v: unknown): string => {
-  const s = String(v ?? '');
+  const s = typeof v === 'number' && Number.isFinite(v) ? v.toLocaleString('ko-KR') : String(v ?? '');
   if (s.includes(',') || s.includes('\n') || s.includes('"')) {
     return `"${s.replace(/"/g, '""')}"`;
   }

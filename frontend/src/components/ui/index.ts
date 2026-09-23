@@ -30,3 +30,6 @@ export * from './DataTable';
 export * from './MultiSelectDropdown';
 export * from './Pagination';
 export { InfoButton } from './InfoButton/InfoButton';
+// 다이얼로그(confirm/alert/prompt)는 utils/dialog에 있음 — hooks/도 써야 해서 레이어상 ui/보다
+// 앞쪽에 둬야 함(2026-09-23). ui/에서도 바로 쓸 수 있게 재수출만 여기서
+export { confirmDialog, alertDialog, promptDialog } from '@/utils/dialog';

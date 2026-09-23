@@ -3,3 +3,4 @@ export * from './array';
 export * from './note';
 export * from './routing';
 export * from './perfPeriod';
+export * from './dialog';

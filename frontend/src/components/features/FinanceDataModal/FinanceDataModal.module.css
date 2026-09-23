@@ -44,6 +44,13 @@
   color: var(--text);
 }
 
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
 .closeBtn {
   flex-shrink: 0;
   border: none;

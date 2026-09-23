@@ -1,4 +1,5 @@
 import { openFinanceFile, openKpiFile } from '@/api';
+import { alertDialog } from '@/utils/dialog';
 
 /**
  * 파일명으로 원본 PPT를 서버(로컬 PC)에서 직접 연다.
@@ -10,7 +11,7 @@ export const useOpenFile = () => {
     const fin = await openFinanceFile(filename);
     if (fin.ok) return fin;
     const kpi = await openKpiFile(filename);
-    if (!kpi.ok) window.alert(kpi.message ?? fin.message ?? '파일을 열 수 없습니다.');
+    if (!kpi.ok) alertDialog(kpi.message ?? fin.message ?? '파일을 열 수 없습니다.', { error: true });
     return kpi;
   };
 

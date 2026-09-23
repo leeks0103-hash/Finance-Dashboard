@@ -125,6 +125,18 @@
   text-decoration: none;
 }
 
+/* 기본 브라우저 체크박스가 "너무 안 이쁘다"는 피드백(2026-09-23) — 브랜드 색 + 살짝 키움 */
+.includeCheckbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--brand-mid);
+  cursor: pointer;
+}
+.includeCheckbox:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
 /* explain 박스 바로 아래, 표 위로 옮김(스크롤해야만 보이지 않도록) — 여백은 위 대신 아래로 */
 .foot {
   display: flex;

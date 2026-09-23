@@ -1,6 +1,6 @@
 .panel {
   padding: 10px 14px 14px;
-  width: 1520px;   /* 1400px + 120px */
+  width: 1600px;   /* 컬럼 15개 기본폭 합(1570px)이 딱 들어오도록(패딩 28px 제외) */
   max-width: 100%;
 }
 
@@ -137,16 +137,16 @@
   white-space: nowrap;
 }
 
-/* 긴 텍스트 — ellipsis */
+/* 긴 텍스트 — ellipsis. max-width를 여기서 고정하면 th 리사이즈/더블클릭 자동맞춤으로
+   컬럼을 아무리 넓혀도 이 상한에 걸려 계속 "..."로 잘려 보였음(2026-09-23) — 폭은 이제
+   table-layout:fixed의 th(colWidths)가 전적으로 결정하므로 overflow만 맡는다 */
 .truncCell {
-  max-width: 200px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .fileCell {
-  max-width: 240px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

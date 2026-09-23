@@ -71,9 +71,10 @@ class AipDecryptError(Exception):
     """AIP 암호화 해제 실패 — 실제 처리 실패로 집계되어야 함."""
     pass
 
-# 기존 데이터 보존 + 증분 업데이트 (새 폴더 추가 시 기존 데이터 유지)
-FORCE_REPROCESS = False
-RESET_OUTPUT_ON_START = False
+# 기존 데이터 보존 + 증분 업데이트 (새 폴더 추가 시 기존 데이터 유지) — 대시보드 설정
+# 화면(⚙ → PPT 데이터 추출)에서 실행 방식을 고르면 app.py가 이 두 값을 env var로 덮어씀
+FORCE_REPROCESS = os.environ.get("FORCE_REPROCESS", "0") == "1"
+RESET_OUTPUT_ON_START = os.environ.get("RESET_OUTPUT_ON_START", "0") == "1"
 
 PART_KEYWORDS = ["신사업", "PM", "전차", "미모", "AI", "SW", "K뉴딜TF"]
 

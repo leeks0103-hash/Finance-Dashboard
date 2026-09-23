@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom';
 import { createColumnHelper } from '@tanstack/react-table';
-import { Button, CopyText, DataTable } from '@/components/ui';
+import { Button, CopyText, DataTable, alertDialog } from '@/components/ui';
 import { useScrollLock } from '@/components/ui/useScrollLock';
 import { useEscToClose } from '@/components/ui/useEscToClose';
 import { downloadCsvFile } from '@/hooks/useExport';
@@ -18,7 +18,7 @@ interface Props {
 }
 
 const openFile = (filename: string) => {
-  openFinanceFile(filename).then(r => { if (!r.ok) window.alert(r.message ?? '파일을 열 수 없습니다.'); });
+  openFinanceFile(filename).then(r => { if (!r.ok) alertDialog(r.message ?? '파일을 열 수 없습니다.', { error: true }); });
 };
 
 const fmtValue = (v: number, unit: string) =>

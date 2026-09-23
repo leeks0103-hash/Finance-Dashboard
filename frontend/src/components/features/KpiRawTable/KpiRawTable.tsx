@@ -12,6 +12,7 @@ import {
   SortableHeaderCell, CellPopup, TableTitleBar,
 } from '@/components/ui';
 import { cellVal, isImplausibleScoreRow, isPrematureActualRow } from '@/utils/kpiColumns';
+import { alertDialog } from '@/utils/dialog';
 import { openKpiFile } from '@/api/kpi.api';
 import styles from './KpiRawTable.module.css';
 
@@ -141,7 +142,7 @@ const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, searchE
   // "↗ 바로가기" — 처리 이력 시트의 전체경로로 서버가 직접 파일 실행 (NAS 이전 전 로컬 경로 기준)
   const handleOpenFile = useCallback(async (filename: string) => {
     const result = await openKpiFile(filename);
-    if (!result.ok) window.alert(result.message ?? '파일을 열 수 없습니다.');
+    if (!result.ok) alertDialog(result.message ?? '파일을 열 수 없습니다.', { error: true });
     closePopup();
   }, [closePopup]);
 

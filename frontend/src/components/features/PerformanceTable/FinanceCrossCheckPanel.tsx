@@ -3,13 +3,13 @@ import { Button, Spinner, CopyText } from '@/components/ui';
 import { useClipboardPopup } from '@/components/ui/DataTable/useClipboardPopup';
 import { CellPopup }         from '@/components/ui/DataTable/CellPopup';
 import { useFinanceCrossCheckViewModel } from '@/hooks/viewmodels';
-import { formatBillion, formatRate } from '@/utils';
+import { formatBillion, formatRate, alertDialog } from '@/utils';
 import { openFinanceFile } from '@/api/finance.api';
 import type { Project } from '@/types/finance.types';
 import styles from './FinanceCrossCheckPanel.module.css';
 
 const openFile = (filename: string) => {
-  openFinanceFile(filename).then(r => { if (!r.ok) window.alert(r.message ?? '파일을 열 수 없습니다.'); });
+  openFinanceFile(filename).then(r => { if (!r.ok) alertDialog(r.message ?? '파일을 열 수 없습니다.', { error: true }); });
 };
 
 // v2 — 표시 컬럼을 재무 PPT 추출 전체 항목으로 확장(7 → 15개)하며 저장된 폭 무효화
@@ -108,11 +108,14 @@ const FinanceCrossCheckPanel = ({ projectCode, onClose }: Props) => {
     const wrapW = tableRef.current?.parentElement?.getBoundingClientRect().width ?? 0;
     if (!wrapW) return;
 
+    // 컬럼 15개 기본폭 합(1570px)이 패널 자체 최대폭(1520px)보다 넓어서, 좁을 때만 채우던
+    // 기존 로직(total >= wrapW면 그대로 둠)으론 항상 ~80px 가로스크롤이 고정으로 남아있었음
+    // — 넓을 때도 줄여서 항상 컨테이너에 꼭 맞춘다(2026-09-23, "가로스크롤 없어도 되는 테이블" 피드백)
     const scaleToFill = (widths: number[]) => {
       const total = widths.reduce((a, b) => a + b, 0);
-      if (total >= wrapW) return widths;
+      if (!total) return widths;
       const scale = wrapW / total;
-      return widths.map(w => Math.round(w * scale));
+      return widths.map(w => Math.max(40, Math.round(w * scale)));
     };
 
     if (localStorage.getItem(LS_KEY)) {
@@ -139,17 +142,32 @@ const FinanceCrossCheckPanel = ({ projectCode, onClose }: Props) => {
     return () => el!.removeEventListener('scroll', sync);
   }, []);
 
-  // 컬럼 리사이즈
+  // 컬럼 리사이즈 — 옆 컬럼에서 폭을 빌려와 합(=테이블 총 폭)이 항상 그대로 유지됨
+  // (DataTable의 compact fixedTotalWidth와 동일 원칙 — 한 컬럼 넓히면 테이블이 넓어지는 게 아니라
+  // 옆 컬럼이 그만큼 줄어야 가로스크롤이 안 생김, 2026-09-23 피드백)
   const startResize = useCallback((colIdx: number, e: React.PointerEvent) => {
     e.preventDefault();
     e.stopPropagation();
     const startX = e.clientX;
-    const startW = colWidths[colIdx];
+    const isLast = colIdx === colWidths.length - 1;
+    const neighborIdx = isLast ? colIdx - 1 : colIdx + 1;
+    if (neighborIdx < 0) return;   // 컬럼 1개뿐이면 빌려올 곳이 없음
+    const startSelfW = colWidths[colIdx];
+    const startNeighborW = colWidths[neighborIdx];
+    const MIN_W = 40;
+    const sign = isLast ? -1 : 1;   // 마지막 컬럼은 "앞" 컬럼에서 빌려오므로 부호가 뒤집힘
 
     const onMove = (ev: PointerEvent) => {
-      const next = [...colWidths];
-      next[colIdx] = Math.max(40, startW + ev.clientX - startX);
-      setColWidths(next);
+      const rawDelta = (ev.clientX - startX) * sign;
+      const maxGrow = startNeighborW - MIN_W;     // 이웃이 줄어들 수 있는 최대치
+      const maxShrink = -(startSelfW - MIN_W);    // 내가 줄어들 수 있는 최대치
+      const delta = Math.max(maxShrink, Math.min(maxGrow, rawDelta));
+      setColWidths(prev => {
+        const next = [...prev];
+        next[colIdx] = startSelfW + delta;
+        next[neighborIdx] = startNeighborW - delta;
+        return next;
+      });
     };
     const onUp = () => {
       setColWidths(prev => {
@@ -163,7 +181,12 @@ const FinanceCrossCheckPanel = ({ projectCode, onClose }: Props) => {
     document.addEventListener('pointerup', onUp);
   }, [colWidths]);
 
-  // 더블클릭 자동 맞춤
+  // 더블클릭 자동 맞춤 — 이 컬럼의 실제 td 폰트로 측정(이전엔 무조건 0번째 td 폰트를 써서
+  // stageCell의 굵은 폰트가 다른 컬럼 측정에 섞여 들어갔음) + padding을 실측(getComputedStyle)해서
+  // 반영 → 예전엔 400px 상한 때문에 미수사유·비고처럼 긴 텍스트는 늘려도 계속 "..." 로 잘려 보였음.
+  // 이제 상한을 없애고 그만큼을 "다른 컬럼들"에서 비례로 빌려와 테이블 총 폭은 그대로 유지한다
+  // (resize 핸들의 fixedTotalWidth 원칙과 동일, 2026-09-23)
+  const MIN_W = 40;
   const autoFit = useCallback((colIdx: number) => {
     const tbl = tableRef.current;
     if (!tbl) return;
@@ -172,25 +195,50 @@ const FinanceCrossCheckPanel = ({ projectCode, onClose }: Props) => {
     span.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;left:-9999px;top:-9999px';
     document.body.appendChild(span);
 
-    const thEl   = tbl.querySelectorAll('thead th')[colIdx] as HTMLElement;
-    const firstTd = tbl.querySelector('tbody td') as HTMLElement | null;
-    const thFont  = thEl  ? getComputedStyle(thEl).font   : '';
-    const tdFont  = firstTd ? getComputedStyle(firstTd).font : thFont;
+    const thEl  = tbl.querySelectorAll('thead th')[colIdx] as HTMLElement | undefined;
+    const tdEls = tbl.querySelectorAll(`tbody td:nth-child(${colIdx + 1})`);
+    const firstTd = tdEls[0] as HTMLElement | undefined;
+    const thStyle = thEl ? getComputedStyle(thEl) : null;
+    const tdStyle = firstTd ? getComputedStyle(firstTd) : thStyle;
+    const thPad = thStyle ? parseFloat(thStyle.paddingLeft) + parseFloat(thStyle.paddingRight) : 24;
+    const tdPad = tdStyle ? parseFloat(tdStyle.paddingLeft) + parseFloat(tdStyle.paddingRight) : 24;
 
-    span.style.font  = thFont;
+    span.style.font  = thStyle?.font ?? '';
     span.textContent = HEADERS[colIdx];
-    let maxW = span.offsetWidth + 28;
+    let maxW = span.offsetWidth + thPad + 14;   // +14 = 정렬 화살표/핸들 여유
 
-    span.style.font = tdFont;
-    tbl.querySelectorAll(`tbody td:nth-child(${colIdx + 1})`).forEach(td => {
+    span.style.font = tdStyle?.font ?? '';
+    tdEls.forEach(td => {
       span.textContent = (td as HTMLElement).textContent ?? '';
-      maxW = Math.max(maxW, span.offsetWidth + 20);
+      maxW = Math.max(maxW, span.offsetWidth + tdPad + 4);
     });
     document.body.removeChild(span);
 
     setColWidths(prev => {
+      const startSelfW = prev[colIdx];
+      const wanted = Math.max(MIN_W, Math.round(maxW));
+      const growNeeded = wanted - startSelfW;
       const next = [...prev];
-      next[colIdx] = Math.min(Math.max(maxW, 40), 400);
+
+      if (growNeeded <= 0) {
+        // 오히려 줄어드는 경우 — 남는 폭은 옆 컬럼(마지막이면 앞 컬럼)에 돌려준다
+        const neighborIdx = colIdx === prev.length - 1 ? colIdx - 1 : colIdx + 1;
+        next[colIdx] = wanted;
+        if (neighborIdx >= 0) next[neighborIdx] = prev[neighborIdx] + (startSelfW - wanted);
+      } else {
+        // 다른 모든 컬럼에서 필요한 만큼 비례로 빌려옴 — 각자 MIN_W 밑으론 안 내려감,
+        // 다 합쳐도 모자라면 빌릴 수 있는 만큼만(테이블 총 폭은 항상 그대로 유지)
+        const others = prev.map((w, i) => ({ i, w })).filter(o => o.i !== colIdx);
+        const availTotal = others.reduce((a, o) => a + Math.max(0, o.w - MIN_W), 0);
+        const actualGrow = Math.min(growNeeded, availTotal);
+        next[colIdx] = startSelfW + actualGrow;
+        others.forEach(o => {
+          const slack = Math.max(0, o.w - MIN_W);
+          const take = availTotal > 0 ? Math.round((slack / availTotal) * actualGrow) : 0;
+          next[o.i] = o.w - take;
+        });
+      }
+
       localStorage.setItem(LS_KEY, JSON.stringify(next));
       return next;
     });

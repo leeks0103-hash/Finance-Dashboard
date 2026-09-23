@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Toggle, Button, CopyText } from '@/components/ui';
+import { Toggle, Button, CopyText, confirmDialog, promptDialog } from '@/components/ui';
 import TabNav from '@/components/ui/TabNav/TabNav';
 import type { TabId } from '@/components/ui/TabNav/TabNav';
 import KpiActionBar from '@/components/features/KpiActionBar';
@@ -9,16 +9,66 @@ import FinanceDataModal from '@/components/features/FinanceDataModal';
 import NgvLogo from './NgvLogo';
 import { useTheme } from '@/hooks';
 import { useDataHealth } from '@/hooks/useDataHealth';
+import { useExtractJob } from '@/hooks/useExtractJob';
 // import { useOpenFile } from '@/hooks/useOpenFile';   // 파일 바로가기 버튼 주석 처리로 미사용(2026-09-15)
 import { useUiStore } from '@/store';
 import { pathToTab } from '@/utils/routing';
+import type { ExtractTarget, ExtractMode } from '@/types/extract.types';
 import styles from './Navbar.module.css';
+
+const EXTRACT_TARGET_LABEL: Record<ExtractTarget, string> = { finance: '재무', kpi: 'KPI' };
+
+const EXTRACT_MODE_INFO: Record<ExtractMode, { label: string; desc: string }> = {
+  incremental: {
+    label: '증분',
+    desc: '이전에 처리한 적 없는 새 파일 · 내용이 바뀐 파일만 골라서 반영합니다. 기존 데이터는 그대로 유지. 평소엔 이 방식을 씁니다.',
+  },
+  force: {
+    label: '전체 재처리',
+    desc: '기존 데이터는 지우지 않되, 모든 PPT 파일을 처음부터 다시 읽어 반영합니다. 추출 로직 자체를 고친 뒤 이미 처리된 파일에도 새 로직을 다시 적용하고 싶을 때 씁니다. 파일 수가 많으면 시간이 오래 걸립니다.',
+  },
+  reset: {
+    label: '초기화 후 재구축',
+    desc: '기존 추출 데이터를 전부 지우고 모든 PPT 파일을 처음부터 다시 추출합니다.',
+  },
+};
 
 const Navbar = () => {
   const { theme, toggle: toggleTheme } = useTheme();
   const { showChartLabels, toggleChartLabels } = useUiStore();
   const [open, setOpen] = useState(false);
   const [financeModalOpen, setFinanceModalOpen] = useState(false);
+  // PPT 데이터 추출 — 권한(EXTRACT_ADMIN_KEY) 통과한 사람에게만 보임(useExtractJob 참고)
+  const [extractTargets, setExtractTargets] = useState<ExtractTarget[]>(['finance', 'kpi']);
+  const [extractMode, setExtractMode] = useState<ExtractMode>('incremental');
+  const extractJob = useExtractJob();
+  const extractLocked = extractJob.isRunning || extractJob.isStarting;
+  const [extractAuthError, setExtractAuthError] = useState('');
+  const toggleExtractTarget = (t: ExtractTarget) => {
+    setExtractTargets(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]);
+  };
+  // prompt 2번(키/이름) + 틀렸을 때 alert 1번 → prompt 1번 + 인라인 에러텍스트로 축소
+  // (2026-09-23, "알럿창 컨펌창 토스트창 감당 안 되네" 피드백)
+  const handleExtractAuth = async () => {
+    const input = await promptDialog('이름/키를 입력하세요', { placeholder: '홍길동/hmc-extract-2026' });
+    if (!input) return;
+    const slash = input.indexOf('/');
+    const name = (slash === -1 ? '' : input.slice(0, slash)).trim();
+    const key = (slash === -1 ? input : input.slice(slash + 1)).trim();
+    const ok = await extractJob.authenticate({ key, name });
+    setExtractAuthError(ok ? '' : '이름/키 형식이 올바르지 않습니다 (예: 홍길동/hmc-extract-2026)');
+  };
+  const handleExtractRun = async () => {
+    if (extractTargets.length === 0 || extractLocked) return;
+    // 어떤 방식이든 실제로 PPT를 다시 읽어 엑셀을 덮어쓰는 작업이라, 무슨 대상을 어떤 방식으로
+    // 돌리는지 한 번 보여주고 확인받는다(2026-09-23 — "당연히 물어볼 줄 알았지" 피드백,
+    // 이전엔 reset일 때만 확인해서 증분/전체재처리는 바로 실행돼버렸음)
+    const targetLabel = extractTargets.map(t => EXTRACT_TARGET_LABEL[t]).join(' + ');
+    const modeInfo = EXTRACT_MODE_INFO[extractMode];
+    const msg = `${targetLabel} 데이터를 "${modeInfo.label}" 방식으로 추출합니다.\n\n${modeInfo.desc}`;
+    if (!await confirmDialog(msg, { danger: extractMode === 'reset' })) return;
+    extractJob.run({ targets: extractTargets, mode: extractMode });
+  };
   const ref = useRef<HTMLDivElement>(null);
   const { pathname } = useLocation();
   const navigate = useNavigate();
@@ -214,6 +264,20 @@ const Navbar = () => {
           {activeTab === 'kpi' && <KpiActionBar />}
           {activeTab === 'performance' && <PerformanceActionBar />}
 
+          {/* ⚙ 드롭다운을 닫아도 진행 상황을 놓치지 않도록 — 설정창 밖에 항상 보이는 작은 배지.
+              권한 없는 사람에겐 이 기능 자체가 안 보여야 해서 isAuthed일 때만(2026-09-23 요청,
+              "페이지에 재추출중입니다 스피너가 있어야할듯 — 전체 스켈레톤까진 필요없고") */}
+          {extractJob.isAuthed && extractJob.isRunning && (
+            <Button unstyled
+              className={styles.extractRunningBadge}
+              onClick={() => setOpen(true)}
+              title="PPT 데이터 추출이 진행 중입니다 — 클릭해서 자세히 보기"
+            >
+              <span className={styles.extractSpinner} aria-hidden />
+              추출 중…
+            </Button>
+          )}
+
           <div className={styles.settings} ref={ref}>
           <Button unstyled
             className={styles.settingsBtn}
@@ -248,11 +312,128 @@ const Navbar = () => {
               <div className={styles.divider} />
 
               {/* 재무 데이터 탭 자체가 네비게이션에서 빠져있어(TabNav 주석 참고) 재무 원본
-                  표만 단독으로 볼 방법이 없다는 요청으로 추가 — 탭 전환 없이 바로 모달로 확인 */}
+                  표만 단독으로 볼 방법이 없다는 요청으로 추가 — 탭 전환 없이 바로 모달로 확인.
+                  위 두 섹션(테마·그래프 수치)과 동일하게 sectionLabel을 붙이고, 커스텀
+                  플랫 스타일 대신 다른 액션 버튼들(↺ 다시 분석, ↓ CSV 등)과 같은 실제
+                  Button ghost variant를 써서 사이트 톤에 맞춤(2026-09-22 피드백) */}
               <div className={styles.section}>
-                <Button unstyled className={styles.financeBtn} onClick={() => { setFinanceModalOpen(true); setOpen(false); }}>
+                <span className={styles.sectionLabel}>바로가기</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={styles.financeBtn}
+                  onClick={() => { setFinanceModalOpen(true); setOpen(false); }}
+                >
                   재무데이터 확인
                 </Button>
+              </div>
+
+              <div className={styles.divider} />
+
+              {/* PPT → 엑셀 추출 스크립트를 직접 실행 — 예전엔 별도 관리자 GUI(schedule_table,
+                  포트 5500)에서만 가능했음. 아직 배포 전이라 권한(EXTRACT_ADMIN_KEY) 있는 사람
+                  (본인 + 책임님)에게만 노출(2026-09-23 요청) — 인증 전엔 버튼 하나만 보임 */}
+              <div className={styles.section}>
+                <span className={styles.sectionLabel}>PPT 데이터 추출</span>
+
+                {!extractJob.isAuthed ? (
+                  <>
+                    <Button
+                      variant="ghost" size="sm"
+                      className={styles.financeBtn}
+                      onClick={handleExtractAuth}
+                      disabled={extractJob.isAuthing}
+                    >
+                      관리자 인증
+                    </Button>
+                    {extractAuthError && <span className={styles.extractResultError}>{extractAuthError}</span>}
+                  </>
+                ) : (
+                  <>
+                    {/* 추출 진행 중엔 대상/방식을 바꿀 수 없게 잠금(2026-09-23 요청) */}
+                    <div className={styles.viewToggle}>
+                      <Button variant="ghost" size="sm"
+                        className={`${styles.toggleBtn} ${extractTargets.includes('finance') ? styles.toggleActive : ''}`}
+                        onClick={() => toggleExtractTarget('finance')}
+                        disabled={extractLocked}
+                      >재무</Button>
+                      <Button variant="ghost" size="sm"
+                        className={`${styles.toggleBtn} ${extractTargets.includes('kpi') ? styles.toggleActive : ''}`}
+                        onClick={() => toggleExtractTarget('kpi')}
+                        disabled={extractLocked}
+                      >KPI</Button>
+                    </div>
+
+                    <div className={styles.viewToggle}>
+                      <Button variant="ghost" size="sm"
+                        className={`${styles.toggleBtn} ${extractMode === 'incremental' ? styles.toggleActive : ''}`}
+                        onClick={() => setExtractMode('incremental')}
+                        disabled={extractLocked}
+                      >증분</Button>
+                      <Button variant="ghost" size="sm"
+                        className={`${styles.toggleBtn} ${extractMode === 'force' ? styles.toggleActive : ''}`}
+                        onClick={() => setExtractMode('force')}
+                        disabled={extractLocked}
+                      >전체 재처리</Button>
+                      <Button variant="ghost" size="sm"
+                        className={`${styles.toggleBtn} ${extractMode === 'reset' ? styles.toggleActive : ''}`}
+                        onClick={() => setExtractMode('reset')}
+                        disabled={extractLocked}
+                      >초기화 후 재구축</Button>
+                    </div>
+
+                    {/* 선택된 방식 설명 — 토글 3개 라벨만으론 뭐가 다른지 알기 어렵다는 피드백
+                        (2026-09-23, "설명이 너무 간략해") */}
+                    <span className={styles.extractHint}>{EXTRACT_MODE_INFO[extractMode].desc}</span>
+
+                    {/* KPI 추출은 스킵 로직 자체가 없어 매번 전량 재파싱 — 방식 토글이 안 먹힘을 알림 */}
+                    {extractTargets.includes('kpi') && (
+                      <span className={styles.extractHint}>
+                        KPI는 매번 전체 재처리라 방식 선택과 무관합니다{extractTargets.includes('finance') ? ' (재무에만 적용)' : ''}
+                      </span>
+                    )}
+
+                    <div className={styles.extractActions}>
+                      <Button
+                        variant={extractMode === 'reset' ? 'danger' : 'primary'}
+                        size="sm"
+                        className={styles.financeBtn}
+                        loading={extractLocked}
+                        disabled={extractTargets.length === 0 || extractLocked}
+                        onClick={handleExtractRun}
+                      >
+                        {extractJob.isRunning ? '추출 중…' : '실행'}
+                      </Button>
+                      {/* 중지 — wb.save()가 파일 처리 루프 안에서 거의 안 불려서 대부분 안전하지만
+                          100% 보장은 아님(app.py api_extract_cancel 주석 참고). 버튼 자체가
+                          명확한 의도적 클릭이라 확인창은 생략(2026-09-23, 다이얼로그 정리) */}
+                      {extractJob.isRunning && (
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          className={styles.financeBtn}
+                          loading={extractJob.isCancelling}
+                          onClick={() => extractJob.cancel()}
+                        >
+                          중지
+                        </Button>
+                      )}
+                    </div>
+
+                    {extractJob.startResult?.ok === false && (
+                      <span className={styles.extractResultError}>{extractJob.startResult.error}</span>
+                    )}
+                    {!extractJob.isRunning && extractJob.status?.finished_at && (
+                      <span className={extractJob.status.ok ? styles.extractResult : styles.extractResultError}>
+                        {extractJob.status.ok
+                          ? `완료 (${extractJob.status.finished_at})`
+                          : extractJob.status.cancelled
+                            ? '중지됨'
+                            : `실패 — ${extractJob.status.message.slice(0, 120)}`}
+                      </span>
+                    )}
+                  </>
+                )}
               </div>
             </div>
           )}

@@ -1,0 +1,93 @@
+/* SweetAlert2 기본 스킨을 우리 사이트 톤(HyundaiSans·radius·shadow 토큰)으로 덮어씀 —
+   :global 셀렉터인 이유: SweetAlert2가 popup을 document.body 바로 아래에 붙여서
+   CSS Modules 스코프 클래스명은 customClass로만 걸 수 있고, 내부 구조(title/actions 등)는
+   라이브러리가 그리는 고정 DOM이라 :global로 그 구조를 그대로 타겟팅해야 함 */
+.popup {
+  border-radius: var(--radius-lg) !important;
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: var(--shadow-lg) !important;
+  font-family: 'HyundaiSans', 'Malgun Gothic', sans-serif !important;
+  padding: 22px 22px 20px !important;
+}
+
+.title {
+  color: var(--text-primary) !important;
+  font-size: 1rem !important;
+  font-weight: 700 !important;
+  padding: 0 !important;
+  margin: 6px 0 4px !important;
+}
+
+.text {
+  color: var(--text-sub) !important;
+  font-size: 0.86rem !important;
+  line-height: 1.55 !important;
+  white-space: pre-line;
+}
+
+.actions {
+  gap: 8px !important;
+  margin-top: 18px !important;
+}
+
+.confirmBtn,
+.confirmDanger,
+.cancelBtn {
+  border: none !important;
+  border-radius: var(--radius-btn) !important;
+  font-family: inherit !important;
+  font-weight: 600 !important;
+  font-size: 0.84rem !important;
+  padding: 8px 18px !important;
+  cursor: pointer !important;
+  box-shadow: none !important;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease !important;
+}
+.confirmBtn:active,
+.confirmDanger:active,
+.cancelBtn:active { transform: scale(0.96); }
+
+.confirmBtn {
+  background: var(--brand) !important;
+  color: #fff !important;
+}
+:global([data-theme="dark"]) .confirmBtn {
+  color: #04263a !important;
+}
+
+.confirmDanger {
+  background: var(--danger, #e63312) !important;
+  color: #fff !important;
+}
+
+.cancelBtn {
+  background: var(--bg-subtle) !important;
+  color: var(--text-sub) !important;
+}
+.cancelBtn:hover { background: var(--border) !important; }
+
+/* 기본 물음표/느낌표 아이콘 원형 테두리도 브랜드 톤으로 */
+:global(.swal2-icon.swal2-question) { border-color: var(--brand) !important; color: var(--brand) !important; }
+:global(.swal2-icon.swal2-warning)  { border-color: var(--danger, #e63312) !important; color: var(--danger, #e63312) !important; }
+:global(.swal2-icon.swal2-error)    { border-color: var(--danger, #e63312) !important; color: var(--danger, #e63312) !important; }
+:global(.swal2-icon.swal2-info)     { border-color: var(--brand) !important; color: var(--brand) !important; }
+
+.backdrop {
+  background: rgba(0, 0, 0, 0.45) !important;
+}
+
+.input {
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-sm) !important;
+  background: var(--surface) !important;
+  color: var(--text-primary) !important;
+  font-family: inherit !important;
+  font-size: 0.86rem !important;
+  box-shadow: none !important;
+  margin-top: 10px !important;
+}
+.input:focus {
+  border-color: var(--border-focus) !important;
+  box-shadow: none !important;
+}

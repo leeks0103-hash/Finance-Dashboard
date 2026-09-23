@@ -255,6 +255,15 @@
   animation: contentFadeIn 0.25s ease;
 }
 
+/* scrollable=false — 세로는 내용 높이만큼만 자연스럽게(빈 공간 예약도 안 함), 가로는
+   overflow:visible로 완전히 풀면 컬럼 폭이 어쩌다 넘칠 때 div 밖으로 그대로 삐져나가므로
+   auto로 유지해 넘치면 가로 스크롤로 담아낸다("테이블이 div를 벗어나면 안 됨", 2026-09-22) */
+.scroll.noScroll {
+  overflow-x: auto;
+  overflow-y: visible;
+  min-height: 0;
+}
+
 @keyframes contentFadeIn {
   from { opacity: 0; }
   to   { opacity: 1; }
@@ -282,6 +291,21 @@
   border-collapse: collapse;
   font-size: 0.83rem;
   min-width: 600px;
+}
+
+/* scrollable=false — .table의 width:100%가 "부모 컨테이너 폭까지 항상 꽉 채움"을 강제해서,
+   table-layout:fixed에서 각 컬럼 size(px)가 절대값이 아니라 "그 100% 안에서의 비율"로만
+   쓰이는 바람에 — 컬럼 수가 훨씬 적은 이 표(재무 데이터 검색 결과)가 실적현황 프로젝트
+   상세(컬럼 30개+)와 같은 넓은 컨테이너 안에 있으면 똑같이 넓게 늘어나 보였음(2026-09-22,
+   "컬럼 수 차이 나서 따로 만들었는데 왜 폭은 똑같냐" 피드백). width:auto로 바꾸면
+   table-layout:fixed가 컬럼 size 합만큼만(절대 px) 실제로 차지하고, 그보다 좁은 화면에서는
+   max-width:100%+위 overflow-x:auto가 넘치는 만큼만 스크롤로 받아낸다.
+   600px 하한(위 .table)도 같은 이유로 제거 — 컬럼 폭을 아무리 줄여도 이 하한 때문에
+   테이블이 못 좁아졌었음 */
+.tableNoMinWidth {
+  min-width: 0;
+  width: auto;
+  max-width: 100%;
 }
 
 /* storageKey 있는 테이블만 fixed — 리사이즈에 필수, 없는 테이블엔 적용하면 컬럼 150px 고정 버그 */

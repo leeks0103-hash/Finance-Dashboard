@@ -339,18 +339,115 @@
   margin: 4px 0;
 }
 
+/* Button ghost variant 스타일을 그대로 쓰고, 드롭다운 안에서 꽉 차 보이도록 폭만 지정
+   (다른 곳의 ghost 버튼은 인라인 크기라 이 오버라이드가 필요) */
 .financeBtn {
   width: 100%;
-  text-align: left;
-  padding: 6px 8px;
-  border-radius: var(--radius-sm);
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: var(--text-sub);
-  cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
+  justify-content: center;
 }
-.financeBtn:hover { background: var(--brand-bg); color: var(--brand-mid); }
+
+/* PPT 데이터 추출 — 대상/방식 세그먼트 토글. KpiPage.module.css의 .viewToggle과 동일 패턴
+   (사이트 전역에서 이미 쓰는 "토글 버튼 그룹" 컨벤션을 그대로 재사용, 2026-09-23) */
+.viewToggle {
+  display: inline-flex;
+  gap: 3px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 3px;
+  width: 100%;
+}
+
+.viewToggle .toggleBtn {
+  flex: 1;
+  padding: 4px 10px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.viewToggle .toggleBtn:hover:not(.toggleActive) {
+  background: var(--bg-header);
+  color: var(--text-secondary);
+}
+
+.viewToggle .toggleActive {
+  background: var(--brand);
+  color: #fff;
+  box-shadow: var(--shadow-sm);
+  font-weight: 700;
+}
+
+.viewToggle .toggleBtn.toggleActive:hover {
+  background: var(--brand);
+  color: #fff;
+}
+
+:global([data-theme="dark"]) .viewToggle .toggleActive {
+  color: #04263a;
+}
+
+/* 실행/중지 버튼 — financeBtn과 동일한 폭감으로(요청), 나란히 있을 땐 반반 나눠 채움 */
+.extractActions {
+  display: flex;
+  gap: 8px;
+}
+.extractActions > button {
+  flex: 1;
+}
+
+.extractHint {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.extractResult {
+  font-size: 0.7rem;
+  color: var(--text-sub);
+}
+
+.extractResultError {
+  font-size: 0.7rem;
+  color: var(--danger, #e63312);
+  word-break: break-all;
+}
+
+/* ⚙ 드롭다운 밖에서도 보이는 "추출 중" 배지 — 닫아도 진행 상황을 놓치지 않게(2026-09-23) */
+.extractRunningBadge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-btn);
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.25);
+  color: rgba(255,255,255,0.9);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.extractRunningBadge:hover {
+  background: rgba(255,255,255,0.22);
+}
+
+.extractSpinner {
+  display: inline-block;
+  width: 10px; height: 10px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: extractSpin 0.7s linear infinite;
+  opacity: 0.85;
+}
+@keyframes extractSpin { to { transform: rotate(360deg); } }
 
 @media (max-width: 640px) {
   .brand { display: none; }

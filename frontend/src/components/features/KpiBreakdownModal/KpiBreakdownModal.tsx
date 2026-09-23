@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom';
-import { Button, CopyText } from '@/components/ui';
+import { Button, CopyText, alertDialog } from '@/components/ui';
 import { useScrollLock } from '@/components/ui/useScrollLock';
 import { useEscToClose } from '@/components/ui/useEscToClose';
 import { useKpiBreakdownViewModel } from '@/hooks/viewmodels/useKpiBreakdownViewModel';
@@ -10,7 +10,7 @@ import BreakdownTable, { type BreakdownColumn } from '@/components/features/Brea
 import styles from './KpiBreakdownModal.module.css';
 
 const openFile = (filename: string) => {
-  openKpiFile(filename).then(r => { if (!r.ok) window.alert(r.message ?? '파일을 열 수 없습니다.'); });
+  openKpiFile(filename).then(r => { if (!r.ok) alertDialog(r.message ?? '파일을 열 수 없습니다.', { error: true }); });
 };
 
 interface Props {
@@ -81,6 +81,7 @@ const KpiBreakdownModal = ({ name, metric, onClose }: Props) => {
               render: r => (
                 <input
                   type="checkbox"
+                  className={styles.includeCheckbox}
                   checked={!r.excluded}
                   disabled={!r.file}
                   title={r.file ? '체크 해제하면 이번 집계에서만 임시로 뺍니다(새로고침하면 복원)' : '파일명이 없어 제외할 수 없습니다'}

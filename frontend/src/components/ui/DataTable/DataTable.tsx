@@ -214,6 +214,10 @@ interface Props<T> {
   /** 결과가 적을 때 테이블 본문이 확보하는 최소 행 수(기본 5) — 검색 결과 패널처럼
    *  1~2건만 나와도 본문이 너무 작아 보이지 않아야 할 때 올려서 쓴다 */
   minRows?:           number;
+  /** false면 본문 영역의 자체 스크롤(overflow:auto + min-height 예약)을 끄고 내용
+   *  높이만큼만 자연스럽게 렌더 — 페이지 안에 짧게 끼워 넣는 결과 패널처럼 테이블
+   *  자체가 스크롤 영역을 가질 필요 없을 때(기본 true, 2026-09-22) */
+  scrollable?:        boolean;
   searchable?:        boolean;
   searchPlaceholder?: string;
   stickyFirstCol?:    boolean;
@@ -289,6 +293,7 @@ const DataTable = <T extends object>({
   defaultPageSize   = 30,
   pageSizeOptions   = DEFAULT_PAGE_SIZES,
   minRows           = MIN_TABLE_ROWS,
+  scrollable        = true,
   searchable        = false,
   searchPlaceholder = '검색… (Esc: 초기화)',
   stickyFirstCol    = false,
@@ -747,7 +752,7 @@ const DataTable = <T extends object>({
           <span>{emptyDescription}</span>
         </div>
       ) : (
-        <div ref={scrollWrapRef} className={`${styles.scroll} ${isFetching ? styles.fetching : ''}`}>
+        <div ref={scrollWrapRef} className={`${styles.scroll} ${isFetching ? styles.fetching : ''} ${!scrollable ? styles.noScroll : ''}`}>
           {/* DndContext를 table 바깥으로 — thead 안에 div 자식이 생기는 HTML 오류 방지 */}
           <DndContext
             sensors={dndSensors}
@@ -760,6 +765,7 @@ const DataTable = <T extends object>({
               storageKey ? styles.tableFixed : '',
               stickyFirstCol ? styles.stickyFirst : '',
               staticColShade === 'soft' ? styles.staticColSoft : '',
+              !scrollable ? styles.tableNoMinWidth : '',
             ].filter(Boolean).join(' ')}
             /* compact는 인라인 px 폭을 안 줌 — .table의 width:100% CSS가 그대로 적용돼
                테이블이 항상 부모 폭에 정확히 맞춰짐. table-layout:fixed에서 각 th의 px 폭은

@@ -6,6 +6,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Spinner } from '@/components/ui';
 import { queryClient } from '@/hooks/queryClient';
 import './index.css';
+import 'sweetalert2/dist/sweetalert2.min.css';
 import App from './App';
 
 createRoot(document.getElementById('root')!).render(
