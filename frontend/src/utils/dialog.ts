@@ -2,8 +2,16 @@
 // 대체하는 UI 다이얼로그라 그 자체가 사이드이펙트다. hooks/(useOpenFile 등)부터 features/layouts까지
 // 전부 호출해야 해서 레이어 체인상 가장 앞쪽(hooks보다 왼쪽)인 여기 두는 게 유일하게 역방향 의존
 // 없이 모두가 쓸 수 있는 위치 — components/ui/에 두면 hooks/ → ui/ 역방향 참조가 됨(2026-09-23).
-import Swal from 'sweetalert2';
+import SwalBase from 'sweetalert2';
 import styles from './dialog.module.css';
+
+// 다이얼로그 열 때 화면이 옆으로 밀리고 다시 그려지던(reflow/repaint) 문제 — SweetAlert2 기본값 두 개가 원인:
+//  · scrollbarPadding: body에 스크롤바 폭만큼 padding-right를 더함. 그런데 index.css의
+//    `html { scrollbar-gutter: stable }`가 이미 그 자리를 예약해 둬서 이중 보정 → 헤더·본문이 옆으로 밀림
+//    (useScrollLock에서 같은 이유로 보정을 뺀 것과 동일, 2026-09-17)
+//  · heightAuto: html/body에 height:auto !important 클래스를 붙였다 뗌 → 페이지 전체 재배치
+// 모든 confirm/alert/prompt/toast가 이 인스턴스를 쓰도록 mixin으로 한 곳에서 끔(2026-09-28)
+const Swal = SwalBase.mixin({ scrollbarPadding: false, heightAuto: false });
 
 const customClass = {
   popup:         styles.popup,
@@ -99,7 +107,9 @@ interface ToastOptions {
  */
 export const toast = (message: string, opts: ToastOptions = {}): void => {
   if (Swal.isVisible() && !Swal.getPopup()?.classList.contains('swal2-toast')) return;
-  void Swal.fire({
+  // 토스트는 스크롤 잠금·height 조정을 안 하는 데다 heightAuto를 넘기면 호환 안 되는 옵션이라고
+  // 콘솔 경고가 떠서 mixin 말고 원본 인스턴스로
+  void SwalBase.fire({
     toast: true,
     position: 'top-end',
     icon: opts.error ? 'error' : 'success',

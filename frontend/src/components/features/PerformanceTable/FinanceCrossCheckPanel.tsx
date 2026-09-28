@@ -3,7 +3,8 @@ import { DataTable, Button, Spinner, CopyText } from '@/components/ui';
 import { useFinanceCrossCheckViewModel } from '@/hooks/viewmodels';
 import { useUiStore } from '@/store';
 import type { Project } from '@/types/finance.types';
-import { buildFinanceColumns, downloadFinanceCsv } from './financeColumns';
+// downloadFinanceCsv — 재무 이력 CSV 버튼 주석 처리로 미사용(2026-09-28). 복구 시 버튼과 함께 해제
+import { buildFinanceColumns /*, downloadFinanceCsv */ } from './financeColumns';
 import styles from './FinanceCrossCheckPanel.module.css';
 
 interface Props {
@@ -51,11 +52,13 @@ const FinanceCrossCheckPanel = ({ projectCode, onClose }: Props) => {
           {/* 프로젝트코드 클릭 → 클립보드 복사 (1depth 테이블과 동일 동작) */}
           <CopyText text={projectCode} className={styles.code} />
         </div>
-        {/* 이 표는 title이 없어 DataTable toolbarExtra(제목줄 슬롯)가 렌더되지 않음 — CSV는 패널 헤더에 */}
         <div className={styles.headerRight}>
+          {/* CSV 다운로드 — 일단 주석 처리(2026-09-28 요청). 복구 시 위 downloadFinanceCsv import도 해제.
+              이 표는 title이 없어 DataTable toolbarExtra(제목줄 슬롯)가 렌더되지 않아 패널 헤더에 둠
           <Button variant="success" size="sm" onClick={() => downloadFinanceCsv(`재무이력_${projectCode}`, sorted)} disabled={isLoading || isAmbiguous || sorted.length === 0}>
             ↓ CSV
           </Button>
+          */}
           <Button unstyled className={styles.closeBtn} onClick={onClose} aria-label="닫기">×</Button>
         </div>
       </div>

@@ -1,5 +1,22 @@
 # 세션 진행 기록
 
+## [2026-09-28 오후 4] 다이얼로그 화면 튐 수정 + 차트 다크모드 글자색 + 재무 이력 CSV 주석
+
+- **확인/알림 다이얼로그(CSV 다운로드 확인 등) 열 때 reflow·repaint** — SweetAlert2 기본값 `scrollbarPadding`
+  (body padding-right 추가 → `html{scrollbar-gutter:stable}`와 이중 보정)·`heightAuto`(html/body height:auto 클래스)가
+  원인. `utils/dialog.ts`에서 `Swal.mixin({ scrollbarPadding:false, heightAuto:false })`로 전체 끔(토스트는 원본 인스턴스)
+- 파트별 추정 매출/원가: 다크 모드 x축 파트명 흰색(라이트는 그대로) / ⤢ 확대 모달 범례(매출·원가·매출 계획·원가 계획)가
+  직접 만든 LegendItem에 `fontColor`가 없어 검정으로 그려지던 것 → 테마 기본색
+- 재무 이력(2뎁스) 패널 `↓ CSV` 버튼 주석 처리(요청) — 복구 시 `downloadFinanceCsv` import도 함께 해제
+- 책임님 `0e18468 ai` 머지(`3f0d763`) 후 대조: 우리 커밋 파일 34개 전부 유지, package-lock은 sweetalert2
+  resolved URL 한 줄만 책임님 쪽 반영(driver.js 유지)
+- 데이터 이상 `!` 배지가 안 보이는 건 정상 — 재무 240행 기준 코드 충돌·불일치·완료보고 이상 모두 0건(09-23 재추출 후)
+
+build·vitest(64/64) 통과. 다크 x축·범례는 캡처 확인, 다이얼로그는 swal2-height-auto 미부착 확인
+(헤드리스는 스크롤바 폭 0이라 padding 차이는 실제 브라우저에서 육안 확인 필요)
+
+---
+
 ## [2026-09-28 오후 3] 사용법 투어(driver.js) — 전체 한 바퀴
 
 - **`components/features/ProductTour/`** 신설 — driver.js 1.8(설치만 돼 있던 것)로 14단계 투어:

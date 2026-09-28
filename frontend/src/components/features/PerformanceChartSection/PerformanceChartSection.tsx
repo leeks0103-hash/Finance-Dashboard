@@ -534,10 +534,11 @@ const PerformanceChartSection = () => {
       },
     }), scaleOverride),
     scales: {
-      x: { ...scaleOverride.x, stacked: false, offset: true, ticks: { ...scaleOverride.x.ticks, align: 'center' as const } },
+      // x축 파트명 — 다크 모드에선 흰색(공통 tickColor Sand가 어두운 배경에서 흐려 보임), 라이트는 공통값 유지
+      x: { ...scaleOverride.x, stacked: false, offset: true, ticks: { ...scaleOverride.x.ticks, align: 'center' as const, color: dark ? '#FFFFFF' : tickColor } },
       y: { ...scaleOverride.y, ticks: { ...scaleOverride.y.ticks, callback: (v: string | number) => v + '억' } },
     },
-  }), [vm.showLabels, labelColor, scaleOverride]);
+  }), [vm.showLabels, labelColor, scaleOverride, dark, tickColor]);
 
   // "파트별 추정 매출/원가" 확대 모달 전용 — 차트 밑에 원본 수치 표를 같이 보여줘서
   // 막대를 하나씩 클릭하지 않아도 전체 파트를 한 번에 검증할 수 있게 함 (2026-09-15 시범)
@@ -690,14 +691,17 @@ const PerformanceChartSection = () => {
             ...partRevCostOptions.plugins?.legend,
             labels: {
               generateLabels: (chart: Chart) => {
+                // 항목을 직접 만들면 fontColor가 비어 Chart.js가 검정으로 그림 → 다크 모드에서 안 보였음.
+                // 카드 범례(기본 generateLabels)와 같은 테마 기본색(chart.options.color = useChartTheme)으로
+                const fontColor = chart.options.color as string;
                 const barItems: LegendItem[] = chart.data.datasets.map((ds, i) => {
                   const meta = chart.getDatasetMeta(i);
                   const bg = Array.isArray(ds.backgroundColor) ? (ds.backgroundColor[0] as string) : (ds.backgroundColor as string);
-                  return { text: ds.label ?? '', datasetIndex: i, fillStyle: bg, strokeStyle: bg, lineWidth: 0, hidden: !!meta.hidden } as LegendItem;
+                  return { text: ds.label ?? '', datasetIndex: i, fillStyle: bg, strokeStyle: bg, lineWidth: 0, hidden: !!meta.hidden, fontColor } as LegendItem;
                 });
                 const planItems: LegendItem[] = [
-                  { text: '매출 계획', datasetIndex: -1, fillStyle: palette.planRevenue, strokeStyle: palette.planRevenue, lineWidth: 0, hidden: !showPlanRevenue } as LegendItem,
-                  { text: '원가 계획', datasetIndex: -2, fillStyle: palette.planCost, strokeStyle: palette.planCost, lineWidth: 0, hidden: !showPlanCost } as LegendItem,
+                  { text: '매출 계획', datasetIndex: -1, fillStyle: palette.planRevenue, strokeStyle: palette.planRevenue, lineWidth: 0, hidden: !showPlanRevenue, fontColor } as LegendItem,
+                  { text: '원가 계획', datasetIndex: -2, fillStyle: palette.planCost, strokeStyle: palette.planCost, lineWidth: 0, hidden: !showPlanCost, fontColor } as LegendItem,
                 ];
                 return [...barItems, ...planItems];
               },
