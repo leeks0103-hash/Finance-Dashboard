@@ -10,7 +10,7 @@ import styles from './KpiActionBar.module.css';
 const KpiActionBar = () => {
   const { data: files, isLoading } = useDownloadFiles();
   return (
-    <div className={styles.bar}>
+    <div className={styles.bar} data-tour="actions">
       <AiInsightWidget aiTab="kpi" />
       <DownloadMenu
         items={files ?? []}

@@ -768,6 +768,16 @@ _PERF_BREAKDOWN = {
              "field_desc": "매출행의 월별 실적 점검 열(엑셀 BI~BT = 1~12월)"},
             {"label": "원가", "category": "원가", "field": "chk_m{mm}",
              "field_desc": "원가행의 월별 실적 점검 열(엑셀 BI~BT = 1~12월)"},
+            # 2~4 = 확대 모달 월별 표의 손익·누계 컬럼 전용(차트 막대는 0/1만 씀, 2026-09-28).
+            # signs: 카테고리별 부호(매출 +, 원가 −) — 둘 이상이면 프로젝트별로 묶어 순액 표시
+            # cumulative: 1월 ~ 선택 월까지 합산
+            {"label": "손익", "category": "매출", "signs": {"매출": 1, "원가": -1}, "field": "chk_m{mm}",
+             "field_desc": "매출행 − 원가행의 해당 월 실적 점검 열(엑셀 BI~BT)"},
+            {"label": "누계매출", "category": "매출", "cumulative": True, "field": "chk_m{mm}",
+             "field_desc": "매출행의 1월 ~ 해당 월 실적 점검 열 합(엑셀 BI~BT)"},
+            {"label": "누계손익", "category": "매출", "signs": {"매출": 1, "원가": -1}, "cumulative": True,
+             "field": "chk_m{mm}",
+             "field_desc": "(매출행 − 원가행)의 1월 ~ 해당 월 실적 점검 열 합(엑셀 BI~BT)"},
         ],
     },
     "planVsActual": {
@@ -851,15 +861,18 @@ def api_perf_summary_breakdown():
     if not spec or not (0 <= series_idx < len(spec["series"])):
         return jsonify({"available": False, "message": f"알 수 없는 차트/시리즈: {chart} / {series_idx}"})
 
-    s     = spec["series"][series_idx]
-    field = s["field"]
+    s      = spec["series"][series_idx]
+    fields = [s["field"]]
+    signs  = s.get("signs") or {s["category"]: 1}
 
     if spec["dim"] == "month":
         m = re.match(r"(\d+)", key)
         if not m:
             return jsonify({"available": False, "message": f"월 형식 오류: {key}"})
-        field = field.format(mm=f"{int(m.group(1)):02d}")
-        sub   = df[df["category"] == s["category"]]
+        mm     = int(m.group(1))
+        months = range(1, mm + 1) if s.get("cumulative") else [mm]
+        fields = [s["field"].format(mm=f"{k:02d}") for k in months]
+        sub    = df[df["category"].isin(signs.keys())]
         key_label = key
     elif spec["dim"] == "part":
         stripped  = df["part"].astype(str).apply(lambda p: _PART_PREFIX_RE.sub("", p).strip())
@@ -869,24 +882,35 @@ def api_perf_summary_breakdown():
         sub       = df[df["category"] == s["category"]]
         key_label = s["label"]
 
-    if field not in sub.columns:
-        return jsonify({"available": False, "message": f"'{field}' 컬럼을 찾을 수 없습니다."})
+    missing = [f for f in fields if f not in sub.columns]
+    if missing:
+        return jsonify({"available": False, "message": f"'{missing[0]}' 컬럼을 찾을 수 없습니다."})
 
-    raw_sum  = 0.0
-    rows_out = []
+    # 부호가 섞이면(손익 = 매출 − 원가) 같은 프로젝트의 매출행·원가행을 한 줄 순액으로 묶음 —
+    # 안 묶으면 한 프로젝트가 +/− 두 줄로 쪼개져 읽기 어려움. 단일 카테고리는 기존대로 행 단위
+    merge  = len(signs) > 1
+    raw_sum = 0.0
+    acc: dict = {}
     for _, r in sub.iterrows():
-        raw = r.get(field)
-        v   = float(raw) if pd.notna(raw) else 0.0
+        v = sum(float(r.get(f)) for f in fields if pd.notna(r.get(f))) * signs[r["category"]]
         if v == 0:
             continue
         raw_sum += v
-        rows_out.append({
+        info = {
             "project_code": str(r.get("project_code", "")).strip(),
             "project_name": str(r.get("project_name", "")).strip(),
             "part":  str(r.get("part", "")).strip(),
             "team":  str(r.get("team", "")).strip(),
-            "value": round(v / 100_000, 1),   # 천원 → 억
-        })
+        }
+        k = (info["project_code"], info["project_name"]) if merge else len(acc)
+        if k in acc:
+            acc[k]["raw"] += v
+        else:
+            acc[k] = {**info, "raw": v}
+    rows_out = [
+        {**{kk: vv for kk, vv in a.items() if kk != "raw"}, "value": round(a["raw"] / 100_000, 1)}   # 천원 → 억
+        for a in acc.values() if a["raw"] != 0   # 매출·원가가 정확히 상쇄된 프로젝트는 제외
+    ]
     rows_out.sort(key=lambda x: x["value"], reverse=True)
 
     return jsonify({

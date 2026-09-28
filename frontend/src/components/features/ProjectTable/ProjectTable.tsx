@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useProjectTableViewModel } from '@/hooks/viewmodels';
 import { DataTable } from '@/components/ui';
 import { useUiStore } from '@/store';
@@ -11,7 +12,12 @@ const HIDEABLE: { id: string; label: string }[] = [
   { id: 'filename',    label: '원본파일명' },
 ];
 
-const ProjectTable = () => {
+interface Props {
+  /** 제목줄("프로젝트 재무 상세") 오른쪽 끝 슬롯 — 재무 데이터 확인 모달의 CSV 버튼 */
+  toolbarExtra?: ReactNode;
+}
+
+const ProjectTable = ({ toolbarExtra }: Props) => {
   const vm = useProjectTableViewModel();
   const rawValues = useUiStore(s => s.showRawValues);
 
@@ -22,6 +28,7 @@ const ProjectTable = () => {
       getRowId={(row) => String(row._row_num)}
       stickyFirstCol
       title="프로젝트 재무 상세"
+      toolbarExtra={toolbarExtra}
       meta={{ rawValues }}
       isLoading={vm.isLoading}
       isFetching={vm.isFetching}
@@ -35,6 +42,7 @@ const ProjectTable = () => {
       emptyDescription="다른 검색어나 필터 조건을 시도해보세요."
       initialColumnVisibility={{ filename: true }}
       storageKey="finance-project"
+      sizeVersion={2}   // columns.tsx 기본 폭 변경(2026-09-28) — 저장된 옛 폭 1회 무효화
       searchOnDblClick={['project_code']}
     />
   );

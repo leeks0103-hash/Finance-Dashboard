@@ -14,6 +14,10 @@
  *   costOverhead — 원가구성 도넛: 공통원가 (Sky Blue)
  *   costMgmt     — 원가구성 도넛: 관리비 (Hyundai Gold — 파랑 3톤과 구분되는 유일한 브랜드색)
  *   plan         — 계획·목표 등 비교 기준선 계열 (Sand/블루그레이 중립 — 실적 계열과 겹치지 않게)
+ *   planRevenue  — "파트별 추정 매출/원가" 확대 모달 전용 매출 계획선 (매출과 같은 파랑 계열, 밝기만 다르게)
+ *   planCost     — 같은 모달 전용 원가 계획선 (원가와 같은 Gold 계열, 라이트=훨씬 진하게 / 다크=훨씬 밝게)
+ *                  — 막대와 완전히 같은 색이면 계획 < 실적인 파트에서 선이 막대 안에 묻혀 안 보임.
+ *                    대조 대상을 색 계열로 알아보면서 막대 위에서도 구분되게 하려는 이 차트만의 예외
  */
 export interface ChartPalette {
   revenue:      string;
@@ -26,6 +30,8 @@ export interface ChartPalette {
   costOverhead: string;
   costMgmt:     string;
   plan:         string;
+  planRevenue:  string;
+  planCost:     string;
 }
 
 /** 데이터 시리즈 색과 별개로, 축 눈금·격자선·데이터라벨 텍스트에 쓰는 차트 "크롬" 색 — 3탭 공용 */
@@ -33,16 +39,20 @@ export interface ChartTheme {
   labelColor: string;
   gridColor:  string;
   tickColor:  string;
+  /** 카드 배경(--surface)과 같은 색 — 수치 라벨 뒤에 깔아 선·막대가 글자를 관통하지 않게 가릴 때 */
+  surfaceColor: string;
 }
 
 export const getChartTheme = (dark: boolean): ChartTheme => dark ? {
   labelColor: 'rgba(228,220,211,0.95)',  /* Hyundai Sand */
   gridColor:  'rgba(60,90,120,0.45)',    /* Blue-tinted grid */
   tickColor:  'rgba(228,220,211,0.90)',  /* Hyundai Sand */
+  surfaceColor: '#0E2038',               /* index.css 다크 --surface */
 } : {
   labelColor: '#002C5F',                 /* Hyundai Blue */
   gridColor:  'rgba(0,44,95,0.08)',      /* Hyundai Blue 연하게 */
   tickColor:  '#002C5F',                 /* Hyundai Blue */
+  surfaceColor: '#FFFFFF',               /* index.css 라이트 --surface */
 };
 
 // fadeAlpha(PerformanceChartSection)가 마지막 숫자를 정규식으로 치환하는 방식이라
@@ -62,6 +72,8 @@ export const getChartPalette = (dark: boolean): ChartPalette => dark ? {
   costOverhead: 'rgba(170,202,230,1)',  /* Sky Blue */
   costMgmt:     'rgba(199,148,113,1)',  /* Hyundai Gold tint */
   plan:         'rgba(159,179,196,0.55)', /* 블루그레이 중립 — 계획·목표 */
+  planRevenue:  'rgba(170,202,230,1)',  /* Sky Blue — revenue tint보다 밝게 */
+  planCost:     'rgba(245,225,205,1)',  /* Hyundai Gold 아주 밝은 파생 — cost tint(중간 밝기)와 밝기 차 크게 */
 } : {
   revenue:      'rgba(0,44,95,1)',      /* Hyundai Blue */
   cost:         'rgba(163,107,79,1)',   /* Hyundai Gold */
@@ -73,4 +85,6 @@ export const getChartPalette = (dark: boolean): ChartPalette => dark ? {
   costOverhead: 'rgba(170,202,230,1)',  /* Sky Blue */
   costMgmt:     'rgba(163,107,79,1)',   /* Hyundai Gold */
   plan:         'rgba(107,98,87,0.45)',  /* Sand 계열 중립 — 계획·목표 */
+  planRevenue:  'rgba(0,170,210,1)',    /* Active Blue — Hyundai Blue 막대 위에서도 보이게 */
+  planCost:     'rgba(92,54,34,1)',     /* Hyundai Gold 진한 파생 — Gold 막대보다 확실히 어둡게(밝은 톤은 막대와 구분 안 됨) */
 };

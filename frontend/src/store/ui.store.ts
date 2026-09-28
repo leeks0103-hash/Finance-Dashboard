@@ -17,6 +17,11 @@ interface UiStore {
    *  것처럼 보이지 않도록. key는 useAiAnalysis의 AiTab('finance'|'kpi') */
   aiTriggered: Record<string, boolean>;
   setAiTriggered: (tab: string) => void;
+
+  /** 사용법 투어(driver.js)를 본 적 있는지 — 첫 방문 1회 자동 실행 판별용.
+   *  배포 전이라 사용자 계정으로 구분할 수 없어 임시로 브라우저(localStorage) 기준 */
+  tourSeen: boolean;
+  markTourSeen: () => void;
 }
 
 export const useUiStore = create<UiStore>()(
@@ -33,11 +38,14 @@ export const useUiStore = create<UiStore>()(
 
       aiTriggered: {},
       setAiTriggered: (tab) => set(s => ({ aiTriggered: { ...s.aiTriggered, [tab]: true } })),
+
+      tourSeen: false,
+      markTourSeen: () => set({ tourSeen: true }),
     }),
     {
       name: 'ui-store',
-      // 그래프 수치·표 실제값 표시 여부만 테마처럼 로컬에 저장 — 나머지는 세션 한정
-      partialize: (s) => ({ showChartLabels: s.showChartLabels, showRawValues: s.showRawValues }),
+      // 그래프 수치·표 실제값 표시 여부·투어 시청 여부만 로컬에 저장 — 나머지는 세션 한정
+      partialize: (s) => ({ showChartLabels: s.showChartLabels, showRawValues: s.showRawValues, tourSeen: s.tourSeen }),
     },
   ),
 );

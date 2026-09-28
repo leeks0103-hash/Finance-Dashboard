@@ -86,3 +86,27 @@ export const promptDialog = async (message: string, opts: PromptOptions = {}): P
   const value = String(res.value ?? '').trim();
   return value || null;
 };
+
+interface ToastOptions {
+  /** true면 오류 아이콘으로 표시 */
+  error?: boolean;
+}
+
+/**
+ * 우측 상단 토스트 — 확인 버튼 없이 3초 뒤 사라짐. 백그라운드 작업(AI 분석 등) 완료 알림용.
+ * SweetAlert2는 한 번에 팝업 1개만 띄울 수 있어서, 확인/알림 다이얼로그가 열려 있을 땐 토스트를
+ * 생략한다 — 그대로 띄우면 열린 다이얼로그가 닫히며 confirmDialog가 "취소"로 resolve됨
+ */
+export const toast = (message: string, opts: ToastOptions = {}): void => {
+  if (Swal.isVisible() && !Swal.getPopup()?.classList.contains('swal2-toast')) return;
+  void Swal.fire({
+    toast: true,
+    position: 'top-end',
+    icon: opts.error ? 'error' : 'success',
+    title: message,
+    showConfirmButton: false,
+    timer: 3000,
+    timerProgressBar: true,
+    customClass: { popup: styles.toast, title: styles.toastTitle },
+  });
+};

@@ -13,7 +13,7 @@ const PerformanceActionBar = () => {
   const { data: files, isLoading } = useDownloadFiles();
 
   return (
-    <div className={styles.bar}>
+    <div className={styles.bar} data-tour="actions">
       <AiInsightWidget aiTab="finance" />
       <DownloadMenu
         items={files ?? []}

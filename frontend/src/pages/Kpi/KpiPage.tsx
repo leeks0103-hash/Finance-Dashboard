@@ -158,7 +158,7 @@ const KpiPage = () => {
     <main className={styles.mainFull}>
 
       {/* KPI 목표 vs 실적 차트 — 제목줄 안에 파트 필터(A). 이 필터는 차트 + KPI 집계 표에만 적용 */}
-      <FadeInSection delay={0}>
+      <FadeInSection delay={0} tourId="kpi-chart">
           <ChartCard compact={false}>
             <ChartCard.Title>
               <div className={styles.titleWithFilter}>
@@ -206,7 +206,7 @@ const KpiPage = () => {
       </FadeInSection>
 
       {/* KPI 집계 — 검색·정렬 활성화 */}
-      <FadeInSection delay={100}>
+      <FadeInSection delay={100} tourId="kpi-summary">
           <DataTable<KpiSummaryRow>
             data={vm.summaryRows}
             columns={summaryColumns as never}
@@ -225,7 +225,7 @@ const KpiPage = () => {
       </FadeInSection>
 
       {/* KPI 취합 — flat / rowspan 토글 (툴바에 통합) */}
-      <FadeInSection delay={200}>
+      <FadeInSection delay={200} tourId="kpi-raw">
           {vm.anomalyCount > 0 && (
             <div className={styles.anomalyBanner}>
               <span className={styles.anomalyIcon}>⚠</span>

@@ -19,6 +19,20 @@ const toEokNum = (v: number | null | undefined) =>
 const CURRENT_MONTH_NUM = parseInt(PERF_MONTH, 10);
 const isFutureMonth = (label: string) => parseInt(label, 10) > CURRENT_MONTH_NUM;
 
+/**
+ * "월별 실적 추이" 확대 모달 표 한 행(억). 손익·누계는 반올림된 월 값이 아니라 원금액(천원)으로
+ * 계산한 뒤 변환 — 셀 클릭 산출 근거 모달(백엔드 raw 합계 후 반올림)의 합계와 0.1억도 안 어긋나게
+ * (2026-09-28, 예전엔 컴포넌트에서 반올림 값끼리 더해서 2월 누계매출 15.7 vs 산출 15.8)
+ */
+export interface MonthlyTableRow {
+  month:      string;
+  revenue:    number;
+  cost:       number;
+  profit:     number;
+  cumRevenue: number;
+  cumProfit:  number;
+}
+
 export interface PerformanceChartViewModel {
   isLoading:  boolean;
   isError:    boolean;
@@ -30,6 +44,7 @@ export interface PerformanceChartViewModel {
     revenues: number[];
     costs:    number[];
     isFuture: boolean[];
+    rows:     MonthlyTableRow[];
     options:  ChartOptions<'bar'>;
   };
   planVsActual: {
@@ -186,6 +201,22 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
         revenues: monthly.map(m => toEokNum(m.revenue)),
         costs:    monthly.map(m => toEokNum(m.cost)),
         isFuture: monthly.map(m => isFutureMonth(m.month)),
+        rows: (() => {
+          let cumRev = 0;
+          let cumCost = 0;
+          return monthly.map(m => {
+            cumRev += m.revenue;
+            cumCost += m.cost;
+            return {
+              month:      m.month,
+              revenue:    toEokNum(m.revenue),
+              cost:       toEokNum(m.cost),
+              profit:     toEokNum(m.revenue - m.cost),
+              cumRevenue: toEokNum(cumRev),
+              cumProfit:  toEokNum(cumRev - cumCost),
+            };
+          });
+        })(),
       },
       planVsActual: {
         labels:        parts.map(stripPartPrefix),
@@ -263,7 +294,7 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
   if (!chartData || isLoading) {
     return {
       isLoading, isError, isEmpty: false, showLabels, labelColor,
-      monthly:          { labels: [], revenues: [], costs: [], isFuture: [], options: monthlyOptions },
+      monthly:          { labels: [], revenues: [], costs: [], isFuture: [], rows: [], options: monthlyOptions },
       planVsActual:     { labels: [], planInitial: [], junCheckTotal: [], options: planVsActualOptions },
       profitRate:       { labels: [], rates: [], profits: [], isProfit: [], revenues: [], costs: [], planRevenue: [], planCost: [], options: profitRateOptions },
       costBreakdown:    { labels: [], values: [] },

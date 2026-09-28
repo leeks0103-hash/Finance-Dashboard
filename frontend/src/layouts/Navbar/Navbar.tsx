@@ -6,6 +6,7 @@ import type { TabId } from '@/components/ui/TabNav/TabNav';
 import KpiActionBar from '@/components/features/KpiActionBar';
 import PerformanceActionBar from '@/components/features/PerformanceActionBar';
 import FinanceDataModal from '@/components/features/FinanceDataModal';
+import { useProductTour } from '@/components/features/ProductTour';
 import NgvLogo from './NgvLogo';
 import { useTheme } from '@/hooks';
 import { useDataHealth } from '@/hooks/useDataHealth';
@@ -38,6 +39,8 @@ const Navbar = () => {
   const { showChartLabels, toggleChartLabels, showRawValues, toggleRawValues } = useUiStore();
   const [open, setOpen] = useState(false);
   const [financeModalOpen, setFinanceModalOpen] = useState(false);
+  // 사용법 투어 — 첫 방문 1회 자동 실행(localStorage 기준), 이후엔 아래 설정 메뉴에서
+  const tour = useProductTour();
   // PPT 데이터 추출 — 권한(EXTRACT_ADMIN_KEY) 통과한 사람에게만 보임(useExtractJob 참고)
   const [extractTargets, setExtractTargets] = useState<ExtractTarget[]>(['finance', 'kpi']);
   const [extractMode, setExtractMode] = useState<ExtractMode>('incremental');
@@ -50,13 +53,13 @@ const Navbar = () => {
   // prompt 2번(키/이름) + 틀렸을 때 alert 1번 → prompt 1번 + 인라인 에러텍스트로 축소
   // (2026-09-23, "알럿창 컨펌창 토스트창 감당 안 되네" 피드백)
   const handleExtractAuth = async () => {
-    const input = await promptDialog('이름/키를 입력하세요', { placeholder: '홍길동/hmc-extract-2026' });
+    const input = await promptDialog('이름/키를 입력하세요', { placeholder: '홍길동/발급받은 키' });
     if (!input) return;
     const slash = input.indexOf('/');
     const name = (slash === -1 ? '' : input.slice(0, slash)).trim();
     const key = (slash === -1 ? input : input.slice(slash + 1)).trim();
     const ok = await extractJob.authenticate({ key, name });
-    setExtractAuthError(ok ? '' : '이름/키 형식이 올바르지 않습니다 (예: 홍길동/hmc-extract-2026)');
+    setExtractAuthError(ok ? '' : '이름 또는 키가 올바르지 않습니다 (예: 홍길동/발급받은 키)');
   };
   const handleExtractRun = async () => {
     if (extractTargets.length === 0 || extractLocked) return;
@@ -120,7 +123,7 @@ const Navbar = () => {
         </div>
 
         {/* 중앙 — 탭 네비게이션 */}
-        <nav className={styles.center}>
+        <nav className={styles.center} data-tour="tabs">
           <TabNav active={activeTab} onChange={setTab} />
         </nav>
 
@@ -133,6 +136,7 @@ const Navbar = () => {
           <div
             className={styles.health}
             ref={healthRef}
+            data-tour="health"
             style={{ visibility: healthTotal > 0 ? 'visible' : 'hidden' }}
             aria-hidden={healthTotal === 0}
           >
@@ -278,7 +282,7 @@ const Navbar = () => {
             </Button>
           )}
 
-          <div className={styles.settings} ref={ref}>
+          <div className={styles.settings} ref={ref} data-tour="settings">
           <Button unstyled
             className={styles.settingsBtn}
             onClick={() => setOpen(v => !v)}
@@ -342,11 +346,25 @@ const Navbar = () => {
 
               <div className={styles.divider} />
 
+              <div className={styles.section}>
+                <span className={styles.sectionLabel}>도움말</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={styles.financeBtn}
+                  onClick={() => { setOpen(false); tour.start(); }}
+                >
+                  사용방법(튜토리얼)
+                </Button>
+              </div>
+
+              <div className={styles.divider} />
+
               {/* PPT → 엑셀 추출 스크립트를 직접 실행 — 예전엔 별도 관리자 GUI(schedule_table,
                   포트 5500)에서만 가능했음. 아직 배포 전이라 권한(EXTRACT_ADMIN_KEY) 있는 사람
                   (본인 + 책임님)에게만 노출(2026-09-23 요청) — 인증 전엔 버튼 하나만 보임 */}
               <div className={styles.section}>
-                <span className={styles.sectionLabel}>PPT 데이터 추출</span>
+                <span className={styles.sectionLabel}>관리자용 기능</span>
 
                 {!extractJob.isAuthed ? (
                   <>
