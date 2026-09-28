@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 from flask import Blueprint, jsonify, request, make_response
 from markupsafe import escape as html_escape
 
-from shared import is_ranked_valid_code, is_file_locked
+from shared import is_ranked_valid_code, is_file_locked, new_excel_app
 import paths
 
 load_dotenv()
@@ -91,7 +91,7 @@ def _read_excel_via_com(path: str, sheet_name: str) -> "pd.DataFrame | None":
     wb_com = None
     try:
         pythoncom.CoInitialize()
-        xl_app = win32com.client.DispatchEx("Excel.Application")
+        xl_app = new_excel_app()   # 깨진 gen_py 캐시 자가 복구 후 DispatchEx — shared.new_excel_app 참고
         xl_app.Visible = False
         xl_app.DisplayAlerts = False
 

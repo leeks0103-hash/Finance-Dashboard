@@ -6,7 +6,7 @@ import {
 } from 'chart.js';
 import type { ChartData, ChartDataset, ChartOptions, ChartEvent, ActiveElement, Plugin } from 'chart.js';
 import { Button } from '@/components/ui/Button';
-// datalabels 등록 + "그래프 수치" 토글 켤 때 숫자 페이드인 (side-effect)
+// datalabels 등록 + "그래프 수치" 토글 켜기/끄기 페이드 (side-effect)
 import '@/utils/datalabelFade';
 import styles from './BarChart.module.css';
 

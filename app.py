@@ -12,7 +12,7 @@ from flask import Flask, jsonify, render_template, request
 from flask.json.provider import DefaultJSONProvider
 from openpyxl import load_workbook
 
-from finance import finance_bp, get_df, load_excel, _sort_stages, _cache_lock, EXCEL_PATH
+from finance import finance_bp, get_df, load_excel, _sort_stages, _cache_lock, EXCEL_PATH, _read_excel_via_com
 from performance import perf_bp
 from kpi import kpi_bp, get_kpi_df, _real_code, KPI_EXCEL_PATH, load_kpi_excel, _kpi_cache_lock
 from downloads import download_bp
@@ -21,6 +21,7 @@ from ai_insight import ai_bp
 load_dotenv()
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+logger = logging.getLogger(__name__)
 
 
 class NumpyJSONProvider(DefaultJSONProvider):
@@ -84,13 +85,15 @@ def api_data_health():
             "kpi_codes": sorted(kset),
         })
 
-    conflicts = _read_code_conflicts()
+    conflicts, read_failures = _read_code_conflicts()
     finished_anomalies = _read_finished_report_anomalies(fin_df)
     return jsonify({
-        "count": len(rows) + len(conflicts) + len(finished_anomalies),
+        "count": len(rows) + len(conflicts) + len(finished_anomalies) + len(read_failures),
         "rows": rows,
         "conflicts": conflicts,
         "finished_anomalies": finished_anomalies,
+        # 코드충돌 시트를 COM으로도 못 읽은 쪽 — "충돌 0건"과 "읽지 못해 모름"을 화면에서 구분
+        "read_failures": read_failures,
     })
 
 
@@ -165,6 +168,48 @@ def _classify_conflict(code: str, fin_df, kpi_df, kpi_code_col: str, kpi_part_co
     return "needs_review", "취합 시트에서 해당 코드를 찾을 수 없음 — 직접 확인 필요"
 
 
+# (경로 → (mtime, 행 목록)) — AIP 암호화 파일은 Excel COM으로 읽어 수 초가 걸리는데 data-health는
+# 클라이언트마다 5분 주기로 불리므로, 파일이 바뀌었을 때만 다시 읽는다
+_conflict_sheet_cache: dict = {}
+
+
+def _read_conflict_sheet(path):
+    """추출 엑셀의 '코드충돌' 시트 데이터 행(헤더 제외)을 튜플 목록으로. 읽기 실패면 None.
+
+    출력 xlsx를 Excel로 한 번 열면 회사 AIP 레이블이 붙어 암호화되는데, 예전엔 openpyxl 실패를
+    조용히 넘겨서 충돌이 있어도 0건 → Navbar "!" 배지가 소리 없이 사라졌음(2026-09-28 발견).
+    이제 암호화면 finance/kpi 본 데이터와 같이 Excel COM으로 우회하고, 그래도 실패하면 경고 로그.
+    """
+    try:
+        mtime = os.path.getmtime(path)
+    except OSError:
+        return []
+    cached = _conflict_sheet_cache.get(path)
+    if cached and cached[0] == mtime:
+        return cached[1]
+
+    rows = None
+    try:
+        wb = load_workbook(path, data_only=True, read_only=True)
+        try:
+            rows = ([tuple(r) for r in wb["코드충돌"].iter_rows(min_row=2, values_only=True)]
+                    if "코드충돌" in wb.sheetnames else [])
+        finally:
+            wb.close()
+    except Exception as e:
+        logger.warning("코드충돌 시트 openpyxl 읽기 실패(AIP 암호화 추정) — Excel COM으로 재시도: %s (%s)", path, e)
+        df = _read_excel_via_com(path, "코드충돌")
+        if df is not None:
+            rows = [tuple(r) for r in df.itertuples(index=False, name=None)]
+
+    if rows is None:
+        # 캐시하지 않음 — 다음 호출에 다시 시도(일시적 COM 실패일 수 있음)
+        logger.warning("코드충돌 시트를 읽지 못함 — 데이터 이상 배지에 '읽기 실패'로 표시: %s", path)
+        return None
+    _conflict_sheet_cache[path] = (mtime, rows)
+    return rows
+
+
 def _read_code_conflicts():
     """추출 스크립트가 남긴 '코드충돌' 시트를 읽어 합치고, 각 건을 자동 분류해서 반환.
 
@@ -180,28 +225,24 @@ def _read_code_conflicts():
     """
     # 충돌은 A→B, B→A 양방향으로 기록되므로 (소스, 코드) 단위로 묶어 관련 파일 집합만 남긴다
     grouped = {}
+    read_failures = []
     for source, path in (("재무", EXCEL_PATH), ("KPI", KPI_EXCEL_PATH)):
-        try:
-            wb = load_workbook(path, data_only=True, read_only=True)
-        except Exception:
+        sheet_rows = _read_conflict_sheet(path)
+        if sheet_rows is None:
+            read_failures.append({"source": source, "file": os.path.basename(str(path))})
             continue
-        try:
-            if "코드충돌" not in wb.sheetnames:
+        for r in sheet_rows:
+            if not r or not r[0]:
                 continue
-            for r in wb["코드충돌"].iter_rows(min_row=2, values_only=True):
-                if not r or not r[0]:
-                    continue
-                # 재무는 (코드,연도,파트,구분,기존,신규,발견일시) / KPI는 (코드,연도,단계,기존,신규,발견일시)
-                existing, new = (r[4], r[5]) if source == "재무" else (r[3], r[4])
-                entry = grouped.setdefault((source, str(r[0])), {
-                    "source": source, "code": str(r[0]), "files": [],
-                })
-                for f in (existing, new):
-                    f = str(f or "").strip()
-                    if f and f not in entry["files"]:
-                        entry["files"].append(f)
-        finally:
-            wb.close()
+            # 재무는 (코드,연도,파트,구분,기존,신규,발견일시) / KPI는 (코드,연도,단계,기존,신규,발견일시)
+            existing, new = (r[4], r[5]) if source == "재무" else (r[3], r[4])
+            entry = grouped.setdefault((source, str(r[0])), {
+                "source": source, "code": str(r[0]), "files": [],
+            })
+            for f in (existing, new):
+                f = str(f or "").strip()
+                if f and f not in entry["files"]:
+                    entry["files"].append(f)
 
     fin_df = get_df()
     kpi_df = get_kpi_df()
@@ -216,7 +257,7 @@ def _read_code_conflicts():
     return sorted(
         grouped.values(),
         key=lambda e: (e["verdict"] != "needs_review", -len(e["files"]), e["code"]),
-    )
+    ), read_failures
 
 
 # ── PPT 데이터 추출(Navbar ⚙ → PPT 데이터 추출) ──────────────────────────

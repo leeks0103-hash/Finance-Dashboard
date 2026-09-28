@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from dotenv import load_dotenv
 from flask import Blueprint, jsonify, request
-from shared import is_file_locked
+from shared import is_file_locked, new_excel_app
 import paths
 
 load_dotenv()
@@ -87,7 +87,7 @@ def _load_kpi_via_com() -> tuple[pd.DataFrame, pd.DataFrame]:
     wb_com = None
     try:
         pythoncom.CoInitialize()
-        xl_app = win32com.client.DispatchEx("Excel.Application")
+        xl_app = new_excel_app()   # 깨진 gen_py 캐시 자가 복구 후 DispatchEx — shared.new_excel_app 참고
         xl_app.Visible = False
         xl_app.DisplayAlerts = False
         wb_com = xl_app.Workbooks.Open(

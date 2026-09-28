@@ -1,5 +1,36 @@
 # 세션 진행 기록
 
+## [2026-09-28 오후 6] 그래프 수치 토글 — 켤 때뿐 아니라 끌 때도 페이드
+
+- 2026-09-10에 "페이드 도중 rAF가 끊기면 라벨이 옅은 채로 굳는다"는 이유로 껐던 켜기 페이드인을
+  재도입하고, 끄기도 대칭으로 페이드아웃 추가. 끊김 문제는 datalabels가 `opacity`를 `afterUpdate`에서만
+  계산하고 `draw`에선 캐시값을 쓰는 걸 원인으로 짚고, 매 프레임 `chart.update('none')`으로 재계산시키는
+  방식(`utils/datalabelFade.ts`)으로 재작성 — 막대 자체 애니메이션은 다시 돌지 않게 `'none'` 모드 사용
+- 켜기: `showChartLabels`를 먼저 true로 바꿔(display:true) 불투명도 0에서 시작해 1로 페이드.
+  끄기: 불투명도를 1→0으로 먼저 끝낸 뒤에 `showChartLabels`를 false로(끊기지 않게 순서 고정)
+- `hooks/useChartLabelToggle.ts` 신규 — 스위치 UI는 store가 아니라 사용자가 누른 의도를 즉시 반영(`checked`
+  state), store는 애니메이션이 끝나는 시점에 맞춰 따라감. Navbar가 이 훅을 통해서만 토글하도록 교체
+  (기존 `ui.store`의 `toggleChartLabels` 직접 호출 제거 — 죽은 코드가 되어 store에서 필드 자체 삭제)
+- `PerformanceChartSection`의 캔버스 직접 그리기 라벨(목표선 수치)도 `getDatalabelAlpha()`로 같은
+  불투명도를 따라가게 `ctx.globalAlpha` 적용 — datalabels 플러그인이 아니라 별도 draw라 자동으로는 안 따라감
+- `prefers-reduced-motion` 켜져 있으면 애니메이션 없이 즉시 전환
+
+tsc·build·vitest(64/64) 통과. shared.py 독스트링의 `\g` 잘못된 이스케이프(SyntaxWarning) 겸사겸사 수정
+
+---
+
+## [2026-09-28 오후 5] 코드충돌 시트 AIP 암호화 우회 + 읽기 실패 배지 표시
+
+- 출력 xlsx에 AIP가 붙으면 `_read_conflict_sheet`가 openpyxl 실패를 조용히 넘겨 충돌 0건 → "!" 배지가
+  소리 없이 사라지던 것 → Excel COM 재시도(finance/kpi와 동일) + mtime 캐시. 깨진 win32com gen_py 캐시 자동 제거(`shared.py`)
+- COM까지 실패하면 `/api/data-health`에 `read_failures: [{source, file}]` 추가, `count`에 포함 →
+  배지 드롭다운 맨 위에 "⚠ 코드충돌 시트를 읽지 못함 · 재무/KPI" 섹션. "0건"과 "못 읽음"이 구분됨
+
+build·vitest(64/64) 통과. 읽기 실패는 `_read_conflict_sheet`를 None으로 바꿔 응답 확인(count 2, 양쪽 표시).
+⚠️ `app.py` 변경 → Flask 서버 재시작 필요
+
+---
+
 ## [2026-09-28 오후 4] 다이얼로그 화면 튐 수정 + 차트 다크모드 글자색 + 재무 이력 CSV 주석
 
 - **확인/알림 다이얼로그(CSV 다운로드 확인 등) 열 때 reflow·repaint** — SweetAlert2 기본값 `scrollbarPadding`

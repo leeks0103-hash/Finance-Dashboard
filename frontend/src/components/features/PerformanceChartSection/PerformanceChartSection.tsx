@@ -27,6 +27,7 @@ import {
 } from '@/utils/infoTexts';
 import type { ChartOptions } from 'chart.js';
 import { stripPartPrefix } from '@/utils/format';
+import { getDatalabelAlpha } from '@/utils/datalabelFade';
 import styles from './PerformanceChartSection.module.css';
 
 // 레이아웃: 월별 실적 추이(전체 너비 1줄) → 파트별 이익율+원가구성(1줄) → 파트별 계획vs실적+진행단계(1줄)
@@ -272,6 +273,7 @@ const drawPlanLabels = (chart: Chart<'bar'>) => {
   if (!opts?.showLabels || !drawn.length) return;
   const { ctx } = chart;
   ctx.save();
+  ctx.globalAlpha = getDatalabelAlpha();   // "그래프 수치" 토글 페이드를 datalabels와 같이 탐
   ctx.font = PLAN_FONT;
   const obstacles = collectObstacles(chart, true);
   const { top } = chart.chartArea;

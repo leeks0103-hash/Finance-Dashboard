@@ -3,7 +3,6 @@ import { persist } from 'zustand/middleware';
 
 interface UiStore {
   showChartLabels: boolean;
-  toggleChartLabels: () => void;
 
   /** 재무·실적 표 금액/비율 셀을 반올림(억/만 축약) 대신 원본 실제값으로 표시 — Navbar 설정에서 토글 */
   showRawValues: boolean;
@@ -28,7 +27,6 @@ export const useUiStore = create<UiStore>()(
   persist(
     set => ({
       showChartLabels: true,
-      toggleChartLabels: () => set(s => ({ showChartLabels: !s.showChartLabels })),
 
       showRawValues: false,
       toggleRawValues: () => set(s => ({ showRawValues: !s.showRawValues })),

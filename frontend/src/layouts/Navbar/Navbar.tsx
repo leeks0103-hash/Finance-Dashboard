@@ -10,6 +10,7 @@ import { useProductTour } from '@/components/features/ProductTour';
 import NgvLogo from './NgvLogo';
 import { useTheme } from '@/hooks';
 import { useDataHealth } from '@/hooks/useDataHealth';
+import { useChartLabelToggle } from '@/hooks/useChartLabelToggle';
 import { useExtractJob } from '@/hooks/useExtractJob';
 // import { useOpenFile } from '@/hooks/useOpenFile';   // 파일 바로가기 버튼 주석 처리로 미사용(2026-09-15)
 import { useUiStore } from '@/store';
@@ -36,7 +37,9 @@ const EXTRACT_MODE_INFO: Record<ExtractMode, { label: string; desc: string }> = 
 
 const Navbar = () => {
   const { theme, toggle: toggleTheme } = useTheme();
-  const { showChartLabels, toggleChartLabels, showRawValues, toggleRawValues } = useUiStore();
+  const { showRawValues, toggleRawValues } = useUiStore();
+  // 그래프 수치 — 켤 때/끌 때 페이드(끌 때는 투명해진 뒤 숨김)
+  const chartLabels = useChartLabelToggle();
   const [open, setOpen] = useState(false);
   const [financeModalOpen, setFinanceModalOpen] = useState(false);
   // 사용법 투어 — 첫 방문 1회 자동 실행(localStorage 기준), 이후엔 아래 설정 메뉴에서
@@ -92,7 +95,10 @@ const Navbar = () => {
   // "완료" 단계인데 매출·직접원가 외 값이 채워진 파일 — PPT 양식 정책상 있으면 안 되는 값
   // (2026-09-22 요청, app.py _read_finished_report_anomalies)
   const finishedAnomalies = health?.finished_anomalies ?? [];
-  const healthTotal = healthRows.length + healthConflicts.length + finishedAnomalies.length;
+  // 코드충돌 시트를 COM으로도 못 읽은 쪽 — 충돌이 "없는" 게 아니라 "모르는" 상태라 따로 알림
+  // (2026-09-28, app.py _read_code_conflicts)
+  const readFailures = health?.read_failures ?? [];
+  const healthTotal = healthRows.length + healthConflicts.length + finishedAnomalies.length + readFailures.length;
   const [healthOpen, setHealthOpen] = useState(false);
   const healthRef = useRef<HTMLDivElement>(null);
   // const { openFile } = useOpenFile();   // 파일 바로가기 버튼 주석 처리로 미사용(2026-09-15)
@@ -146,7 +152,7 @@ const Navbar = () => {
                 tabIndex={healthTotal > 0 ? 0 : -1}
                 aria-label={`KPI/재무 데이터 이상 ${healthTotal}건`}
                 aria-expanded={healthOpen}
-                title={`KPI/재무 데이터 이상 ${healthTotal}건 (코드 충돌 ${healthConflicts.length} / KPI↔재무 코드 불일치 ${healthRows.length} / 완료보고 이상 ${finishedAnomalies.length})`}
+                title={`KPI/재무 데이터 이상 ${healthTotal}건 (코드 충돌 ${healthConflicts.length} / KPI↔재무 코드 불일치 ${healthRows.length} / 완료보고 이상 ${finishedAnomalies.length}${readFailures.length ? ` / 코드충돌 시트 읽기 실패 ${readFailures.length}` : ''})`}
               >
                 !
               </Button>
@@ -155,6 +161,28 @@ const Navbar = () => {
                 <div className={styles.healthDropdown}>
                   {/* 문제 유형별로 섹션을 분리 — 각 섹션 아이콘·좌측 악센트로 종류를 한눈에
                       구분(2026-09-22, "코드충돌인지 중복인지 완료보고 문제인지 영역 잘 나눠라") */}
+                  {readFailures.length > 0 && (
+                    <section className={`${styles.healthSection} ${styles.accentConflict}`}>
+                      <div className={styles.healthHeader}>
+                        <span className={styles.healthIcon}>⚠</span>
+                        코드충돌 시트를 읽지 못함 · {readFailures.map(f => f.source).join('/')}
+                        <span className={styles.healthHeaderSub}>이 경우 코드 충돌 건이 목록에서 빠져 있을 수 있음</span>
+                      </div>
+                      <ul className={styles.healthList}>
+                        {readFailures.map(f => (
+                          <li key={f.source} className={styles.healthItem}>
+                            <div className={styles.healthFileRow}>
+                              <CopyText text={f.file} className={styles.healthFile} />
+                            </div>
+                            <div className={styles.healthCodes}>
+                              <span>{f.source} 추출 엑셀 — 암호화(AIP) 후 Excel 자동 열기도 실패. 서버 로그 확인 또는 재추출 필요</span>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
+                  )}
+
                   {healthConflicts.length > 0 && (
                     <section className={`${styles.healthSection} ${styles.accentConflict}`}>
                       <div className={styles.healthHeader}>
@@ -308,8 +336,8 @@ const Navbar = () => {
               <div className={styles.section}>
                 <span className={styles.sectionLabel}>그래프 수치</span>
                 <div className={styles.row}>
-                  <span className={styles.rowText}>{showChartLabels ? '표시 중' : '숨김'}</span>
-                  <Toggle checked={showChartLabels} onChange={toggleChartLabels} />
+                  <span className={styles.rowText}>{chartLabels.checked ? '표시 중' : '숨김'}</span>
+                  <Toggle checked={chartLabels.checked} onChange={chartLabels.toggle} />
                 </div>
               </div>
 

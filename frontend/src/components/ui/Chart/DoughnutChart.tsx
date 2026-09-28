@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { Doughnut } from 'react-chartjs-2';
 import { Chart, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Button } from '@/components/ui/Button';
-// datalabels 등록 + "그래프 수치" 토글 켤 때 숫자 페이드인 (side-effect)
+// datalabels 등록 + "그래프 수치" 토글 켜기/끄기 페이드 (side-effect)
 import '@/utils/datalabelFade';
 import { outsideLabelsPlugin } from './outsideLabelsPlugin';
 import styles from './DoughnutChart.module.css';

@@ -36,11 +36,22 @@ export interface DataHealthFinishedAnomaly {
   fields: { label: string; value: number }[];
 }
 
+/**
+ * '코드충돌' 시트를 openpyxl·Excel COM 둘 다로 못 읽은 추출 엑셀 — 이 경우 conflicts에서
+ * 그쪽 충돌 건이 통째로 빠지므로 "0건"과 구분해 따로 알린다(2026-09-28)
+ */
+export interface DataHealthReadFailure {
+  source: string;   // '재무' | 'KPI'
+  file:   string;   // 엑셀 파일명
+}
+
 export interface DataHealthResponse {
   count: number;
   rows: DataHealthRow[];
   conflicts: DataHealthConflict[];
   finished_anomalies: DataHealthFinishedAnomaly[];
+  /** 서버가 아직 이 필드를 모르는 구버전이면 없음 */
+  read_failures?: DataHealthReadFailure[];
 }
 
 /** KPI ↔ 재무 데이터가 같은 파일에서 서로 다른 프로젝트코드를 뽑아낸 경우 + 코드 충돌 목록 */
