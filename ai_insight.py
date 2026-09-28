@@ -48,7 +48,7 @@ H_CHAT_MODEL = os.environ.get("H_CHAT_API_MODEL", "claude-sonnet-4-6")
 
 # 사내 API 게이트웨이가 내부 CA 인증서를 써서 verify=True면 SSL 오류 — qna_crawler 프로젝트의
 # 기존 H-Chat 연동(ai_classify.py)과 동일하게 verify=False 사용
-_client = httpx.Client(verify=False, timeout=60)
+_client = httpx.Client(verify=False, timeout=150)
 
 _CACHE_FILE = os.path.join(_paths.DATA_DIR, "ai_analysis_cache.json")
 _cache_lock = threading.Lock()
@@ -156,6 +156,34 @@ def _build_finance_metrics() -> dict:
     biz_rows.sort(key=lambda r: r["손익률_pct"], reverse=True)
     edu_rows.sort(key=lambda r: r["손익률_pct"], reverse=True)
 
+    # 교육형태별 프로젝트 손익률 TOP5 — 프로젝트 5건 이상인 교육형태 중 건수 상위 5개만 포함
+    edu_top5: dict = {}
+    if "edu_type" in rev.columns:
+        rev_edu = rev[(rev["jun_check_total"] > 0) & rev["edu_type"].notna()].copy()
+        rev_edu["_pr"] = rev_edu.apply(
+            lambda r: _round1(r["operating_profit"] / r["jun_check_total"] * 100), axis=1
+        )
+        # 같은 project_code가 여러 행으로 나타날 수 있으므로 코드별 최고 손익률 1행만 유지
+        rev_edu = (
+            rev_edu.sort_values("_pr", ascending=False)
+            .drop_duplicates(subset="project_code", keep="first")
+        )
+        # 5건 이상 교육형태만, 건수 상위 5개로 제한
+        edu_counts = rev_edu.groupby("edu_type").size()
+        major_edus = edu_counts[edu_counts >= 5].nlargest(5).index.tolist()
+        for edu, g in rev_edu[rev_edu["edu_type"].isin(major_edus)].groupby("edu_type"):
+            top = g.nlargest(5, "_pr")
+            edu_top5[str(edu)] = [
+                {
+                    "프로젝트코드": str(row["project_code"]),
+                    "프로젝트명": str(row["project_name"])[:25],
+                    "파트": _strip_part_prefix(str(row["part"])),
+                    "손익률_pct": row["_pr"],
+                    "연간추정_억": _round1(row["jun_check_total"] / 1e5),
+                }
+                for _, row in top.iterrows()
+            ]
+
     noplan = rev[(rev["plan_initial"] <= 0) & (rev["jun_check_total"] > 0)]
     noact  = rev[(rev["plan_initial"] > 0) & (rev["jun_actual"] <= 0)]
 
@@ -172,6 +200,7 @@ def _build_finance_metrics() -> dict:
         "파트별": sorted(by_part, key=lambda r: (r["경상이익_억"] or 0), reverse=True),
         "사업구분별_손익률상하위": {"상위": biz_rows[:3], "하위": biz_rows[-3:]},
         "교육형태별_손익률상하위": {"상위": edu_rows[:3], "하위": edu_rows[-3:]},
+        "교육형태별_프로젝트_TOP5": edu_top5,
         "계획누락_건수": int(len(noplan)), "계획누락_금액_억": _round1(noplan["jun_check_total"].sum() / 1e5),
         "미착수_건수": int(len(noact)), "미착수_계획액_억": _round1(noact["plan_initial"].sum() / 1e5),
         "미수주": _build_missed_bid_metrics(),
@@ -204,7 +233,7 @@ def _build_missed_bid_metrics() -> list:
 _FINANCE_SYSTEM_PROMPT = """당신은 현대엔지비 기술교육 조직의 경영관리 수석 애널리스트입니다.
 전달된 실적 지표(Python이 사전 계산)를 바탕으로, 팀장·경영진이 현황을 정확히 파악하고
 다음 행동을 결정할 수 있도록 서술형 분석 보고서를 작성합니다.
-보고서 제목은 **현대엔지비 기술교육 조직 경영실적 분석 보고서(참조용)** 으로 합니다.
+보고서 제목은 **현대엔지비 기술교육 조직 경영실적 분석 보고서** 으로 합니다.
 
 ## 핵심 원칙 — 반드시 준수
 1. **숫자는 전달된 값만** 사용하세요. 직접 나눗셈·비율 재계산 절대 금지.
@@ -238,7 +267,7 @@ _FINANCE_SYSTEM_PROMPT = """당신은 현대엔지비 기술교육 조직의 경
 - "~입니다", "~됩니다" 형식의 간결한 경어체를 사용합니다.
 - 이모지·신호등 아이콘은 쓰지 않습니다. 강조는 **굵은 글씨**로만.
 
-## 출력 구조 (총 3,000자 이내. 마크다운 헤더·볼드·표 허용)
+## 출력 구조 (총 4,500자 이내. 마크다운 헤더·볼드·표 허용)
 
 **[필수 준수] 문장 완결 원칙**
 - 모든 문장은 반드시 완전한 문장으로 끝맺어야 합니다. "~입니다.", "~됩니다.", "~예상됩니다." 등 마침표로 완결하세요.
@@ -266,12 +295,23 @@ _FINANCE_SYSTEM_PROMPT = """당신은 현대엔지비 기술교육 조직의 경
 필요배수 2 이상 파트는 연말까지 집중 관리하면 만회 가능한 파트로 긍정적으로 표현합니다.
 
 ### 3. 수익성 분석
+
+#### 3.1 사업구분별·교육형태별 손익률
 사업구분별·교육형태별 손익률 상·하위를 각각 **표 1개씩** 으로 요약합니다.
 표 컬럼은 아래와 같이 구성하고, **"구분"(상위/하위 표시) 컬럼은 넣지 마세요**:
 | 사업구분(또는 교육형태) | 건수 | 추정매출(억) | 손익률(%) |
 상위 3개와 하위 3개는 하나의 표 안에 구분 없이 손익률 높은 순으로 나열합니다.
-표 작성 후 **3~4문장 서술**로 강점 구조를 먼저 설명하고, 매출이익이 낮은 구분은
-"원가 구조를 보완한다면 수익성이 더욱 향상될 것으로 기대됩니다"처럼 발전 가능성으로 서술합니다.
+표 작성 후 **2~3문장 서술**로 강점 구조를 먼저 설명하고, 낮은 구분은 발전 가능성으로 서술합니다.
+
+#### 3.2 교육형태별 프로젝트 손익율 TOP5
+`교육형태별_프로젝트_TOP5` 데이터를 사용합니다.
+교육형태마다 **표 1개**씩 작성합니다. 표 컬럼:
+| 프로젝트명(코드) | 파트 | 연간추정(억) | 손익률(%) |
+프로젝트명이 길면 앞 20자만 표시하고, 코드는 괄호 안에 짧게 붙입니다.
+모든 교육형태 표를 작성한 뒤 **3~4문장 통합 서술**로 다음을 분석합니다:
+- 어떤 교육형태에서 고수익 프로젝트가 집중되어 있는지.
+- 손익률이 높은 프로젝트의 공통 특성(파트·규모 등)이 데이터에 보이면 언급하세요 (없으면 추측 금지).
+- 해당 교육형태를 확대·강화하면 전체 수익성 향상에 어떻게 기여할 수 있는지 발전 방향을 제시합니다.
 
 ### 4. 미수주 프로젝트 분석
 전달된 "미수주" 리스트를 바탕으로 분석합니다.
@@ -307,7 +347,7 @@ def get_finance_analysis(force: bool = False) -> dict:
 
     user_message = "다음은 이번 회차 실적 데이터의 사전 계산 지표입니다(JSON):\n" + \
         json.dumps(metrics, ensure_ascii=False, indent=2)
-    text = _call_hchat(_FINANCE_SYSTEM_PROMPT, user_message, max_tokens=4000)
+    text = _call_hchat(_FINANCE_SYSTEM_PROMPT, user_message, max_tokens=7000)
 
     entry = {
         "text": text,

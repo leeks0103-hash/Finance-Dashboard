@@ -1,5 +1,5 @@
 ﻿$env:PYTHONUTF8 = '1'
-$base = 'Y:\!★ 신규 폴더 구조\1. 실 공통\2. 매뉴얼'
+$base = 'X:\'
 $out  = 'D:\ngv_dashbord\Finance-Dashboard\data\manual_tree.csv'
 
 Get-ChildItem -Path $base -Recurse |

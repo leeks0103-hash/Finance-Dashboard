@@ -4,9 +4,9 @@ from collections import OrderedDict
 from urllib.parse import quote
 import html as html_escape_mod
 
-BASE     = r"Y:\!★ 신규 폴더 구조\1. 실 공통\2. 매뉴얼"
+BASE     = "X:\\"  # X: = \\10.206.32.3\기술교육팀\1. 실 공통\2. 매뉴얼
 CSV      = r"D:\ngv_dashbord\Finance-Dashboard\data\manual_tree.csv"
-OUT_HTML = r"\\10.206.32.3\기술교육팀\!★ 신규 폴더 구조\1. 실 공통\2. 매뉴얼\매뉴얼맵 및 운영 규칙.html"
+OUT_HTML = r"X:\매뉴얼맵 및 운영 규칙.html"
 
 MANUAL_EXT = {'.pptx','.ppt','.pdf','.docx','.doc','.xlsx','.xls','.hwp','.hwpx'}
 CAT_DESCS  = {
@@ -61,7 +61,7 @@ EXCLUDE_CATS = {'99. 기타 매뉴얼'}  # 표시 제외 대분류
 
 depth1_folders = sorted(
     [r['Name'] for r in all_rows
-     if r['유형']=='폴더' and r['깊이']=='1' and r['Name'] not in EXCLUDE_CATS],
+     if r['유형']=='폴더' and r['깊이']=='0' and r['Name'] not in EXCLUDE_CATS],
     key=lambda x: x
 )
 groups = OrderedDict()
@@ -81,7 +81,7 @@ for cat1, cat_rows in groups.items():
     if len(cat_rows) == 0:
         subs = [r['Name'] for r in all_rows
                 if r['유형']=='폴더'
-                and r['깊이']=='2'
+                and r['깊이']=='1'
                 and rel_parts(r['FullName'])[0] == cat1]
         empty_subfolders[cat1] = subs
 
@@ -175,7 +175,7 @@ for i, (cat1, cat_rows) in enumerate(groups.items()):
                 ext_l  = ext.lstrip('.').upper()
                 desc2  = infer_desc(fname, ext)
                 sub_path = ' › '.join(parts2[depth_offset:-1]) if len(parts2) > depth_offset + 1 else ''
-                unc_path = r['FullName'].replace('Y:\\', '\\\\10.206.32.3\\기술교육팀\\', 1)
+                unc_path = r['FullName'].replace('X:\\', '\\\\10.206.32.3\\기술교육팀\\1. 실 공통\\2. 매뉴얼\\', 1)
                 file_url = 'file:' + unc_path.replace('\\', '/')
                 file_url_safe = html_escape_mod.escape(file_url, quote=True)
                 fname_safe = html_escape_mod.escape(fname)
@@ -315,7 +315,7 @@ footer{{text-align:center;padding:28px;color:#A0AEC0;font-size:12px;}}
     <div class="header-left">
       <h1>📋 매뉴얼 맵 및 운영 규칙</h1>
       <p>기술교육사업기획팀 · 공용 매뉴얼 폴더 현황</p>
-      <p style="margin-top:4px;font-size:11px;opacity:.65;">경로: \\\\10.206.32.3\\기술교육팀\\!★ 신규 폴더 구조\\1. 실 공통\\2. 매뉴얼</p>
+      <p style="margin-top:4px;font-size:11px;opacity:.65;">경로: \\\\10.206.32.3\\기술교육팀\\1. 실 공통\\2. 매뉴얼</p>
     </div>
     <div class="stats">
       <div class="stat"><div class="stat-num">{total_cats}</div><div class="stat-lbl">대분류</div></div>
