@@ -1,5 +1,24 @@
 # 세션 진행 기록
 
+## [2026-09-28] 재무 이력 2뎁스 테이블 → 재무 데이터 검색 결과와 동일한 DataTable로 통일
+
+- `PerformanceTable/financeColumns.tsx` 신설 — 검색 결과 표의 컬럼 정의(`buildFinanceColumns`)·CSV
+  (`downloadFinanceCsv`)를 공용화. `FinanceSearchResults`·`FinanceCrossCheckPanel`이 같은 정의 사용
+- `FinanceCrossCheckPanel`: 자체 `<table>` + 리사이즈/auto-fit/셀 팝업 구현(약 200줄) 제거 → `DataTable`
+  (정렬·검색·컬럼 숨김/DnD·페이지네이션·CSV·완료단계 음영·NegCell 전부 검색 결과와 동일).
+  프로젝트코드 컬럼만 제외(패널 헤더에 있음). 폭 저장 키 `perf-finance-cross-check`로 변경
+- 패널 폭 고정 1600px → 부모 스크롤 컨테이너의 보이는 폭(`clientWidth`)에 맞춤 + `ResizeObserver`
+- ⚠️ 통일하면서 빠진 것: 미수사유·처리일·반영일 컬럼, 보고단계 좌측 색상 바
+
+tsc·build·vitest(64/64) 통과. 브라우저 육안 확인은 미실시
+
+**다음 세션 과제**
+- 2뎁스 패널 화면 확인 (폭·여백)
+- 미수사유 컬럼 복원 여부 결정 (복원 시 공용 컬럼이라 검색 결과 표에도 함께 추가됨)
+- 재무 비고 검색 안 됨 문제 (여러 세션째 이월)
+
+---
+
 ## [2026-09-16] NAS 추출 경로 하드코딩 버그 수정 + 재무 추출 옛 행 정리 로직 추가 + KPI↔재무 코드 불일치 0건 달성
 
 **배경**: 지난 세션에 `.env`의 `EXTRACT_BASE_DIR`/`EXTRACT_KPI_ROOT_DIR`을 로컬 Desktop → NAS 경로로
