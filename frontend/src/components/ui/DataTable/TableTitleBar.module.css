@@ -40,3 +40,10 @@
   opacity: 0.75;
   white-space: nowrap;
 }
+
+/* 우측 슬롯 — 토글 + 버튼처럼 여러 개가 들어와도 한 줄로 */
+.extra {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}

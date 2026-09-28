@@ -1,6 +1,7 @@
 import { useRef, useEffect, useMemo } from 'react';
 import { DataTable, Button, Spinner, CopyText } from '@/components/ui';
 import { useFinanceCrossCheckViewModel } from '@/hooks/viewmodels';
+import { useUiStore } from '@/store';
 import type { Project } from '@/types/finance.types';
 import { buildFinanceColumns, downloadFinanceCsv } from './financeColumns';
 import styles from './FinanceCrossCheckPanel.module.css';
@@ -17,6 +18,7 @@ const FinanceCrossCheckPanel = ({ projectCode, onClose }: Props) => {
   const panelRef = useRef<HTMLDivElement>(null);
   const { isLoading, isAmbiguous, fileCount, sorted } = useFinanceCrossCheckViewModel(projectCode);
   const columns = useMemo(() => buildFinanceColumns('').filter(c => c.accessorKey !== 'project_code'), []);
+  const rawValues = useUiStore(s => s.showRawValues);
 
   // 가로 스크롤 translateX 동기화 — 부모(실적 테이블)가 가로 스크롤돼도 패널은 화면에 고정
   useEffect(() => {
@@ -49,7 +51,13 @@ const FinanceCrossCheckPanel = ({ projectCode, onClose }: Props) => {
           {/* 프로젝트코드 클릭 → 클립보드 복사 (1depth 테이블과 동일 동작) */}
           <CopyText text={projectCode} className={styles.code} />
         </div>
-        <Button unstyled className={styles.closeBtn} onClick={onClose} aria-label="닫기">×</Button>
+        {/* 이 표는 title이 없어 DataTable toolbarExtra(제목줄 슬롯)가 렌더되지 않음 — CSV는 패널 헤더에 */}
+        <div className={styles.headerRight}>
+          <Button variant="success" size="sm" onClick={() => downloadFinanceCsv(`재무이력_${projectCode}`, sorted)} disabled={isLoading || isAmbiguous || sorted.length === 0}>
+            ↓ CSV
+          </Button>
+          <Button unstyled className={styles.closeBtn} onClick={onClose} aria-label="닫기">×</Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -65,11 +73,7 @@ const FinanceCrossCheckPanel = ({ projectCode, onClose }: Props) => {
           data={sorted}
           columns={columns as never}
           getRowId={row => String(row._row_num)}
-          toolbarExtra={
-            <Button variant="success" size="sm" onClick={() => downloadFinanceCsv(`재무이력_${projectCode}`, sorted)} disabled={sorted.length === 0}>
-              ↓ CSV
-            </Button>
-          }
+          meta={{ rawValues }}
           defaultPageSize={10}
           pageSizeOptions={[10, 20]}
           emptyIcon="📂"

@@ -3,6 +3,16 @@ const KO = new Intl.NumberFormat('ko-KR');
 export const formatWon = (v: number): string =>
   KO.format(Math.round(v)) + '원';
 
+// 소수 6자리까지 — 원본의 실제 소수는 살리고 부동소수점 꼬리(…00000001)만 잘라냄
+const KO_RAW = new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 6 });
+
+/**
+ * 실제값 표시 — 반올림·억/만 단위 축약 없이 원본 숫자에 콤마만 찍음.
+ * 설정 > 표 실제값 토글(ui.store showRawValues)이 켜졌을 때 금액·비율 셀에서 사용
+ */
+export const formatRaw = (v: number): string =>
+  v == null || !isFinite(v) ? '-' : KO_RAW.format(v);
+
 /**
  * 원 단위 입력 → 억/만/원 3단 캐스케이드 표시.
  * 억 단위 하나만 쓰면 백만원대가 "0.0억원"으로, 만원 단위 하나만 써도 몇천/몇백/몇십원대는
@@ -23,6 +33,14 @@ export const formatRate = (v: number): string => {
   // 부동소수점 오류 방지: 정수 변환 후 toFixed(2) (1.45 → "1.45%" 보장)
   return (Math.round(v * 100) / 100).toFixed(2) + '%';
 };
+
+/** 원 단위 금액 — raw(실제값 토글)면 원본 그대로, 아니면 억/만 축약(formatBillion) */
+export const formatMoney = (v: number, raw?: boolean): string =>
+  raw ? formatRaw(v) : formatBillion(v);
+
+/** % 단위 비율 — raw면 원본 소수 그대로, 아니면 소수 둘째자리 반올림(formatRate) */
+export const formatPercent = (v: number, raw?: boolean): string =>
+  raw ? (v == null || !isFinite(v) ? '-' : formatRaw(v) + '%') : formatRate(v);
 
 export const formatCount = (v: number): string =>
   v + '건';
@@ -47,6 +65,14 @@ export const formatEok = (v: number): string => {
 /** 소수 비율 → % 표시. 0이면 '-' */
 export const formatPctRaw = (v: number): string =>
   v ? `${(v * 100).toFixed(1)}%` : '-';
+
+/** 천원 금액 — raw면 원 단위 실제값(×1000, 원 미만 반올림 — 툴팁과 동일), 아니면 억/만 축약(formatEok). 0이면 '-' */
+export const formatEokOrRaw = (v: number, raw?: boolean): string =>
+  raw ? (!v || !isFinite(v) ? '-' : formatRaw(Math.round(v * 1000))) : formatEok(v);
+
+/** 소수 비율 — raw면 ×100한 원본 그대로, 아니면 소수 첫째자리(formatPctRaw). 0이면 '-' */
+export const formatPctOrRaw = (v: number, raw?: boolean): string =>
+  raw ? (!v || !isFinite(v) ? '-' : formatRaw(v * 100) + '%') : formatPctRaw(v);
 
 /** 숫자 → 로컬 형식 표시. 0이면 '-' */
 export const formatNum = (v: number): string =>

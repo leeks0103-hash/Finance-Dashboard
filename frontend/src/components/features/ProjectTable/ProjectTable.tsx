@@ -1,5 +1,6 @@
 import { useProjectTableViewModel } from '@/hooks/viewmodels';
 import { DataTable } from '@/components/ui';
+import { useUiStore } from '@/store';
 import { columns } from './columns.tsx';
 
 const HIDEABLE: { id: string; label: string }[] = [
@@ -12,6 +13,7 @@ const HIDEABLE: { id: string; label: string }[] = [
 
 const ProjectTable = () => {
   const vm = useProjectTableViewModel();
+  const rawValues = useUiStore(s => s.showRawValues);
 
   return (
     <DataTable
@@ -20,6 +22,7 @@ const ProjectTable = () => {
       getRowId={(row) => String(row._row_num)}
       stickyFirstCol
       title="프로젝트 재무 상세"
+      meta={{ rawValues }}
       isLoading={vm.isLoading}
       isFetching={vm.isFetching}
       hideableColumns={HIDEABLE}

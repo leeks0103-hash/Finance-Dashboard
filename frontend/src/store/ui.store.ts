@@ -5,6 +5,10 @@ interface UiStore {
   showChartLabels: boolean;
   toggleChartLabels: () => void;
 
+  /** 재무·실적 표 금액/비율 셀을 반올림(억/만 축약) 대신 원본 실제값으로 표시 — Navbar 설정에서 토글 */
+  showRawValues: boolean;
+  toggleRawValues: () => void;
+
   lastLoaded: string | null;
   setLastLoaded: (v: string | null) => void;
 
@@ -21,6 +25,9 @@ export const useUiStore = create<UiStore>()(
       showChartLabels: true,
       toggleChartLabels: () => set(s => ({ showChartLabels: !s.showChartLabels })),
 
+      showRawValues: false,
+      toggleRawValues: () => set(s => ({ showRawValues: !s.showRawValues })),
+
       lastLoaded: null,
       setLastLoaded: (v) => set({ lastLoaded: v }),
 
@@ -29,8 +36,8 @@ export const useUiStore = create<UiStore>()(
     }),
     {
       name: 'ui-store',
-      // 그래프 수치 표시 여부만 테마처럼 로컬에 저장 — 나머지는 세션 한정
-      partialize: (s) => ({ showChartLabels: s.showChartLabels }),
+      // 그래프 수치·표 실제값 표시 여부만 테마처럼 로컬에 저장 — 나머지는 세션 한정
+      partialize: (s) => ({ showChartLabels: s.showChartLabels, showRawValues: s.showRawValues }),
     },
   ),
 );

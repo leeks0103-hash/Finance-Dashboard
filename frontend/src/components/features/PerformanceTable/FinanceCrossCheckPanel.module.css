@@ -17,6 +17,12 @@
   gap: 10px;
 }
 
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .title {
   font-size: 0.88rem;
   font-weight: 700;

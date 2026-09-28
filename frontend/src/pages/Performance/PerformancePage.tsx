@@ -16,6 +16,7 @@ import PartAchievementBars from '@/components/features/PartAchievementBars/PartA
 import { perfColumns, PERF_HIDEABLE_COLS, PERF_DEFAULT_HIDDEN } from '@/components/features/PerformanceTable/columns';
 import FinanceCrossCheckPanel from '@/components/features/PerformanceTable/FinanceCrossCheckPanel';
 import FinanceSearchResults from '@/components/features/PerformanceTable/FinanceSearchResults';
+import { useUiStore } from '@/store';
 import type { PerfProject } from '@/types/performance.types';
 // PERF_YEAR·stripPartPrefix·INFO_PART_TABLE — 파트별 실적 표 비활성으로 미사용, 복구 시 함께 해제
 import { PERF_MONTH } from '@/utils';
@@ -72,6 +73,7 @@ import styles from './PerformancePage.module.css';
 
 const PerformancePage = () => {
   const vm = usePerformanceViewModel();
+  const rawValues = useUiStore(s => s.showRawValues);
   // 재무 이력 보유 코드↔건수 — 프로젝트코드 셀의 배지용 (한 번 받아 캐시)
   const financeCodes = useFinanceCodes();
   // 파트별 매출 달성 현황 행 클릭 → 드릴다운 모달 (누계 실적 기준)
@@ -167,7 +169,7 @@ const PerformancePage = () => {
             // 안내 문구도 실제 동작(짧은 셀만 펼침)에 맞춰 적어 둔다
             hint="프로젝트코드 옆 숫자 배지 = 재무 이력 건수. 짧은 셀(프로젝트코드·담당자)을 더블클릭하면 아래에 펼쳐집니다. (프로젝트명·비고처럼 글이 긴 셀은 클릭하면 전체 내용 팝업이 열립니다)"
             /* 프로젝트코드 셀이 재무 이력 건수 배지를 그릴 수 있도록 코드↔건수 맵 전달 */
-            meta={{ financeCodes: financeCodes.data }}
+            meta={{ financeCodes: financeCodes.data, rawValues }}
             serverPagination={vm.serverPagination}
             serverSearch={vm.serverSearch}
             searchPlaceholder="프로젝트코드·이름·담당자 검색…"

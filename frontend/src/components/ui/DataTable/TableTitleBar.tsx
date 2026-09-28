@@ -24,7 +24,7 @@ export const TableTitleBar = ({ title, count, toolbarExtra, info, children }: Pr
         </div>
         <div className={styles.scrollHint}>⇔ Shift + 마우스 휠로 가로 스크롤</div>
       </div>
-      {toolbarExtra && <div>{toolbarExtra}</div>}
+      {toolbarExtra && <div className={styles.extra}>{toolbarExtra}</div>}
     </div>
     {children}
   </div>

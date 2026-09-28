@@ -1,5 +1,6 @@
 import { useMemo, type ReactNode } from 'react';
 import { DataTable, Button } from '@/components/ui';
+import { useUiStore } from '@/store';
 import type { Project } from '@/types/finance.types';
 import { buildFinanceColumns, downloadFinanceCsv } from './financeColumns';
 import styles from './FinanceSearchResults.module.css';
@@ -13,6 +14,7 @@ interface Props {
 const FinanceSearchResults = ({ results, searchTerm, info }: Props) => {
   const handleCsv = () => downloadFinanceCsv(`재무데이터검색결과_${searchTerm}`, results);
   const columns = useMemo(() => buildFinanceColumns(searchTerm), [searchTerm]);
+  const rawValues = useUiStore(s => s.showRawValues);
 
   return (
     <div className={styles.wrap}>
@@ -27,6 +29,7 @@ const FinanceSearchResults = ({ results, searchTerm, info }: Props) => {
             ↓ CSV
           </Button>
         }
+        meta={{ rawValues }}
         defaultPageSize={10}
         pageSizeOptions={[10, 20]}
         // minRows 기본값(5) 사용 — 8로 고정해뒀던 게 검색 결과 1~2건일 때 필요 이상으로

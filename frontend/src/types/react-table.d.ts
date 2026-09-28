@@ -7,6 +7,8 @@ declare module '@tanstack/react-table' {
     searchQuery?: string;
     /** 재무 PPT 이력이 있는 프로젝트코드 → 건수. 2뎁스 보유 배지 표시용 */
     financeCodes?: Record<string, number>;
+    /** true면 금액·비율 셀을 반올림(억/만 축약) 대신 원본 실제값으로 표시 — 설정 > 표 실제값 토글(ui.store) */
+    rawValues?: boolean;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

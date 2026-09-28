@@ -35,7 +35,7 @@ const EXTRACT_MODE_INFO: Record<ExtractMode, { label: string; desc: string }> = 
 
 const Navbar = () => {
   const { theme, toggle: toggleTheme } = useTheme();
-  const { showChartLabels, toggleChartLabels } = useUiStore();
+  const { showChartLabels, toggleChartLabels, showRawValues, toggleRawValues } = useUiStore();
   const [open, setOpen] = useState(false);
   const [financeModalOpen, setFinanceModalOpen] = useState(false);
   // PPT 데이터 추출 — 권한(EXTRACT_ADMIN_KEY) 통과한 사람에게만 보임(useExtractJob 참고)
@@ -306,6 +306,18 @@ const Navbar = () => {
                 <div className={styles.row}>
                   <span className={styles.rowText}>{showChartLabels ? '표시 중' : '숨김'}</span>
                   <Toggle checked={showChartLabels} onChange={toggleChartLabels} />
+                </div>
+              </div>
+
+              <div className={styles.divider} />
+
+              {/* 표 금액·비율 실제값 — 켜면 프로젝트 상세·재무 이력·재무 검색 결과·재무 데이터 모달 표가
+                  억/만 축약·반올림 대신 원본 값(툴팁 값)을 표시. 표마다 두지 않고 전역 설정으로 */}
+              <div className={styles.section}>
+                <span className={styles.sectionLabel}>표 실제값</span>
+                <div className={styles.row}>
+                  <span className={styles.rowText}>{showRawValues ? '원 단위' : '억/만 반올림'}</span>
+                  <Toggle checked={showRawValues} onChange={toggleRawValues} />
                 </div>
               </div>
 

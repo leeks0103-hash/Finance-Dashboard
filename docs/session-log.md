@@ -1,5 +1,22 @@
 # 세션 진행 기록
 
+## [2026-09-28 오후] 표 금액·비율 "실제값" 토글 추가
+
+- **설정(⚙) > 그래프 수치 아래 "표 실제값" 토글** — 켜면 프로젝트 상세(실적) · 재무 이력 2뎁스 ·
+  재무 데이터 검색 결과 · 재무 데이터 모달(프로젝트 재무 상세) 4개 표가 억/만 축약·반올림 대신 원본 값
+  (지금까지 툴팁에만 뜨던 값)을 셀에 표시. 상태는 `ui.store.showRawValues`(localStorage 저장)
+  - 처음엔 표마다 제목줄에 토글을 달았다가 "설정으로 옮기자"는 피드백으로 Navbar 설정 드롭다운으로 이동
+- 셀은 table meta `rawValues`로 분기. `utils/format.ts`에 `formatRaw`/`formatMoney`/`formatPercent`
+  (재무, 원 단위) · `formatEokOrRaw`/`formatPctOrRaw`(실적, 천원 → 원 환산, 툴팁과 같이 원 미만 반올림) 추가
+- `TableTitleBar` 우측 슬롯을 flex로 — 여러 요소가 와도 한 줄 정렬
+- **버그 수정**: 2뎁스 패널은 DataTable에 title이 없어 `toolbarExtra`(CSV 버튼)가 아예 렌더되지 않고
+  있었음(오전 통일 작업 때 생긴 것) → CSV를 패널 헤더로 이동
+
+tsc·build·vitest(64/64) 통과. 브라우저 육안 확인 미실시 — 실제값 켜면 10자리 금액이 기본 폭(83~90px)보다
+길어 말줄임(…)될 수 있음(리사이즈 핸들 더블클릭으로 맞춤 가능)
+
+---
+
 ## [2026-09-28] 재무 이력 2뎁스 테이블 → 재무 데이터 검색 결과와 동일한 DataTable로 통일
 
 - `PerformanceTable/financeColumns.tsx` 신설 — 검색 결과 표의 컬럼 정의(`buildFinanceColumns`)·CSV

@@ -2,15 +2,17 @@ import { createColumnHelper } from '@tanstack/react-table';
 import { HighlightText } from '@/components/ui';
 import type { HideableColumn } from '@/components/ui/DataTable';
 import type { PerfProject } from '@/types/performance.types';
-import { formatEok, formatPctRaw, formatNum, PERF_MONTH, stripPartPrefix } from '@/utils';
+import { formatEokOrRaw, formatPctOrRaw, formatPercent, formatNum, PERF_MONTH, stripPartPrefix } from '@/utils';
 import { countFinanceHistory } from '@/utils/projectCode';
 import styles from './columns.module.css';
 
 const h = createColumnHelper<PerfProject>();
 
-// utils/format.ts의 공통 포맷 함수 단축 alias
-const eok = (v: number) => formatEok(v);
-const pct = (v: number) => formatPctRaw(v);
+// utils/format.ts의 공통 포맷 함수 단축 alias — 금액·비율은 셀 컨텍스트를 받아 table meta의
+// rawValues(설정 > 표 실제값 토글)가 켜져 있으면 억/만 축약·반올림 없이 원본 값으로 표시
+type RawCtx = { getValue: () => unknown; table: { options: { meta?: { rawValues?: boolean } } } };
+const eok = (i: RawCtx) => formatEokOrRaw(i.getValue() as number, i.table.options.meta?.rawValues);
+const pct = (i: RawCtx) => formatPctOrRaw(i.getValue() as number, i.table.options.meta?.rawValues);
 const num = (v: number) => formatNum(v);
 // 억/만 단위로 축약 표시하는 금액 컬럼의 <td> title — 마우스오버 시 엑셀 원본 그대로의
 // 정확한 금액(원 단위)을 보여줌. formatTitle은 <td> 하나에만 붙어서 위치에 따라 다른
@@ -27,7 +29,7 @@ const txt = (i: { getValue: () => unknown; table: { options: { meta?: { searchQu
 const MONTH_COLS = Array.from({ length: 12 }, (_, i) => {
   const mm = String(i + 1).padStart(2, '0');
   return h.accessor(`chk_m${mm}` as keyof PerfProject & string, {
-    header: `${i + 1}월`, size: 68, cell: c => eok(c.getValue() as number), meta: eokMeta,
+    header: `${i + 1}월`, size: 68, cell: c => eok(c), meta: eokMeta,
   });
 });
 
@@ -65,18 +67,18 @@ export const perfColumns = [
   h.accessor('category',     { header: '매출/원가',  size: 84,  cell: txt }),
   h.accessor('project_name', { header: '프로젝트명', size: 320, cell: txt, meta: { cellPopup: true } }),
   h.accessor('manager',      { header: '담당자',     size: 78,  cell: txt }),
-  h.accessor('plan_initial',      { header: '최초사업계획', size: 96, enableSorting: true, cell: i => eok(i.getValue()), meta: eokMeta }),
-  h.accessor('plan_diff_amount',  { header: '계획 대비 추정 실적 차이 금액', size: 180, cell: i => eok(i.getValue()), meta: eokMeta }),
-  h.accessor('plan_diff_rate',    { header: '증감률', size: 76, cell: i => i.getValue() ? `${((i.getValue() as number)*100).toFixed(1)}%` : '-' }),
-  h.accessor('cost_direct',       { header: '직접원가', size: 84, cell: i => eok(i.getValue()), meta: eokMeta }),
-  h.accessor('cost_labor',        { header: '인건비',   size: 76, cell: i => eok(i.getValue()), meta: eokMeta }),
-  h.accessor('cost_overhead',     { header: '공통원가', size: 84, cell: i => eok(i.getValue()), meta: eokMeta }),
-  h.accessor('cost_mgmt',         { header: '관리비',   size: 76, cell: i => eok(i.getValue()), meta: eokMeta }),
-  h.accessor('operating_profit',  { header: '경상손익', size: 84, enableSorting: true, cell: i => eok(i.getValue()), meta: eokMeta }),
-  h.accessor('profit_rate',       { header: '손익률',   size: 76, enableSorting: true, cell: i => i.getValue() ? `${(Math.round((i.getValue() as number) * 100) / 100).toFixed(2)}%` : '-' }),
-  h.accessor('jun_check_total',   { header: '합계',     size: 96, cell: i => eok(i.getValue()), meta: eokMeta }),
+  h.accessor('plan_initial',      { header: '최초사업계획', size: 96, enableSorting: true, cell: i => eok(i), meta: eokMeta }),
+  h.accessor('plan_diff_amount',  { header: '계획 대비 추정 실적 차이 금액', size: 180, cell: i => eok(i), meta: eokMeta }),
+  h.accessor('plan_diff_rate',    { header: '증감률', size: 76, cell: pct }),
+  h.accessor('cost_direct',       { header: '직접원가', size: 84, cell: i => eok(i), meta: eokMeta }),
+  h.accessor('cost_labor',        { header: '인건비',   size: 76, cell: i => eok(i), meta: eokMeta }),
+  h.accessor('cost_overhead',     { header: '공통원가', size: 84, cell: i => eok(i), meta: eokMeta }),
+  h.accessor('cost_mgmt',         { header: '관리비',   size: 76, cell: i => eok(i), meta: eokMeta }),
+  h.accessor('operating_profit',  { header: '경상손익', size: 84, enableSorting: true, cell: i => eok(i), meta: eokMeta }),
+  h.accessor('profit_rate',       { header: '손익률',   size: 76, enableSorting: true, cell: i => i.getValue() ? formatPercent(i.getValue() as number, i.table.options.meta?.rawValues) : '-' }),
+  h.accessor('jun_check_total',   { header: '합계',     size: 96, cell: i => eok(i), meta: eokMeta }),
   ...MONTH_COLS,
-  h.accessor('chk_cost_rate',   { header: '원가율', size: 78, cell: i => pct(i.getValue()) }),
+  h.accessor('chk_cost_rate',   { header: '원가율', size: 78, cell: i => pct(i) }),
   h.accessor('chk_course',      { header: '과정',   size: 66, cell: i => num(i.getValue()) }),
   h.accessor('chk_session',     { header: '차수',   size: 66, cell: i => num(i.getValue()) }),
   h.accessor('chk_participant', { header: '인원',   size: 66, cell: i => num(i.getValue()) }),
@@ -95,22 +97,22 @@ export const perfColumns = [
   h.accessor('edu_type',     { header: '교육형태',     size: 128, cell: txt }),
   h.accessor('biz_type2',    { header: '사업유형',     size: 116, cell: txt }),
   h.accessor('budget_code',  { header: '예산코드',     size: 116, cell: txt }),
-  h.accessor('actual_2025',       { header: '25년 실적',  size: 84, enableSorting: true, cell: i => eok(i.getValue()), meta: eokMeta }),
-  h.accessor('plan_cost_rate',    { header: '계획원가율', size: 80, cell: i => pct(i.getValue()) }),
+  h.accessor('actual_2025',       { header: '25년 실적',  size: 84, enableSorting: true, cell: i => eok(i), meta: eokMeta }),
+  h.accessor('plan_cost_rate',    { header: '계획원가율', size: 80, cell: i => pct(i) }),
   h.accessor('course_count',      { header: '계획과정',   size: 74, cell: i => num(i.getValue()) }),
   h.accessor('session_count',     { header: '계획차수',   size: 74, cell: i => num(i.getValue()) }),
   h.accessor('participant_count', { header: '계획인원',   size: 74, cell: i => num(i.getValue()) }),
-  h.accessor('jun_est',        { header: `${PERF_MONTH} 추정`,   size: 84, cell: i => eok(i.getValue()), meta: eokMeta }),
-  h.accessor('jun_est_rate',   { header: `${PERF_MONTH} 추정율`, size: 80, cell: i => pct(i.getValue()) }),
-  h.accessor('jun_actual',     { header: `${PERF_MONTH} 실적`,   size: 84, enableSorting: true, cell: i => eok(i.getValue()), meta: eokMeta }),
-  h.accessor('jun_cost_rate',  { header: `${PERF_MONTH} 원가율`, size: 80, cell: i => pct(i.getValue()) }),
-  h.accessor('cost_rate_diff', { header: '원가율 차이', size: 84, cell: i => i.getValue() ? `${((i.getValue() as number) * 100).toFixed(1)}%p` : '-' }),
-  h.accessor('est_vs_actual',  { header: '추정 대비',   size: 84, cell: i => eok(i.getValue()), meta: eokMeta }),
+  h.accessor('jun_est',        { header: `${PERF_MONTH} 추정`,   size: 84, cell: i => eok(i), meta: eokMeta }),
+  h.accessor('jun_est_rate',   { header: `${PERF_MONTH} 추정율`, size: 80, cell: i => pct(i) }),
+  h.accessor('jun_actual',     { header: `${PERF_MONTH} 실적`,   size: 84, enableSorting: true, cell: i => eok(i), meta: eokMeta }),
+  h.accessor('jun_cost_rate',  { header: `${PERF_MONTH} 원가율`, size: 80, cell: i => pct(i) }),
+  h.accessor('cost_rate_diff', { header: '원가율 차이', size: 84, cell: i => pct(i).replace(/%$/, '%p') }),
+  h.accessor('est_vs_actual',  { header: '추정 대비',   size: 84, cell: i => eok(i), meta: eokMeta }),
   h.accessor('cost_rate_reason',{ header: '원가율 사유', size: 200, cell: txt, meta: { cellPopup: true } }),
   h.accessor('plan_diff_reason', { header: '사유',     size: 180, cell: txt, meta: { cellPopup: true } }),
-  h.accessor('profit_gross',      { header: '매출이익',  size: 84, cell: i => eok(i.getValue()), meta: eokMeta }),
-  h.accessor('balance_amount', { header: '대차금액', size: 84,  cell: i => eok(i.getValue()), meta: eokMeta }),
-  h.accessor('balance_rate',   { header: '대차비율', size: 76,  cell: i => i.getValue() ? `${((i.getValue() as number)*100).toFixed(1)}%` : '-' }),
+  h.accessor('profit_gross',      { header: '매출이익',  size: 84, cell: i => eok(i), meta: eokMeta }),
+  h.accessor('balance_amount', { header: '대차금액', size: 84,  cell: i => eok(i), meta: eokMeta }),
+  h.accessor('balance_rate',   { header: '대차비율', size: 76,  cell: pct }),
   h.accessor('dup_check',      { header: '중복점검', size: 200, cell: txt, meta: { cellPopup: true } }),
   h.accessor('ref_code',       { header: '참조코드', size: 220, cell: txt, meta: { cellPopup: true } }),
   // 신사업 직접원가

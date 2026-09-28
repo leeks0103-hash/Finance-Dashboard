@@ -2,7 +2,7 @@ import { createColumnHelper } from '@tanstack/react-table';
 import { CopyText, HighlightText, NegCell } from '@/components/ui';
 import { openFinanceFile } from '@/api/finance.api';
 import { downloadCsvFile } from '@/hooks/useExport';
-import { formatBillion, formatRate, alertDialog } from '@/utils';
+import { formatMoney, formatPercent, alertDialog } from '@/utils';
 import type { Project } from '@/types/finance.types';
 
 // 재무 데이터 검색 결과 · 재무 이력 2뎁스 패널이 같은 컬럼 정의를 공유 — 한쪽만 고치면
@@ -31,26 +31,26 @@ export const buildFinanceColumns = (searchTerm: string) => [
   ch.accessor('stage', { header: '보고단계', size: 80 }),
   // 재무 금액 컬럼 — CSV 내보내기엔 원래 있었는데 화면 표에는 빠져 있던 것 보강
   // (프로젝트코드/파트/연도/단계/비고/파일명만 보이던 문제, 2026-09-22)
-  ch.accessor('revenue',     { header: '매출',   size: 90, cell: i => formatBillion(i.getValue()) }),
+  ch.accessor('revenue',     { header: '매출',   size: 90, cell: i => formatMoney(i.getValue(), i.table.options.meta?.rawValues) }),
   ch.accessor('expenditure', { header: '지출',   size: 90,
     meta: { cellMuted: row => isFinishedEmpty(row, 'expenditure') },
-    cell: i => isFinishedEmpty(i.row.original, 'expenditure') ? '' : formatBillion(i.getValue()) }),
-  ch.accessor('direct_cost', { header: '직접원가', size: 90, cell: i => formatBillion(i.getValue()) }),
+    cell: i => isFinishedEmpty(i.row.original, 'expenditure') ? '' : formatMoney(i.getValue(), i.table.options.meta?.rawValues) }),
+  ch.accessor('direct_cost', { header: '직접원가', size: 90, cell: i => formatMoney(i.getValue(), i.table.options.meta?.rawValues) }),
   ch.accessor('labor_cost',  { header: '인건비',  size: 90,
     meta: { cellMuted: row => isFinishedEmpty(row, 'labor_cost') },
-    cell: i => isFinishedEmpty(i.row.original, 'labor_cost') ? '' : formatBillion(i.getValue()) }),
+    cell: i => isFinishedEmpty(i.row.original, 'labor_cost') ? '' : formatMoney(i.getValue(), i.table.options.meta?.rawValues) }),
   ch.accessor('overhead',    { header: '공통원가', size: 90,
     meta: { cellMuted: row => isFinishedEmpty(row, 'overhead') },
-    cell: i => isFinishedEmpty(i.row.original, 'overhead') ? '' : formatBillion(i.getValue()) }),
+    cell: i => isFinishedEmpty(i.row.original, 'overhead') ? '' : formatMoney(i.getValue(), i.table.options.meta?.rawValues) }),
   ch.accessor('operating_profit', {
     header: '경상이익', size: 90,
     meta: { cellMuted: row => isFinishedEmpty(row, 'operating_profit') },
-    cell: i => isFinishedEmpty(i.row.original, 'operating_profit') ? '' : <NegCell v={i.getValue()} text={formatBillion(i.getValue())} />,
+    cell: i => isFinishedEmpty(i.row.original, 'operating_profit') ? '' : <NegCell v={i.getValue()} text={formatMoney(i.getValue(), i.table.options.meta?.rawValues)} />,
   }),
   ch.accessor('profit_rate', {
     header: '이익율(%)', size: 80,
     meta: { cellMuted: row => isFinishedEmpty(row, 'profit_rate') },
-    cell: i => isFinishedEmpty(i.row.original, 'profit_rate') ? '' : <NegCell v={i.getValue()} text={formatRate(i.getValue())} />,
+    cell: i => isFinishedEmpty(i.row.original, 'profit_rate') ? '' : <NegCell v={i.getValue()} text={formatPercent(i.getValue(), i.table.options.meta?.rawValues)} />,
   }),
   ch.accessor('note',  {
     header: '비고', size: 200,
