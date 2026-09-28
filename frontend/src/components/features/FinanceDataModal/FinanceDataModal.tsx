@@ -26,15 +26,13 @@ const FinanceDataModal = ({ onClose }: Props) => {
   return createPortal(
     <div className={styles.overlay} onClick={onClose} role="presentation">
       <div className={styles.panel} onClick={e => e.stopPropagation()} role="dialog" aria-modal="true">
+        {/* 모달 제목("재무 데이터 확인")은 표 제목("프로젝트 재무 상세")과 중복이라 삭제, CSV는 표
+            제목줄 오른쪽 끝으로(2026-09-28) — 헤더엔 닫기 버튼만 */}
         <div className={styles.header}>
-          <span className={styles.title}>재무 데이터 확인</span>
-          <div className={styles.headerActions}>
-            <Button variant="success" size="sm" onClick={exportCsv}>↓ CSV</Button>
-            <Button unstyled className={styles.closeBtn} onClick={onClose} aria-label="닫기">✕</Button>
-          </div>
+          <Button unstyled className={styles.closeBtn} onClick={onClose} aria-label="닫기">✕</Button>
         </div>
         <div className={styles.body}>
-          <ProjectTable />
+          <ProjectTable toolbarExtra={<Button variant="success" size="sm" onClick={exportCsv}>↓ CSV</Button>} />
         </div>
       </div>
     </div>,

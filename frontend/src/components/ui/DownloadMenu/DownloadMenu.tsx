@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '../Button';
+import { confirmDialog } from '@/utils/dialog';
 import styles from './DownloadMenu.module.css';
 
 export interface DownloadItem {
@@ -23,9 +24,26 @@ interface Props {
 const fmtSize = (bytes: number) =>
   bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)}MB` : `${Math.round(bytes / 1024)}KB`;
 
+// 다운로드 전 확인(2026-09-28 — CSV 버튼과 동일하게 "다운로드 받으시겠냐고" 컨펌). <a download>는
+// 클릭 즉시 받아버리므로 기본 동작을 막고, 확인되면 임시 <a download>로 다시 클릭
+const confirmAndDownload = async (e: React.MouseEvent<HTMLAnchorElement>, f: DownloadItem, href: string) => {
+  e.preventDefault();
+  const ok = await confirmDialog(`${f.label}\n(${f.modified} · ${fmtSize(f.size)})`, {
+    title: '파일을 다운로드하시겠습니까?',
+    confirmText: '다운로드',
+  });
+  if (!ok) return;
+  const a = document.createElement('a');
+  a.href = href;
+  a.download = '';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+};
+
 /**
  * 엑셀 원본 다운로드 메뉴 — 버튼 하나로 접어두고 클릭 시 파일 목록을 펼친다.
- * 항목은 <a download> 라서 브라우저가 그대로 받아준다(서버가 그 시점 디스크 파일을 내보냄).
+ * 항목은 <a download> — 클릭 시 확인창을 거친 뒤 브라우저가 받는다(서버가 그 시점 디스크 파일을 내보냄).
  */
 export const DownloadMenu = ({ items, hrefOf, isLoading = false, buttonLabel = '↓ 엑셀' }: Props) => {
   const [open, setOpen] = useState(false);
@@ -64,7 +82,7 @@ export const DownloadMenu = ({ items, hrefOf, isLoading = false, buttonLabel = '
                 href={hrefOf(f.key)}
                 download
                 role="menuitem"
-                onClick={() => setOpen(false)}
+                onClick={e => { setOpen(false); void confirmAndDownload(e, f, hrefOf(f.key)); }}
               >
                 <span className={styles.itemLabel}>{f.label}</span>
                 <span className={styles.itemDesc}>{f.desc}</span>

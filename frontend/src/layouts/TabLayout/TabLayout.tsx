@@ -46,7 +46,7 @@ const TabLayout = () => {
           오른쪽 끝 "최종 업데이트" 표시는 filterGroup에 그대로 남아있어야 해서 복구(2026-09-17) —
           .filterGroup > :last-child가 margin-left:auto라 이 두 번째 자식이 오른쪽 끝에 붙음 */}
       {!isKpi && (
-        <div className={styles.filterGroup}>
+        <div className={styles.filterGroup} data-tour="filter">
           {isFinance && <><FilterPanel /><ActionBar /></>}
           {isPerformance && <><PerfFilter /><PerformanceLastUpdated /></>}
         </div>

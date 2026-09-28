@@ -83,18 +83,18 @@ const PerformancePage = () => {
     <main className={styles.main}>
 
       {/* KPI 카드 */}
-      <FadeInSection delay={0}>
+      <FadeInSection delay={0} tourId="perf-kpi">
         <PerformanceKpiSection cards={vm.kpiCards} />
       </FadeInSection>
 
       {/* 차트 섹션 */}
-      <FadeInSection delay={100}>
+      <FadeInSection delay={100} tourId="perf-charts">
         <PerformanceChartSection />
       </FadeInSection>
 
       {/* 파트별 달성 현황 진행바 */}
       {vm.byPart.length > 0 && (
-        <FadeInSection delay={150}>
+        <FadeInSection delay={150} tourId="perf-achievement">
           <PartAchievementBars
             rows={vm.byPart}
             month={PERF_MONTH}
@@ -133,7 +133,7 @@ const PerformancePage = () => {
       ──────────────────────────────────────────────────────────────────── */}
 
       {/* 미수주 프로젝트 */}
-      <FadeInSection delay={250}>
+      <FadeInSection delay={250} tourId="perf-missed">
         <div className={styles.sectionGroup}>
           <h3 className={styles.sectionTitle}>
             미수주 프로젝트
@@ -144,7 +144,7 @@ const PerformancePage = () => {
       </FadeInSection>
 
       {/* 프로젝트 상세 */}
-      <FadeInSection delay={300}>
+      <FadeInSection delay={300} tourId="perf-projects">
           <DataTable<PerfProject>
             data={vm.projects}
             columns={perfColumns as never}

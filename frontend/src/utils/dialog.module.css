@@ -91,3 +91,21 @@
   border-color: var(--border-focus) !important;
   box-shadow: none !important;
 }
+
+/* 토스트 — 우측 상단 알림(확인 버튼 없음) */
+.toast {
+  border-radius: var(--radius-lg) !important;
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: var(--shadow-lg) !important;
+  font-family: 'HyundaiSans', 'Malgun Gothic', sans-serif !important;
+}
+.toastTitle {
+  color: var(--text-primary) !important;
+  font-size: 0.86rem !important;
+  font-weight: 600 !important;
+}
+:global(.swal2-toast .swal2-icon.swal2-success) { border-color: var(--brand) !important; color: var(--brand) !important; }
+:global(.swal2-toast .swal2-icon.swal2-success [class^='swal2-success-line']) { background-color: var(--brand) !important; }
+:global(.swal2-toast .swal2-icon.swal2-success .swal2-success-ring) { border-color: var(--brand) !important; opacity: 0.3; }
+:global(.swal2-toast .swal2-timer-progress-bar) { background: var(--brand) !important; }

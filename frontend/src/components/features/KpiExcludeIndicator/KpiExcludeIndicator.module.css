@@ -1,20 +1,51 @@
+/* 임시 제외 알림 배지 — 금색 테두리 + 밑줄 링크 조합이 투박하다는 피드백(2026-09-28)으로 재디자인:
+   테두리 없이 연한 Gold 배경(--warn-bg) + 앞쪽 상태 점 + 세로 구분선 + 작은 알약형 초기화 버튼 */
 .badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 3px 8px;
+  gap: 8px;
+  padding: 4px 4px 4px 10px;
   border-radius: 999px;
-  background: var(--bg-subtle);
-  border: 1px solid var(--warn);
-  color: var(--warn);
-  font-size: 0.72rem;
-  font-weight: 600;
+  background: var(--warn-bg);
+  color: var(--text-primary);
+  font-size: 0.74rem;
+  font-weight: 500;
+  line-height: 1;
   white-space: nowrap;
+  animation: badgeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes badgeIn {
+  from { opacity: 0; transform: translateY(-2px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--warn);
+  box-shadow: 0 0 0 3px var(--warn-bg);
+  flex-shrink: 0;
+}
+
+.count {
+  color: var(--warn);
+  font-weight: 700;
 }
 
 .reset {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--surface);
   color: var(--warn);
-  text-decoration: underline;
-  font-weight: 600;
   font-size: inherit;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.reset:hover {
+  background: var(--warn);
+  color: #fff;
 }

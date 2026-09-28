@@ -14,7 +14,8 @@ const KpiExcludeIndicator = () => {
 
   return (
     <span className={styles.badge}>
-      임시 제외 {excludedFiles.length}건 적용 중
+      <span className={styles.dot} aria-hidden />
+      <span>임시 제외 <span className={styles.count}>{excludedFiles.length}건</span> 적용 중</span>
       <Button unstyled className={styles.reset} onClick={clearExcluded}>초기화</Button>
     </span>
   );

@@ -29,26 +29,9 @@
 
 .header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  justify-content: flex-end;   /* 제목 삭제 후 닫기 버튼만 — 우측 끝 */
   flex-shrink: 0;
-  margin-bottom: 14px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--border);
-}
-
-.title {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--text);
-}
-
-.headerActions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
+  margin-bottom: 6px;
 }
 
 .closeBtn {

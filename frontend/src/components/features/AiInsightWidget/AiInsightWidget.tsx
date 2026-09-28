@@ -94,7 +94,10 @@ const AiInsightWidget = ({ aiTab }: Props) => {
   useScrollLock(open);
   useEscToClose(() => setOpen(false), open);
 
-  const buttonLoading = pendingOpen && isLoading;
+  // 최초 분석이든 "다시 분석"이든 진행 중이면 버튼을 "… 분석중…"으로 — 모달을 닫거나 탭을 옮겨도
+  // 진행 상태가 보이게(끝나면 원래 라벨로 복귀 + 완료 토스트는 useAiAnalysis가 띄움, 2026-09-28).
+  // pendingOpen이 아니라 쿼리/뮤테이션 상태로 판단 — pendingOpen은 로컬 상태라 탭 전환 시 사라짐
+  const buttonLoading = (triggered && isLoading) || isRefreshing;
 
   const handleClick = () => {
     if (triggered) setOpen(true);   // 이미 캐시된 데이터가 있으면 바로 열기
@@ -114,7 +117,7 @@ const AiInsightWidget = ({ aiTab }: Props) => {
         title="AI 분석 보기"
         className={styles.triggerBtn}
       >
-        {buttonLoading ? 'AI 분석중…' : TAB_LABEL[aiTab]}
+        {buttonLoading ? `${TAB_LABEL[aiTab]} 분석중…` : TAB_LABEL[aiTab]}
       </Button>
 
       {open && createPortal(

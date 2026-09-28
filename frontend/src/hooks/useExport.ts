@@ -5,6 +5,7 @@ import { reloadKpiData } from '@/api/kpi.api';
 import { reloadPerfData } from '@/api/performance.api';
 import { useFilters } from './useFilters';
 import { useUiStore } from '@/store';
+import { confirmDialog } from '@/utils/dialog';
 
 // 브라우저가 다운로드를 시작할 시간을 번 뒤 blob URL 해제 — 너무 빨리 해제하면 일부 브라우저에서 다운로드 실패
 const BLOB_URL_REVOKE_DELAY_MS = 1000;
@@ -25,8 +26,17 @@ const csvField = (v: unknown): string => {
   return s;
 };
 
-/** 헤더+행 데이터로 CSV 파일을 생성해 즉시 다운로드 — 재무/KPI/실적 3탭 CSV 내보내기 공용 */
-export const downloadCsvFile = (filename: string, headers: string[], rows: unknown[][]): void => {
+/**
+ * 헤더+행 데이터로 CSV 파일을 생성해 다운로드 — 재무/KPI/실적 3탭·드릴다운 모달 CSV 전부 공용.
+ * 다운로드 전 확인창을 띄움(2026-09-28 — "csv 버튼은 클릭하면 다운로드 받으시겠냐고 컨펌") — 모든
+ * CSV 버튼이 이 함수를 거치므로 버튼마다 따로 넣지 말 것. 취소하면 false
+ */
+export const downloadCsvFile = async (filename: string, headers: string[], rows: unknown[][]): Promise<boolean> => {
+  const ok = await confirmDialog(`${filename}\n(${rows.length.toLocaleString('ko-KR')}행)`, {
+    title: 'CSV 파일을 다운로드하시겠습니까?',
+    confirmText: '다운로드',
+  });
+  if (!ok) return false;
   const lines = [
     headers.map(csvField).join(','),
     ...rows.map(r => r.map(csvField).join(',')),
@@ -40,6 +50,7 @@ export const downloadCsvFile = (filename: string, headers: string[], rows: unkno
   a.click();
   document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), BLOB_URL_REVOKE_DELAY_MS);
+  return true;
 };
 
 export const useExport = () => {
@@ -55,7 +66,7 @@ export const useExport = () => {
     try {
       const { data: rows } = await getProjects(filters, { page: 1, pageSize: 9999, search: '' });
       const headers = ['프로젝트코드','연도','파트','단계','매출','지출','직접원가','인건비','공통원가','경상이익','이익율','노트'];
-      downloadCsvFile(
+      await downloadCsvFile(
         `재무현황_${new Date().toISOString().slice(0, 10)}.csv`,
         headers,
         rows.map(r => [r.project_code, r.year, r.part, r.stage,

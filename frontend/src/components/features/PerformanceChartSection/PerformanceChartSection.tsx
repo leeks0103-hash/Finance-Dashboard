@@ -8,17 +8,18 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { usePerformanceChartViewModel } from '@/hooks/viewmodels';
+import type { MonthlyTableRow } from '@/hooks/viewmodels/usePerformanceChartViewModel';
 import { useTheme } from '@/hooks';
 import { makeBarOptions, legendRadioClick } from '@/utils/chartOptions';
 import { getChartPalette, getChartTheme } from '@/utils/chartColors';
 // Toggle — 파트별 경상이익 토글 비활성화로 미사용(주석 처리). 복구 시 함께 import
 import { createColumnHelper } from '@tanstack/react-table';
-import { ChartCard, BarChart, DoughnutChart, DataTable, useTableDndSensors, InfoButton } from '@/components/ui';
+import { ChartCard, BarChart, DoughnutChart, DataTable, useTableDndSensors, InfoButton, Button } from '@/components/ui';
 import type { Plugin, Chart, LegendItem, LegendElement, ChartEvent } from 'chart.js';
 import CostFilterPopover from './CostFilterPopover';
 import PerfBreakdownModal from '@/components/features/PerfBreakdownModal/PerfBreakdownModal';
 import CostBreakdownModal from './CostBreakdownModal';
-import type { PerfBreakdownTarget } from '@/hooks/viewmodels/usePerfBreakdownViewModel';
+import { canPerfBreakdown, type PerfBreakdownTarget } from '@/hooks/viewmodels/usePerfBreakdownViewModel';
 import type { PerfBreakdownChart } from '@/api/performance.api';
 import {
   INFO_MONTHLY, INFO_PROFIT_RATE, INFO_COST_BREAKDOWN,
@@ -70,19 +71,33 @@ const partRevCostColumns = [
 ];
 
 // "월별 실적 추이" 확대 모달의 검증용 표 — 그냥 확대만 되는 모달이라는 피드백에 따라
-// 월별 수치 + 누계(연 진행 추적용)를 표로 함께 노출. 컬럼은 상태 의존 없어 모듈 스코프
-interface MonthlyRow {
-  month: string; revenue: number; cost: number; profit: number;
-  cumRevenue: number; cumCost: number; cumProfit: number;
-}
-const mr = createColumnHelper<MonthlyRow>();
-const monthlyRowColumns = [
-  mr.accessor('month',      { header: '월',        size: 60 }),
-  mr.accessor('revenue',    { header: '매출(억)',   size: 90,  cell: i => i.getValue().toLocaleString() }),
-  mr.accessor('cost',       { header: '원가(억)',   size: 90,  cell: i => i.getValue().toLocaleString() }),
-  mr.accessor('profit',     { header: '손익(억)',   size: 90,  cell: i => i.getValue().toLocaleString() }),
-  mr.accessor('cumRevenue', { header: '누계매출(억)', size: 100, cell: i => i.getValue().toLocaleString() }),
-  mr.accessor('cumProfit',  { header: '누계손익(억)', size: 100, cell: i => i.getValue().toLocaleString() }),
+// 월별 수치 + 누계(연 진행 추적용)를 표로 함께 노출. 행 계산은 VM(MonthlyTableRow — 원금액 기준).
+// 수치 셀 클릭 → 차트 막대처럼 산출 근거 모달(2026-09-28). 컬럼 순서 = 백엔드 _PERF_BREAKDOWN
+// ["monthly"] series 인덱스(0 매출 / 1 원가 / 2 손익 / 3 누계매출 / 4 누계손익)
+const mr = createColumnHelper<MonthlyTableRow>();
+const MONTHLY_VALUE_COLS: { key: Exclude<keyof MonthlyTableRow, 'month'>; header: string; size: number }[] = [
+  { key: 'revenue',    header: '매출(억)',     size: 90 },
+  { key: 'cost',       header: '원가(억)',     size: 90 },
+  { key: 'profit',     header: '손익(억)',     size: 90 },
+  { key: 'cumRevenue', header: '누계매출(억)', size: 100 },
+  { key: 'cumProfit',  header: '누계손익(억)', size: 100 },
+];
+const buildMonthlyColumns = (onCellClick: (month: string, series: number) => void) => [
+  mr.accessor('month', { header: '월', size: 60 }),
+  ...MONTHLY_VALUE_COLS.map(({ key, header, size }, series) =>
+    mr.accessor(key, {
+      header, size,
+      cell: i => (
+        <Button
+          unstyled
+          className={styles.cellLink}
+          title="클릭하면 이 값의 산출 근거(프로젝트별 합계)를 봅니다"
+          onClick={() => onCellClick(i.row.original.month, series)}
+        >
+          {i.getValue().toLocaleString()}
+        </Button>
+      ),
+    })),
 ];
 
 // 팔레트의 rgba(...) 문자열 알파값만 교체 — 미래 월/보조 계열 흐림 처리용
@@ -104,62 +119,202 @@ const fadeAlpha = (rgba: string, alpha: number) => rgba.replace(/[\d.]+\)$/, `${
 // 최신 series를 읽는다 — options는 매 렌더 새로 내려가고 react-chartjs-2가 그건 제대로
 // chart.update()로 반영하므로, 여기서 매번 최신값을 볼 수 있다.
 interface PlanLineSeries { barIndex: number; values: (number | null)[]; color: string; dash: number[]; }
-interface PlanLinePluginOpts { series: PlanLineSeries[]; showLabels?: boolean; labelColor?: string; }
+interface PlanLinePluginOpts { series: PlanLineSeries[]; showLabels?: boolean; labelColor?: string; surfaceColor?: string; }
+
+// 목표선 애니메이션 — 캔버스 직접 그리기라 Chart.js 애니메이션을 못 타서 막대만 자라 오르고 선은
+// 최종 위치에 뚝 찍혀 있었음(2026-09-28). 직접 트윈:
+//   · 처음 그리거나 다시 켰을 때(reveal) — 일반 꺾은선처럼 왼쪽 → 오른쪽으로 그려 나감(clip 영역 확장)
+//   · 값이 바뀌면(필터 등) — 이전 위치 → 새 위치로 값 공간에서 이동
+// easeInOutQuart는 막대(makeBarOptions)와 동일. 상태는 차트 인스턴스별(WeakMap — 차트 destroy 시
+// 자동 해제), 시리즈는 barIndex로 구분
+const PLAN_ANIM_MS = 900;
+const easeInOutQuart = (t: number) => (t < 0.5 ? 8 * t ** 4 : 1 - (-2 * t + 2) ** 4 / 2);
+interface PlanTween { from: (number | null)[]; to: (number | null)[]; start: number; reveal: boolean; }
+const planTweens = new WeakMap<object, Map<number, PlanTween>>();
+const planRafPending = new WeakSet<object>();
+const tweenValueAt = (tw: PlanTween, i: number, e: number) => {
+  const to = tw.to[i];
+  if (to == null) return null;
+  const from = tw.from[i] ?? 0;
+  return from + (to - from) * e;
+};
+
+// 텍스트 ↔ 그래프 겹침 방지(2026-09-28). 그리는 순서를 셋으로 나눔:
+//   1) 목표선·점 — 막대를 다 그린 직후(afterDatasetDraw, 마지막으로 그려지는 데이터셋 뒤).
+//      datalabels(전역 플러그인)는 afterDatasetsDraw에서 그리므로 막대 수치가 선 "위"에 올라옴.
+//      예전엔 선을 afterDatasetsDraw에서 그려서(인라인 플러그인은 전역 뒤에 실행) 선이 막대
+//      수치를 관통했음
+//   2) 막대 수치 — datalabels. 모달에선 글자 테두리(카드 배경색 halo)로 선이 글자 뒤로 지나감.
+//      ⚠️ 배경 '박스'는 쓰지 말 것 — 수치 박스가 막대보다 넓어서 옆의 더 높은 막대 모서리를
+//      배경색으로 덮어 막대가 파먹힌 것처럼 보였음(2026-09-28)
+//   3) 목표선 수치 — 맨 마지막(이 플러그인의 afterDatasetsDraw). 점 위 → 점 아래 순으로 후보를
+//      놓아보고 막대·막대 수치·다른 목표선 수치와 안 겹치는 자리에 찍음. 둘 다 막히면 생략
+//      (점선+점은 남아 있고, 정확한 값은 모달 아래 표에 있음)
+interface PlanPt { x: number; y: number; v: number | null }
+interface PlanDrawn { pts: (PlanPt | null)[]; color: string; clipX: number }
+interface Rect { l: number; r: number; t: number; b: number }
+const planDrawn = new WeakMap<object, PlanDrawn[]>();
+const PLAN_FONT = "bold 11px 'HyundaiSans', 'Malgun Gothic', sans-serif";
+const LABEL_H = 15;       // 11px 글자 + 위아래 여백 — 막대 수치(datalabels padding)와 같은 높이
+const LABEL_PAD_X = 3;
+const overlaps = (a: Rect, b: Rect) => a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b;
+
+const drawPlanLines = (chart: Chart<'bar'>) => {
+  const drawn: PlanDrawn[] = [];
+  planDrawn.set(chart, drawn);
+  const opts = (chart.options.plugins as { planLine?: PlanLinePluginOpts } | undefined)?.planLine;
+  const series = opts?.series ?? [];
+  const tweens = planTweens.get(chart) ?? new Map<number, PlanTween>();
+  planTweens.set(chart, tweens);
+  // 꺼진 시리즈는 상태를 버려서, 다시 켜면 0부터 다시 올라오게
+  [...tweens.keys()].forEach(k => { if (!series.some(s => s.barIndex === k)) tweens.delete(k); });
+  if (!series.length) return;
+  const now = performance.now();
+  let animating = false;
+  const { ctx } = chart;
+  series.forEach(({ barIndex, values: targets, color, dash }) => {
+    const meta = chart.getDatasetMeta(barIndex);
+    const yScale = chart.scales[meta?.yAxisID ?? 'y'];
+    if (!meta?.data?.length || !yScale) return;
+
+    let tw = tweens.get(barIndex);
+    const changed = !tw || tw.to.length !== targets.length || tw.to.some((v, i) => v !== targets[i]);
+    if (changed) {
+      const prev = tw;
+      const prevE = prev && !prev.reveal ? easeInOutQuart(Math.min(1, (now - prev.start) / PLAN_ANIM_MS)) : 1;
+      tw = {
+        // reveal 도중에 값이 바뀌면 그리던 선은 이미 최종값 위치라 거기서 이동 시작
+        from:   prev ? targets.map((_, i) => tweenValueAt(prev, i, prevE)) : [...targets],
+        to:     [...targets],
+        start:  now,
+        reveal: !prev || (prev.reveal && now - prev.start < PLAN_ANIM_MS),
+      };
+      tweens.set(barIndex, tw);
+    }
+    const t = Math.min(1, (now - tw!.start) / PLAN_ANIM_MS);
+    if (t < 1) animating = true;
+    const e = easeInOutQuart(t);
+    const values = tw!.reveal ? targets : targets.map((_, i) => tweenValueAt(tw!, i, e));
+    // reveal이면 차트 왼쪽 끝부터 진행률만큼만 보이게
+    const { left, right, top, bottom } = chart.chartArea;
+    const clipX = tw!.reveal && t < 1 ? left + (right - left) * e : Infinity;
+    // 수치 라벨은 datalabels가 못 봄(실제 데이터셋이 아니라 캔버스 직접 그리기) — 3단계에서 직접 그림.
+    // 라벨 수치는 트윈 중간값이 아니라 최종 목표값(targets) — 위치만 움직이고 숫자는 고정
+    const pts = meta.data.map((el, i) => {
+      const v = values[i];
+      if (v == null) return null;
+      return { x: (el as unknown as { x: number }).x, y: yScale.getPixelForValue(v), v: targets[i] };
+    });
+    drawn.push({ pts, color, clipX });
+    ctx.save();
+    if (clipX !== Infinity) {
+      ctx.beginPath();
+      ctx.rect(left, top - 30, clipX - left, bottom - top + 30);   // 위 30px = 수치 라벨 자리
+      ctx.clip();
+    }
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.setLineDash(dash);
+    ctx.beginPath();
+    let started = false;
+    pts.forEach(p => {
+      if (!p) { started = false; return; }
+      if (!started) { ctx.moveTo(p.x, p.y); started = true; } else ctx.lineTo(p.x, p.y);
+    });
+    ctx.stroke();
+    ctx.setLineDash([]);
+    pts.forEach(p => {
+      if (!p) return;
+      ctx.beginPath();
+      ctx.fillStyle = color;
+      ctx.arc(p.x, p.y, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.restore();
+  });
+  // 트윈 중이면 다음 프레임 다시 그리기 — 막대 애니메이션과 겹쳐도 프레임당 1회만 예약.
+  // chart.draw()는 update 없이 현재 상태만 다시 그려서 막대 애니메이션을 방해하지 않음
+  if (animating && !planRafPending.has(chart)) {
+    planRafPending.add(chart);
+    requestAnimationFrame(() => {
+      planRafPending.delete(chart);
+      if (chart.ctx) chart.draw();   // destroy된 차트(ctx=null)면 중단
+    });
+  }
+};
+
+// 피해야 할 영역 — 보이는 막대 몸통 + 그 위 막대 수치 박스(partRevCostOptions datalabels와 같은 규칙:
+// anchor/align 'end', offset 2, 높이 LABEL_H). ctx.font가 PLAN_FONT로 설정된 상태에서 호출할 것
+const collectObstacles = (chart: Chart<'bar'>, showBarLabels: boolean): Rect[] => {
+  const { ctx } = chart;
+  const rects: Rect[] = [];
+  chart.getSortedVisibleDatasetMetas().forEach(meta => {
+    const data = chart.data.datasets[meta.index]?.data ?? [];
+    meta.data.forEach((el, i) => {
+      const bar = el as unknown as { x: number; y: number; base: number; width: number };
+      const raw = data[i];
+      if (typeof raw !== 'number' || !Number.isFinite(bar.y)) return;
+      const half = bar.width / 2;
+      rects.push({ l: bar.x - half, r: bar.x + half, t: Math.min(bar.y, bar.base), b: Math.max(bar.y, bar.base) });
+      if (!showBarLabels) return;
+      const w = ctx.measureText(`${raw}억`).width + LABEL_PAD_X * 2;
+      const up = bar.y <= bar.base;   // 양수 막대 → 수치는 막대 위, 음수 → 아래
+      const t = up ? bar.y - 2 - LABEL_H : bar.y + 2;
+      rects.push({ l: bar.x - w / 2, r: bar.x + w / 2, t, b: t + LABEL_H });
+    });
+  });
+  return rects;
+};
+
+const drawPlanLabels = (chart: Chart<'bar'>) => {
+  const opts = (chart.options.plugins as { planLine?: PlanLinePluginOpts } | undefined)?.planLine;
+  const drawn = planDrawn.get(chart) ?? [];
+  if (!opts?.showLabels || !drawn.length) return;
+  const { ctx } = chart;
+  ctx.save();
+  ctx.font = PLAN_FONT;
+  const obstacles = collectObstacles(chart, true);
+  const { top } = chart.chartArea;
+  drawn.forEach(({ pts, color, clipX }) => {
+    pts.forEach(p => {
+      if (!p || p.v == null || p.x > clipX) return;
+      const text = `${p.v}억`;
+      const w = ctx.measureText(text).width + LABEL_PAD_X * 2;
+      const l = p.x - w / 2;
+      // 후보: 점 위 → 점 아래. 점(반지름 3.5)과도 안 겹치게 5px 띄움
+      const candidates: Rect[] = [
+        { l, r: l + w, t: p.y - 5 - LABEL_H, b: p.y - 5 },
+        { l, r: l + w, t: p.y + 5,           b: p.y + 5 + LABEL_H },
+      ];
+      const spot = candidates.find(c => c.t >= top - 30 && !obstacles.some(o => overlaps(c, o)));
+      if (!spot) return;
+      obstacles.push(spot);   // 다음 목표선 수치가 이 자리를 피하도록
+      if (opts.surfaceColor) {
+        ctx.fillStyle = opts.surfaceColor;
+        ctx.beginPath();
+        ctx.roundRect(spot.l, spot.t, w, LABEL_H, 3);
+        ctx.fill();
+      }
+      ctx.fillStyle = opts.labelColor ?? color;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, p.x, spot.t + LABEL_H / 2 + 0.5);
+    });
+  });
+  ctx.restore();
+};
+
 const planLinePlugin: Plugin<'bar'> = {
   id: 'planLine',
+  beforeDraw(chart) { planDrawn.delete(chart); },
+  // 막대는 getSortedVisibleDatasetMetas() 역순으로 그려짐 → [0]이 마지막 = 막대 다 그린 직후
+  afterDatasetDraw(chart, args) {
+    const first = chart.getSortedVisibleDatasetMetas()[0];
+    if (first && args.index === first.index) drawPlanLines(chart);
+  },
   afterDatasetsDraw(chart) {
-    const opts = (chart.options.plugins as { planLine?: PlanLinePluginOpts } | undefined)?.planLine;
-    const series = opts?.series ?? [];
-    if (!series.length) return;
-    const { ctx } = chart;
-    series.forEach(({ barIndex, values, color, dash }) => {
-      const meta = chart.getDatasetMeta(barIndex);
-      const yScale = chart.scales[meta?.yAxisID ?? 'y'];
-      if (!meta?.data?.length || !yScale) return;
-      // v(원본 값)도 같이 들고 있어야 수치 라벨을 찍을 수 있음 — 막대는 chartjs-plugin-datalabels가
-      // 알아서 그려주지만, 이 목표선은 실제 데이터셋이 아니라 캔버스 직접 그리기라 그 플러그인이
-      // 아예 보지 못함(그래서 "매출 계획/원가 계획에는 수치가 안 보인다"는 문제) — 여기서 직접 그림
-      const pts = meta.data.map((el, i) => {
-        const v = values[i];
-        if (v == null) return null;
-        const barEl = el as unknown as { x: number; y: number };
-        return { x: barEl.x, y: yScale.getPixelForValue(v), v, barY: barEl.y };
-      });
-      ctx.save();
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 2;
-      ctx.setLineDash(dash);
-      ctx.beginPath();
-      let started = false;
-      pts.forEach(p => {
-        if (!p) { started = false; return; }
-        if (!started) { ctx.moveTo(p.x, p.y); started = true; } else ctx.lineTo(p.x, p.y);
-      });
-      ctx.stroke();
-      ctx.setLineDash([]);
-      pts.forEach(p => {
-        if (!p) return;
-        ctx.beginPath();
-        ctx.fillStyle = color;
-        ctx.arc(p.x, p.y, 3.5, 0, Math.PI * 2);
-        ctx.fill();
-      });
-      if (opts?.showLabels) {
-        ctx.font = "bold 11px 'HyundaiSans', 'Malgun Gothic', sans-serif";
-        ctx.fillStyle = opts.labelColor ?? color;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'bottom';
-        pts.forEach(p => {
-          if (!p) return;
-          // 추정 실적(막대)과 계획(목표선) 수치가 비슷하면 막대 자체 수치 라벨과 같은 자리에
-          // 겹쳐 찍혀 글자가 뭉개짐 — 목표선이 막대 꼭짓점과 픽셀상 너무 가까우면 라벨을 생략
-          // (점선+점은 그대로 그려서 "거의 일치"라는 건 계속 보임, 수치는 막대 라벨로 충분)
-          if (Math.abs(p.y - p.barY) < 14) return;
-          ctx.fillText(`${p.v}억`, p.x, p.y - 6);
-        });
-      }
-      ctx.restore();
-    });
+    if (!planDrawn.has(chart)) drawPlanLines(chart);   // 막대가 전부 숨김이면 위 훅이 안 불림
+    drawPlanLabels(chart);
   },
 };
 
@@ -231,12 +386,17 @@ const PerformanceChartSection = () => {
   // 파트별 경상이익 카드 — 매출/원가 2계열 고정 표시로 변경(담당자 지정) — 토글 비활성화, 복구 시 아래 주석 해제
   // const [showProfitAmount, setShowProfitAmount] = useState(true);
 
-  const { labelColor, gridColor, tickColor } = getChartTheme(dark);
+  const { labelColor, gridColor, tickColor, surfaceColor } = getChartTheme(dark);
 
   const vm = usePerformanceChartViewModel();
 
   // 막대 클릭 → 드릴다운 모달. 축 라벨 클릭(datasetIndex -1)은 첫 시리즈로.
   const [breakdown, setBreakdown] = useState<PerfBreakdownTarget | null>(null);
+  // 드릴다운 모달 열기 — 백엔드가 산출 근거를 모르는 차트/시리즈(계획선 등)면 빈 "알 수 없는
+  // 차트/시리즈" 모달 대신 아무 일도 안 일어나게(2026-09-28)
+  const openTarget = useCallback((t: PerfBreakdownTarget) => {
+    if (canPerfBreakdown(t.chart, t.series)) setBreakdown(t);
+  }, []);
   // "파트별 추정 매출/원가"의 x축 라벨 클릭 — 다른 차트처럼 드릴다운을 여는 대신, 그 파트를
   // 차트에서 숨김/복원 토글(다시 클릭하면 되돌아옴). 데이터가 많아 복잡할 때 걸러보기 위함
   const [hiddenParts, setHiddenParts] = useState<Set<string>>(new Set());
@@ -253,8 +413,8 @@ const PerformanceChartSection = () => {
   const [showPlanCost, setShowPlanCost] = useState(true);
   const openBreakdown = useCallback(
     (chart: PerfBreakdownChart) => (key: string, dsIndex: number) =>
-      setBreakdown({ chart, series: dsIndex < 0 ? 0 : dsIndex, key }),
-    [],
+      openTarget({ chart, series: dsIndex < 0 ? 0 : dsIndex, key }),
+    [openTarget],
   );
 
   const [chartOrder, setChartOrder] = useState<string[]>(() => {
@@ -360,6 +520,16 @@ const PerformanceChartSection = () => {
           offset: 2,
           font: { size: 11, weight: 'bold', family: "'HyundaiSans', 'Malgun Gothic', sans-serif" },
           formatter: (v: number) => `${v}억`,
+          // padding은 planLinePlugin의 LABEL_H/LABEL_PAD_X(목표선 수치 겹침 판정용 크기)와 맞춰둘 것.
+          // 배경 박스(backgroundColor)는 넣지 말 것 — 옆 막대를 파먹음(planLinePlugin 주석 참고)
+          padding: { top: 1, bottom: 1, left: 3, right: 3 },
+          // 수치 글자색 = 그 막대 색(매출 파랑 / 원가 갈색, 손실 파트 원가는 빨강) — 막대 위(anchor/align
+          // 'end')에 찍혀서 막대와 안 겹침. 공통 labelColor(단색)였을 땐 매출·원가·계획선 수치가 한데
+          // 섞여 어느 계열 값인지 헷갈렸음(2026-09-28)
+          color: (ctx: { dataset: { backgroundColor?: unknown }; dataIndex: number }) => {
+            const bg = ctx.dataset.backgroundColor;
+            return (Array.isArray(bg) ? bg[ctx.dataIndex] : bg) as string;
+          },
         },
       },
     }), scaleOverride),
@@ -384,24 +554,12 @@ const PerformanceChartSection = () => {
     [vm.profitRate.labels, vm.profitRate.revenues, vm.profitRate.costs],
   );
 
-  // "월별 실적 추이" 확대 모달 전용 — 월별 매출/원가/손익 + 누계를 표로. 카드 확대가
-  // 그냥 크게 보여주기만 하는 게 심심하다는 피드백에 따라 다른 확대 모달처럼 표를 추가
-  const monthlyRows = useMemo(() => {
-    let cumRevenue = 0;
-    let cumCost = 0;
-    return vm.monthly.labels.map((month, i) => {
-      const revenue = vm.monthly.revenues[i];
-      const cost = vm.monthly.costs[i];
-      cumRevenue = +(cumRevenue + revenue).toFixed(1);
-      cumCost = +(cumCost + cost).toFixed(1);
-      return {
-        month, revenue, cost,
-        profit: +(revenue - cost).toFixed(1),
-        cumRevenue, cumCost,
-        cumProfit: +(cumRevenue - cumCost).toFixed(1),
-      };
-    });
-  }, [vm.monthly.labels, vm.monthly.revenues, vm.monthly.costs]);
+  // "월별 실적 추이" 확대 모달 표 — 행은 VM(원금액 기준 계산), 셀 클릭은 차트 막대와 같은 드릴다운
+  const monthlyRows = vm.monthly.rows;
+  const monthlyRowColumns = useMemo(
+    () => buildMonthlyColumns((month, series) => openBreakdown('monthly')(month, series)),
+    [openBreakdown],
+  );
 
   // progress 차트 비활성으로 미사용 — 복구 시 함께 주석 해제
   // const progressOptions = useMemo(
@@ -438,7 +596,7 @@ const PerformanceChartSection = () => {
           <div className={styles.chartModalChart}>{chartEl}</div>
           <div className={styles.chartModalBottom}>
             <div className={styles.chartModalTable}>
-              <DataTable<MonthlyRow>
+              <DataTable<MonthlyTableRow>
                 data={monthlyRows}
                 columns={monthlyRowColumns as never}
                 getRowId={r => r.month}
@@ -513,15 +671,21 @@ const PerformanceChartSection = () => {
       // (매출/원가가 이미 쓰던 그 범례) 안에 매출 계획/원가 계획 항목 2개를 끼워 넣어서, 클릭하면
       // 그 항목만 취소선 처리되는 Chart.js 기본 동작을 그대로 쓴다. 매출/원가 클릭은 기존
       // legendRadioClick(단독표시) 그대로 유지 — 여기서 새로 안 건드림
+      // 계획선 색 = 대조 대상 막대와 같은 계열(매출 계획=파랑, 원가 계획=갈색)의 밝은 톤 — 둘 다
+      // 같은 중립 회색(planColor)이라 어느 선이 어느 계획인지 헷갈렸음. 막대와 완전히 같은 색은
+      // 계획 < 실적인 파트에서 선이 막대에 묻혀서 밝기를 달리함(palette.planRevenue/planCost, 2026-09-28)
       const planLineSeries = [
-        ...(showPlanRevenue ? [{ barIndex: 0, values: pick(vm.profitRate.planRevenue), color: planColor, dash: [6, 4] }] : []),
-        ...(showPlanCost ? [{ barIndex: 1, values: pick(vm.profitRate.planCost), color: fadeAlpha(planColor, 0.7), dash: [3, 3] }] : []),
+        ...(showPlanRevenue ? [{ barIndex: 0, values: pick(vm.profitRate.planRevenue), color: palette.planRevenue, dash: [6, 4] }] : []),
+        ...(showPlanCost ? [{ barIndex: 1, values: pick(vm.profitRate.planCost), color: palette.planCost, dash: [3, 3] }] : []),
       ];
       const modalOptions = {
         ...partRevCostOptions,
         plugins: {
           ...partRevCostOptions.plugins,
-          planLine: { series: planLineSeries, showLabels: vm.showLabels, labelColor },
+          // 목표선이 막대 수치를 지나갈 때 글자 윤곽만 카드 배경색으로 둘러서 선이 글자 뒤로 가게
+          datalabels: { ...partRevCostOptions.plugins?.datalabels, textStrokeColor: surfaceColor, textStrokeWidth: 3 },
+          // labelColor 생략 → 계획선 수치는 각 선 색으로(planLinePlugin 기본값)
+          planLine: { series: planLineSeries, showLabels: vm.showLabels, surfaceColor },
           legend: {
             ...partRevCostOptions.plugins?.legend,
             labels: {
@@ -532,8 +696,8 @@ const PerformanceChartSection = () => {
                   return { text: ds.label ?? '', datasetIndex: i, fillStyle: bg, strokeStyle: bg, lineWidth: 0, hidden: !!meta.hidden } as LegendItem;
                 });
                 const planItems: LegendItem[] = [
-                  { text: '매출 계획', datasetIndex: -1, fillStyle: planColor, strokeStyle: planColor, lineWidth: 0, hidden: !showPlanRevenue } as LegendItem,
-                  { text: '원가 계획', datasetIndex: -2, fillStyle: fadeAlpha(planColor, 0.7), strokeStyle: fadeAlpha(planColor, 0.7), lineWidth: 0, hidden: !showPlanCost } as LegendItem,
+                  { text: '매출 계획', datasetIndex: -1, fillStyle: palette.planRevenue, strokeStyle: palette.planRevenue, lineWidth: 0, hidden: !showPlanRevenue } as LegendItem,
+                  { text: '원가 계획', datasetIndex: -2, fillStyle: palette.planCost, strokeStyle: palette.planCost, lineWidth: 0, hidden: !showPlanCost } as LegendItem,
                 ];
                 return [...barItems, ...planItems];
               },
@@ -614,7 +778,7 @@ const PerformanceChartSection = () => {
             teamParts={vm.chartData?.teamParts ?? {}}
             colors={doughnutColors}
             showLabels={vm.showLabels}
-            onSliceClick={i => setBreakdown({
+            onSliceClick={i => openTarget({
               chart: 'costBreakdown', series: i, key: '',
               // 이 카드는 메인 필터 무관 — 카드 자체 팀/파트 선택 기준으로만 조회
               ignoreMainFilter: true,
@@ -642,7 +806,7 @@ const PerformanceChartSection = () => {
             colors={doughnutColors}
             showLabels={vm.showLabels}
             outsideLabels
-            onSliceClick={i => setBreakdown({
+            onSliceClick={i => openTarget({
               chart: 'costBreakdown', series: i, key: '',
               // 이 카드는 메인 필터 무관 — 카드 자체 팀/파트 선택 기준으로만 조회
               ignoreMainFilter: true,

@@ -1,0 +1,105 @@
+/* 사용법 투어 팝오버 — driver.js 기본 스타일을 대시보드 토큰(현대 9색·라이트/다크)으로 덮어씀.
+   driver.js가 popoverClass로 이 클래스를 .driver-popover에 붙이므로 클래스 2개로 우선순위 확보.
+   다음/이전 버튼은 driver.js가 직접 만드는 DOM이라 <Button> 컴포넌트를 쓸 수 없음 — 모양만 맞춤 */
+.popover:global(.driver-popover) {
+  font-family: 'HyundaiSans', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+  background: var(--surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 18px 20px 16px;
+  min-width: 280px;
+  max-width: min(440px, calc(100vw - 32px));
+}
+
+.popover :global(.driver-popover-title) {
+  font-size: 1.02rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--brand);
+  padding-right: 20px;   /* 닫기(×)와 겹치지 않게 */
+  word-break: keep-all;  /* 한글 제목이 글자 단위로 끊기지 않게 ("환영합니/다") */
+}
+
+.popover :global(.driver-popover-description) {
+  font-size: 0.86rem;
+  line-height: 1.65;
+  color: var(--text-sub);
+  word-break: keep-all;
+}
+
+.popover :global(.driver-popover-description b) {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.popover :global(.driver-popover-close-btn) {
+  color: var(--text-muted);
+  top: 6px;
+  right: 6px;
+}
+.popover :global(.driver-popover-close-btn:hover) {
+  color: var(--text-primary);
+}
+
+.popover :global(.driver-popover-footer) {
+  margin-top: 16px;
+  align-items: center;
+}
+
+.popover :global(.driver-popover-progress-text) {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.popover :global(.driver-popover-navigation-btns) {
+  gap: 6px;
+}
+
+.popover :global(.driver-popover-footer-btn) {
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-shadow: none;
+  padding: 5px 12px;
+  margin-left: 0;
+  border-radius: var(--radius-btn);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-sub);
+  transition: background 0.15s, border-color 0.15s;
+}
+.popover :global(.driver-popover-footer-btn:hover),
+.popover :global(.driver-popover-footer-btn:focus) {
+  background: var(--bg-subtle);
+}
+
+/* 다음/완료 = Button variant="primary"와 동일 */
+.popover :global(.driver-popover-next-btn) {
+  background: var(--brand-mid);
+  border-color: var(--brand-mid);
+  color: #fff;
+}
+.popover :global(.driver-popover-next-btn:hover),
+.popover :global(.driver-popover-next-btn:focus) {
+  background: var(--brand);
+  border-color: var(--brand);
+}
+
+.popover :global(.driver-popover-btn-disabled) {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* 화살표 — 보이는 한 면만 카드색으로 (나머지 면은 driver.css가 투명 처리) */
+.popover :global(.driver-popover-arrow-side-left)   { border-left-color:   var(--surface); }
+.popover :global(.driver-popover-arrow-side-right)  { border-right-color:  var(--surface); }
+.popover :global(.driver-popover-arrow-side-top)    { border-top-color:    var(--surface); }
+.popover :global(.driver-popover-arrow-side-bottom) { border-bottom-color: var(--surface); }
+
+/* 투어가 섹션으로 스크롤할 때 상단 고정(sticky) 네비바+필터바에 섹션 머리가 가리지 않도록 */
+:global([data-tour]) {
+  scroll-margin-top: 120px;
+}
