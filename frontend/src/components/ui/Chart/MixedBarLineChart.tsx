@@ -43,7 +43,7 @@ const MixedBarLineChart = ({ labels, datasets, options }: Props) => {
     maintainAspectRatio: false,
     ...options,
     plugins: {
-      legend:     { position: 'bottom', labels: { font: { size: 11 } } },
+      legend:     { position: 'bottom', labels: { font: { size: 12 } } },
       datalabels: { display: false },
       ...options?.plugins,
     },

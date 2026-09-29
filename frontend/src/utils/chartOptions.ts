@@ -46,7 +46,7 @@ export const makeBarOptions = (
     datalabels: {
       display,
       color:  labelColor,
-      font:   { size: 13, weight: 'bold', family: "'HyundaiSans', 'Malgun Gothic', sans-serif" },
+      font:   { size: 14, weight: 'bold', family: "'HyundaiSans', 'Malgun Gothic', sans-serif" },
       anchor: 'center',
       align:  'center',
       ...(extra?.plugins?.datalabels ?? {}),

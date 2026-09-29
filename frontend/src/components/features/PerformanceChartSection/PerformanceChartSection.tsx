@@ -207,8 +207,8 @@ interface PlanPt { x: number; y: number; v: number | null }
 interface PlanDrawn { pts: (PlanPt | null)[]; color: string; clipX: number }
 interface Rect { l: number; r: number; t: number; b: number }
 const planDrawn = new WeakMap<object, PlanDrawn[]>();
-const PLAN_FONT = "bold 11px 'HyundaiSans', 'Malgun Gothic', sans-serif";
-const LABEL_H = 15;       // 11px 글자 + 위아래 여백 — 막대 수치(datalabels padding)와 같은 높이
+const PLAN_FONT = "bold 12px 'HyundaiSans', 'Malgun Gothic', sans-serif";
+const LABEL_H = 16;       // 12px 글자 + 위아래 여백 — 막대 수치(datalabels padding)와 같은 높이
 const LABEL_PAD_X = 3;
 const overlaps = (a: Rect, b: Rect) => a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b;
 
@@ -572,7 +572,7 @@ const PerformanceChartSection = () => {
           anchor: 'end',
           align: 'end',
           offset: 2,
-          font: { size: 11, weight: 'bold', family: "'HyundaiSans', 'Malgun Gothic', sans-serif" },
+          font: { size: 12, weight: 'bold', family: "'HyundaiSans', 'Malgun Gothic', sans-serif" },
           formatter: (v: number) => `${v}억`,
           // padding은 planLinePlugin의 LABEL_H/LABEL_PAD_X(목표선 수치 겹침 판정용 크기)와 맞춰둘 것.
           // 배경 박스(backgroundColor)는 넣지 말 것 — 옆 막대를 파먹음(planLinePlugin 주석 참고)
@@ -920,6 +920,7 @@ const PerformanceChartSection = () => {
             colors={doughnutColors}
             showLabels={vm.showLabels}
             outsideLabels
+            outsideLabelsSize="md"
             onSliceClick={i => openTarget({
               chart: 'costBreakdown', series: i, key: '',
               // 이 카드는 메인 필터 무관 — 카드 자체 팀/파트 선택 기준으로만 조회

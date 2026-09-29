@@ -19,3 +19,16 @@ const crispCanvasPlugin: Plugin = {
 };
 
 Chart.register(crispCanvasPlugin);
+
+// 한글 TTF가 커서 폰트 로드 전에 차트가 먼저 그려지면 대체 글꼴(맑은 고딕)로 그린 채 굳음 —
+// 캔버스는 DOM처럼 폰트 로드 후 자동으로 다시 그려지지 않으므로, 로드 완료 시 전 차트를 다시 그림
+if (typeof document !== 'undefined' && document.fonts) {
+  const redrawAll = () => {
+    for (const id in Chart.instances) {
+      const chart = Chart.instances[id as unknown as number];
+      if (chart?.canvas?.isConnected) chart.update('none');
+    }
+  };
+  document.fonts.addEventListener('loadingdone', redrawAll);
+  void document.fonts.ready.then(redrawAll);
+}

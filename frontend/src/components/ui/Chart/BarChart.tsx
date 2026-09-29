@@ -20,9 +20,7 @@ Chart.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend, LineElem
 // 시스템 sans-serif(맑은 고딕)로 떨어졌고, 굵은 글씨가 번져 보이는 원인이었음 —
 // body와 같은 HyundaiSans로 통일(700 실제 굵기 파일이 있어 가짜 볼드가 생기지 않음)
 Chart.defaults.font.family = "'HyundaiSans', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif";
-Chart.defaults.font.size   = 13;
-// Regular(400)는 캔버스에서 ClearType 없이 그려져 얇고 흐려 보임(피드백) — Medium 실제 파일(500) 사용
-Chart.defaults.font.weight = 500;
+Chart.defaults.font.size   = 14;
 
 interface Props {
   labels:      string[];
@@ -89,7 +87,7 @@ const BarChart = ({ labels, datasets, horizontal = false, options, onClick, expo
     plugins: {
       legend: legendRaw === false
         ? (false as unknown as NonNullable<ChartOptions<'bar'>['plugins']>['legend'])
-        : { position: 'bottom', labels: { font: { size: 13 } }, ...(legendOpts ?? {}) },
+        : { position: 'bottom', labels: { font: { size: 14 } }, ...(legendOpts ?? {}) },
       datalabels: { display: false },  // 각 차트에서 options.plugins.datalabels로 override
       ...otherPlugins,
     },

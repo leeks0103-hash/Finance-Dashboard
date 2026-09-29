@@ -22,7 +22,7 @@ interface Props {
   outsideLabels?: boolean;
   /** 'sm'(기본) — 메인 카드처럼 캔버스가 작아 인출선을 짧게(링 크기 거의 그대로).
    *  'lg' — 확대 모달처럼 캔버스가 큰 곳 전용. 두 값은 완전히 독립 — 하나를 조정해도 다른 쪽엔 영향 없음. */
-  outsideLabelsSize?: 'sm' | 'lg';
+  outsideLabelsSize?: 'sm' | 'md' | 'lg';
 }
 
 // 현대 브랜드 9색 — Hyundai Blue / Active Blue / Sky Blue / Gold
@@ -99,7 +99,7 @@ const DoughnutChart = ({
               : undefined,
             // 얇은 세그먼트의 % 라벨이 캔버스 밖으로 나가 잘리지 않도록 여백 확보 (ChartCard가 overflow:hidden)
             // sm(메인 카드): 링 크기 거의 그대로(12→20px). lg(확대 모달): 인출선·글자가 커서 여백도 크게(64px)
-            layout: { padding: outsideLabels ? (outsideLabelsSize === 'lg' ? 68 : 24) : 12 },
+            layout: { padding: outsideLabels ? (outsideLabelsSize === 'lg' ? 68 : outsideLabelsSize === 'md' ? 28 : 24) : 12 },
             plugins: {
               // 범례는 아래 2열 그리드로 직접 그린다 (Chart.js 기본 범례는 개수에 따라 줄이 어긋남)
               legend: { display: false },
@@ -112,7 +112,7 @@ const DoughnutChart = ({
               datalabels: {
                 display: showLabels && !outsideLabels,
                 color:   (ctx) => arcTextColor((ctx.dataset.backgroundColor as string[])[ctx.dataIndex]),
-                font:    { size: 12, weight: 'bold' },
+                font:    { size: 13, weight: 'bold' },
                 textAlign: 'center',
                 formatter: (value: number, ctx) => {
                   const sum = (ctx.dataset.data as number[]).reduce((a, b) => a + b, 0);

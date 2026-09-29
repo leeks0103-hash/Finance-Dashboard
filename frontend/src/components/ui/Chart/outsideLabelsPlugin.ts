@@ -19,15 +19,17 @@ interface ArcLike {
 interface OutsideLabelsOpts {
   enabled?: boolean;
   /** 'sm'(기본) — 컴팩트 카드용, 인출선을 짧게 잡아 링 크기에 거의 영향 없음.
+   *  'md' — 메인 화면 단독 카드(실적 탭 전체 평균 원가 비율) — 글자만 sm보다 2px 크게.
    *  'lg' — 확대 모달처럼 캔버스가 큰 곳 전용, 인출선·글자를 크게. 서로 독립 — 하나 조정해도 다른 쪽엔 영향 없음. */
-  size?: 'sm' | 'lg';
+  size?: 'sm' | 'md' | 'lg';
   /** true면 "123.4억(45.2%)"처럼 금액도 같이(값은 이미 억 단위). 기본은 비중(%)만 */
   showValue?: boolean;
 }
 
 const SIZE_PRESET = {
-  sm: { r1: 3,  r2: 12, horiz: 9,  font: 11 },
-  lg: { r1: 6,  r2: 25, horiz: 15, font: 15 },
+  sm: { r1: 3,  r2: 12, horiz: 9,  font: 12 },
+  md: { r1: 3,  r2: 12, horiz: 9,  font: 14 },
+  lg: { r1: 6,  r2: 25, horiz: 15, font: 16 },
 } as const;
 
 /** 인출선 라벨·범례 공통 표기 — 여백 계산도 같은 문자열로 재야 어긋나지 않음 */
