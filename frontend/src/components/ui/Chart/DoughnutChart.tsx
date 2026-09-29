@@ -4,6 +4,7 @@ import { Chart, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Button } from '@/components/ui/Button';
 // datalabels 등록 + "그래프 수치" 토글 켜기/끄기 페이드 (side-effect)
 import '@/utils/datalabelFade';
+import '@/utils/chartCrisp';   // 배율 125% 등에서 캔버스 글씨 번짐 방지 (side-effect)
 import { outsideLabelsPlugin } from './outsideLabelsPlugin';
 import styles from './DoughnutChart.module.css';
 

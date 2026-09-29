@@ -3,6 +3,7 @@ import { usePerformanceSummary } from '@/hooks/usePerformanceSummary';
 import { usePerformanceSummaryAll } from '@/hooks/usePerformanceSummaryAll';
 import { usePerformanceOptions } from '@/hooks/usePerformanceData';
 import { useUiStore } from '@/store';
+import { getStoredExtractKey } from '@/api/extract.api';
 import { useTheme } from '@/hooks/useTheme';
 import { makeBarOptions } from '@/utils/chartOptions';
 import { getChartTheme } from '@/utils/chartColors';
@@ -33,6 +34,18 @@ export interface MonthlyTableRow {
   cumProfit:  number;
 }
 
+/**
+ * "파트별 계획 vs 추정 실적" 확대 모달 표 한 행(억). 차이·달성률은 원금액(천원)으로 계산 후 변환.
+ * 달성률(추정 실적 ÷ 계획)은 관리자 토글(showRate) 켰을 때만 화면에 노출 — 저조 파트 낙인 방지
+ */
+export interface PlanVsActualRow {
+  part:   string;
+  plan:   number;
+  actual: number;
+  diff:   number;
+  rate:   number | null;
+}
+
 export interface PerformanceChartViewModel {
   isLoading:  boolean;
   isError:    boolean;
@@ -52,6 +65,11 @@ export interface PerformanceChartViewModel {
     planInitial:   number[];
     /** 연간 추정 실적(BE열) — 계획이 연간 기준이라 누계 실적(1~N월) 대신 같은 기간끼리 비교 */
     junCheckTotal: number[];
+    rows:          PlanVsActualRow[];
+    /** 합계행 — hidden(체크 해제한 파트명)을 뺀 나머지만 원금액으로 합산 */
+    totalFor:      (hidden: ReadonlySet<string>) => PlanVsActualRow;
+    /** 달성률 컬럼 노출 여부 — 관리자 키 + ⚙ 관리자용 기능 "달성률" 토글 둘 다 만족 */
+    showRate:      boolean;
     options:     ChartOptions<'bar'>;
   };
   profitRate: {
@@ -104,6 +122,7 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
   const { data: summaryAll } = usePerformanceSummaryAll();
   const { data: options } = usePerformanceOptions();
   const showLabels = useUiStore(s => s.showChartLabels);
+  const showRate   = useUiStore(s => s.showAchieveRate) && !!getStoredExtractKey();
   const { theme } = useTheme();
   const { labelColor } = getChartTheme(theme === 'dark');
 
@@ -218,11 +237,27 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
           });
         })(),
       },
-      planVsActual: {
-        labels:        parts.map(stripPartPrefix),
-        planInitial:   parts.map(p => toEokNum(summary.by_part[p].plan_initial)),
-        junCheckTotal: parts.map(p => toEokNum(summary.by_part[p].jun_check_total)),
-      },
+      planVsActual: (() => {
+        const toRow = (part: string, plan: number, actual: number): PlanVsActualRow => ({
+          part,
+          plan:   toEokNum(plan),
+          actual: toEokNum(actual),
+          diff:   toEokNum(actual - plan),
+          rate:   plan > 0 ? +(actual / plan * 100).toFixed(1) : null,
+        });
+        const rows = parts.map(p =>
+          toRow(stripPartPrefix(p), summary.by_part[p].plan_initial ?? 0, summary.by_part[p].jun_check_total ?? 0));
+        const sum = (k: 'plan_initial' | 'jun_check_total', hidden: ReadonlySet<string>) =>
+          parts.reduce((s, p) => (hidden.has(stripPartPrefix(p)) ? s : s + (summary.by_part[p][k] ?? 0)), 0);
+        return {
+          labels:        parts.map(stripPartPrefix),
+          planInitial:   parts.map(p => toEokNum(summary.by_part[p].plan_initial)),
+          junCheckTotal: parts.map(p => toEokNum(summary.by_part[p].jun_check_total)),
+          rows,
+          totalFor: (hidden: ReadonlySet<string>) =>
+            toRow('합계', sum('plan_initial', hidden), sum('jun_check_total', hidden)),
+        };
+      })(),
       profitRate: {
         labels:   parts.map(stripPartPrefix),
         rates:    parts.map(p => summary.by_part[p].avg_profit_rate),
@@ -295,7 +330,7 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
     return {
       isLoading, isError, isEmpty: false, showLabels, labelColor,
       monthly:          { labels: [], revenues: [], costs: [], isFuture: [], rows: [], options: monthlyOptions },
-      planVsActual:     { labels: [], planInitial: [], junCheckTotal: [], options: planVsActualOptions },
+      planVsActual:     { labels: [], planInitial: [], junCheckTotal: [], rows: [], totalFor: () => ({ part: '합계', plan: 0, actual: 0, diff: 0, rate: null }), showRate, options: planVsActualOptions },
       profitRate:       { labels: [], rates: [], profits: [], isProfit: [], revenues: [], costs: [], planRevenue: [], planCost: [], options: profitRateOptions },
       costBreakdown:    { labels: [], values: [] },
       progress:         { labels: [], revenues: [], expenditures: [], options: progressOptions },
@@ -309,7 +344,7 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
   return {
     isLoading, isError, isEmpty: chartData.isEmpty, showLabels, labelColor,
     monthly:          { ...chartData.monthly,      options: monthlyOptions },
-    planVsActual:     { ...chartData.planVsActual, options: planVsActualOptions },
+    planVsActual:     { ...chartData.planVsActual, showRate, options: planVsActualOptions },
     profitRate:       { ...chartData.profitRate,   options: profitRateOptions },
     costBreakdown,
     progress:         { ...chartData.progress,     options: progressOptions },

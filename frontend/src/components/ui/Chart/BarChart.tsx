@@ -8,6 +8,7 @@ import type { ChartData, ChartDataset, ChartOptions, ChartEvent, ActiveElement, 
 import { Button } from '@/components/ui/Button';
 // datalabels 등록 + "그래프 수치" 토글 켜기/끄기 페이드 (side-effect)
 import '@/utils/datalabelFade';
+import '@/utils/chartCrisp';   // 배율 125% 등에서 캔버스 글씨 번짐 방지 (side-effect)
 import styles from './BarChart.module.css';
 
 // LineElement/PointElement/LineController — 막대 위에 "목표선" 같은 line 데이터셋을 섞어
@@ -20,6 +21,8 @@ Chart.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend, LineElem
 // body와 같은 HyundaiSans로 통일(700 실제 굵기 파일이 있어 가짜 볼드가 생기지 않음)
 Chart.defaults.font.family = "'HyundaiSans', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif";
 Chart.defaults.font.size   = 13;
+// Regular(400)는 캔버스에서 ClearType 없이 그려져 얇고 흐려 보임(피드백) — Medium 실제 파일(500) 사용
+Chart.defaults.font.weight = 500;
 
 interface Props {
   labels:      string[];

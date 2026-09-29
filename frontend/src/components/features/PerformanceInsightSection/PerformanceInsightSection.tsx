@@ -54,7 +54,7 @@ const PerformanceInsightSection = () => {
         );
       },
     }),
-    h.accessor('filename', { header: '파일명', size: 320, cell: i => <CopyText text={i.getValue()} onOpen={openFile} /> }),
+    h.accessor('filename', { header: '파일명', size: 320, cell: i => <div style={{ textAlign: 'left' }}><CopyText text={i.getValue()} onOpen={openFile} /></div> }),
   ], [setPerfSearch, reasonPopup.openPopup]);
 
   return (

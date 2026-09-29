@@ -4,6 +4,7 @@ import { Chart, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Button } from '@/components/ui/Button';
 import { outsideLabelsPlugin, formatOutsideLabel, computeOutsideLabelPadding } from '@/components/ui/Chart/outsideLabelsPlugin';
 import '@/utils/datalabelFade';   // datalabels 플러그인 등록 (side-effect)
+import '@/utils/chartCrisp';   // 배율 125% 등에서 캔버스 글씨 번짐 방지 (side-effect)
 import styles from './BigCostDoughnut.module.css';
 
 Chart.register(ArcElement, Tooltip, Legend);

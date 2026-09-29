@@ -8,7 +8,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { usePerformanceChartViewModel } from '@/hooks/viewmodels';
-import type { MonthlyTableRow } from '@/hooks/viewmodels/usePerformanceChartViewModel';
+import type { MonthlyTableRow, PlanVsActualRow } from '@/hooks/viewmodels/usePerformanceChartViewModel';
 import { useTheme } from '@/hooks';
 import { makeBarOptions, legendRadioClick } from '@/utils/chartOptions';
 import { getChartPalette, getChartTheme } from '@/utils/chartColors';
@@ -100,6 +100,58 @@ const buildMonthlyColumns = (onCellClick: (month: string, series: number) => voi
       ),
     })),
 ];
+
+// "파트별 계획 vs 추정 실적" 확대 모달 표 — 크게만 보이던 모달이 빈약하다는 피드백(2026-09-29)으로
+// 파트별 계획·추정 실적·차이를 표로. 계획/추정 셀 클릭 → 막대 클릭과 같은 산출 근거 모달
+// (series 0 계획 / 1 추정 실적 = 백엔드 _PERF_BREAKDOWN["planVsActual"]).
+// 달성률은 관리자 토글일 때만 컬럼 추가 — 저조 파트가 한눈에 드러나지 않게(no-stigmatizing 원칙)
+const pva = createColumnHelper<PlanVsActualRow>();
+const fmtEok = (v: number) => v.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const fmtDiff = (v: number) => (v > 0 ? '+' : '') + fmtEok(v);
+const buildPlanVsActualColumns = (
+  showRate: boolean,
+  onCellClick: (part: string, series: number) => void,
+  hidden: ReadonlySet<string>,
+  onToggle: (part: string) => void,
+) => {
+  // 체크 해제한 파트 행은 셀 내용만 흐리게(DataTable에 행 클래스 prop이 없어 셀에서 처리)
+  const dim = (part: string, node: ReactNode) =>
+    hidden.has(part) ? <span className={styles.hiddenPartCell}>{node}</span> : node;
+  const linkCell = (series: number) => (i: { getValue: () => number; row: { original: PlanVsActualRow } }) => dim(
+    i.row.original.part,
+    <Button
+      unstyled
+      className={styles.cellLink}
+      title="클릭하면 이 값의 산출 근거(프로젝트별 합계)를 봅니다"
+      onClick={() => onCellClick(i.row.original.part, series)}
+    >
+      {fmtEok(i.getValue())}
+    </Button>,
+  );
+  return [
+    // 체크 해제 → 모달 차트에서 그 파트 제외 + 합계에서 빠짐(행은 흐리게 남겨 다시 켤 수 있게)
+    pva.display({
+      id: 'show', header: '표시', size: 40,
+      cell: i => (
+        <input
+          type="checkbox"
+          className={styles.partCheckbox}
+          aria-label={`${i.row.original.part} 표시`}
+          checked={!hidden.has(i.row.original.part)}
+          onChange={() => onToggle(i.row.original.part)}
+        />
+      ),
+    }),
+    pva.accessor('part',   { header: '파트',            size: 90, cell: i => dim(i.getValue(), i.getValue()) }),
+    pva.accessor('plan',   { header: '계획(억)',        size: 72, cell: linkCell(0) }),
+    pva.accessor('actual', { header: '추정 실적(억)',   size: 88, cell: linkCell(1) }),
+    pva.accessor('diff',   { header: '차이(억)',        size: 72, cell: i => dim(i.row.original.part, fmtDiff(i.getValue())) }),
+    ...(showRate
+      ? [pva.accessor('rate', { header: '달성률(%)', size: 80,
+          cell: i => dim(i.row.original.part, i.getValue() == null ? '—' : `${i.getValue()}%`) })]
+      : []),
+  ];
+};
 
 // 팔레트의 rgba(...) 문자열 알파값만 교체 — 미래 월/보조 계열 흐림 처리용
 const fadeAlpha = (rgba: string, alpha: number) => rgba.replace(/[\d.]+\)$/, `${alpha})`);
@@ -558,6 +610,25 @@ const PerformanceChartSection = () => {
   );
 
   // "월별 실적 추이" 확대 모달 표 — 행은 VM(원금액 기준 계산), 셀 클릭은 차트 막대와 같은 드릴다운
+  // 확대 모달 표 체크박스로 숨긴 파트 — 이 차트 전용(파트별 추정 매출/원가의 hiddenParts와 별개)
+  const [pvaHidden, setPvaHidden] = useState<Set<string>>(new Set());
+  const togglePvaPart = useCallback((part: string) => {
+    setPvaHidden(prev => {
+      const next = new Set(prev);
+      if (next.has(part)) next.delete(part); else next.add(part);
+      return next;
+    });
+  }, []);
+  const planVsActualColumns = useMemo(
+    () => buildPlanVsActualColumns(
+      vm.planVsActual.showRate,
+      (part, series) => openBreakdown('planVsActual')(part, series),
+      pvaHidden,
+      togglePvaPart,
+    ),
+    [vm.planVsActual.showRate, openBreakdown, pvaHidden, togglePvaPart],
+  );
+
   const monthlyRows = vm.monthly.rows;
   const monthlyRowColumns = useMemo(
     () => buildMonthlyColumns((month, series) => openBreakdown('monthly')(month, series)),
@@ -619,23 +690,60 @@ const PerformanceChartSection = () => {
         </ChartCard>
       );
     },
-    planVsActual: () => (
-      <ChartCard>
-        <ChartCard.Title><span className={styles.chartTitle}>파트별 계획 vs 추정 실적<InfoButton>{INFO_PLAN_VS_ACTUAL}</InfoButton></span></ChartCard.Title>
-        <ChartCard.Body>
+    planVsActual: () => {
+      const makeChart = (hidden: ReadonlySet<string>) => {
+        const idx = vm.planVsActual.labels.map((_, i) => i).filter(i => !hidden.has(vm.planVsActual.labels[i]));
+        const pick = <T,>(arr: T[]) => idx.map(i => arr[i]);
+        return (
           <BarChart
             horizontal
             onClick={openBreakdown('planVsActual')}
-            labels={vm.planVsActual.labels}
+            labels={pick(vm.planVsActual.labels)}
             datasets={[
-              { label: '계획(억)', data: vm.planVsActual.planInitial, backgroundColor: planColor },
-              { label: '추정 실적(억)', data: vm.planVsActual.junCheckTotal, backgroundColor: palette.revenue },
+              { label: '계획(억)', data: pick(vm.planVsActual.planInitial), backgroundColor: planColor },
+              { label: '추정 실적(억)', data: pick(vm.planVsActual.junCheckTotal), backgroundColor: palette.revenue },
             ]}
             options={planVsActualOptions}
           />
-        </ChartCard.Body>
-      </ChartCard>
-    ),
+        );
+      };
+      // 카드는 항상 전체 파트, 체크 해제는 확대 모달 차트에만 적용
+      const chartEl = makeChart(new Set());
+      const { showRate } = vm.planVsActual;
+      const total = vm.planVsActual.totalFor(pvaHidden);
+      // 확대 모달 전용 — 차트(왼쪽) + 파트별 수치 표(오른쪽, 합계행). 파트 수가 적어 표가 작으니 양옆 배치
+      const modalContent = (
+        <div className={styles.chartModalSide}>
+          <div className={styles.chartModalChart}>{makeChart(pvaHidden)}</div>
+          <div className={styles.chartModalSideTable}>
+            <div className={styles.chartModalTable}>
+              <DataTable<PlanVsActualRow>
+                data={vm.planVsActual.rows}
+                columns={planVsActualColumns as never}
+                getRowId={r => r.part}
+                compact
+                hideToolbar
+                defaultPageSize={vm.planVsActual.rows.length || 1}
+                pageSizeOptions={[vm.planVsActual.rows.length || 1]}
+                footer={{
+                  part: total.part,
+                  plan: fmtEok(total.plan),
+                  actual: fmtEok(total.actual),
+                  diff: fmtDiff(total.diff),
+                  ...(showRate ? { rate: total.rate == null ? '—' : `${total.rate}%` } : {}),
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      );
+      return (
+        <ChartCard modalContent={modalContent}>
+          <ChartCard.Title><span className={styles.chartTitle}>파트별 계획 vs 추정 실적<InfoButton>{INFO_PLAN_VS_ACTUAL}</InfoButton></span></ChartCard.Title>
+          <ChartCard.Body>{chartEl}</ChartCard.Body>
+        </ChartCard>
+      );
+    },
     profitRate: () => {
       // 이상치 표시(시범) — 원가가 매출을 넘는(매출이익 마이너스) 파트의 원가 막대를 손실색으로 강조
       // (작은 카드·확대 모달 둘 다 적용 — 목표선과 달리 이건 항상 보여도 되는 정보라 공통)
