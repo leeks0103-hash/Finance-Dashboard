@@ -26,10 +26,13 @@ interface Props<R> {
   rows:       R[];
   /** 합계행 — 정렬과 무관하게 항상 맨 아래 고정 */
   totalLabel: string;
-  totalValue: ReactNode;
-  /** 합계 라벨 셀이 차지할 열 수 (마지막 값 열 제외) */
+  /** 합계값 한 칸 — totalValues를 주면 무시 */
+  totalValue?: ReactNode;
+  /** 합계값 여러 칸 — 라벨 다음 열부터 한 칸씩(예: 계획 합계 | 실적 합계) */
+  totalValues?: ReactNode[];
+  /** 합계 라벨 셀이 차지할 열 수 */
   totalSpan:  number;
-  /** 초기 정렬 컬럼 key (기본: 마지막 컬럼, 내림차순) */
+  /** 초기 정렬 컬럼 key (기본: 마지막 컬럼, 내림차순). 어떤 컬럼과도 안 맞으면 rows 순서 그대로 */
   defaultSortKey?: string;
   /** 행별 추가 클래스(예: 임시 제외된 행 흐리게) — 지정 없으면 기존과 동일 */
   rowClassName?: (row: R) => string | undefined;
@@ -39,12 +42,13 @@ const arrow = (state: 'asc' | 'desc' | null) =>
   state === 'asc' ? '▲' : state === 'desc' ? '▼' : '↕';
 
 export function BreakdownTable<R>({
-  columns, rows, totalLabel, totalValue, totalSpan, defaultSortKey, rowClassName,
+  columns, rows, totalLabel, totalValue, totalValues, totalSpan, defaultSortKey, rowClassName,
 }: Props<R>) {
   const lastKey = columns[columns.length - 1]?.key;
   const [sort, setSort] = useState<{ key: string; dir: 'asc' | 'desc' }>(
     { key: defaultSortKey ?? lastKey, dir: 'desc' },
   );
+  const totals = totalValues ?? [totalValue];
 
   const sorted = useMemo(() => {
     const col = columns.find(c => c.key === sort.key);
@@ -91,10 +95,10 @@ export function BreakdownTable<R>({
           ))}
           <tr className={styles.totalRow}>
             <td colSpan={totalSpan}>{totalLabel}</td>
-            <td className={styles.right}>{totalValue}</td>
-            {/* totalSpan+1(합계값 칸) 뒤에 남는 컬럼(예: 파일명)이 있으면 그만큼 마저 채움 */}
-            {columns.length - totalSpan - 1 > 0 && (
-              <td colSpan={columns.length - totalSpan - 1} />
+            {totals.map((v, i) => <td key={i} className={styles.right}>{v}</td>)}
+            {/* 합계값 칸 뒤에 남는 컬럼(예: 파일명)이 있으면 그만큼 마저 채움 */}
+            {columns.length - totalSpan - totals.length > 0 && (
+              <td colSpan={columns.length - totalSpan - totals.length} />
             )}
           </tr>
         </tbody>

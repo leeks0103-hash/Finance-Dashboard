@@ -52,6 +52,30 @@ export interface PerfCalcTerm {
   note:    string;
 }
 
+export interface PerfBreakdownCompareRow {
+  project_code: string;
+  project_name: string;
+  part:  string;
+  team:  string;
+  plan:  number;   // 억
+  actual: number;  // 억
+  /** actual÷plan×100 — 계획이 0이면 비교 불가(null) */
+  rate:  number | null;
+}
+
+/** pair=True인 차트(planVsActual·partAchievement)에서 클릭한 시리즈와 무관하게 함께 오는
+ *  계획·실적 나란히 비교 데이터 — "이 막대=계획만/실적만"이 아니라 프로젝트별 달성률까지 보여줌 */
+export interface PerfBreakdownCompare {
+  plan_label:        string;
+  actual_label:       string;
+  plan_field_desc:    string;
+  actual_field_desc:  string;
+  rows:        PerfBreakdownCompareRow[];
+  plan_total:  number;
+  actual_total: number;
+  rate:        number | null;
+}
+
 export interface PerfBreakdown {
   available:     boolean;
   message?:      string;
@@ -69,6 +93,7 @@ export interface PerfBreakdown {
   count?:        number;
   total?:        number;
   unit?:         string;
+  compare?:      PerfBreakdownCompare;
 }
 
 export const getPerfBreakdown = (

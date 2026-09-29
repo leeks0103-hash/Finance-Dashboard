@@ -83,6 +83,7 @@
   white-space: nowrap;
   display: inline-flex;
   align-items: baseline;
+  transition: opacity 0.18s ease;
 }
 
 /* 숫자 칸을 고정폭으로 — 계획/추정 자릿수가 달라도(0.0 vs 88.2) 칸 폭 자체가
@@ -101,10 +102,11 @@
   display: flex;
   align-items: baseline;
   gap: 3px;
+  cursor: default;
 }
 .plan { color: var(--text-muted); }
 .slash { color: var(--border); font-size: 1.85rem; font-weight: 400; line-height: 1; }
-.est  { color: var(--text-primary); }
+.est  { color: var(--text-primary); cursor: default; }
 .brand  .est { color: var(--brand-mid); }
 .profit .est { color: var(--profit); }
 .loss   .est { color: var(--loss); }
@@ -161,14 +163,53 @@
   min-height: 3px;
   flex-shrink: 0;   /* 트랙을 꽉 채우는 100% 막대가 찌그러지지 않도록 */
   border-radius: 2px 2px 0 0;
-  transition: height 0.4s cubic-bezier(0.16,1,0.3,1);
+  transition: height 0.4s cubic-bezier(0.16,1,0.3,1), background 0.18s ease;
+}
+
+/* .planRow(계획 값)/.est(추정 값)에 호버하면 그 짝인 막대가 밝아짐 — 처음엔 filter: brightness()를
+   썼는데, 곱셈 방식이라 이미 밝은 barPlan(--border, 연한 회색)은 흰 카드 배경과 거의 같은 색으로
+   클리핑돼 "사라져" 보이고, 반대로 이미 어두운 barEst는 곱해도 거의 안 변해서 "아무 효과 없음"으로
+   보였음(2026-09-28 실측 확인) → color-mix로 흰색을 고정 비율만큼 섞는 정적 색상으로 교체.
+   이어서 "반복 애니메이션이 없다"는 피드백으로, 기본색↔밝은색을 계속 오가는 펄스로 바꿈(배지와
+   같은 성격의 "지금 강조 중" 표현) */
+/* barPlan은 흰색과 섞으면 원래도 연한 --border가 더 연해지기만 해서 눈에 잘 안 띔 —
+   반대로 훨씬 진한 --text-muted 쪽으로 펄스(2026-09-28, "색이 너무 연해서 안 띈다" 피드백) */
+@keyframes barPlanPulse {
+  0%, 100% { background: var(--border); }
+  50%      { background: var(--text-muted); }
+}
+/* est도 plan과 같은 방식으로 — color-mix로 흰색 섞은 색은 채도가 빠져 연하고 흐릿해서
+   "진하게" 피드백과 맞지 않았음(호버 시 모서리에 옅은 선처럼 보이던 것도 이 계산된 파스텔색
+   때문으로 추정). 대신 이미 팔레트에 있는 진짜 색(Sky Blue/Active Red tint)으로 펄스 */
+@keyframes barEstPulse {
+  0%, 100% { background: var(--barest-color); }
+  50%      { background: var(--barest-pulse-color); }
+}
+.body:has(.planRow:hover) .bar.barPlan {
+  animation: barPlanPulse 1.1s ease-in-out infinite;
+}
+.body:has(.est:hover) .bar.barEst {
+  animation: barEstPulse 1.1s ease-in-out infinite;
+}
+/* 반대 방향 — 막대(트랙) 쪽에 호버하면 반대편 숫자가 흐려짐. 숫자는 항상 봐야 하는 주 콘텐츠라
+   막대처럼 평소에 dim 깔아두지 않고, 대신 반대쪽만 옅어지는 방식으로 대비(2026-09-28, 양방향 요청.
+   "평소 글씨 밝기 낮추지 말라"는 피드백으로 baseline dim 대신 이 방식으로) */
+.body:has(.barTrack:has(.barPlan):hover) .est {
+  opacity: 0.5;
+}
+.body:has(.barTrack:has(.barEst):hover) .plan {
+  opacity: 0.5;
 }
 .barPlan { background: var(--border); }
-.barEst  { background: var(--brand-mid); }
-.brand  .barEst { background: var(--brand-mid); }
-.profit .barEst { background: var(--profit); }
-.loss   .barEst { background: var(--loss); }
-.purple .barEst { background: var(--brand-mid); }
+/* --barest-color(기본색)·--barest-pulse-color(펄스 밝은색) — 위 barEstPulse가 참조.
+   background와 항상 같은 값 유지(배경 바뀌면 여기도 같이 바꿀 것). 펄스색은 팔레트에 이미
+   있는 진짜 색만 사용 — Sky Blue(파랑 계열 공통), loss만 Active Red tint(다크모드 --loss와
+   동일값, 밝은 빨강 계열이라 손실 카드에서 파랑을 쓰면 어색해 별도 지정) */
+.barEst  { background: var(--brand-mid); --barest-color: var(--brand-mid); --barest-pulse-color: var(--sky-blue); }
+.brand  .barEst { background: var(--brand-mid); --barest-color: var(--brand-mid); --barest-pulse-color: var(--sky-blue); }
+.profit .barEst { background: var(--profit);   --barest-color: var(--profit);   --barest-pulse-color: var(--sky-blue); }
+.loss   .barEst { background: var(--loss);     --barest-color: var(--loss);     --barest-pulse-color: #FF6A4D; }
+.purple .barEst { background: var(--brand-mid); --barest-color: var(--brand-mid); --barest-pulse-color: var(--sky-blue); }
 .barCap {
   font-size: 0.6rem;
   font-weight: 700;

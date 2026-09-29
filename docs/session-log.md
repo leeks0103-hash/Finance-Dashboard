@@ -1,5 +1,100 @@
 # 세션 진행 기록
 
+## [2026-09-29] 전체 평균 원가 비율 확대 도넛 — 금액(비중) 표기 롤백 + 그 외 정리
+
+- **롤백**: 아래 오후 8~8-3의 도넛 인출선·범례 "금액(비중)" 표기(`showValue`, 텍스트 폭 실측 여백
+  `computeOutsideLabelPadding`/`formatOutsideLabel`)를 전부 되돌림(요청) — `BigCostDoughnut`·`DoughnutChart`·
+  `outsideLabelsPlugin`은 커밋 상태로. 인출선 라벨의 "그래프 수치" 페이드(`getDatalabelAlpha`)만 유지
+- 미니카드 확대 미리보기의 전사평균 대비 차이 표(도넛 52% + 표)도 롤백 — `.previewRow`의
+  `align-items:center` 때문에 도넛 박스 높이가 0이 돼 도넛이 아예 안 보였음. 원래의 단독 확대 도넛으로 복구,
+  닫기 버튼만 "✕ 목록으로" → "✕"로 유지
+- 이후 재작업: 도넛은 왼쪽 전사평균과 같은 `BigCostDoughnut`(onSliceClick 선택 prop으로 변경)을
+  캔버스 500px 고정(왼쪽 실측과 동일)으로. 옆에 고정폭 좁은 칸으로 비교표(gap 없이 왼쪽 정렬)
+- 왼쪽 전사평균 도넛만 다시 금액(비중) 표기 — `BigCostDoughnut` `showValue`(인출선+범례 "123.4억(45.2%)"),
+  여백은 텍스트 폭 실측(`computeOutsideLabelPadding`)을 좌우에만(위아래 68 유지). 공간 확보로 `.left` 36→40%,
+  단 캔버스 `max-height: 500px` — 폭만 늘고 높이·범례 위치는 그대로(안 그러면 정사각형이 커져 범례
+  경상손익 줄이 잘림). 오른쪽 확대 미리보기도 동일하게 금액(비중) + 도넛 칸이 남는 가로 여백을
+  가져감(`flex: 1 1 500px`, 높이는 500 그대로)
+- 비교표 컬럼 순서/이름: 항목 · 전사평균 · {선택한 파트/팀 이름(PM·미모 등)} · 차이
+  (항목·해당·전사평균·차이, 0.72rem). 둘을 가운데 정렬. 900px 이하에선 도넛 아래로 표
+- 파트별 계획 vs 실적 드릴다운 표에서 달성률 컬럼 제거(가로 스크롤 원인) — 합계행에 계획/실적
+  합계를 각 컬럼 아래로, 전체 달성률은 합계 라벨 옆. `BreakdownTable`에 `totalValues`(여러 칸 합계) 추가,
+  `defaultSortDir` 제거
+- 임시 제외 배지: Gold → 남색(brand) 톤, 초기화 버튼을 테두리 알약형으로, 깜빡임 애니메이션 제거
+- 실적 KPI 비교 카드(계획/추정): 값에 호버하면 짝인 막대가 펄스(계획 `--border`↔`--text-muted`,
+  추정 accent↔Sky Blue/Active Red tint), 막대 호버 시 반대편 숫자 흐려짐. `filter:brightness`는 밝은 회색을
+  흰색으로 날리고 진한 남색은 거의 못 바꿔서 폐기
+- ⚠️ 미해결: 매출·원가 비교 카드 막대 호버 시 꼭지점에 선이 보인다는 제보(매출이익 카드는 괜찮음) —
+  스크린샷 받아서 확인 필요
+
+---
+
+## [2026-09-28 오후 8-3] 원가 비율 모달 우측 미니카드 확대 뷰에도 금액(비중) 적용 + 범례 2열 복원
+
+- 미니 카드(팀/파트별)의 "⤢ 확대" 버튼을 누르면 오른쪽에 뜨는 비교용 도넛(`previewWrap` 안,
+  왼쪽 전사평균과 같은 `.bigChart` 클래스 재사용)은 `DoughnutChart`(전사평균 전용 `BigCostDoughnut`과
+  다른 컴포넌트)를 쓰는데 `showValue`가 안 걸려 있어 %만 나오던 것 — `DoughnutChart`에도
+  `showValue` prop 추가해서 왼쪽·오른쪽 확대 뷰 둘 다 동일하게 "금액(비중)" 표기
+- 텍스트 폭 실측 여백 계산(`computeOutsideLabelPadding`)·포맷(`formatOutsideLabel`)을
+  `outsideLabelsPlugin.ts`로 공용화 — `BigCostDoughnut`/`DoughnutChart` 양쪽이 같은 로직 재사용
+  (showValue 미지정 시 기존 %-only 동작·고정 padding 그대로라 다른 도넛 호출부는 영향 없음)
+- 범례 2열 요청으로 되돌림(직전 커밋에서 1열로 바꿨던 것) — `.pct`에 `white-space:nowrap`만 유지해
+  긴 텍스트가 어색하게 줄바꿈되진 않게
+
+tsc·build·vitest(64/64)·lint(0 err) 통과. dev 서버 HMR 반영 확인
+
+---
+
+## [2026-09-28 오후 8-2] 전체 평균 원가 비율 — 라벨 잘림 수정 + 범례도 금액(비중)로 통일
+
+- 인출선 라벨 여백을 고정값(110px)으로 뒀더니 값이 큰 파트/전사합계에서 "1234.5억(45.2%)"가
+  캔버스 밖으로 잘림 → 오프스크린 캔버스로 실제 렌더 텍스트 폭을 재서 필요한 만큼 여백을 매번
+  계산하도록 변경(`BigCostDoughnut.tsx` `chartPadding` useMemo, `outsideLabelsPlugin`의
+  `formatOutsideLabel`/`SIZE_PRESET` export해서 폰트·프리셋 어긋나지 않게 공유)
+- 도넛 아래 범례("직접원가 64.8%")도 같은 포맷으로 — `formatOutsideLabel` 재사용해 "64.8억(64.8%)"로.
+  2열 그리드였던 범례를 1열로(5개뿐이라 세로 여유 있음, 긴 텍스트가 좁은 2열에서 줄바꿈되던 것 방지)
+
+tsc·build·vitest(64/64)·lint(0 err) 통과. dev 서버 HMR 반영 확인
+
+---
+
+## [2026-09-28 오후 8] 전체 평균 원가 비율 도넛 — 인출선 라벨에 금액 추가(표 대신)
+
+- "전체 평균 원가 비율" 도넛이 `outsideLabelsPlugin`(별도 커스텀 캔버스 플러그인)으로 인출선 라벨을
+  그리는데, `chartjs-plugin-datalabels` 기반 "그래프 수치" 페이드(오후 6 작업)를 안 타서 다른 차트와
+  다르게 즉시 켜짐/꺼짐만 하던 것 발견 → `ctx.globalAlpha = getDatalabelAlpha()` 추가해 통일
+- 처음엔 확대 모달 왼쪽 도넛 옆에 금액·비중 표를 추가했다가("우측에 비교 테이블") 피드백으로 되돌림
+  — "테이블 없애고 그 값을 넣을 거면 인출선(라벨)에 넣는 게 맞다"는 방향으로 재작업:
+  `outsideLabelsPlugin`에 `showValue` 옵션 추가 — 켜면 인출선 텍스트가 "45.2%" 대신
+  "123.4억(45.2%)"로. 기존 호출부(작은 카드들)는 옵션 미지정이라 그대로 %만 유지, 전사평균
+  전용 `BigCostDoughnut`에서만 `showValue` on + 여백(`layout.padding`) 68→110px(텍스트 길어진 만큼)
+- 코스트: 추가했던 `.bigRow`/`.bigTable`(CostBreakdownModal 표·CSS) 전부 되돌림
+
+tsc·build·vitest(64/64)·lint(0 err) 통과. dev 서버(HMR)로 반영 확인(육안 확인은 사용자 몫)
+
+---
+
+## [2026-09-28 오후 7] 파트별 계획 vs 추정 실적 드릴다운 — 계획·실적·달성률 비교표로 보강
+
+- "계획 vs 실적 모달인데 정작 비교가 없다"는 피드백 — 지금까지는 클릭한 막대(계획 *또는* 추정실적)
+  하나만 프로젝트별 raw 값으로 나열해서, 차트 제목과 달리 모달엔 비교가 없었음
+- `_PERF_BREAKDOWN`의 `planVsActual`·`partAchievement`(둘 다 파트 기준 계획↔실적 2계열) 스펙에
+  시리즈별 `role: "plan"|"actual"` 태그와 `pair: True` 추가. `/api/performance/summary/breakdown`이
+  pair 차트면 클릭한 시리즈와 무관하게 두 시리즈를 프로젝트 단위로 합쳐 `compare`에 계획·실적·
+  달성률(`actual÷plan×100`, 분모 0은 null)을 함께 반환 — 기존 단일 시리즈 응답(`rows`/`total`)은
+  하위호환으로 그대로 유지, pair 계산 실패 시 `compare` 키만 빠지고 기존 방식으로 폴백
+  (기존 단일 계산 로직을 `_perf_breakdown_series` 헬퍼로 추출해 재사용, `_perf_breakdown_compare` 신설)
+- 프론트: `PerfBreakdownModal`이 `vm.compare` 존재 시 코드·팀·계획·실적·달성률 5열 비교표로 전환,
+  달성률 70% 미만은 빨강(`--loss`)/100% 이상은 파랑(`--profit`) 강조. 정렬은 백엔드가 이미 달성률
+  낮은 순으로 내려주므로 `BreakdownTable`에 `defaultSortDir` prop 추가(기본 'desc' 유지, 이 표만 'asc')
+- 실측 검증(AIㆍDS 파트): planVsActual 계획 47.9억/추정실적 40.2억(83.9%), partAchievement
+  계획 47.9억/누계실적 15.1억(31.5%) — `/api/performance/summary`의 `by_part` 값과 일치 확인
+
+tsc·build·vitest(64/64)·lint(0 err) 통과. `performance.py` 변경 → Flask 서버 재시작 필요(재시작 후
+실측 확인 완료)
+
+---
+
 ## [2026-09-28 오후 6] 그래프 수치 토글 — 켤 때뿐 아니라 끌 때도 페이드
 
 - 2026-09-10에 "페이드 도중 rAF가 끊기면 라벨이 옅은 채로 굳는다"는 이유로 껐던 켜기 페이드인을

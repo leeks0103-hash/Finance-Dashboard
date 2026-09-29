@@ -149,6 +149,7 @@ const CostBreakdownModal = ({ total, byPart, partsRaw, teams, teamParts, colors,
             colors={colors}
             showLabels={showLabels}
             onSliceClick={onSliceClick}
+            showValue
           />
         </div>
       </div>
@@ -178,18 +179,53 @@ const CostBreakdownModal = ({ total, byPart, partsRaw, teams, teamParts, colors,
             <div className={styles.previewHeader}>
               <span className={styles.sectionTitle}>{previewCell.label}</span>
               <Button unstyled className={styles.previewCloseBtn} onClick={() => setPreviewKey(null)} aria-label="목록으로">
-                ✕ 목록으로
+                ✕
               </Button>
             </div>
-            <div className={styles.bigChart}>
-              <DoughnutChart
-                labels={previewCell.data.labels}
-                data={previewCell.data.values}
-                colors={colors}
-                showLabels={showLabels}
-                outsideLabels
-                outsideLabelsSize="lg"
-              />
+            <div className={styles.previewRow}>
+              {/* 왼쪽 전사평균과 같은 컴포넌트 — 높이 500 동일, 폭은 남는 만큼 */}
+              <div className={styles.bigChart}>
+                <BigCostDoughnut
+                  labels={previewCell.data.labels}
+                  data={previewCell.data.values}
+                  colors={colors}
+                  showLabels={showLabels}
+                  showValue
+                />
+              </div>
+
+              {/* 전사평균 대비 차이 — 도넛 옆 좁은 칸. 도넛 칸은 그대로 세로 전체를 쓰고 이 칸만 고정폭 */}
+              <div className={styles.compareCol}>
+                <table className={styles.compareTable}>
+                  <thead>
+                    <tr>
+                      <th className={styles.compareLabelHead}>항목</th>
+                      <th>전사평균</th>
+                      {/* 선택한 파트(PM·미모 등)나 팀 이름 그대로 */}
+                      <th>{previewCell.label}</th>
+                      <th>차이</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {previewCell.data.labels.map((label, i) => {
+                      const v    = previewCell.data.values[i] ?? 0;
+                      const avg  = total.values[i] ?? 0;
+                      const diff = v - avg;
+                      return (
+                        <tr key={label}>
+                          <td className={styles.compareLabel}>
+                            <i className={styles.compareDot} style={{ background: colors[i] }} />
+                            {label}
+                          </td>
+                          <td>{avg.toFixed(1)}</td>
+                          <td>{v.toFixed(1)}</td>
+                          <td>{diff > 0 ? `+${diff.toFixed(1)}` : diff.toFixed(1)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         ) : (

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { getPerfBreakdown } from '@/api/performance.api';
-import type { PerfBreakdownChart, PerfBreakdownRow, PerfCalcTerm } from '@/api/performance.api';
+import type { PerfBreakdownChart, PerfBreakdownRow, PerfCalcTerm, PerfBreakdownCompare } from '@/api/performance.api';
 import { usePerfStore } from '@/store/perf.store';
 import { STALE_5MIN, GC_10MIN } from '@/hooks/queryClient';
 
@@ -42,10 +42,14 @@ export interface PerfBreakdownViewModel {
   count:       number;
   totalStr:    string;
   unit:        string;
+  /** 계획vs실적 계열이 있는 차트(planVsActual·partAchievement)에서만 존재 —
+   *  있으면 모달이 단일 값 목록 대신 이걸로 계획/실적/달성률 비교표를 그린다 */
+  compare?:    PerfBreakdownCompare;
 }
 
-const fmt = (v: number): string =>
+export const fmtPerfBreakdown = (v: number): string =>
   Number.isInteger(v) ? v.toLocaleString() : String(Number(v.toFixed(1)));
+const fmt = fmtPerfBreakdown;
 
 export const usePerfBreakdownViewModel = (
   target: PerfBreakdownTarget | null,
@@ -85,5 +89,6 @@ export const usePerfBreakdownViewModel = (
     count:       data?.count ?? rows.length,
     totalStr:    fmt(total),
     unit:        data?.unit ?? '억',
+    compare:     data?.compare,
   };
 };

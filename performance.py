@@ -783,10 +783,12 @@ _PERF_BREAKDOWN = {
     "planVsActual": {
         "dim": "part",
         "agg_desc": "파트별로 프로젝트 값을 단순 합산한 것입니다 (평균·가중치 없음).",
+        # pair — 어느 막대를 클릭해도 이 파트의 계획·실적을 프로젝트별로 나란히 비교해서 보여줌
+        "pair": True,
         "series": [
-            {"label": "계획", "category": "매출", "field": "plan_initial",
+            {"label": "계획", "role": "plan", "category": "매출", "field": "plan_initial",
              "field_desc": "매출행의 '최초 사업계획' 금액 (엑셀 V열)"},
-            {"label": "추정 실적", "category": "매출", "field": "jun_check_total",
+            {"label": "추정 실적", "role": "actual", "category": "매출", "field": "jun_check_total",
              "field_desc": "매출행의 '연간 점검 합계' (엑셀 BH열 = 1~12월 합, 미래월 추정 포함)"},
         ],
     },
@@ -803,10 +805,11 @@ _PERF_BREAKDOWN = {
     "partAchievement": {
         "dim": "part",
         "agg_desc": "선택 파트의 프로젝트별 누계 실적(1~기준월)을 더한 값입니다. 달성률 = 이 합계 ÷ 연간 계획 합계 × 100.",
+        "pair": True,
         "series": [
-            {"label": "누계 실적", "category": "매출", "field": "jun_actual",
+            {"label": "누계 실적", "role": "actual", "category": "매출", "field": "jun_actual",
              "field_desc": "매출행의 경과월 누계 실적 (chk_m01~기준월 재합산값)"},
-            {"label": "연간 계획", "category": "매출", "field": "plan_initial",
+            {"label": "연간 계획", "role": "plan", "category": "매출", "field": "plan_initial",
              "field_desc": "매출행의 최초 사업계획 (엑셀 V열)"},
         ],
     },
@@ -837,38 +840,15 @@ _PERF_CALC_GLOSSARY = [
 ]
 
 
-@perf_bp.route("/api/performance/summary/breakdown")
-def api_perf_summary_breakdown():
-    """
-    실적현황 차트가 '어떤 프로젝트 행들을 합산해서' 나온 값인지 드릴다운.
-    - chart:  monthly | planVsActual | profitRate | costBreakdown
-    - series: 데이터셋/세그먼트 순서 (costBreakdown은 0~4: 직접원가·인건비·공통원가·관리비·경상손익)
-    - key:    월 라벨("3월") 또는 파트명(접두 원문자 제거된 표시명). costBreakdown은 불필요
-    필터(part/team)는 summary와 동일하게 적용. 반환 total(억)이 막대·세그먼트 값과 일치한다.
-    """
-    df = apply_perf_filters(get_perf_df())
-    if df.empty:
-        return jsonify({"available": False, "message": "표시할 데이터가 없습니다."})
-
-    chart = request.args.get("chart", "").strip()
-    key   = request.args.get("key", "").strip()
-    try:
-        series_idx = int(request.args.get("series", 0))
-    except (ValueError, TypeError):
-        series_idx = 0
-
-    spec = _PERF_BREAKDOWN.get(chart)
-    if not spec or not (0 <= series_idx < len(spec["series"])):
-        return jsonify({"available": False, "message": f"알 수 없는 차트/시리즈: {chart} / {series_idx}"})
-
-    s      = spec["series"][series_idx]
+def _perf_breakdown_series(df, spec, s, key):
+    """단일 시리즈(s)를 프로젝트별로 합산 — (rows_out, raw_sum, key_label) 또는 실패 시 (None, None, message)."""
     fields = [s["field"]]
     signs  = s.get("signs") or {s["category"]: 1}
 
     if spec["dim"] == "month":
         m = re.match(r"(\d+)", key)
         if not m:
-            return jsonify({"available": False, "message": f"월 형식 오류: {key}"})
+            return None, None, f"월 형식 오류: {key}"
         mm     = int(m.group(1))
         months = range(1, mm + 1) if s.get("cumulative") else [mm]
         fields = [s["field"].format(mm=f"{k:02d}") for k in months]
@@ -884,7 +864,7 @@ def api_perf_summary_breakdown():
 
     missing = [f for f in fields if f not in sub.columns]
     if missing:
-        return jsonify({"available": False, "message": f"'{missing[0]}' 컬럼을 찾을 수 없습니다."})
+        return None, None, f"'{missing[0]}' 컬럼을 찾을 수 없습니다."
 
     # 부호가 섞이면(손익 = 매출 − 원가) 같은 프로젝트의 매출행·원가행을 한 줄 순액으로 묶음 —
     # 안 묶으면 한 프로젝트가 +/− 두 줄로 쪼개져 읽기 어려움. 단일 카테고리는 기존대로 행 단위
@@ -912,8 +892,86 @@ def api_perf_summary_breakdown():
         for a in acc.values() if a["raw"] != 0   # 매출·원가가 정확히 상쇄된 프로젝트는 제외
     ]
     rows_out.sort(key=lambda x: x["value"], reverse=True)
+    return rows_out, raw_sum, key_label
 
-    return jsonify({
+
+def _perf_breakdown_compare(df, spec, key):
+    """pair=True인 차트 전용 — role="plan"/"actual" 두 시리즈를 프로젝트 단위로 합쳐
+    계획·실적·달성률을 한 행에 담는다. 클릭한 막대가 계획이든 실적이든 항상 둘 다 보여주기 위함
+    (2026-09-28, "계획 vs 실적 모달인데 정작 비교가 없다"는 피드백 반영)."""
+    try:
+        s_plan   = next(s for s in spec["series"] if s.get("role") == "plan")
+        s_actual = next(s for s in spec["series"] if s.get("role") == "actual")
+    except StopIteration:
+        return None
+
+    plan_rows, plan_sum, _   = _perf_breakdown_series(df, spec, s_plan, key)
+    actual_rows, actual_sum, _ = _perf_breakdown_series(df, spec, s_actual, key)
+    if plan_rows is None or actual_rows is None:
+        return None
+
+    by_code: dict = {}
+    for role, rows in (("plan", plan_rows), ("actual", actual_rows)):
+        for r in rows:
+            k = (r["project_code"], r["project_name"])
+            entry = by_code.setdefault(k, {
+                "project_code": r["project_code"], "project_name": r["project_name"],
+                "part": r["part"], "team": r["team"], "plan": 0.0, "actual": 0.0,
+            })
+            entry[role] = r["value"]
+
+    rows_out = list(by_code.values())
+    for r in rows_out:
+        r["rate"] = round(r["actual"] / r["plan"] * 100, 1) if r["plan"] else None
+    # 달성률 낮은(미달) 프로젝트가 위로 — 분모 0(비교 불가)은 맨 아래
+    rows_out.sort(key=lambda r: (r["rate"] is None, r["rate"] if r["rate"] is not None else 0))
+
+    plan_total   = round(plan_sum / 100_000, 1)
+    actual_total = round(actual_sum / 100_000, 1)
+    return {
+        "plan_label":       s_plan["label"],
+        "actual_label":     s_actual["label"],
+        "plan_field_desc":  s_plan.get("field_desc", ""),
+        "actual_field_desc": s_actual.get("field_desc", ""),
+        "rows":             rows_out,
+        "plan_total":       plan_total,
+        "actual_total":     actual_total,
+        "rate":             round(actual_total / plan_total * 100, 1) if plan_total else None,
+    }
+
+
+@perf_bp.route("/api/performance/summary/breakdown")
+def api_perf_summary_breakdown():
+    """
+    실적현황 차트가 '어떤 프로젝트 행들을 합산해서' 나온 값인지 드릴다운.
+    - chart:  monthly | planVsActual | profitRate | costBreakdown | partAchievement
+    - series: 데이터셋/세그먼트 순서 (costBreakdown은 0~4: 직접원가·인건비·공통원가·관리비·경상손익)
+    - key:    월 라벨("3월") 또는 파트명(접두 원문자 제거된 표시명). costBreakdown은 불필요
+    필터(part/team)는 summary와 동일하게 적용. 반환 total(억)이 막대·세그먼트 값과 일치한다.
+    pair=True인 차트(planVsActual·partAchievement)는 클릭한 시리즈와 무관하게 `compare`에
+    계획·실적을 프로젝트별로 나란히 담아 함께 반환한다.
+    """
+    df = apply_perf_filters(get_perf_df())
+    if df.empty:
+        return jsonify({"available": False, "message": "표시할 데이터가 없습니다."})
+
+    chart = request.args.get("chart", "").strip()
+    key   = request.args.get("key", "").strip()
+    try:
+        series_idx = int(request.args.get("series", 0))
+    except (ValueError, TypeError):
+        series_idx = 0
+
+    spec = _PERF_BREAKDOWN.get(chart)
+    if not spec or not (0 <= series_idx < len(spec["series"])):
+        return jsonify({"available": False, "message": f"알 수 없는 차트/시리즈: {chart} / {series_idx}"})
+
+    s = spec["series"][series_idx]
+    rows_out, raw_sum, key_label = _perf_breakdown_series(df, spec, s, key)
+    if rows_out is None:
+        return jsonify({"available": False, "message": key_label})
+
+    payload = {
         "available":    True,
         "chart":        chart,
         "series_label": s["label"],
@@ -926,7 +984,14 @@ def api_perf_summary_breakdown():
         "count":        len(rows_out),
         "total":        round(raw_sum / 100_000, 1),   # raw 합계 후 변환 — 막대값(toEokNum)과 동일 기준
         "unit":         "억",
-    })
+    }
+
+    if spec.get("pair"):
+        compare = _perf_breakdown_compare(df, spec, key)
+        if compare is not None:
+            payload["compare"] = compare
+
+    return jsonify(payload)
 
 
 @perf_bp.route("/api/performance/reload", methods=["POST"])

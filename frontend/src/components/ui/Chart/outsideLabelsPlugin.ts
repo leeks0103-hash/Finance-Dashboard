@@ -1,4 +1,5 @@
 import type { ChartType, Plugin } from 'chart.js';
+import { getDatalabelAlpha } from '@/utils/datalabelFade';
 
 // Chart.js 커스텀 플러그인 옵션 타입 등록 — options.plugins.outsideLabels 에 타입 부여
 declare module 'chart.js' {
@@ -20,12 +21,40 @@ interface OutsideLabelsOpts {
   /** 'sm'(기본) — 컴팩트 카드용, 인출선을 짧게 잡아 링 크기에 거의 영향 없음.
    *  'lg' — 확대 모달처럼 캔버스가 큰 곳 전용, 인출선·글자를 크게. 서로 독립 — 하나 조정해도 다른 쪽엔 영향 없음. */
   size?: 'sm' | 'lg';
+  /** true면 "123.4억(45.2%)"처럼 금액도 같이(값은 이미 억 단위). 기본은 비중(%)만 */
+  showValue?: boolean;
 }
 
 const SIZE_PRESET = {
   sm: { r1: 3,  r2: 12, horiz: 9,  font: 11 },
   lg: { r1: 6,  r2: 25, horiz: 15, font: 15 },
 } as const;
+
+/** 인출선 라벨·범례 공통 표기 — 여백 계산도 같은 문자열로 재야 어긋나지 않음 */
+export const formatOutsideLabel = (value: number, sum: number, showValue?: boolean): string => {
+  const pct = `${(sum ? (value / sum) * 100 : 0).toFixed(1)}%`;
+  return showValue ? `${value.toFixed(1)}억(${pct})` : pct;
+};
+
+let measureCtx: CanvasRenderingContext2D | null | undefined;
+const measureTextWidth = (text: string, font: string): number => {
+  if (measureCtx === undefined) measureCtx = document.createElement('canvas').getContext('2d');
+  if (!measureCtx) return 0;
+  measureCtx.font = font;
+  return measureCtx.measureText(text).width;
+};
+
+/** showValue면 라벨 길이가 값 크기에 따라 달라져 고정 여백으로는 잘림 — 실제 텍스트 폭을 재서 계산.
+ *  showValue가 아니면 기존 고정값(lg 68 / sm 24) 그대로 */
+export const computeOutsideLabelPadding = (
+  values: number[], sum: number, showValue: boolean | undefined, size: 'sm' | 'lg',
+): number => {
+  if (!showValue) return size === 'lg' ? 68 : 24;
+  const preset = SIZE_PRESET[size];
+  const font = `700 ${preset.font}px 'HyundaiSans', sans-serif`;
+  const maxW = values.reduce((m, v) => Math.max(m, measureTextWidth(formatOutsideLabel(v, sum, true), font)), 0);
+  return Math.ceil(preset.r2 + preset.horiz + maxW) + 12;
+};
 
 interface LabelItem {
   x0: number; y0: number;   // 도넛 중심
@@ -87,13 +116,14 @@ export const outsideLabelsPlugin: Plugin<'doughnut'> = {
         x0: el.x, y0: el.y, cos, sin, isRight: cos >= 0,
         r1, r2, horiz: preset.horiz,
         naturalY, y: naturalY,
-        text:  `${((value / sum) * 100).toFixed(1)}%`,
+        text:  formatOutsideLabel(value, sum, opts.showValue),
         color: colors[i] ?? '#1a1a1a',
       });
     });
     if (!items.length) return;
 
     ctx.save();
+    ctx.globalAlpha = getDatalabelAlpha();   // "그래프 수치" 토글 페이드를 다른 차트 라벨과 같이 탐
     ctx.font = `700 ${preset.font}px 'HyundaiSans', sans-serif`;
     ctx.textBaseline = 'middle';
     ctx.lineWidth = 1;

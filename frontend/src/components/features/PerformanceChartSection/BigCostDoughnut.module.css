@@ -17,6 +17,9 @@
   flex-shrink: 0;
   width: 100%;
   aspect-ratio: 1 / 1;
+  /* 높이는 500px에서 멈춤 — 칸을 넓혀도(금액 라벨용 가로 여유) 높이·범례 위치는 그대로.
+     없으면 폭 따라 정사각형이 커져 범례 마지막 줄(경상손익)이 아래로 밀려 잘렸음(2026-09-29) */
+  max-height: 500px;
   margin: 0 auto;
 }
 
@@ -83,4 +86,5 @@
   font-weight: 600;
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
