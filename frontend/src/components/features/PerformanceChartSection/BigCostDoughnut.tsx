@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { Doughnut } from 'react-chartjs-2';
 import { Chart, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Button } from '@/components/ui/Button';
@@ -17,6 +17,8 @@ interface Props {
   onSliceClick?: (index: number, label: string) => void;
   /** true면 인출선·범례에 금액도 같이 — "123.4억(45.2%)" */
   showValue?: boolean;
+  /** 도넛(캔버스+범례) 오른쪽에 붙일 내용(비교표 등) — 범례는 도넛 폭 그대로, aside는 범례 끝까지 세로로 */
+  aside?: ReactNode;
 }
 
 /**
@@ -24,7 +26,7 @@ interface Props {
  * 완전히 독립된 컴포넌트(별도 CSS 모듈). 여기 크기·여백을 조정해도 메인 화면
  * 원가비율 카드에는 절대 영향을 주지 않는다 (그 반대도 마찬가지).
  */
-const BigCostDoughnut = ({ labels, data, colors, showLabels, onSliceClick, showValue = false }: Props) => {
+const BigCostDoughnut = ({ labels, data, colors, showLabels, onSliceClick, showValue = false, aside }: Props) => {
   const total = data.reduce((a, b) => a + b, 0);
   // 인출선(+r2+horiz) + 실제 라벨 텍스트 폭 — showValue면 값 크기에 따라 길이가 달라 매번 실측
   const padding = useMemo(() => computeOutsideLabelPadding(data, total, showValue, 'lg'), [data, total, showValue]);
@@ -46,6 +48,8 @@ const BigCostDoughnut = ({ labels, data, colors, showLabels, onSliceClick, showV
 
   return (
     <div className={styles.wrap}>
+      <div className={styles.canvasRow}>
+      <div className={styles.chartCol}>
       <div className={styles.canvasBox}>
         <Doughnut
           ref={chartRef}
@@ -66,7 +70,7 @@ const BigCostDoughnut = ({ labels, data, colors, showLabels, onSliceClick, showV
                   (chart.canvas as HTMLCanvasElement).style.cursor = elements.length ? 'pointer' : 'default';
                 }
               : undefined,
-            // 금액 라벨은 좌우로만 길어지므로 좌우만 실측 여백, 위아래는 기존 68 — 링이 세로로 안 줄게
+            // 금액 라벨은 좌우로만 길어지므로 좌우만 실측 여백, 위아래는 68 — 링이 캔버스 한가운데
             layout: { padding: { left: padding, right: padding, top: 68, bottom: 68 } },
             plugins: {
               legend: { display: false },
@@ -99,6 +103,9 @@ const BigCostDoughnut = ({ labels, data, colors, showLabels, onSliceClick, showV
           ))}
         </ul>
       )}
+      </div>
+      {aside}
+      </div>
     </div>
   );
 };

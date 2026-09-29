@@ -354,8 +354,7 @@
 /* border-right는 모든 셀에 유지 — wrapper overflow:hidden 이 우측 클리핑 담당
    :last-child 제거 → DnD 컬럼 순서 변경 후에도 일관성 유지 */
 
-/* 병합(rowSpan) 시 뒤 행은 셀을 건너뛰므로 :first-child 대신 실제 첫 컬럼 클래스로 지정 */
-.table td.firstCol { text-align: left; }
+
 
 .table tbody tr { transition: background 0.14s ease; }
 .table tbody tr:hover { background: var(--brand-bg); }
@@ -384,6 +383,18 @@
   background: var(--surface);
 }
 
+/* 묶음 호버(DataTable hoverGroupId) — 묶음 두 행의 모든 셀(병합 셀 포함)을 같은 색으로.
+   병합 셀은 불투명 배경이라 호버색(반투명)을 surface 위에 겹쳐 칠함(2026-09-29) */
+.table tbody tr.groupHover > td {
+  background: linear-gradient(var(--brand-bg), var(--brand-bg)), var(--surface);
+}
+.table tbody tr.loss.groupHover > td {
+  background: linear-gradient(var(--loss-bg, rgba(230,51,18,.08)), var(--loss-bg, rgba(230,51,18,.08))), var(--surface);
+}
+.table tbody tr.warn.groupHover > td {
+  background: linear-gradient(var(--warn-bg, rgba(163,107,79,.10)), var(--warn-bg, rgba(163,107,79,.10))), var(--surface);
+}
+
 /* 헤더 클릭 컬럼 하이라이트 */
 .thHighlighted { background: var(--brand-mid) !important; color: #fff !important; }
 .thHighlighted .sortIdle,
@@ -402,22 +413,12 @@
 .table.staticColSoft td.staticCol { background: var(--bg-subtle-soft); }
 
 /* 행 변형 */
-.loss { box-shadow: inset 3px 0 0 var(--loss) !important; }
+/* 손실(loss)·저수익(warn) 행 왼쪽 막대는 넣지 않음 — 특정 팀·프로젝트가 한눈에 낙인찍히듯 드러나지 않게
+   하려는 배려(2026-09-29 요청, 달성률 관리자 전용과 같은 이유). 호버색만 유지 */
 .loss:hover { background: var(--loss-bg, rgba(230,51,18,.08)) !important; }
-.warn { box-shadow: inset 2px 0 0 var(--warn) !important; }
+/* 저수익(warn) 행 왼쪽 갈색 막대는 제거(2026-09-29 요청) — 원래 고정 NO. 칸의 불투명 배경에 가려 안 보이다가
+   고정 기능을 없애면서 드러났음. 호버색만 유지 */
 .warn:hover { background: var(--warn-bg, rgba(163,107,79,.10)) !important; }
-
-/* Sticky 첫 번째 컬럼 */
-.stickyFirst th.firstCol,
-.stickyFirst td.firstCol {
-  position: sticky;
-  left: 0;
-  z-index: 2;
-}
-.stickyFirst th.firstCol { background: var(--bg-header); }
-.stickyFirst td.firstCol  { background: var(--surface); }
-.stickyFirst .loss td.firstCol,
-.stickyFirst .warn td.firstCol { background: var(--surface) !important; }
 
 /* 합계(tfoot) 행 */
 .footerRow td {
@@ -555,12 +556,16 @@
 .warn.rowExpanded > td,
 .warn.rowExpanded > td.spanCell { background: var(--warn-bg); }
 
-.stickyFirst .rowExpanded > td.firstCol      { background: var(--brand-bg) !important; }
-.stickyFirst .loss.rowExpanded > td.firstCol { background: var(--loss-bg)  !important; }
-.stickyFirst .warn.rowExpanded > td.firstCol { background: var(--warn-bg)  !important; }
 
-/* NO. 인덱스 컬럼 가운데 정렬 — .firstCol 규칙보다 뒤에 와서 우선 적용 */
+/* NO. — 데이터가 아니라 순번이라 가운데·작게·옅게, 자릿수 고정폭(2026-09-29) */
 .table td.indexCell,
 .table th.indexCell {
   text-align: center;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+.table td.indexCell {
+  color: var(--text-muted);
+  font-size: 0.74rem;
+  font-variant-numeric: tabular-nums;
 }

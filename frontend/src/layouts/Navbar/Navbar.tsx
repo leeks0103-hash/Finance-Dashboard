@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Toggle, Button, CopyText, confirmDialog, promptDialog } from '@/components/ui';
+import { usePresence } from '@/components/ui/useAnimatedClose';
 import TabNav from '@/components/ui/TabNav/TabNav';
 import type { TabId } from '@/components/ui/TabNav/TabNav';
 import KpiActionBar from '@/components/features/KpiActionBar';
@@ -12,7 +13,7 @@ import { useTheme } from '@/hooks';
 import { useDataHealth } from '@/hooks/useDataHealth';
 import { useChartLabelToggle } from '@/hooks/useChartLabelToggle';
 import { useExtractJob } from '@/hooks/useExtractJob';
-// import { useOpenFile } from '@/hooks/useOpenFile';   // 파일 바로가기 버튼 주석 처리로 미사용(2026-09-15)
+import { useOpenFile } from '@/hooks/useOpenFile';
 import { useUiStore } from '@/store';
 import { pathToTab } from '@/utils/routing';
 import type { ExtractTarget, ExtractMode } from '@/types/extract.types';
@@ -37,7 +38,7 @@ const EXTRACT_MODE_INFO: Record<ExtractMode, { label: string; desc: string }> = 
 
 const Navbar = () => {
   const { theme, toggle: toggleTheme } = useTheme();
-  const { showRawValues, toggleRawValues } = useUiStore();
+  const { showRawValues, toggleRawValues, showAchieveRate, toggleAchieveRate } = useUiStore();
   // 그래프 수치 — 켤 때/끌 때 페이드(끌 때는 투명해진 뒤 숨김)
   const chartLabels = useChartLabelToggle();
   const [open, setOpen] = useState(false);
@@ -101,7 +102,11 @@ const Navbar = () => {
   const healthTotal = healthRows.length + healthConflicts.length + finishedAnomalies.length + readFailures.length;
   const [healthOpen, setHealthOpen] = useState(false);
   const healthRef = useRef<HTMLDivElement>(null);
-  // const { openFile } = useOpenFile();   // 파일 바로가기 버튼 주석 처리로 미사용(2026-09-15)
+  // 닫힐 때도 퇴장 애니메이션 동안 남겨둠(index.css .closingDrop) — 예전엔 뚝 사라졌음
+  const settingsDrop = usePresence(open);
+  const healthDrop   = usePresence(healthOpen);
+  // PPT 파일명 옆 ↗ 바로가기(CopyText onOpen) — 2026-09-15 주석 처리했다가 2026-09-29 복구
+  const { openFile } = useOpenFile();
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -157,8 +162,8 @@ const Navbar = () => {
                 !
               </Button>
 
-              {healthOpen && healthTotal > 0 && (
-                <div className={styles.healthDropdown}>
+              {healthDrop.mounted && healthTotal > 0 && (
+                <div className={`${styles.healthDropdown} ${healthDrop.closing ? 'closingDrop' : ''}`}>
                   {/* 문제 유형별로 섹션을 분리 — 각 섹션 아이콘·좌측 악센트로 종류를 한눈에
                       구분(2026-09-22, "코드충돌인지 중복인지 완료보고 문제인지 영역 잘 나눠라") */}
                   {readFailures.length > 0 && (
@@ -199,7 +204,7 @@ const Navbar = () => {
                             <div className={styles.healthCodes}>
                               <span>{c.source} · {c.files.length}개 파일이 같은 코드 사용</span>
                               {c.files.map(f => (
-                                <span key={f}>· <CopyText text={f} /></span>
+                                <span key={f}>· <CopyText text={f} onOpen={openFile} /></span>
                               ))}
                             </div>
                           </li>
@@ -219,17 +224,7 @@ const Navbar = () => {
                         {healthRows.map(row => (
                           <li key={row.file} className={styles.healthItem}>
                             <div className={styles.healthFileRow}>
-                              <CopyText text={row.file} className={styles.healthFile} />
-                              {/* 파일 바로가기 버튼 — 일단 전부 주석 처리 (2026-09-15)
-                              <Button unstyled
-                                className={styles.healthOpenBtn}
-                                onClick={() => openFile(row.file)}
-                                title="원본 PPT 열기"
-                                aria-label="원본 PPT 열기"
-                              >
-                                ↗
-                              </Button>
-                              */}
+                              <CopyText text={row.file} className={styles.healthFile} onOpen={openFile} />
                             </div>
                             <div className={styles.healthCodes}>
                               <span>재무: {row.finance_codes.join(', ') || '—'}</span>
@@ -252,7 +247,7 @@ const Navbar = () => {
                         {finishedAnomalies.map(a => (
                           <li key={a.filename + a.project_code} className={styles.healthItem}>
                             <div className={styles.healthFileRow}>
-                              <CopyText text={a.filename} className={styles.healthFile} />
+                              <CopyText text={a.filename} className={styles.healthFile} onOpen={openFile} />
                             </div>
                             <div className={styles.healthCodes}>
                               <span>{a.part} · <CopyText text={a.project_code} /></span>
@@ -280,7 +275,7 @@ const Navbar = () => {
                             <div className={styles.healthCodes}>
                               <span>{c.source} · {c.files.length}개 파일이 같은 코드 사용</span>
                               {c.files.map(f => (
-                                <span key={f}>· <CopyText text={f} /></span>
+                                <span key={f}>· <CopyText text={f} onOpen={openFile} /></span>
                               ))}
                             </div>
                             {c.reason && <div className={styles.healthReason}>{c.reason}</div>}
@@ -320,8 +315,8 @@ const Navbar = () => {
             ⚙
           </Button>
 
-          {open && (
-            <div className={styles.dropdown}>
+          {settingsDrop.mounted && (
+            <div className={`${styles.dropdown} ${settingsDrop.closing ? 'closingDrop' : ''}`}>
               <div className={styles.section}>
                 <span className={styles.sectionLabel}>테마</span>
                 <div className={styles.row}>
@@ -408,6 +403,13 @@ const Navbar = () => {
                   </>
                 ) : (
                   <>
+                    {/* 달성률 표시 — 파트별 계획 vs 실적 드릴다운의 달성률(행별·합계·CSV). 기본 꺼짐.
+                        저조한 팀이 한눈에 드러나지 않게 관리자만 켤 수 있게 둠(2026-09-29) */}
+                    <div className={styles.row}>
+                      <span className={styles.rowText}>달성률 {showAchieveRate ? '표시 중' : '숨김'}</span>
+                      <Toggle checked={showAchieveRate} onChange={toggleAchieveRate} />
+                    </div>
+
                     {/* 추출 진행 중엔 대상/방식을 바꿀 수 없게 잠금(2026-09-23 요청) */}
                     <div className={styles.viewToggle}>
                       <Button variant="ghost" size="sm"

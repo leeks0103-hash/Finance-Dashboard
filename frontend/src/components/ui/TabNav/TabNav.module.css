@@ -40,3 +40,12 @@
   background: var(--brand-mid);
   border-radius: 2px 2px 0 0;
 }
+
+/* ─ 태블릿 단계(2026-09-29 통일): 1280 / 1024 / 768. 768 미만(모바일)은 대상 아님 ─ */
+@media (max-width: 1024px) {
+  .nav { padding: 0 8px; }
+  .tab { padding: 14px 12px; }
+}
+@media (max-width: 768px) {
+  .tab { padding: 14px 8px; font-size: 12px; letter-spacing: 0; }
+}

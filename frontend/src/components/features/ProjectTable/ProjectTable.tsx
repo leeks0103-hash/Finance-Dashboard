@@ -26,7 +26,6 @@ const ProjectTable = ({ toolbarExtra }: Props) => {
       data={vm.rows}
       columns={columns}
       getRowId={(row) => String(row._row_num)}
-      stickyFirstCol
       title="프로젝트 재무 상세"
       toolbarExtra={toolbarExtra}
       meta={{ rawValues }}

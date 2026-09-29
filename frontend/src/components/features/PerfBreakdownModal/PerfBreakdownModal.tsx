@@ -2,6 +2,7 @@ import { createPortal } from 'react-dom';
 import { Button, CopyText } from '@/components/ui';
 import { useScrollLock } from '@/components/ui/useScrollLock';
 import { useEscToClose } from '@/components/ui/useEscToClose';
+import { useAnimatedClose } from '@/components/ui/useAnimatedClose';
 import {
   usePerfBreakdownViewModel,
   fmtPerfBreakdown,
@@ -26,17 +27,21 @@ const PerfBreakdownModal = ({ target, onClose }: Props) => {
   const vm = usePerfBreakdownViewModel(target);
 
   useScrollLock();
+  const { closing, close } = useAnimatedClose(onClose);
   // ESC 닫기 — 차트 확대 모달 위에 겹쳐 떠도 이 모달만 닫힌다
-  useEscToClose(onClose);
+  useEscToClose(close);
 
   const compare = vm.compare;
 
   const handleCsv = () => {
     if (compare) {
+      // 달성률 열은 관리자 토글이 켜진 경우에만(vm.showRate)
       downloadCsvFile(
         `실적상세_${vm.keyLabel}_계획실적비교_${new Date().toISOString().slice(0, 10)}.csv`,
-        ['프로젝트코드', '프로젝트명', '팀', `${compare.plan_label}(억)`, `${compare.actual_label}(억)`, '달성률(%)'],
-        compare.rows.map(r => [r.project_code, r.project_name, r.team, r.plan, r.actual, r.rate ?? '']),
+        ['프로젝트코드', '프로젝트명', '팀', `${compare.plan_label}(억)`, `${compare.actual_label}(억)`,
+          ...(vm.showRate ? ['달성률(%)'] : [])],
+        compare.rows.map(r => [r.project_code, r.project_name, r.team, r.plan, r.actual,
+          ...(vm.showRate ? [r.rate ?? ''] : [])]),
       );
       return;
     }
@@ -72,6 +77,16 @@ const PerfBreakdownModal = ({ target, onClose }: Props) => {
           key: 'actual', header: `${compare.actual_label} (억)`, align: 'right',
           sortValue: r => r.actual, render: r => fmtPerfBreakdown(r.actual),
         },
+        // 달성률 — 관리자용 기능 토글로만 노출(저조한 팀이 드러나지 않게 하는 배려, 2026-09-29)
+        ...(vm.showRate ? [{
+          key: 'rate', header: '달성률', align: 'right' as const,
+          sortValue: (r: PerfBreakdownCompareRow) => r.rate ?? -1,
+          render: (r: PerfBreakdownCompareRow) => (
+            <span className={r.rate === null ? undefined : r.rate < 70 ? styles.rateLoss : r.rate >= 100 ? styles.rateGood : undefined}>
+              {r.rate === null ? '—' : `${r.rate}%`}
+            </span>
+          ),
+        }] : []),
       ];
 
       return (
@@ -83,19 +98,24 @@ const PerfBreakdownModal = ({ target, onClose }: Props) => {
             {vm.aggDesc && <p className={styles.explainSub}>{vm.aggDesc}</p>}
           </div>
 
-          {/* 달성률 컬럼은 뺌(가로 스크롤 원인) — 합계행에 전체 달성률만. 정렬 키를 컬럼에 없는
-              값으로 둬서 백엔드가 준 순서(달성률 낮은 순)를 그대로 유지 */}
+          {/* 달성률 표시 중이면 백엔드 순서(달성률 낮은 순) 그대로(정렬 키를 없는 값으로), 숨김이면
+              그 순서조차 저조한 프로젝트를 드러내므로 계획 큰 순으로 */}
           <BreakdownTable
             columns={cols}
             rows={compare.rows}
-            totalLabel={`합계 (${compare.rows.length}건) · 달성률 ${compare.rate === null ? '—' : `${compare.rate}%`}`}
-            totalValues={[fmtPerfBreakdown(compare.plan_total), fmtPerfBreakdown(compare.actual_total)]}
+            totalLabel={vm.showRate
+              ? `합계 (${compare.rows.length}건) · 달성률 ${compare.rate === null ? '—' : `${compare.rate}%`}`
+              : `합계 (${compare.rows.length}건)`}
+            totalValues={[
+              fmtPerfBreakdown(compare.plan_total), fmtPerfBreakdown(compare.actual_total),
+              ...(vm.showRate ? [compare.rate === null ? '—' : `${compare.rate}%`] : []),
+            ]}
             totalSpan={2}
-            defaultSortKey="backend-order"
+            defaultSortKey={vm.showRate ? 'backend-order' : 'plan'}
           />
 
           <div className={styles.foot}>
-            <span className={styles.count}>달성률 낮은 프로젝트가 위로 정렬 · 매출행 기준</span>
+            <span className={styles.count}>{vm.showRate ? '달성률 낮은 프로젝트가 위로 정렬 · 매출행 기준' : '계획 큰 순 · 매출행 기준'}</span>
             <Button variant="success" size="sm" onClick={handleCsv}>↓ 이 목록 CSV</Button>
           </div>
         </>
@@ -168,8 +188,8 @@ const PerfBreakdownModal = ({ target, onClose }: Props) => {
   })();
 
   return createPortal(
-    <div className={styles.overlay} onClick={onClose} role="presentation">
-      <div className={styles.modal} role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
+    <div className={`${styles.overlay} ${closing ? 'closingOverlay' : ''}`} onClick={close} role="presentation">
+      <div className={`${styles.modal} ${closing ? 'closingPanel' : ''}`} role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
         <div className={styles.header}>
           <div className={styles.titleWrap}>
             <h3 className={styles.title}>{vm.dimLabel} · {vm.keyLabel}</h3>
@@ -185,7 +205,7 @@ const PerfBreakdownModal = ({ target, onClose }: Props) => {
               {vm.available && '합계로 산출'}
             </div>
           </div>
-          <Button unstyled className={styles.close} onClick={onClose} aria-label="닫기">×</Button>
+          <Button unstyled className={styles.close} onClick={close} aria-label="닫기">×</Button>
         </div>
         <div className={styles.body}>{body}</div>
       </div>

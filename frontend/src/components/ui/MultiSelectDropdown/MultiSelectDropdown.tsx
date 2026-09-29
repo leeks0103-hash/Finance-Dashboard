@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/Button';
+import { usePresence } from '@/components/ui/useAnimatedClose';
 import styles from './MultiSelectDropdown.module.css';
 
 export interface MultiSelectDropdownProps {
@@ -20,6 +21,7 @@ const MultiSelectDropdown = ({
   onHover,
 }: MultiSelectDropdownProps) => {
   const [open, setOpen] = useState(false);
+  const drop = usePresence(open);   // 닫힐 때도 퇴장 애니메이션(.closingDrop)
   const wrapRef = useRef<HTMLDivElement>(null);
 
   const close = useCallback(() => setOpen(false), []);
@@ -54,8 +56,8 @@ const MultiSelectDropdown = ({
         <span className={`${styles.arrow} ${open ? styles.arrowOpen : ''}`}>▾</span>
       </Button>
 
-      {open && (
-        <div className={styles.dropdown}>
+      {drop.mounted && (
+        <div className={`${styles.dropdown} ${drop.closing ? 'closingDrop' : ''}`}>
           <label className={styles.item}>
             <input
               type="checkbox"

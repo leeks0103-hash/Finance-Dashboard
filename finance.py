@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 from flask import Blueprint, jsonify, request, make_response
 from markupsafe import escape as html_escape
 
-from shared import is_ranked_valid_code, is_file_locked, new_excel_app
+from shared import is_ranked_valid_code, is_file_locked, read_excel_via_com, read_sheet_cached
 import paths
 
 load_dotenv()
@@ -43,7 +43,9 @@ _cached_mtime = None
 _cache_lock = threading.Lock()
 _last_correction_count = 0
 
-_STAGE_PRIORITY = ["검토", "사업계획", "사전검토", "제안", "추가제안", "착수", "중간", "완료"]
+# 보고단계 순서(하드코딩) — 추가제안·추가중간·추가완료는 완료 뒤(2026-09-29, 해외연구소 PPT들에서 등장).
+# 프론트 utils/stageOrder.ts STAGE_ORDER와 같아야 함
+_STAGE_PRIORITY = ["검토", "사업계획", "사전검토", "제안", "착수", "중간", "완료", "추가제안", "추가중간", "추가완료"]
 
 
 def _empty_df() -> pd.DataFrame:
@@ -78,71 +80,8 @@ def _extract_part(filename: str) -> str:
     return "기타"
 
 
-def _read_excel_via_com(path: str, sheet_name: str) -> "pd.DataFrame | None":
-    """AIP 암호화 Excel을 win32com으로 열어 DataFrame으로 반환."""
-    try:
-        import pythoncom
-        import win32com.client
-    except ImportError:
-        logger.error("win32com 없음 — pip install pywin32 필요")
-        return None
-
-    xl_app = None
-    wb_com = None
-    try:
-        pythoncom.CoInitialize()
-        xl_app = new_excel_app()   # 깨진 gen_py 캐시 자가 복구 후 DispatchEx — shared.new_excel_app 참고
-        xl_app.Visible = False
-        xl_app.DisplayAlerts = False
-
-        abs_path = os.path.abspath(path)
-        wb_com = xl_app.Workbooks.Open(
-            abs_path,
-            UpdateLinks=False,
-            ReadOnly=True,
-            IgnoreReadOnlyRecommended=True,
-        )
-
-        ws = None
-        for i in range(1, wb_com.Sheets.Count + 1):
-            if wb_com.Sheets(i).Name == sheet_name:
-                ws = wb_com.Sheets(i)
-                break
-        if ws is None:
-            logger.error("시트 없음: %s", sheet_name)
-            return None
-
-        used   = ws.UsedRange
-        values = used.Value2
-        if not values:
-            return None
-        if not isinstance(values[0], tuple):
-            values = [values]
-
-        headers = [str(v) if v is not None else "" for v in values[0]]
-        rows    = [list(r) for r in values[1:]]
-        df = pd.DataFrame(rows, columns=headers)
-        logger.info("win32com Excel 읽기 완료: %d행 %d열", len(df), len(df.columns))
-        return df
-
-    except Exception as e:
-        logger.error("_read_excel_via_com 실패: %s", e)
-        return None
-    finally:
-        try:
-            if wb_com is not None:
-                wb_com.Close(False)
-        except Exception:
-            pass
-        try:
-            if xl_app is not None:
-                xl_app.Quit()
-        except Exception:
-            pass
-        try:
-            pythoncom.CoUninitialize()
-        except Exception:
-            pass
+# AIP 암호화 엑셀 COM 읽기는 shared.read_excel_via_com으로 이동(2026-09-29) — app.py 등 기존 import 호환용 별칭
+_read_excel_via_com = read_excel_via_com
 
 
 def load_excel():
@@ -305,6 +244,18 @@ def _sort_stages(stage_list):
     return known + others
 
 
+def _order_by_stage(df: pd.DataFrame) -> pd.DataFrame:
+    """행 순서 = 보고단계 하드코딩 순서(_STAGE_PRIORITY), 같은 단계끼리는 기존(추출) 순서 유지.
+    재무이력(2뎁스)과 같은 기준 — 예전엔 추출 순서 그대로였고, 한때 프로젝트별로 묶었더니 여러 프로젝트가
+    섞인 검색 결과에서 "중간 → 추가제안 → 제안 → 완료"처럼 단계가 뒤섞여 보였음(2026-09-29).
+    목록에 없는 단계는 맨 뒤."""
+    if df.empty or "stage" not in df.columns:
+        return df
+    rank  = {s: i for i, s in enumerate(_STAGE_PRIORITY)}
+    order = pd.Series(df["stage"].map(lambda s: rank.get(s, len(rank))).to_numpy())
+    return df.iloc[order.sort_values(kind="stable").index]
+
+
 def _register_pdf_font() -> str:
     try:
         from reportlab.pdfbase import pdfmetrics
@@ -345,6 +296,7 @@ def api_data():
             )
         df = df[mask]
 
+    df = _order_by_stage(df)
     total = len(df)
     try:
         page      = max(1, int(request.args.get("page", 1)))
@@ -641,10 +593,10 @@ def _find_file_path(filename: str) -> str | None:
     같은 파일명이 여러 번 재처리됐으면 가장 최근(처리일시 최대) 걸 사용."""
     if not filename or not os.path.exists(EXCEL_PATH):
         return None
-    try:
-        hist = pd.read_excel(EXCEL_PATH, sheet_name="처리이력", header=0, engine="openpyxl")
-    except Exception as e:
-        logger.warning("처리이력 시트 읽기 실패: %s", e)
+    # openpyxl만 쓰면 출력 xlsx에 AIP가 붙는 순간 모든 바로가기가 "원본 위치 없음"이 됐음 → COM 우회 + mtime 캐시
+    hist = read_sheet_cached(EXCEL_PATH, "처리이력")
+    if hist is None:
+        logger.warning("처리이력 시트 읽기 실패: %s", EXCEL_PATH)
         return None
     matches = hist[hist["파일명"] == filename]
     if matches.empty:

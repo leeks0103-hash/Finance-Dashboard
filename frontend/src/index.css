@@ -234,6 +234,27 @@ h1, h2, h3, h4, h5, h6 {
 
 @media (prefers-reduced-motion: reduce) { .fadeUp { animation: none; } }
 
+/* ─── 퇴장 애니메이션 — 모달 닫힐 때(useAnimatedClose가 붙임). 예전엔 전부 뚝 사라졌음(2026-09-29) ─── */
+@keyframes overlayOut { to { opacity: 0; } }
+@keyframes panelOut   { to { opacity: 0; transform: translateY(8px) scale(0.985); } }
+.closingOverlay { animation: overlayOut 0.16s ease forwards !important; pointer-events: none; }
+.closingPanel   { animation: panelOut 0.16s ease forwards !important; }
+/* 드롭다운 퇴장(usePresence) — 들어올 때 dropIn의 반대 */
+@keyframes dropOut { to { opacity: 0; transform: translateY(-4px); } }
+.closingDrop    { animation: dropOut 0.14s ease forwards !important; pointer-events: none; }
+
+/* 화면 안 내용 전환(탭·목록↔확대 등)용 가벼운 등장 */
+@keyframes swapIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+.swapIn { animation: swapIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both; }
+/* 접이식(<details>) 펼칠 때 내용이 뚝 튀어나오지 않게 — 계산식 용어·데이터 이상 상세 등 전부 */
+details[open] > :not(summary) { animation: swapIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@media (prefers-reduced-motion: reduce) {
+  .swapIn, details[open] > :not(summary) { animation: none; }
+}
+
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.45; }

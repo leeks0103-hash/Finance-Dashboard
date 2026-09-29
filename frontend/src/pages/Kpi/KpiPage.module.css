@@ -311,3 +311,9 @@
 
 .achieveGood { background: var(--profit); }
 .achievePoor { background: var(--warn); }
+
+/* ─ 태블릿 단계(2026-09-29 통일): 1280 / 1024 / 768. 768 미만(모바일)은 대상 아님 ─ */
+@media (max-width: 1024px) {
+  .titleWithFilter { flex-wrap: wrap; gap: 8px; }
+  .titleMiddle     { flex-basis: 100%; order: 3; justify-content: flex-start; }
+}

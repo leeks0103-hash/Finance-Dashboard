@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, type ReactNode } from 'react';
 import { Button } from '@/components/ui/Button';
+import { usePresence } from '@/components/ui/useAnimatedClose';
 import styles from './InfoButton.module.css';
 
 interface Props {
@@ -8,6 +9,7 @@ interface Props {
 
 export const InfoButton = ({ children }: Props) => {
   const [open, setOpen] = useState(false);
+  const pop = usePresence(open);   // 닫힐 때도 퇴장 애니메이션(.closingDrop)
   const wrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -30,8 +32,8 @@ export const InfoButton = ({ children }: Props) => {
       >
         i
       </Button>
-      {open && (
-        <div className={styles.popover}>
+      {pop.mounted && (
+        <div className={`${styles.popover} ${pop.closing ? 'closingDrop' : ''}`}>
           <div className={styles.content}>{children}</div>
         </div>
       )}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, fireEvent, within, waitFor } from '@testing-library/react';
 import { ChartCard } from './ChartCard';
 import styles from './ChartCard.module.css';
 
@@ -19,7 +19,7 @@ describe('ChartCard', () => {
     expect(screen.getByText('내용')).toBeInTheDocument();
   });
 
-  it('opens an enlarged modal with the same title/body when the expand button is clicked', () => {
+  it('opens an enlarged modal with the same title/body when the expand button is clicked', async () => {
     render(
       <ChartCard>
         <ChartCard.Title>제목</ChartCard.Title>
@@ -35,8 +35,9 @@ describe('ChartCard', () => {
     expect(within(dialog).getByText('제목')).toBeInTheDocument();
     expect(within(dialog).getByText('내용')).toBeInTheDocument();
 
+    // 닫기는 퇴장 애니메이션(useAnimatedClose) 뒤에 실제로 사라짐
     fireEvent.click(within(dialog).getByLabelText('닫기'));
-    expect(screen.queryByRole('dialog')).toBeNull();
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 
   it('hides the expand button when expandable={false}', () => {

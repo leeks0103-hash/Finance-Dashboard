@@ -1,4 +1,9 @@
 .wrap {
+  /* 왼쪽 전사평균·오른쪽 확대 도넛 공통 폭(BigCostDoughnut .chartCol이 참조) — 둘이 같은 크기.
+     모달 실제 폭(cqw)에서 비교표(~350)·간격·구분선(~30)을 뺀 나머지를 반씩 — 고정 480px은 화면이 넓을 때
+     여백만 남고 도넛이 작았음(2026-09-29) */
+  container-type: inline-size;
+  --donut-w: clamp(300px, calc((100cqw - 380px) / 2), 640px);
   display: flex;
   gap: 20px;
   height: 100%;
@@ -8,9 +13,8 @@
 /* 왼쪽 — 전사평균 큰 도넛. 오른쪽 선택과 무관하게 항상 고정.
    우측과 경계가 안 보여 헷갈리던 것 — 세로 구분선 추가 */
 .left {
-  /* 36 → 40%: 오른쪽 미리보기가 도넛 500px 고정 + 표 왼쪽 정렬이 되면서 남는 폭을 가져옴.
-     금액(비중) 라벨로 여백이 커져 링이 줄어드는 걸 상쇄(2026-09-29) */
-  flex: 0 0 40%;
+  /* 폭 = 도넛 공통 폭(+ 오른쪽 구분선 1px) — 오른쪽 확대 도넛과 크기를 맞추려고 %가 아닌 고정값 */
+  flex: 0 0 calc(var(--donut-w) + 1px);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -26,6 +30,15 @@
   gap: 10px;
   min-width: 0;
   min-height: 0;
+}
+
+/* 탭 줄 — 왼쪽 팀/파트 토글, 오른쪽 끝 "목록으로"(확대 중일 때만) */
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 /* 팀/파트 보기 전환 — 2버튼 세그먼트 토글 */
@@ -172,18 +185,12 @@
 }
 .previewCloseBtn {
   flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
   background: none;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 0;
+  padding: 3px 10px;
   color: var(--text-sub);
-  font-size: 0.8rem;
-  line-height: 1;
+  font-size: 0.72rem;
   cursor: pointer;
 }
 .previewCloseBtn:hover {
@@ -191,41 +198,26 @@
   color: var(--text-primary);
 }
 
-/* "⤢" 미리보기 — 도넛(남는 폭 전부, 세로 stretch) + 오른쪽 좁은 비교표 칸.
-   align-items를 기본(stretch)으로 둬야 도넛 칸이 높이를 받음 — center로 두면 캔버스가 0px로 접혀
-   도넛이 사라짐(2026-09-29 실제로 겪음) */
-.previewRow {
-  flex: 1;
-  display: flex;
-  justify-content: flex-start;
-  min-height: 0;
-}
-/* 도넛 캔버스(BigCostDoughnut .canvasBox) 500px 고정 — 왼쪽 전사평균과 같은 크기(2026-09-29 실측 기준).
-   BigCostDoughnut은 폭 기준 정사각형이라 칸 폭 = 캔버스 한 변 */
-.previewRow > .bigChart {
-  /* 남는 가로 여백을 도넛 칸이 가져감(금액 라벨용) — 높이는 .canvasBox max-height 500px로 그대로 */
-  flex: 1 1 500px;
-  min-width: 0;
-}
-
-/* 표는 캔버스(500px) 높이 기준으로 가운데 — 칸 전체(캔버스+범례) 기준이면 아래로 처져 보였음 */
+/* "⤢" 미리보기 비교표 — BigCostDoughnut aside로 캔버스 옆에 붙음. 세로로 범례 위 구분선까지 늘어나서
+   세로선이 그 가로선에 맞닿고, 칸 안쪽 여백 없이 표 행 구분선이 세로선에 붙음(2026-09-29) */
+/* 남는 가로 공간은 표 칸이 가져감(도넛은 전사평균과 같은 폭 유지) — 오른쪽 빈 여백 제거.
+   표는 칸 맨 위에(2026-09-29) */
 .compareCol {
-  flex: 0 0 auto;
-  align-self: flex-start;
-  height: 500px;
+  flex: 1 1 auto;
+  min-width: 0;
   display: flex;
-  align-items: center;
-  padding-left: 16px;
+  align-items: flex-start;
   border-left: 1px solid var(--border);
 }
 .compareTable {
+  width: 100%;
   border-collapse: collapse;
   font-size: 0.76rem;
   font-variant-numeric: tabular-nums;
 }
 .compareTable th {
-  padding: 5px 10px 8px;
-  text-align: right;
+  padding: 10px 10px 12px;
+  text-align: center;
   font-size: 0.64rem;
   font-weight: 600;
   color: var(--text-muted);
@@ -233,8 +225,8 @@
   white-space: nowrap;
 }
 .compareTable td {
-  padding: 8px 10px;
-  text-align: right;
+  padding: 16px 10px;
+  text-align: center;   /* 항목 컬럼(.compareLabel)만 왼쪽, 수치는 가운데 */
   color: var(--text-primary);
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
@@ -242,11 +234,13 @@
 .compareTable tr:last-child td { border-bottom: none; }
 .compareLabelHead { text-align: left !important; }
 .compareLabel {
-  display: flex;
-  align-items: center;
-  gap: 5px;
   text-align: left !important;
   color: var(--text-sub) !important;
+}
+.compareLabelInner {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 .compareDot {
   flex-shrink: 0;
@@ -255,12 +249,13 @@
   border-radius: 50%;
 }
 
-@media (max-width: 900px) {
-  .wrap       { flex-direction: column; }
-  .left       { flex: 0 0 260px; }
-  .previewRow { flex-direction: column; align-items: center; }
-  .previewRow > .bigChart { flex: 0 0 auto; width: 100%; max-width: 360px; }
-  .compareCol { height: auto; align-self: auto; padding: 10px 0 0; border-left: none; border-top: 1px solid var(--border); justify-content: center; }
+/* 태블릿 단계 1024 — 좌우 나란히 두기엔 좁아서 위(전사평균)/아래(팀·파트)로 */
+@media (max-width: 1024px) {
+  .wrap       { flex-direction: column; overflow-y: auto; }
+  /* 위아래 배치에선 두 칸 모두 내용 높이만큼 — 고정 260px이면 도넛(최소 300px)이 잘림. 모달이 스크롤 */
+  .left       { flex: 0 0 auto; border-right: none; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+  .right      { flex: 0 0 auto; }
+  .compareCol { flex: 1 0 100%; border-left: none; border-top: 1px solid var(--border); justify-content: center; }
   .partGrid   { grid-template-columns: repeat(2, 1fr); }
 }
 

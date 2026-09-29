@@ -3,6 +3,7 @@ import { createColumnHelper } from '@tanstack/react-table';
 import { Button, CopyText, DataTable, alertDialog } from '@/components/ui';
 import { useScrollLock } from '@/components/ui/useScrollLock';
 import { useEscToClose } from '@/components/ui/useEscToClose';
+import { useAnimatedClose } from '@/components/ui/useAnimatedClose';
 import { downloadCsvFile } from '@/hooks/useExport';
 import { openFinanceFile } from '@/api/finance.api';
 import type { FinanceBreakdownRow } from '@/api/finance.api';
@@ -34,7 +35,8 @@ const FinanceBreakdownModal = ({ target, onClose }: Props) => {
   const vm = useFinanceBreakdownViewModel(target);
 
   useScrollLock();
-  useEscToClose(onClose);
+  const { closing, close } = useAnimatedClose(onClose);
+  useEscToClose(close);
 
   const columns = [
     h.accessor('project_code', {
@@ -99,14 +101,14 @@ const FinanceBreakdownModal = ({ target, onClose }: Props) => {
   })();
 
   return createPortal(
-    <div className={styles.overlay} onClick={onClose} role="presentation">
-      <div className={styles.modal} role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
+    <div className={`${styles.overlay} ${closing ? 'closingOverlay' : ''}`} onClick={close} role="presentation">
+      <div className={`${styles.modal} ${closing ? 'closingPanel' : ''}`} role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
         <div className={styles.header}>
           <div className={styles.titleWrap}>
             <div className={styles.title}>{vm.dimLabel} · {vm.keyLabel || '전체'}</div>
             <div className={styles.sub}>{vm.fieldLabel} 합계 = {vm.totalStr}{vm.unit === '%' ? '%' : '억원'} ({vm.count}건)</div>
           </div>
-          <Button unstyled className={styles.close} onClick={onClose} aria-label="닫기">×</Button>
+          <Button unstyled className={styles.close} onClick={close} aria-label="닫기">×</Button>
         </div>
         {body}
       </div>

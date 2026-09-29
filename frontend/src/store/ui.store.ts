@@ -21,6 +21,11 @@ interface UiStore {
    *  배포 전이라 사용자 계정으로 구분할 수 없어 임시로 브라우저(localStorage) 기준 */
   tourSeen: boolean;
   markTourSeen: () => void;
+
+  /** 파트별 계획 vs 실적 드릴다운 표의 달성률 표시 — 관리자용 기능(Navbar)에서만 켤 수 있고 기본 꺼짐.
+   *  저조한 팀이 한눈에 드러나지 않게 하려는 배려(2026-09-29). 실제 표시는 관리자 인증 상태일 때만 */
+  showAchieveRate: boolean;
+  toggleAchieveRate: () => void;
 }
 
 export const useUiStore = create<UiStore>()(
@@ -39,11 +44,17 @@ export const useUiStore = create<UiStore>()(
 
       tourSeen: false,
       markTourSeen: () => set({ tourSeen: true }),
+
+      showAchieveRate: false,
+      toggleAchieveRate: () => set(s => ({ showAchieveRate: !s.showAchieveRate })),
     }),
     {
       name: 'ui-store',
-      // 그래프 수치·표 실제값 표시 여부·투어 시청 여부만 로컬에 저장 — 나머지는 세션 한정
-      partialize: (s) => ({ showChartLabels: s.showChartLabels, showRawValues: s.showRawValues, tourSeen: s.tourSeen }),
+      // 그래프 수치·표 실제값·달성률 표시 여부·투어 시청 여부만 로컬에 저장 — 나머지는 세션 한정
+      partialize: (s) => ({
+        showChartLabels: s.showChartLabels, showRawValues: s.showRawValues, tourSeen: s.tourSeen,
+        showAchieveRate: s.showAchieveRate,
+      }),
     },
   ),
 );

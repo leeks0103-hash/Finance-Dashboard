@@ -85,3 +85,100 @@ def new_excel_app():
     import win32com.client
     _heal_gen_py_cache()
     return win32com.client.DispatchEx("Excel.Application")
+
+
+def read_excel_via_com(path: str, sheet_name: str) -> "pd.DataFrame | None":
+    """AIP 암호화 Excel을 win32com으로 열어 DataFrame으로 반환(첫 행 = 헤더)."""
+    import pandas as pd
+    try:
+        import pythoncom
+        import win32com.client
+    except ImportError:
+        logger.error("win32com 없음 — pip install pywin32 필요")
+        return None
+
+    xl_app = None
+    wb_com = None
+    try:
+        pythoncom.CoInitialize()
+        xl_app = new_excel_app()   # 깨진 gen_py 캐시 자가 복구 후 DispatchEx — shared.new_excel_app 참고
+        xl_app.Visible = False
+        xl_app.DisplayAlerts = False
+
+        abs_path = os.path.abspath(path)
+        wb_com = xl_app.Workbooks.Open(
+            abs_path,
+            UpdateLinks=False,
+            ReadOnly=True,
+            IgnoreReadOnlyRecommended=True,
+        )
+
+        ws = None
+        for i in range(1, wb_com.Sheets.Count + 1):
+            if wb_com.Sheets(i).Name == sheet_name:
+                ws = wb_com.Sheets(i)
+                break
+        if ws is None:
+            logger.error("시트 없음: %s", sheet_name)
+            return None
+
+        used   = ws.UsedRange
+        values = used.Value2
+        if not values:
+            return None
+        if not isinstance(values[0], tuple):
+            values = [values]
+
+        headers = [str(v) if v is not None else "" for v in values[0]]
+        rows    = [list(r) for r in values[1:]]
+        df = pd.DataFrame(rows, columns=headers)
+        logger.info("win32com Excel 읽기 완료: %d행 %d열", len(df), len(df.columns))
+        return df
+
+    except Exception as e:
+        logger.error("read_excel_via_com 실패: %s", e)
+        return None
+    finally:
+        try:
+            if wb_com is not None:
+                wb_com.Close(False)
+        except Exception:
+            pass
+        try:
+            if xl_app is not None:
+                xl_app.Quit()
+        except Exception:
+            pass
+        try:
+            pythoncom.CoUninitialize()
+        except Exception:
+            pass
+
+
+# (경로, 시트) → (mtime, DataFrame). COM 우회는 수 초 걸려서 파일이 안 바뀌었으면 재사용
+_sheet_cache: dict = {}
+
+
+def read_sheet_cached(path: str, sheet_name: str):
+    """엑셀 시트를 DataFrame(첫 행 = 헤더)으로 — 평문이면 openpyxl, AIP 암호화면 Excel COM 우회.
+    파일 mtime이 같으면 캐시 재사용. 읽기 실패면 None.
+
+    처리이력 시트로 원본 PPT 경로를 찾는 "파일 바로가기"가 openpyxl만 써서, 출력 xlsx에 AIP가 붙는
+    순간 전부 "원본 위치를 찾을 수 없습니다"가 되던 문제(2026-09-29 발견) 때문에 공용화."""
+    import pandas as pd
+    try:
+        mtime = os.path.getmtime(path)
+    except OSError:
+        return None
+    key = (path, sheet_name)
+    hit = _sheet_cache.get(key)
+    if hit and hit[0] == mtime:
+        return hit[1]
+    try:
+        df = pd.read_excel(path, sheet_name=sheet_name, header=0, engine="openpyxl")
+    except Exception as e:
+        logger.warning("시트 openpyxl 읽기 실패(AIP 암호화 추정) — Excel COM으로 재시도: %s[%s] (%s)", path, sheet_name, e)
+        df = read_excel_via_com(path, sheet_name)
+    if df is not None:
+        _sheet_cache[key] = (mtime, df)
+    return df

@@ -156,6 +156,8 @@ const CostBreakdownModal = ({ total, byPart, partsRaw, teams, teamParts, colors,
 
       {/* 오른쪽 — 팀/파트 보기 전환 + 비교용 미니 도넛 (드래그 정렬 + 호버 확대) */}
       <div className={styles.right}>
+        {/* 팀/파트 탭 줄 — 확대 중이면 반대편(오른쪽 끝)에 "목록으로" */}
+        <div className={styles.topBar}>
         <div className={styles.modeTabs}>
           <Button
             unstyled
@@ -172,29 +174,30 @@ const CostBreakdownModal = ({ total, byPart, partsRaw, teams, teamParts, colors,
             파트
           </Button>
         </div>
+          {previewCell && (
+            <Button unstyled className={styles.previewCloseBtn} onClick={() => setPreviewKey(null)} aria-label="목록으로">
+              목록으로
+            </Button>
+          )}
+        </div>
 
         {previewCell ? (
           // "⤢" 버튼으로 확대한 카드를 전사평균과 비슷한 크기로 — 그리드 자리를 그대로 대체
-          <div className={styles.previewWrap}>
+          // key로 다시 마운트 → 카드를 바꿔 확대할 때마다 swapIn(index.css) 등장 애니메이션
+          <div key={previewCell.key} className={`${styles.previewWrap} swapIn`}>
             <div className={styles.previewHeader}>
               <span className={styles.sectionTitle}>{previewCell.label}</span>
-              <Button unstyled className={styles.previewCloseBtn} onClick={() => setPreviewKey(null)} aria-label="목록으로">
-                ✕
-              </Button>
             </div>
-            <div className={styles.previewRow}>
-              {/* 왼쪽 전사평균과 같은 컴포넌트 — 높이 500 동일, 폭은 남는 만큼 */}
-              <div className={styles.bigChart}>
-                <BigCostDoughnut
-                  labels={previewCell.data.labels}
-                  data={previewCell.data.values}
-                  colors={colors}
-                  showLabels={showLabels}
-                  showValue
-                />
-              </div>
-
-              {/* 전사평균 대비 차이 — 도넛 옆 좁은 칸. 도넛 칸은 그대로 세로 전체를 쓰고 이 칸만 고정폭 */}
+            {/* 왼쪽 전사평균과 같은 컴포넌트(높이 500 동일). 비교표는 캔버스 옆 aside로 —
+                범례 위 구분선이 도넛+표 전체 폭으로 이어지고 표의 세로선이 그 선에 맞닿음 */}
+            <div className={styles.bigChart}>
+              <BigCostDoughnut
+                labels={previewCell.data.labels}
+                data={previewCell.data.values}
+                colors={colors}
+                showLabels={showLabels}
+                showValue
+                aside={
               <div className={styles.compareCol}>
                 <table className={styles.compareTable}>
                   <thead>
@@ -214,8 +217,11 @@ const CostBreakdownModal = ({ total, byPart, partsRaw, teams, teamParts, colors,
                       return (
                         <tr key={label}>
                           <td className={styles.compareLabel}>
-                            <i className={styles.compareDot} style={{ background: colors[i] }} />
-                            {label}
+                            {/* flex는 안쪽 span에 — td에 주면 표 셀이 아니게 돼서 행 구분선이 어긋남 */}
+                            <span className={styles.compareLabelInner}>
+                              <i className={styles.compareDot} style={{ background: colors[i] }} />
+                              {label}
+                            </span>
                           </td>
                           <td>{avg.toFixed(1)}</td>
                           <td>{v.toFixed(1)}</td>
@@ -226,12 +232,15 @@ const CostBreakdownModal = ({ total, byPart, partsRaw, teams, teamParts, colors,
                   </tbody>
                 </table>
               </div>
+                }
+              />
             </div>
           </div>
         ) : (
           <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={cells.map(c => c.key)} strategy={rectSortingStrategy}>
-              <div className={`${styles.partGrid} ${gridColsClass}`}>
+              {/* 팀↔파트 전환·목록으로 복귀 때 뚝 바뀌지 않게 swapIn — key로 모드 바뀔 때 다시 재생 */}
+              <div key={rightMode} className={`${styles.partGrid} ${gridColsClass} swapIn`}>
                 {cells.map(cell => (
                   <SortableCard
                     key={cell.key}

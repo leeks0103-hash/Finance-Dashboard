@@ -11,8 +11,9 @@
 }
 
 /* 헤더 — 클릭 정렬 */
+/* 헤더는 컬럼 정렬(align)과 무관하게 전부 가운데(2026-09-29) — .right/.center보다 이 규칙이 우선 */
 .table th {
-  text-align: left;
+  text-align: center;
   padding: 7px 10px;
   background: var(--bg-header);
   color: var(--text-muted);
@@ -74,7 +75,8 @@
   vertical-align: middle;
 }
 
-.right { text-align: right; font-variant-numeric: tabular-nums; }
+/* 숫자 컬럼(align: 'right') — 요청으로 가운데 정렬(2026-09-29). tabular-nums라 자릿수가 달라도 들쭉날쭉 덜함 */
+.right { text-align: center; font-variant-numeric: tabular-nums; }
 .table td.right { font-weight: 600; }
 
 .center { text-align: center; }

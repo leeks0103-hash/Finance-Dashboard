@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/Button';
 import { useScrollLock } from '@/components/ui/useScrollLock';
 import { useEscToClose } from '@/components/ui/useEscToClose';
+import { useAnimatedClose } from '@/components/ui/useAnimatedClose';
 import styles from './ChartCard.module.css';
 
 // 마커 컴포넌트 — 실제 렌더링(클래스·배치)은 Root가 전담. 호출부 가독성을 위한 자리 표시자.
@@ -30,7 +31,8 @@ const Root = ({ children, compact = true, expandable = true, modalContent, modal
   // 모달 열림 동안 배경 스크롤 잠금 (스크롤바 폭 보정 포함 — 화면 튐 방지)
   useScrollLock(expanded);
   // ESC 닫기 — 모달을 겹쳐 열었을 땐 맨 위 것만 닫힌다
-  useEscToClose(() => setExpanded(false), expanded);
+  const { closing, close } = useAnimatedClose(() => setExpanded(false));
+  useEscToClose(close, expanded);
 
   const titleRow = (className: string) => (
     <div className={className}>
@@ -53,9 +55,9 @@ const Root = ({ children, compact = true, expandable = true, modalContent, modal
 
   // 카드와 같은 title/body를 그대로 재사용 — 모달 안에서는 더 큰 영역에 다시 그려진다
   const modal = expanded && createPortal(
-    <div className={styles.modalOverlay} onClick={() => setExpanded(false)} role="presentation">
+    <div className={`${styles.modalOverlay} ${closing ? 'closingOverlay' : ''}`} onClick={close} role="presentation">
       <div
-        className={styles.modalCard}
+        className={`${styles.modalCard} ${closing ? 'closingPanel' : ''}`}
         style={modalHeight ? { height: modalHeight } : undefined}
         role="dialog"
         aria-modal="true"
@@ -66,7 +68,7 @@ const Root = ({ children, compact = true, expandable = true, modalContent, modal
           <Button
             unstyled
             className={styles.modalClose}
-            onClick={() => setExpanded(false)}
+            onClick={close}
             aria-label="닫기"
           >
             ×

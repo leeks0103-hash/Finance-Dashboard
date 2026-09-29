@@ -5,7 +5,8 @@
   min-height: 128px;
 }
 
-@media (max-width: 900px) {
+/* 태블릿 단계 1024 — 4열 → 2열 */
+@media (max-width: 1024px) {
   .grid { grid-template-columns: repeat(2, 1fr); min-height: 256px; }
 }
 @media (max-width: 480px) {

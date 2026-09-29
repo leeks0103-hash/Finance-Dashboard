@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from dotenv import load_dotenv
 from flask import Blueprint, jsonify, request
-from shared import is_file_locked, new_excel_app
+from shared import is_file_locked, new_excel_app, read_sheet_cached
 import paths
 
 load_dotenv()
@@ -192,7 +192,9 @@ def _post_process_raw(df: pd.DataFrame) -> pd.DataFrame:
 
 
 # 보고단계 우선순위 (높을수록 우선). 미등록 단계는 -1 → 알려진 단계가 항상 이김
-_STAGE_PRIORITY = {"완료": 6, "중간": 5, "착수": 4, "제안": 3, "사전검토": 2, "사업계획": 1, "검토": 0}
+# 추가제안·추가중간·추가완료는 완료 뒤(하드코딩, finance.py _STAGE_PRIORITY와 같은 순서)
+_STAGE_PRIORITY = {"추가완료": 9, "추가중간": 8, "추가제안": 7,
+                   "완료": 6, "중간": 5, "착수": 4, "제안": 3, "사전검토": 2, "사업계획": 1, "검토": 0}
 
 # 정식 프로젝트 코드 — 맨 앞이 "영문 1자 + 숫자 10자 이상". 뒤에 " (생성 예정)" 같은 주석이 붙어도
 # 앞 토큰만 인정. 이 형식이 아니면(생성예정·미정·- ·숫자 등) 집계 대상에서 제외.
@@ -907,10 +909,10 @@ def _find_kpi_file_path(filename: str) -> str | None:
     같은 파일명이 여러 번 재처리됐으면 가장 최근(처리일시 최대) 걸 사용."""
     if not filename or not os.path.exists(KPI_EXCEL_PATH):
         return None
-    try:
-        hist = pd.read_excel(KPI_EXCEL_PATH, sheet_name="처리 이력", header=0, engine="openpyxl")
-    except Exception as e:
-        logger.warning("KPI 처리 이력 시트 읽기 실패: %s", e)
+    # openpyxl만 쓰면 출력 xlsx에 AIP가 붙는 순간 "원본 위치 없음"이 됨 → COM 우회 + mtime 캐시(shared)
+    hist = read_sheet_cached(KPI_EXCEL_PATH, "처리 이력")
+    if hist is None:
+        logger.warning("KPI 처리 이력 시트 읽기 실패: %s", KPI_EXCEL_PATH)
         return None
     matches = hist[hist["파일명"] == filename]
     if matches.empty:

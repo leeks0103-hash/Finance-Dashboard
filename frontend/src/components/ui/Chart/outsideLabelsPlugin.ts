@@ -36,6 +36,24 @@ export const formatOutsideLabel = (value: number, sum: number, showValue?: boole
   return showValue ? `${value.toFixed(1)}억(${pct})` : pct;
 };
 
+/** 인출선 라벨 줄 — showValue면 "237.5억" / "(64.8%)" 두 줄. 한 줄로 쓰면 라벨 폭만큼 좌우 여백을
+ *  먹어서 도넛 링이 너무 작아졌음(2026-09-29) — 두 줄이면 폭이 절반 가까이로 줄어듦 */
+const labelLines = (value: number, sum: number, showValue?: boolean): string[] => {
+  const pct = `${(sum ? (value / sum) * 100 : 0).toFixed(1)}%`;
+  return showValue ? [`${value.toFixed(1)}억`, `(${pct})`] : [pct];
+};
+
+/** 라벨 글자색 — 밝은 조각색(Sky Blue 등, 공통원가)은 흰 배경에 묻혀서 같은 색에 검정을 30% 섞어 진하게.
+ *  그림자는 오히려 번져 보여서 반려(2026-09-29). 그 외 색은 조각색 그대로 */
+const labelTextColor = (c: string): string => {
+  const m = c.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+  if (!m) return c;
+  const [r, g, b] = m.slice(1, 4).map(Number);
+  if ((0.299 * r + 0.587 * g + 0.114 * b) / 255 <= 0.65) return c;
+  const k = 0.7;
+  return `rgb(${Math.round(r * k)},${Math.round(g * k)},${Math.round(b * k)})`;
+};
+
 let measureCtx: CanvasRenderingContext2D | null | undefined;
 const measureTextWidth = (text: string, font: string): number => {
   if (measureCtx === undefined) measureCtx = document.createElement('canvas').getContext('2d');
@@ -52,7 +70,11 @@ export const computeOutsideLabelPadding = (
   if (!showValue) return size === 'lg' ? 68 : 24;
   const preset = SIZE_PRESET[size];
   const font = `700 ${preset.font}px 'HyundaiSans', sans-serif`;
-  const maxW = values.reduce((m, v) => Math.max(m, measureTextWidth(formatOutsideLabel(v, sum, true), font)), 0);
+  // 최소 "000.0억" / "(00.0%)" 폭 — 값이 이보다 짧아도 같은 여백 → 나란히 놓인 도넛끼리 링 크기가 같아짐
+  // (전사평균 237.5억 vs 파트 37.0억처럼 자릿수만 달라도 링 크기가 달라 보였음, 2026-09-29)
+  const widest = (lines: string[]) => Math.max(...lines.map(l => measureTextWidth(l, font)));
+  const minW = widest(['000.0억', '(00.0%)']);
+  const maxW = values.reduce((m, v) => Math.max(m, widest(labelLines(v, sum, true))), minW);
   return Math.ceil(preset.r2 + preset.horiz + maxW) + 12;
 };
 
@@ -63,7 +85,7 @@ interface LabelItem {
   r1: number; r2: number; horiz: number;
   naturalY: number;         // 겹침 보정 전 y (인출선 꺾이는 지점)
   y: number;                // 겹침 보정 후 y (draw 단계에서 갱신)
-  text: string;
+  lines: string[];
   color: string;
 }
 
@@ -116,7 +138,7 @@ export const outsideLabelsPlugin: Plugin<'doughnut'> = {
         x0: el.x, y0: el.y, cos, sin, isRight: cos >= 0,
         r1, r2, horiz: preset.horiz,
         naturalY, y: naturalY,
-        text:  formatOutsideLabel(value, sum, opts.showValue),
+        lines: labelLines(value, sum, opts.showValue),
         color: colors[i] ?? '#1a1a1a',
       });
     });
@@ -128,7 +150,8 @@ export const outsideLabelsPlugin: Plugin<'doughnut'> = {
     ctx.textBaseline = 'middle';
     ctx.lineWidth = 1;
 
-    const minGap = preset.font + 4;
+    const lineH  = preset.font + 2;
+    const minGap = lineH * (opts.showValue ? 2 : 1) + 4;   // 두 줄 라벨은 그만큼 더 띄움
     resolveOverlaps(items.filter(it => it.isRight), minGap);
     resolveOverlaps(items.filter(it => !it.isRight), minGap);
 
@@ -147,7 +170,10 @@ export const outsideLabelsPlugin: Plugin<'doughnut'> = {
       ctx.stroke();
 
       ctx.textAlign = it.isRight ? 'left' : 'right';
-      ctx.fillText(it.text, x3 + (it.isRight ? 4 : -4), it.y);
+      ctx.fillStyle = labelTextColor(it.color);
+      // 여러 줄이면 인출선 끝(it.y)을 가운데로 위아래 배치
+      const y0 = it.y - ((it.lines.length - 1) * lineH) / 2;
+      it.lines.forEach((line, k) => ctx.fillText(line, x3 + (it.isRight ? 4 : -4), y0 + k * lineH));
     }
 
     ctx.restore();

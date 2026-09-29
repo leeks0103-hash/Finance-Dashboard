@@ -155,6 +155,10 @@
 
 /* 표 자체 스타일·정렬은 BreakdownTable 컴포넌트로 이동 */
 
+/* 달성률(관리자 토글 시에만 표시) — 70% 미만 빨강 / 100% 이상 파랑 */
+.rateLoss { color: var(--loss); font-weight: 700; }
+.rateGood { color: var(--profit); font-weight: 700; }
+
 .foot {
   display: flex;
   align-items: center;

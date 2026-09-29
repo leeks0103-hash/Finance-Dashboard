@@ -212,6 +212,8 @@ const KpiPage = () => {
             columns={summaryColumns as never}
             getRowId={row => row.name}
             title="KPI 집계"
+            isLoading={vm.isLoading}
+            isFetching={vm.isFetching}
             hideCount
             compact
             staticColShade="soft"
@@ -268,7 +270,8 @@ const KpiPage = () => {
                 <FilterSelect value={rawStageVal} onChange={setRawStage} options={stageOptions} allLabel="보고단계 전체" />
               </div>
             );
-            return rawView === 'flat' ? (
+            // 목록 ↔ KPI 상세 전환 시 뚝 바뀌지 않게 swapIn(index.css) — key로 뷰 바뀔 때마다 재생
+            return <div key={rawView} className="swapIn">{rawView === 'flat' ? (
               <DataTable<KpiRawRow>
                 data={vm.rawRows}
                 columns={rawColumns as never}
@@ -299,7 +302,7 @@ const KpiPage = () => {
                 toolbarExtra={viewToggle}
                 searchExtra={rawFilters}
               />
-            );
+            )}</div>;
           })()}
       </FadeInSection>
 

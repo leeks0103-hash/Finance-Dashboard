@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { usePresence } from '@/components/ui/useAnimatedClose';
 import { Button } from '../Button';
 import { confirmDialog } from '@/utils/dialog';
 import styles from './DownloadMenu.module.css';
@@ -47,6 +48,7 @@ const confirmAndDownload = async (e: React.MouseEvent<HTMLAnchorElement>, f: Dow
  */
 export const DownloadMenu = ({ items, hrefOf, isLoading = false, buttonLabel = '↓ 엑셀' }: Props) => {
   const [open, setOpen] = useState(false);
+  const drop = usePresence(open);   // 닫힐 때도 퇴장 애니메이션(.closingDrop)
   const ref = useRef<HTMLDivElement>(null);
 
   // 바깥 클릭 / ESC 로 닫기
@@ -70,8 +72,8 @@ export const DownloadMenu = ({ items, hrefOf, isLoading = false, buttonLabel = '
         {buttonLabel}
       </Button>
 
-      {open && (
-        <div className={styles.menu} role="menu">
+      {drop.mounted && (
+        <div className={`${styles.menu} ${drop.closing ? 'closingDrop' : ''}`} role="menu">
           <div className={styles.menuHead}>추출 엑셀 원본</div>
           {items.length === 0 && <div className={styles.empty}>받을 수 있는 파일이 없습니다</div>}
           {items.map(f => (

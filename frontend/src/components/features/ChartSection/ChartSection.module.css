@@ -55,7 +55,8 @@
   to   { opacity: 1; }
 }
 
-@media (max-width: 1200px) {
+/* 태블릿 단계 1280/768 */
+@media (max-width: 1280px) {
   .grid { grid-template-columns: 1fr 1fr; height: auto; }
 }
 @media (max-width: 768px) {

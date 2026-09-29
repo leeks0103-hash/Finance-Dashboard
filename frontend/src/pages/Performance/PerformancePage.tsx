@@ -153,7 +153,6 @@ const PerformancePage = () => {
             info={INFO_PROJECT_TABLE}
             isLoading={vm.isLoading}
             isFetching={vm.isFetching}
-            stickyFirstCol
             getRowVariant={(row) =>
               // 손익 지표는 매출 행에만 있음 — 원가 행은 0이라 그냥 두면 전부 warn으로 칠해짐
               row.category !== '매출' ? ''

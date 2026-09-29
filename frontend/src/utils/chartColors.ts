@@ -11,7 +11,7 @@
  *   rate         — 이익율(%) 등 비율 지표 (Hyundai Blue — profit과 동일 계열)
  *   costDirect   — 원가구성 도넛: 직접원가 (Hyundai Blue — cost/Gold와 분리, 갈색 계열 폐기)
  *   costLabor    — 원가구성 도넛: 인건비 (Active Blue)
- *   costOverhead — 원가구성 도넛: 공통원가 (Sky Blue)
+ *   costOverhead — 원가구성 도넛: 공통원가 (Sky Blue에 검정 30% 섞은 톤 — 원색은 너무 연해서)
  *   costMgmt     — 원가구성 도넛: 관리비 (Hyundai Gold — 파랑 3톤과 구분되는 유일한 브랜드색)
  *   plan         — 계획·목표 등 비교 기준선 계열 (Sand/블루그레이 중립 — 실적 계열과 겹치지 않게)
  *   planRevenue  — "파트별 추정 매출/원가" 확대 모달 전용 매출 계획선 (매출과 같은 파랑 계열, 밝기만 다르게)
@@ -60,7 +60,7 @@ export const getChartTheme = (dark: boolean): ChartTheme => dark ? {
 //
 // 현대자동차 브랜드 9색 기반 (증시 반대 개념 — 플러스=파랑, 마이너스=빨강):
 //   revenue/profit/rate/costDirect = Hyundai Blue · loss = Active Red · cost = Hyundai Gold
-//   costLabor = Active Blue · costOverhead = Sky Blue · costMgmt = Hyundai Gold
+//   costLabor = Active Blue · costOverhead = Sky Blue 어둡게 · costMgmt = Hyundai Gold
 export const getChartPalette = (dark: boolean): ChartPalette => dark ? {
   revenue:      'rgba(77,166,214,1)',   /* Hyundai Blue tint — 다크 가독성 */
   cost:         'rgba(199,148,113,1)',  /* Hyundai Gold tint */
@@ -69,7 +69,7 @@ export const getChartPalette = (dark: boolean): ChartPalette => dark ? {
   rate:         'rgba(77,166,214,1)',   /* Hyundai Blue tint — profit과 동일 */
   costDirect:   'rgba(77,166,214,1)',   /* Hyundai Blue tint — 갈색(Gold) 폐기 */
   costLabor:    'rgba(0,170,210,1)',    /* Active Blue */
-  costOverhead: 'rgba(170,202,230,1)',  /* Sky Blue */
+  costOverhead: 'rgba(119,141,161,1)',  /* Sky Blue에 검정 30% — 원래 Sky Blue는 흰 배경에서 너무 연했음(2026-09-29) */
   costMgmt:     'rgba(199,148,113,1)',  /* Hyundai Gold tint */
   plan:         'rgba(159,179,196,0.55)', /* 블루그레이 중립 — 계획·목표 */
   planRevenue:  'rgba(170,202,230,1)',  /* Sky Blue — revenue tint보다 밝게 */
@@ -82,7 +82,7 @@ export const getChartPalette = (dark: boolean): ChartPalette => dark ? {
   rate:         'rgba(0,44,95,1)',      /* Hyundai Blue — profit과 동일 */
   costDirect:   'rgba(0,44,95,1)',      /* Hyundai Blue — 갈색(Gold) 폐기 */
   costLabor:    'rgba(0,170,210,1)',    /* Active Blue */
-  costOverhead: 'rgba(170,202,230,1)',  /* Sky Blue */
+  costOverhead: 'rgba(119,141,161,1)',  /* Sky Blue에 검정 30% — 원래 Sky Blue는 흰 배경에서 너무 연했음(2026-09-29) */
   costMgmt:     'rgba(163,107,79,1)',   /* Hyundai Gold */
   plan:         'rgba(107,98,87,0.45)',  /* Sand 계열 중립 — 계획·목표 */
   planRevenue:  'rgba(0,170,210,1)',    /* Active Blue — Hyundai Blue 막대 위에서도 보이게 */

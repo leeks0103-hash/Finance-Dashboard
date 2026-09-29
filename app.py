@@ -246,6 +246,16 @@ def _read_code_conflicts():
 
     fin_df = get_df()
     kpi_df = get_kpi_df()
+
+    # 허용: 같은 코드의 "추가" 단계(추가제안·추가중간·추가완료) 보고서 — 기존 프로젝트의 추가분이라 같은 코드를
+    # 쓰는 게 정상(2026-09-29, 해외연구소 펀더멘털/추가개발 사례). 재무 추출은 PPT 안 단계를 읽어 "추가제안"으로
+    # 구분하지만 KPI 추출은 파일명(_제안)으로 단계를 정해 둘이 같은 키가 되며 충돌로 기록됨 → 표시 단계에서 제외
+    if not fin_df.empty and "stage" in fin_df.columns:
+        extra_files = set(
+            fin_df.loc[fin_df["stage"].astype(str).str.startswith("추가"), "filename"].astype(str).str.strip()
+        )
+        grouped = {k: e for k, e in grouped.items() if not any(f in extra_files for f in e["files"])}
+
     kpi_code_col = next((c for c in kpi_df.columns if "프로젝트코드" in str(c)), None) if not kpi_df.empty else None
     kpi_part_col = next((c for c in kpi_df.columns if "파트명" in str(c)), None) if not kpi_df.empty else None
     for entry in grouped.values():

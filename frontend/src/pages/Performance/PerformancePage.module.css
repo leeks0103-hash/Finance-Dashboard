@@ -181,8 +181,6 @@
 .partRow:last-child { border-bottom: none; }
 .partRow:hover { background: var(--bg-subtle); }
 
-.partRowLoss { box-shadow: inset 3px 0 0 var(--loss); }
-
 .partLabel {
   font-size: 0.83rem;
   font-weight: 600;

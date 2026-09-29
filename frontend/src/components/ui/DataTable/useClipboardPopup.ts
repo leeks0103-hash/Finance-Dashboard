@@ -5,6 +5,8 @@ interface PopupState {
   copyable:  boolean;
   /** 제공 시 팝업에 "↗ 바로가기" 버튼 노출 (예: 파일명 → 원본 PPT 열기) */
   onOpen?:   () => void;
+  /** 팝업 제목 — 클릭한 셀의 컬럼 이름(파일명·비고 등). 없으면 CellPopup의 title prop */
+  title?:    string;
 }
 
 /** 셀 내용 팝업 + 클립보드 복사 — DataTable·KpiRawTable 공용 */
@@ -12,8 +14,8 @@ export const useClipboardPopup = () => {
   const [popup,  setPopup]  = useState<PopupState | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const openPopup = useCallback((text: string, copyable = false, onOpen?: () => void) => {
-    setPopup({ text, copyable, onOpen });
+  const openPopup = useCallback((text: string, copyable = false, onOpen?: () => void, title?: string) => {
+    setPopup({ text, copyable, onOpen, title });
     setCopied(false);
   }, []);
 

@@ -72,6 +72,17 @@ def _save_cache(cache: dict) -> None:
         logger.warning("AI 분석 캐시 저장 실패: %s", e)
 
 
+def _store_entry(name: str, entry: dict) -> None:
+    """자기 항목(finance/kpi)만 갱신 — 저장 직전에 파일을 다시 읽어서.
+    예전엔 분석 시작 때 읽은 캐시 dict(H-Chat 호출 30~60초 전 상태)를 통째로 덮어써서, 재무·KPI 분석이
+    겹치면 늦게 끝난 쪽이 먼저 끝난 쪽의 새 결과를 옛 값으로 되돌렸음 → 성공한 분석이 사라져 다음 조회 때
+    또 분석하던 원인(2026-09-29, 파일에 KPI 항목만 09-28 값으로 남아 있던 것으로 확인)."""
+    with _cache_lock:
+        cache = _load_cache()
+        cache[name] = entry
+        _save_cache(cache)
+
+
 def _call_hchat(system_prompt: str, user_message: str, max_tokens: int = 1600) -> str:
     if not H_CHAT_API_KEY:
         raise RuntimeError("H_CHAT_API_KEY가 설정되지 않았습니다 (.env 확인)")
@@ -354,9 +365,7 @@ def get_finance_analysis(force: bool = False) -> dict:
         "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "data_key": data_key,
     }
-    with _cache_lock:
-        cache["finance"] = entry
-        _save_cache(cache)
+    _store_entry("finance", entry)
     return entry
 
 
@@ -560,9 +569,7 @@ def get_kpi_analysis(force: bool = False) -> dict:
         "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "data_key": data_key,
     }
-    with _cache_lock:
-        cache["kpi"] = entry
-        _save_cache(cache)
+    _store_entry("kpi", entry)
     return entry
 
 

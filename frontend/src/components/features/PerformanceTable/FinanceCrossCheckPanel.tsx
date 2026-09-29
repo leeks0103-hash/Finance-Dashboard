@@ -32,8 +32,24 @@ const FinanceCrossCheckPanel = ({ projectCode, onClose }: Props) => {
       el = el.parentElement;
     }
     if (!el) return;
-    const sync = () => { panel.style.transform = `translateX(${el!.scrollLeft}px)`; };
-    sync();
+    // 스크롤 위치를 바로 따라가지 않고 매 프레임 남은 거리의 18%씩 쫓아감 — 표가 먼저 움직이고 패널이
+    // 살짝 끌려오다 제자리에 붙는 느낌(2026-09-29, "고정된 느낌 말고" 요청). 움직임 줄이기 설정이면 즉시
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    let current = el.scrollLeft;
+    let raf = 0;
+    const apply = () => { panel.style.transform = `translateX(${current}px)`; };
+    const step = () => {
+      const target = el!.scrollLeft;
+      current += (target - current) * 0.18;
+      if (Math.abs(target - current) < 0.5) { current = target; raf = 0; apply(); return; }
+      apply();
+      raf = requestAnimationFrame(step);
+    };
+    const sync = () => {
+      if (reduce) { current = el!.scrollLeft; apply(); return; }
+      if (!raf) raf = requestAnimationFrame(step);
+    };
+    apply();
     el.addEventListener('scroll', sync, { passive: true });
     // 패널 폭 = 스크롤 컨테이너의 "보이는" 폭 — 고정 1600px이면 넓은 화면에선 남고 좁은 화면에선
     // 잘렸음(2026-09-28). 펼침 td의 좌측 보더(3px)만큼 뺀다
@@ -41,7 +57,7 @@ const FinanceCrossCheckPanel = ({ projectCode, onClose }: Props) => {
     fit();
     const ro = new ResizeObserver(fit);
     ro.observe(el);
-    return () => { el!.removeEventListener('scroll', sync); ro.disconnect(); };
+    return () => { el!.removeEventListener('scroll', sync); ro.disconnect(); cancelAnimationFrame(raf); };
   }, []);
 
   return (
@@ -78,7 +94,9 @@ const FinanceCrossCheckPanel = ({ projectCode, onClose }: Props) => {
           getRowId={row => String(row._row_num)}
           meta={{ rawValues }}
           defaultPageSize={10}
-          pageSizeOptions={[10, 20]}
+          // 행 수 선택 셀렉트 숨김(2026-09-29 요청) — 옵션이 1개면 DataTable이 셀렉트를 안 그림.
+          // 복구 시 아래 줄로 교체: pageSizeOptions={[10, 20]}
+          pageSizeOptions={[10]}
           emptyIcon="📂"
           emptyTitle="재무 데이터 없음"
           emptyDescription="PPT에서 추출된 재무 이력이 없습니다"

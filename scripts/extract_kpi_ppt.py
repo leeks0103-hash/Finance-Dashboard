@@ -79,7 +79,8 @@ KPI_METRIC_NAMES = [
 ]
 
 PART_KEYWORDS = ["신사업", "PM", "전차", "미모", "AI", "SW", "K뉴딜TF"]
-REPORT_STAGE_KEYWORDS = ["사전검토", "사업계획", "제안", "착수", "중간", "완료", "검토"]
+# 파일명 대체용 키워드 — "추가제안"이 "제안"에 먼저 걸리지 않게 추가 단계를 앞에(2026-09-29)
+REPORT_STAGE_KEYWORDS = ["추가제안", "추가중간", "추가완료", "사전검토", "사업계획", "제안", "착수", "중간", "완료", "검토"]
 
 # 폴더명 → 파트명 매핑 (파일명에 키워드 없는 경우 상위 폴더명으로 판단)
 FOLDER_PART_MAP = {
@@ -239,11 +240,85 @@ def extract_part_name(file_path) -> str:
 
 
 def extract_report_stage(file_name: str) -> str:
+    """파일명 기준 보고단계 — PPT 재무 표에서 단계를 못 찾았을 때만 쓰는 대체값(pick_stage_from_ppt 참고)."""
     clean_name = sanitize_excel_string(file_name)
     for keyword in REPORT_STAGE_KEYWORDS:
         if keyword in clean_name:
             return keyword
     return "-"
+
+
+# 보고단계 순서(하드코딩) — 대시보드 finance.py _STAGE_PRIORITY / 프론트 stageOrder.ts와 같아야 함
+STAGE_ORDER = ["검토", "사업계획", "사전검토", "제안", "착수", "중간", "완료", "추가제안", "추가중간", "추가완료"]
+_STAGE_RANK = {s: i for i, s in enumerate(STAGE_ORDER)}
+
+
+def _pick_latest_stage(values) -> Optional[str]:
+    """재무 표 '구분' 칸 값들 중 가장 진행된 단계(STAGE_ORDER 기준). 아는 단계가 없으면 None."""
+    found = [normalize_text(v) for v in values]
+    found = [v for v in found if v in _STAGE_RANK]
+    return max(found, key=_STAGE_RANK.get) if found else None
+
+
+def _finance_stage_col(headers: List[str]) -> int:
+    """재무 표(헤더에 '구분'·'매출')면 '구분' 칸 0-based 인덱스, 아니면 -1."""
+    joined = " ".join(headers)
+    if "구분" not in joined or "매출" not in joined:
+        return -1
+    return next((i for i, h in enumerate(headers) if "구분" in h), 1)
+
+
+def pick_stage_from_pptx(prs) -> Optional[str]:
+    """python-pptx Presentation — 모든 슬라이드의 재무 표 '구분' 값으로 이 파일의 보고단계를 정함."""
+    values = []
+    for slide in prs.slides:
+        for shape in slide.shapes:
+            try:
+                if not shape.has_table:
+                    continue
+                t = shape.table
+                headers = [normalize_text(t.cell(0, c).text) for c in range(len(t.columns))]
+                col = _finance_stage_col(headers)
+                if col < 0:
+                    continue
+                values += [t.cell(r, col).text for r in range(1, len(t.rows))]
+            except Exception:
+                continue
+    return _pick_latest_stage(values)
+
+
+def pick_stage_from_com(prs_com) -> Optional[str]:
+    """COM Presentation(AIP 암호화 등) — pick_stage_from_pptx와 같은 규칙."""
+    values = []
+    for s_idx in range(1, prs_com.Slides.Count + 1):
+        slide = prs_com.Slides(s_idx)
+        for i in range(1, slide.Shapes.Count + 1):
+            try:
+                shp = slide.Shapes(i)
+                if not shp.HasTable:
+                    continue
+                t = shp.Table
+                headers = [_com_cell_text(t, 1, c) for c in range(1, t.Columns.Count + 1)]
+                col = _finance_stage_col(headers)
+                if col < 0:
+                    continue
+                values += [_com_cell_text(t, r, col + 1) for r in range(2, t.Rows.Count + 1)]
+            except Exception:
+                continue
+    return _pick_latest_stage(values)
+
+
+def apply_ppt_stage(file_meta: Dict[str, str], ppt_stage: Optional[str]) -> None:
+    """보고단계를 파일명이 아니라 PPT 안(재무 표 '구분'의 가장 진행된 단계)으로 정함 — 재무 추출과 같은 기준.
+    파일명만 보면 "_제안.pptx"인 추가제안 보고서가 기존 프로젝트 제안과 같은 (코드/연도/단계) 키가 돼서
+    서로 덮어썼음(2026-09-29, 해외연구소 추가개발 KPI 행 유실). 재무 표가 없으면 파일명 기준 유지."""
+    name_stage = file_meta["보고단계"]
+    if not ppt_stage:
+        logger.info(f"재무 표 '구분' 없음 → 파일명 기준 보고단계 유지: {name_stage} / {file_meta['파일명']}")
+        return
+    if ppt_stage != name_stage:
+        logger.warning(f"[단계 불일치] 파일명={name_stage} / PPT 재무표={ppt_stage} → PPT 기준 사용: {file_meta['파일명']}")
+    file_meta["보고단계"] = sanitize_excel_string(ppt_stage)
 
 
 def is_temp_file(file_path: Path) -> bool:
@@ -969,6 +1044,7 @@ def extract_records_from_ppt_via_com(ppt_path: Path, file_meta: Dict[str, str]) 
 
         prs_com = ppt_app.Presentations.Open(str(ppt_path.resolve()), True, False, False)
         logger.info(f"COM 직접 읽기: {ppt_path.name} (슬라이드 수: {prs_com.Slides.Count})")
+        apply_ppt_stage(file_meta, pick_stage_from_com(prs_com))
 
         extracted = []
         for s_idx in range(1, prs_com.Slides.Count + 1):
@@ -1091,6 +1167,7 @@ def extract_records_from_ppt(ppt_path: Path, file_meta: Dict[str, str]) -> List[
 
         extracted = []
         logger.info(f"PowerPoint 열기: {ppt_path.name} (슬라이드 수: {len(prs.slides)})")
+        apply_ppt_stage(file_meta, pick_stage_from_pptx(prs))
 
         for slide_idx, slide in enumerate(prs.slides, start=1):
             title_text = get_slide_title(slide)

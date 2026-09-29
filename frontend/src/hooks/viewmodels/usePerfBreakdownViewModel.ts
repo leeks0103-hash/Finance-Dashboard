@@ -2,6 +2,8 @@ import { useQuery } from '@tanstack/react-query';
 import { getPerfBreakdown } from '@/api/performance.api';
 import type { PerfBreakdownChart, PerfBreakdownRow, PerfCalcTerm, PerfBreakdownCompare } from '@/api/performance.api';
 import { usePerfStore } from '@/store/perf.store';
+import { useUiStore } from '@/store';
+import { getStoredExtractKey } from '@/api/extract.api';
 import { STALE_5MIN, GC_10MIN } from '@/hooks/queryClient';
 
 export interface PerfBreakdownTarget {
@@ -45,6 +47,8 @@ export interface PerfBreakdownViewModel {
   /** 계획vs실적 계열이 있는 차트(planVsActual·partAchievement)에서만 존재 —
    *  있으면 모달이 단일 값 목록 대신 이걸로 계획/실적/달성률 비교표를 그린다 */
   compare?:    PerfBreakdownCompare;
+  /** 달성률(행별·합계·CSV) 노출 여부 — 관리자 토글 ON + 관리자 인증 상태일 때만 */
+  showRate:    boolean;
 }
 
 export const fmtPerfBreakdown = (v: number): string =>
@@ -71,6 +75,9 @@ export const usePerfBreakdownViewModel = (
     gcTime:    GC_10MIN,
   });
 
+  // 토글이 켜져 있어도 관리자 키가 없으면(로그아웃 등) 숨김 — 일반 사용자는 켤 방법 자체가 없음
+  const showRate = useUiStore(s => s.showAchieveRate) && !!getStoredExtractKey();
+
   const rows  = data?.rows ?? [];
   const total = data?.total ?? 0;
 
@@ -90,5 +97,6 @@ export const usePerfBreakdownViewModel = (
     totalStr:    fmt(total),
     unit:        data?.unit ?? '억',
     compare:     data?.compare,
+    showRate,
   };
 };

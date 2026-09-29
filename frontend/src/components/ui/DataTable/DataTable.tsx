@@ -1,4 +1,5 @@
 import { useState, useRef, useMemo, useCallback, useEffect, Fragment, type CSSProperties, type ReactNode, type PointerEvent as ReactPointerEvent } from 'react';
+import { usePresence } from '@/components/ui/useAnimatedClose';
 import {
   useReactTable,
   getCoreRowModel, getSortedRowModel,
@@ -41,14 +42,13 @@ interface DraggableThProps<T> {
   header:        Header<T, unknown>;
   isDraggable:   boolean;
   isHighlighted: boolean;
-  isFirst:       boolean;
   onHeaderClick: (columnId: string) => void;
   /** compact 표 전용(시범) — 리사이즈 시 테이블 총 폭을 고정하고 바로 옆 컬럼에서 폭을 빌려옴.
    *  기본 리사이즈(옆 컬럼은 안 건드리고 테이블만 넓어짐)는 미수주 프로젝트·KPI 집계처럼
    *  가로스크롤이 없어야 하는 표에서 "한 컬럼 넓히면 뒤 컬럼이 화면 밖으로 밀려남" 문제가 있었음 */
   fixedTotalWidth?: boolean;
 }
-function DraggableTh<T>({ header, isDraggable, isHighlighted, isFirst, onHeaderClick, fixedTotalWidth }: DraggableThProps<T>) {
+function DraggableTh<T>({ header, isDraggable, isHighlighted, onHeaderClick, fixedTotalWidth }: DraggableThProps<T>) {
   const toggleSort = header.column.getToggleSortingHandler();
   const [selfResizing, setSelfResizing] = useState(false);
 
@@ -95,7 +95,6 @@ function DraggableTh<T>({ header, isDraggable, isHighlighted, isFirst, onHeaderC
       isHighlighted={isHighlighted}
       highlightedClassName={styles.thHighlighted}
       className={[
-        isFirst ? styles.firstCol : '',
         header.column.getCanSort() ? styles.sortable : '',
         header.column.id === '__index' ? styles.indexCell : '',
         header.column.columnDef.meta?.staticCol ? styles.staticCol : '',
@@ -220,7 +219,6 @@ interface Props<T> {
   scrollable?:        boolean;
   searchable?:        boolean;
   searchPlaceholder?: string;
-  stickyFirstCol?:    boolean;
   compact?:           boolean;
   hideToolbar?:       boolean;
   /** 건수 배지 숨김 — 고정 행 수 등 "건수"가 의미 없는 테이블용 */
@@ -277,6 +275,8 @@ interface Props<T> {
 }
 
 const DEFAULT_PAGE_SIZES = [10, 20, 30, 50, 100];
+/** NO. 칸 고정 폭 */
+const INDEX_COL_W = 52;
 // 검색·필터로 행이 줄어도 최소 이 정도 높이는 유지 — 결과 1건일 때도 빈 상태처럼 휑해 보이지 않게
 const MIN_TABLE_ROWS = 5;
 
@@ -296,7 +296,6 @@ const DataTable = <T extends object>({
   scrollable        = true,
   searchable        = false,
   searchPlaceholder = '검색… (Esc: 초기화)',
-  stickyFirstCol    = false,
   compact           = false,
   hideToolbar       = false,
   hideCount         = false,
@@ -358,7 +357,7 @@ const DataTable = <T extends object>({
     header: 'NO.',
     enableSorting: false,
     enableResizing: false,
-    size: 52,
+    size: INDEX_COL_W,
     cell: ({ row, table: t }) => {
       // row.index는 원본 data 배열 기준 고정값이라 정렬 후에는 화면 위치와 어긋남 —
       // 반드시 현재 렌더링(정렬 반영)된 rows에서의 위치를 id로 다시 찾아야 함
@@ -374,11 +373,15 @@ const DataTable = <T extends object>({
       const idx = posInPage >= 0 ? posInPage : row.index;
 
       // 병합 모드: 행이 아니라 "묶음" 단위로 번호를 매긴다 (매출/원가 2행 = 한 프로젝트 = 1번)
-      // 페이지 내 순번이라 페이지를 넘기면 다시 1부터 시작한다.
+      // 예전엔 현재 페이지 안에서만 세서 페이지를 넘기면 다시 1부터 시작했음(일반 표는 페이지를 넘어
+      // 이어지는데 이것만 달랐음, 2026-09-29) → 페이지 나누기 전 전체 행 기준으로 세서 이어지게.
+      // 서버 페이지네이션은 앞 페이지 행을 모르므로 기존처럼 페이지 안에서만
       if (mergeRowsByKey) {
+        const all = isServerMode ? pageRows : t.getPrePaginationRowModel().rows;
+        const pos = all.findIndex(r => r.id === row.id);
         let ordinal = 0;
-        for (let i = 1; i <= idx && i < pageRows.length; i++) {
-          if (mergeRowsByKey(pageRows[i].original) !== mergeRowsByKey(pageRows[i - 1].original)) ordinal++;
+        for (let i = 1; i <= pos; i++) {
+          if (mergeRowsByKey(all[i].original) !== mergeRowsByKey(all[i - 1].original)) ordinal++;
         }
         return ordinal + 1;
       }
@@ -425,6 +428,8 @@ const DataTable = <T extends object>({
     } catch { return initialColumnVisibility; }
   });
   const [showColMenu,      setShowColMenu]      = useState(false);
+  const [hoverGroupId,     setHoverGroupId]     = useState<string | null>(null);
+  const colMenuDrop = usePresence(showColMenu);   // 닫힐 때도 퇴장 애니메이션(.closingDrop)
   const colMenuRef = useRef<HTMLDivElement>(null);
 
   // expandableRow — 더블클릭한 행 바로 아래에 콘텐츠 펼치기, 한 번에 하나만
@@ -466,6 +471,12 @@ const DataTable = <T extends object>({
 
   const searchQuery = isServerMode ? (serverSearch?.value ?? '') : globalFilter;
 
+  // NO. 칸 폭은 항상 INDEX_COL_W — 예전 compact 비례 맞춤이 저장해둔 __index 폭(80~90px로 늘어난 값)은 무시
+  const colSizingNoIndex = useMemo(
+    () => Object.fromEntries(Object.entries(colSizing).filter(([k]) => k !== '__index')),
+    [colSizing],
+  );
+
   const table = useReactTable({
     data,
     columns: columnsWithIndex,
@@ -474,7 +485,7 @@ const DataTable = <T extends object>({
       sorting,
       globalFilter: isServerMode ? undefined : globalFilter,
       columnVisibility,
-      columnSizing: colSizing,
+      columnSizing: colSizingNoIndex,
       ...(storageKey && colOrder.length ? { columnOrder: colOrder } : {}),
     },
     onSortingChange: (updater) => {
@@ -537,16 +548,18 @@ const DataTable = <T extends object>({
     const total = table.getTotalSize();
     if (!wrapW || total === wrapW) return;
     compactFitRef.current = true;
-    const scale = wrapW / total;
+    // NO. 칸은 비례 맞춤에서 제외 — 같이 늘리면 번호 칸만 쓸데없이 넓어졌음(2026-09-29)
+    const idxW  = table.getColumn('__index')?.getIsVisible() ? INDEX_COL_W : 0;
+    const scale = (wrapW - idxW) / (total - idxW);
     const next: Record<string, number> = {};
-    const cols = table.getVisibleLeafColumns();
+    const cols = table.getVisibleLeafColumns().filter(col => col.id !== '__index');
     cols.forEach(col => {
       next[col.id] = Math.round(col.getSize() * scale);
     });
     // 컬럼마다 개별 반올림하면 오차가 쌓여 합계가 wrapW보다 몇 px 넘치거나 모자랄 수 있음
     // ("테이블이 꽉 안 찬다"/살짝 넘치는 원인) — 가장 넓은 컬럼에서 그 차이만큼 보정해서
     // 합계가 컨테이너 폭과 정확히 같아지게 함
-    const drift = wrapW - cols.reduce((sum, col) => sum + next[col.id], 0);
+    const drift = wrapW - idxW - cols.reduce((sum, col) => sum + next[col.id], 0);
     if (drift !== 0 && cols.length > 0) {
       const widest = cols.reduce((a, b) => (next[a.id] >= next[b.id] ? a : b));
       next[widest.id] += drift;
@@ -580,9 +593,6 @@ const DataTable = <T extends object>({
   }, [data]);
 
   const rows     = table.getRowModel().rows;
-  // 병합(rowSpan) 시 뒤 행은 셀을 건너뛰어 :first-child 가 엉뚱한 컬럼에 걸림 →
-  // 실제 첫 번째 보이는 컬럼 id 로 클래스를 붙여서 정렬/sticky 를 고정한다
-  const firstColId = table.getVisibleLeafColumns()[0]?.id;
 
   // mergeRowsByKey 지정 시 연속된 같은 키 행끼리 묶는다 (미지정이면 1행 = 1그룹 → 기존 동작 그대로)
   const rowGroups = useMemo(() => {
@@ -688,8 +698,8 @@ const DataTable = <T extends object>({
                 <Button variant="ghost" size="sm" onClick={() => setShowColMenu(v => !v)}>
                   컬럼 ▾
                 </Button>
-                {showColMenu && (
-                  <div className={`${styles.colMenu}${hideableColumns.length > 12 ? ` ${styles.colMenuGrid}` : ''}`}>
+                {colMenuDrop.mounted && (
+                  <div className={`${styles.colMenu}${hideableColumns.length > 12 ? ` ${styles.colMenuGrid}` : ''}${colMenuDrop.closing ? ' closingDrop' : ''}`}>
                     {hideableColumns.map(({ id, label }) => {
                       const col = table.getColumn(id);
                       return col ? (
@@ -763,7 +773,6 @@ const DataTable = <T extends object>({
             className={[
               styles.table,
               storageKey ? styles.tableFixed : '',
-              stickyFirstCol ? styles.stickyFirst : '',
               staticColShade === 'soft' ? styles.staticColSoft : '',
               !scrollable ? styles.tableNoMinWidth : '',
             ].filter(Boolean).join(' ')}
@@ -787,7 +796,6 @@ const DataTable = <T extends object>({
                           key={h.id}
                           header={h}
                           isDraggable={!!storageKey && h.id !== '__index'}
-                          isFirst={h.column.id === firstColId}
                           isHighlighted={highlightedCol === h.column.id}
                           onHeaderClick={setHighlight}
                           fixedTotalWidth={compact}
@@ -829,8 +837,20 @@ const DataTable = <T extends object>({
                     const expandKey = expandableRow?.getKey(row.original);
                     // 병합 묶음은 하이라이트도 묶음 전체에 — 2번째 행만 안 칠해지는 문제 방지
                     const isExpanded = !!expandedInGroup;
+                    // 묶음 호버 — 한 행에 올려도 묶음 전체(병합 셀 포함)를 칠함. 병합 셀은 rowSpan이라
+                    // 행 단위 :hover로는 안 칠해졌음(NO.·프로젝트코드 호버 없음, 2026-09-29)
+                    const isGroup = group.length > 1;
                     return (
-                      <tr key={row.id} className={[variant ? styles[variant] : '', isExpanded ? styles.rowExpanded : ''].join(' ') || undefined}>
+                      <tr
+                        key={row.id}
+                        className={[
+                          variant ? styles[variant] : '',
+                          isExpanded ? styles.rowExpanded : '',
+                          isGroup && hoverGroupId === group[0].id ? styles.groupHover : '',
+                        ].join(' ').trim() || undefined}
+                        onMouseEnter={isGroup ? () => setHoverGroupId(group[0].id) : undefined}
+                        onMouseLeave={isGroup ? () => setHoverGroupId(null) : undefined}
+                      >
                         {row.getVisibleCells().map(cell => {
                           const isMerged = mergedCols.has(cell.column.id);
                           if (isMerged && i > 0) return null;   // 병합된 컬럼은 첫 행에서만 렌더
@@ -848,7 +868,10 @@ const DataTable = <T extends object>({
                               title={cellTitle}
                               onClick={isLong ? () => {
                                 const onOpenFile = cell.column.columnDef.meta?.onOpenFile;
-                                openPopup(text, true, onOpenFile ? () => onOpenFile(text) : undefined);
+                                // 팝업 제목 = 클릭한 컬럼 이름(파일명·비고…) — 예전엔 전부 "셀 내용"
+                                const header = cell.column.columnDef.header;
+                                openPopup(text, true, onOpenFile ? () => onOpenFile(text) : undefined,
+                                  typeof header === 'string' ? header : cell.column.id);
                               } : undefined}
                               onDoubleClick={
                                 canExpand
@@ -858,7 +881,6 @@ const DataTable = <T extends object>({
                                     : undefined
                               }
                               className={[
-                                cell.column.id === firstColId ? styles.firstCol : '',
                                 isMerged ? styles.spanCell : '',
                                 isLong ? styles.clickable : '',
                                 (canExpand || searchOnDblClick?.includes(cell.column.id)) ? styles.dblClickable : '',
@@ -925,7 +947,7 @@ const DataTable = <T extends object>({
         />
       )}
 
-      <CellPopup title="셀 내용" popup={popup} copied={popupCopied} onClose={closePopup} onCopy={copyPopupText} />
+      <CellPopup title="내용" popup={popup} copied={popupCopied} onClose={closePopup} onCopy={copyPopupText} />
 
     </div>
   );
