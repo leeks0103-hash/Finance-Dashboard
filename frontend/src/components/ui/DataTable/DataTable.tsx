@@ -203,6 +203,26 @@ export interface ExpandableRow<T> {
   renderContent:   (row: T, close: () => void) => ReactNode;
 }
 
+export type EmptyIconKind = 'search' | 'list';
+
+/** 빈 상태 아이콘 — 글자색(muted)을 따라가는 얇은 선. 이모지는 OS마다 모양·색이 달라 튀어 보였음 */
+const EmptyIcon = ({ kind }: { kind: EmptyIconKind }) => (
+  <svg className={styles.emptyIcon} viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"
+    fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    {kind === 'search' ? (
+      <>
+        <circle cx="10.5" cy="10.5" r="6" />
+        <path d="M15 15l5 5" />
+      </>
+    ) : (
+      <>
+        <rect x="4" y="4" width="16" height="16" rx="2.5" />
+        <path d="M8 9h8M8 12.5h8M8 16h5" />
+      </>
+    )}
+  </svg>
+);
+
 interface Props<T> {
   data:               T[];
   columns:            ColumnDef<T, unknown>[];
@@ -228,7 +248,9 @@ interface Props<T> {
   hideToolbar?:       boolean;
   /** 건수 배지 숨김 — 고정 행 수 등 "건수"가 의미 없는 테이블용 */
   hideCount?:         boolean;
-  emptyIcon?:         string;
+  /** 빈 상태 아이콘 — 검색 결과 없음이면 'search', 원래 비어 있는 목록이면 'list'.
+   *  이모지(🔍📋📂)는 AI 냄새 난다는 피드백으로 얇은 선 아이콘으로 교체(2026-09-30) */
+  emptyIcon?:         EmptyIconKind;
   emptyTitle?:        string;
   emptyDescription?:  string;
   searchDebounceMs?:  number;
@@ -247,6 +269,12 @@ interface Props<T> {
    * 안 올리면 이미 저장된 localStorage 폭이 이겨서 새 기본값이 화면에 반영되지 않음.
    */
   sizeVersion?: string | number;
+  /**
+   * false면 컬럼 폭만 저장·복원하지 않음(순서·숨김은 storageKey대로 저장) — 들어올 때마다 컬럼 정의의
+   * 기본 폭으로 보이고, 드래그·더블클릭 맞춤으로 바꾼 폭은 그 화면에서만 유지됨.
+   * 더블클릭 맞춤 결과가 저장돼 다음 방문에도 정한 폭이 안 돌아오던 KPI 취합 목록용(2026-09-30)
+   */
+  persistColumnSizes?: boolean;
   /**
    * initialColumnVisibility에 컬럼을 추가/제거했을 때 올리는 값 — 저장된 표시/숨김 상태만
    * 무효화한다. 안 올리면 예전에 저장된 localStorage 값(당시엔 없던 컬럼이라 기본 숨김으로
@@ -306,7 +334,7 @@ const DataTable = <T extends object>({
   compact           = false,
   hideToolbar       = false,
   hideCount         = false,
-  emptyIcon         = '🔍',
+  emptyIcon         = 'search',
   emptyTitle        = '데이터가 없습니다.',
   emptyDescription  = '다른 검색어나 필터 조건을 시도해보세요.',
   searchDebounceMs  = 300,
@@ -316,6 +344,7 @@ const DataTable = <T extends object>({
   initialColumnVisibility = {},
   storageKey,
   sizeVersion,
+  persistColumnSizes = true,
   visibilityVersion,
   toolbarExtra,
   searchExtra,
@@ -335,7 +364,8 @@ const DataTable = <T extends object>({
 
   // ── 컬럼 순서 (DnD + localStorage) ────────────────────────────
   const lsKey      = storageKey ? `dnd-cols-${storageKey}`   : null;
-  const lsSizeKey  = storageKey ? `col-sizes-${storageKey}${sizeVersion ? `-v${sizeVersion}` : ''}` : null;
+  const lsSizeKey  = storageKey && persistColumnSizes
+    ? `col-sizes-${storageKey}${sizeVersion ? `-v${sizeVersion}` : ''}` : null;
   const lsVisKey   = storageKey ? `col-visibility-${storageKey}${visibilityVersion ? `-v${visibilityVersion}` : ''}` : null;
 
   const [colOrder, setColOrder] = useState<string[]>(() => {
@@ -788,7 +818,7 @@ const DataTable = <T extends object>({
       ) : rows.length === 0 ? (
         /* 결과 없음 — 테이블 자체를 그리지 않아 불필요한 가로 스크롤 방지 */
         <div className={styles.emptyInner}>
-          <span className={styles.emptyIcon}>{emptyIcon}</span>
+          <EmptyIcon kind={emptyIcon} />
           <strong>{emptyTitle}</strong>
           <span>{emptyDescription}</span>
         </div>

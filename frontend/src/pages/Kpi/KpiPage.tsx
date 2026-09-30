@@ -10,7 +10,7 @@ import { useSwapView } from '@/components/ui/useAnimatedClose';
 import KpiRawTable from '@/components/features/KpiRawTable/KpiRawTable';
 import KpiBreakdownModal from '@/components/features/KpiBreakdownModal/KpiBreakdownModal';
 import KpiExcludeIndicator from '@/components/features/KpiExcludeIndicator/KpiExcludeIndicator';
-import { kpiColLabel } from '@/utils/kpiColumns';
+import { kpiColLabel, kpiRawColSize } from '@/utils/kpiColumns';
 import type { KpiRawRow } from '@/types/kpi.types';
 import type { KpiSummaryRow } from '@/hooks/viewmodels/useKpiPageViewModel';
 import styles from './KpiPage.module.css';
@@ -104,6 +104,7 @@ const KpiPage = () => {
     () => vm.rawCols.map(col =>
       rh.accessor(col as keyof KpiRawRow, {
         header: kpiColLabel(col),
+        size: kpiRawColSize(col),
         cell: i => {
           const v = i.getValue();
           if (v === null || v === undefined || v === 0 || v === '') return '-';
@@ -287,10 +288,12 @@ const KpiPage = () => {
                 searchPlaceholder="프로젝트코드·파트명 검색…"
                 hideableColumns={rawHideableCols}
                 initialColumnVisibility={rawInitialHidden}
-                emptyIcon="🔍"
+                emptyIcon="search"
                 emptyTitle="검색 결과 없음"
                 emptyDescription="다른 검색어나 필터 조건을 시도해보세요."
                 storageKey="kpi-raw-flat"
+                // 폭은 저장 안 함 — 매번 정해둔 기본 폭으로, 바꾸고 싶으면 그 자리에서만(2026-09-30 요청)
+                persistColumnSizes={false}
                 toolbarExtra={viewToggle}
                 searchExtra={rawFilters}
                 bodyClassName={swapClass}

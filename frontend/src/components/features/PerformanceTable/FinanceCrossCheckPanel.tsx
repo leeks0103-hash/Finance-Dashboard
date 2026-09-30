@@ -100,7 +100,7 @@ const FinanceCrossCheckPanel = ({ projectCode, onClose }: Props) => {
           // 행 수 선택 셀렉트 숨김(2026-09-29 요청) — 옵션이 1개면 DataTable이 셀렉트를 안 그림.
           // 복구 시 아래 줄로 교체: pageSizeOptions={[10, 20]}
           pageSizeOptions={[10]}
-          emptyIcon="📂"
+          emptyIcon="list"
           emptyTitle="재무 데이터 없음"
           emptyDescription="PPT에서 추출된 재무 이력이 없습니다"
           storageKey="perf-finance-cross-check"

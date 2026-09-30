@@ -1,8 +1,34 @@
+/* 2depth 재무 검색 결과 — 위에서 아래로 펼쳐지고(0fr → 1fr) 검색어를 지우면 다시 접힘.
+   예전엔 결과가 생기면 그 자리에 바로 나타나고, 지우면 한 프레임에 사라져 아래 내용이 확 튀었음(2026-09-30).
+   margin-top은 부모 .main의 gap(24px)까지 같이 접어 마지막에 24px 점프가 안 생기게 */
 .wrap {
-  animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+  display: grid;
+  grid-template-rows: 1fr;
+  grid-template-columns: minmax(0, 1fr);
+  animation: expand 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.inner {
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+.settled .inner { overflow: visible; }
+
+@keyframes expand {
+  from { grid-template-rows: 0fr; opacity: 0; margin-top: -24px; }
+  to   { grid-template-rows: 1fr; opacity: 1; margin-top: 0; }
 }
 
-@keyframes slideIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to   { opacity: 1; transform: translateY(0); }
+.closing {
+  animation: collapse 0.24s cubic-bezier(0.4, 0, 1, 1) forwards;
+  pointer-events: none;
+}
+@keyframes collapse {
+  from { grid-template-rows: 1fr; opacity: 1; margin-top: 0; }
+  to   { grid-template-rows: 0fr; opacity: 0; margin-top: -24px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wrap, .closing { animation: none; }
+  .inner { overflow: visible; }
 }

@@ -36,7 +36,7 @@ const ProjectTable = ({ toolbarExtra }: Props) => {
       getRowVariant={vm.getRowVariant}
       serverPagination={vm.serverPagination}
       serverSearch={vm.serverSearch}
-      emptyIcon="🔍"
+      emptyIcon="search"
       emptyTitle="검색 결과 없음"
       emptyDescription="다른 검색어나 필터 조건을 시도해보세요."
       initialColumnVisibility={{ filename: true }}

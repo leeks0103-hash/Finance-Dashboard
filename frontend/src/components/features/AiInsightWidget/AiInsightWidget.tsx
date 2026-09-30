@@ -7,6 +7,15 @@ import { useEscToClose } from '@/components/ui/useEscToClose';
 import { useUiStore } from '@/store';
 import styles from './AiInsightWidget.module.css';
 
+/** AI 버튼 앞 반짝임 — 큰 4각 별 + 작은 별 2개. 선 대신 면으로 채워 작은 크기에서도 또렷하게 */
+const SparkleIcon = () => (
+  <svg className={styles.triggerIcon} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+    <path d="M10 3.5c.4 3.9 2.6 6.1 6.5 6.5-3.9.4-6.1 2.6-6.5 6.5-.4-3.9-2.6-6.1-6.5-6.5 3.9-.4 6.1-2.6 6.5-6.5Z" />
+    <path d="M18 2.5c.2 1.6 1 2.4 2.5 2.5-1.5.2-2.3 1-2.5 2.5-.2-1.5-1-2.3-2.5-2.5 1.5-.1 2.3-.9 2.5-2.5Z" opacity=".9" />
+    <path d="M17.5 15c.2 1.9 1.2 2.9 3 3-1.8.2-2.8 1.2-3 3-.2-1.8-1.2-2.8-3-3 1.8-.1 2.8-1.1 3-3Z" opacity=".75" />
+  </svg>
+);
+
 const TAB_LABEL: Record<AiTab, string> = {
   finance: '경영실적 인사이트',
   kpi:     'KPI 현황 인사이트',
@@ -114,10 +123,18 @@ const AiInsightWidget = ({ aiTab }: Props) => {
         size="sm"
         onClick={handleClick}
         disabled={buttonLoading}
-        title="AI 분석 보기"
-        className={styles.triggerBtn}
+        aria-busy={buttonLoading}
+        title={buttonLoading ? 'AI 분석 중입니다' : 'AI 분석 보기'}
+        className={`${styles.triggerBtn} ${buttonLoading ? styles.triggerBusy : ''}`}
       >
-        {buttonLoading ? `${TAB_LABEL[aiTab]} 분석중…` : TAB_LABEL[aiTab]}
+        {/* 라벨 두 개를 같은 칸에 겹쳐 두고 보이는 것만 바꿈 — 예전엔 "… 분석중…"으로 글자가 길어져
+            버튼이 늘어났다가(캐시로 금방 끝나면) 곧바로 줄어드는 게 튀어 보였음(2026-09-30). 폭은 항상 원래 라벨 */}
+        <span className={styles.triggerLabels}>
+          <span className={styles.triggerIdle} aria-hidden={buttonLoading}><SparkleIcon />{TAB_LABEL[aiTab]}</span>
+          <span className={styles.triggerLoading} aria-hidden={!buttonLoading}>
+            <span className={styles.triggerSpinner} />분석중…
+          </span>
+        </span>
       </Button>
 
       {open && createPortal(

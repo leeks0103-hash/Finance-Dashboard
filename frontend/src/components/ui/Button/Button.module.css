@@ -32,7 +32,7 @@
 }
 
 .danger {
-  background: var(--danger);
+  background: var(--btn-danger-bg);
   color: #fff;
   box-shadow: 0 1px 4px rgba(230, 51, 18, 0.22);
 }
@@ -41,7 +41,7 @@
 }
 
 .success {
-  background: var(--info);
+  background: var(--btn-success-bg);
   color: #fff;
   box-shadow: 0 1px 4px rgba(0, 170, 210, 0.22);
 }

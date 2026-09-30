@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { usePerformanceSummary } from '@/hooks/usePerformanceSummary';
 import { usePerformanceData, usePerformanceOptions } from '@/hooks/usePerformanceData';
 import { useDebouncedSearch } from '@/hooks/useDebouncedSearch';
@@ -144,6 +144,8 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
       field: '',
     }).then(r => r.data),
     enabled:   financeSearchEnabled,
+    // 검색어가 바뀔 때마다 data가 undefined로 비면 2depth 섹션이 사라졌다 다시 생기며 번쩍임 — 이전 결과 유지
+    placeholderData: keepPreviousData,
     staleTime: STALE_5MIN,
     gcTime:    GC_10MIN,
   });

@@ -73,7 +73,7 @@ const PerformanceInsightSection = () => {
       sizeVersion={5}
       defaultPageSize={20}
       pageSizeOptions={[20]}
-      emptyIcon="📋"
+      emptyIcon="list"
       emptyTitle="미수주 프로젝트 없음"
       emptyDescription="재무 PPT에만 있는 미수주 프로젝트가 없습니다."
       expandableRow={{

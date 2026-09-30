@@ -1,0 +1,135 @@
+/* ⚙ > 관리자용 기능 모달 — 예전 드롭다운(Navbar.module.css .subGroup 등)에 있던 스타일을 옮겨와
+   모달 폭(560px)에 맞게 여유를 준 것 */
+
+.auth {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 0 4px;
+}
+
+.groups {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 달성률 · 파일 바로가기 — 짧은 설정 두 개는 한 줄에 */
+.twoCol {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rowText {
+  font-size: 0.8rem;
+  color: var(--text-sub);
+  flex: 1;
+}
+
+/* 대상/방식 — 왼쪽 작은 라벨 + 오른쪽 세그먼트 */
+.field {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  align-items: center;
+  gap: 8px;
+}
+.fieldLabel {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+/* 세그먼트 토글 — KpiPage.module.css의 .viewToggle과 같은 사이트 공통 패턴 */
+.segment {
+  display: flex;
+  gap: 3px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 3px;
+}
+.segment .segBtn {
+  flex: 1 1 0;
+  justify-content: center;
+  text-align: center;
+  padding: 4px 10px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.segment .segBtn:hover:not(.segActive):not(:disabled) {
+  background: var(--bg-header);
+  color: var(--text-secondary);
+}
+.segment .segActive,
+.segment .segActive:hover {
+  background: var(--brand);
+  color: #fff;
+  box-shadow: var(--shadow-sm);
+  font-weight: 700;
+}
+:global([data-theme="dark"]) .segment .segActive { color: #04263a; }
+
+.hint {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+/* 방식 설명 3개를 같은 칸에 겹침 — 칸 높이 = 가장 긴 설명 */
+.hintStack { display: grid; }
+.hintStack > * { grid-area: 1 / 1; }
+.hintHidden { visibility: hidden; }
+
+/* 실행/중지 — 나란히 있을 땐 반반 */
+.actions {
+  display: flex;
+  gap: 8px;
+}
+.actions > button {
+  flex: 1;
+  justify-content: center;
+}
+
+.result {
+  font-size: 0.72rem;
+  color: var(--text-sub);
+}
+.error {
+  font-size: 0.72rem;
+  color: var(--danger, #e63312);
+  word-break: break-all;
+  white-space: pre-line;
+}
+
+@media (max-width: 600px) {
+  .twoCol { grid-template-columns: 1fr; }
+}

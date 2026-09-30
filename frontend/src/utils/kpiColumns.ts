@@ -36,6 +36,32 @@ export const kpiColLabel = (col: string): string =>
   COL_LABEL_FIXES.reduce((s, [re, to]) => s.replace(re, to), col);
 
 /**
+ * KPI 취합 목록 기본 컬럼 폭(px) — 실데이터 200행 실측(2026-09-30) 기준.
+ * 식별·텍스트 컬럼은 내용 길이로 고정값, 지표 컬럼(값이 N·4.0처럼 1~4자)은 헤더 이름이 더 길어서
+ * 헤더 글자 폭에 맞춤 — 150px 일괄이면 긴 지표 헤더가 옆 칸까지 삐져나왔음.
+ * 이 표는 폭을 저장하지 않아(persistColumnSizes=false) 들어올 때마다 이 값으로 보임.
+ */
+const FIXED_COL_SIZE: Record<string, number> = {
+  프로젝트코드: 150,   // 코드 16자 + 복사 아이콘
+  수행연도:     90,
+  파트명:       90,
+  보고단계:     90,
+  파일명:       440,   // 한글 30자 안팎(중앙값) — 더 긴 건 클릭 팝업
+  처리일시:     160,   // YYYY-MM-DD HH:MM:SS
+  최종수정일시: 160,
+};
+
+/** 헤더(0.72rem·자간 0.04em) 글자 폭 추정 — 한글 ≈12.4px, 영숫자·기호 ≈6.4px */
+const headerTextWidth = (label: string): number =>
+  [...label].reduce((w, ch) => w + (ch.charCodeAt(0) > 0x2e80 ? 12.4 : 6.4), 0);
+
+export const kpiRawColSize = (col: string): number => {
+  if (col in FIXED_COL_SIZE) return FIXED_COL_SIZE[col];
+  // 좌우 패딩 20 + 정렬 화살표 20 여유, 10단위 올림, 최소 90
+  return Math.max(90, Math.ceil((headerTextWidth(kpiColLabel(col)) + 40) / 10) * 10);
+};
+
+/**
  * KPI 취합 셀 값 정규화 — 미입력/0은 "-", 명시적 해당없음(N/n)은 "N".
  * metricKey가 "_적절성"(0~5 척도) 지표면 한 자리 수 점수를 소수점 첫째 자리까지 통일 표시
  * (예: 평균이 딱 4로 떨어지면 "4"가 아니라 "4.0") — 다른 행의 "4.33" 같은 표기와 자릿수를 맞춘다.

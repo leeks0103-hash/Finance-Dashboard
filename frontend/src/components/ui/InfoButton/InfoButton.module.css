@@ -33,16 +33,18 @@
 
 /* 팝오버 */
 .popover {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 0;
-  z-index: 300;
-  width: 360px;
+  /* body 포털 + fixed — 좌표·폭은 InfoButton.tsx가 버튼 위치로 계산. 부모 제목의 글자 스타일을 안 물려받음.
+     z-index는 모달(600~1000) 위, SweetAlert(1060) 아래 — 확대 모달 제목의 ⓘ도 모달 위에 뜨게 */
+  position: fixed;
+  z-index: 1050;
+  max-width: calc(100vw - 24px);
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
   animation: fadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1) both;
+  text-align: left;
+  color: var(--text);
 }
 
 @keyframes fadeIn {

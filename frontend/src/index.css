@@ -22,6 +22,10 @@
   --warn:         #A36B4F;   /* Hyundai Gold PMS 876C */
   --warn-bg:      rgba(163,107,79,0.12);
   --info:         #007A99;   /* Active Blue 파생 — 어둡게 (흰바탕 텍스트 대비) */
+  /* 채움 버튼(Button danger/success) 배경 — 흰 글씨 대비 4.5:1 이상. --danger/--info는 다크에서
+     글자용으로 밝혀 둔 색이라 흰 글씨가 안 보였음(대비 2.8 / 1.8) → 버튼은 라이트·다크 같은 진한 색 */
+  --btn-danger-bg:  #C42A0E;  /* Active Red에 검정 15% — 흰 글씨 5.7:1 */
+  --btn-success-bg: #007A99;  /* Active Blue 파생 — 흰 글씨 5.0:1 */
   --info-bg:      rgba(0,170,210,0.12);
   --accent:       #0091B5;   /* Active Blue 파생 — 정렬/리사이즈/토글 인디케이터 */
   --accent-bg:    rgba(0,170,210,0.10);
@@ -71,6 +75,10 @@
   --warn:         #C79471;   /* Gold tint */
   --warn-bg:      rgba(163,107,79,0.24);
   --info:         #6FD0E6;   /* Active Blue tint — --brand보다 밝게 구분 */
+  /* 채움 버튼(Button danger/success) 배경 — 흰 글씨 대비 4.5:1 이상. --danger/--info는 다크에서
+     글자용으로 밝혀 둔 색이라 흰 글씨가 안 보였음(대비 2.8 / 1.8) → 버튼은 라이트·다크 같은 진한 색 */
+  --btn-danger-bg:  #C42A0E;  /* Active Red에 검정 15% — 흰 글씨 5.7:1 */
+  --btn-success-bg: #007A99;  /* Active Blue 파생 — 흰 글씨 5.0:1 */
   --info-bg:      rgba(0,170,210,0.16);
   --accent:       #33BFE0;   /* Active Blue tint */
   --accent-bg:    rgba(0,170,210,0.18);

@@ -182,7 +182,7 @@ const PerformancePage = () => {
                 allLabel="진행단계 전체"
               />
             }
-            emptyIcon="🔍"
+            emptyIcon="search"
             emptyTitle="검색 결과 없음"
             emptyDescription="다른 검색어나 필터 조건을 시도해보세요."
             storageKey="performance-project"
@@ -200,15 +200,15 @@ const PerformancePage = () => {
       </FadeInSection>
 
       {/* 2depth: 재무 데이터 검색 결과 */}
-      {vm.hasFinanceResults && (
-        <ErrorBoundary>
-          <FinanceSearchResults
-            results={vm.financeResults}
-            searchTerm={vm.financeSearchTerm}
-            info={INFO_FINANCE_SEARCH}
-          />
-        </ErrorBoundary>
-      )}
+      {/* 항상 렌더 — 결과가 생기면 펼치고, 없어지면 접힌 뒤 스스로 제거(open) */}
+      <ErrorBoundary>
+        <FinanceSearchResults
+          open={vm.hasFinanceResults}
+          results={vm.financeResults}
+          searchTerm={vm.financeSearchTerm}
+          info={INFO_FINANCE_SEARCH}
+        />
+      </ErrorBoundary>
 
       {achieveBreakdown && (
         <PerfBreakdownModal target={achieveBreakdown} onClose={() => setAchieveBreakdown(null)} />
