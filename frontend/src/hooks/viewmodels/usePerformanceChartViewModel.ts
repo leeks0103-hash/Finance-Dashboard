@@ -9,12 +9,8 @@ import { makeBarOptions } from '@/utils/chartOptions';
 import { getChartTheme } from '@/utils/chartColors';
 import { sortProgress } from '@/utils/progressOrder';
 import { sortParts } from '@/utils/partOrder';
-import { PERF_MONTH, stripPartPrefix } from '@/utils';
+import { PERF_MONTH, stripPartPrefix, toEokNum } from '@/utils';
 import type { ChartOptions } from 'chart.js';
-
-// 천원 → 억원 — 표시 단위 변환(순수 포맷팅). undefined가 들어와 차트에 NaN이 찍히는 것만 방어한다.
-const toEokNum = (v: number | null | undefined) =>
-  Number.isFinite(Number(v)) ? +(Number(v) / 100_000).toFixed(1) : 0;
 
 // PERF_MONTH("7월") 기준 — 이후 달은 아직 실적이 없는 추정 구간이므로 흐릿하게 표시
 const CURRENT_MONTH_NUM = parseInt(PERF_MONTH, 10);

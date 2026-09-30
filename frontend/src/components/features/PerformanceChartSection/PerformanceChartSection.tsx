@@ -210,6 +210,22 @@ const planDrawn = new WeakMap<object, PlanDrawn[]>();
 const PLAN_FONT = "bold 12px 'HyundaiSans', 'Malgun Gothic', sans-serif";
 const LABEL_H = 16;       // 12px 글자 + 위아래 여백 — 막대 수치(datalabels padding)와 같은 높이
 const LABEL_PAD_X = 3;
+// 파트별 추정 매출/원가(메인 카드) — 원가 수치만 오른쪽으로 미는 양(px, 소수 가능). 막대는 그대로.
+// datalabels엔 가로 오프셋 옵션이 없고 padding은 배경 박스만 키울 뿐 글자는 항상 기준점 가운데라
+// (boundingRects: text.x = -w/2 고정) 안 움직임 — 대신 align을 '막대 위(-90°)'에서 아주 조금 기울여
+// 가로 이동량이 정확히 COST_LABEL_SHIFT가 되게 각도를 계산(가로 이동 ≈ (박스폭/2 + offset)·tanθ)
+const COST_LABEL_SHIFT = 1.1;
+const REV_COST_LABEL_FONT = "bold 12px 'HyundaiSans', 'Malgun Gothic', sans-serif";
+const REV_COST_LABEL_OFFSET = 2;
+const costLabelAlign = (ctx: { chart: Chart; datasetIndex: number; dataIndex: number; dataset: { data: unknown[] } }) => {
+  if (ctx.datasetIndex !== 1 || !COST_LABEL_SHIFT) return 'end' as const;
+  const c = ctx.chart.ctx;
+  c.save();
+  c.font = REV_COST_LABEL_FONT;
+  const w = c.measureText(`${ctx.dataset.data[ctx.dataIndex]}억`).width + LABEL_PAD_X * 2;
+  c.restore();
+  return -90 + (Math.atan(COST_LABEL_SHIFT / (w / 2 + REV_COST_LABEL_OFFSET)) * 180) / Math.PI;
+};
 const overlaps = (a: Rect, b: Rect) => a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b;
 
 const drawPlanLines = (chart: Chart<'bar'>) => {
@@ -524,10 +540,26 @@ const PerformanceChartSection = () => {
     },
   }), [vm.monthly.options, scaleOverride]);
 
-  const planVsActualOptions = useMemo(
-    () => withUnstackedTheme(vm.planVsActual.options, scaleOverride),
-    [vm.planVsActual.options, scaleOverride],
-  );
+  // 수치 글자색 = 그 막대 색(계획 회색 / 추정 실적 남색) — 공통 labelColor(남색)였을 땐 두 수치가
+  // 같은 색이라 어느 막대 값인지 헷갈림(2026-09-29). 단 계획은 막대색(반투명 plan)이 글자로는 흐려서
+  // 불투명·진한 palette.planLabel — 막대색은 계획 통일색 그대로
+  const planVsActualOptions = useMemo(() => {
+    const base = withUnstackedTheme(vm.planVsActual.options, scaleOverride);
+    return {
+      ...base,
+      plugins: {
+        ...base.plugins,
+        datalabels: {
+          ...base.plugins?.datalabels,
+          color: (ctx: { datasetIndex: number; dataset: { backgroundColor?: unknown }; dataIndex: number }) => {
+            if (ctx.datasetIndex === 0) return palette.planLabel;
+            const bg = ctx.dataset.backgroundColor;
+            return (Array.isArray(bg) ? bg[ctx.dataIndex] : bg) as string;
+          },
+        },
+      },
+    };
+  }, [vm.planVsActual.options, scaleOverride, palette.planLabel]);
 
   // 이익율/이익액 토글 비활성화로 미사용(주석 처리) — 복구 시 PROFIT_LABEL과 함께 해제
   // const profitRateOptions = useMemo(() => ({
@@ -570,13 +602,14 @@ const PerformanceChartSection = () => {
           // makeBarOptions 기본(13px)보다 살짝만 작게 — 이전엔 10px로 너무 작게 오버라이드돼
           // 있었고, 기본값 그대로 쓰니 이 차트(파트 수 많고 막대 2개씩)에서는 조금 커서 재조정
           anchor: 'end',
-          align: 'end',
-          offset: 2,
+          // 원가 수치만 오른쪽으로 COST_LABEL_SHIFT px(위 costLabelAlign) — 메인 카드만, 확대 모달은 'end'로 되돌림
+          align: costLabelAlign,
+          offset: REV_COST_LABEL_OFFSET,
           font: { size: 12, weight: 'bold', family: "'HyundaiSans', 'Malgun Gothic', sans-serif" },
           formatter: (v: number) => `${v}억`,
           // padding은 planLinePlugin의 LABEL_H/LABEL_PAD_X(목표선 수치 겹침 판정용 크기)와 맞춰둘 것.
           // 배경 박스(backgroundColor)는 넣지 말 것 — 옆 막대를 파먹음(planLinePlugin 주석 참고)
-          padding: { top: 1, bottom: 1, left: 3, right: 3 },
+          padding: { top: 1, bottom: 1, left: LABEL_PAD_X, right: LABEL_PAD_X },
           // 수치 글자색 = 그 막대 색(매출 파랑 / 원가 갈색, 손실 파트 원가는 빨강) — 막대 위(anchor/align
           // 'end')에 찍혀서 막대와 안 겹침. 공통 labelColor(단색)였을 땐 매출·원가·계획선 수치가 한데
           // 섞여 어느 계열 값인지 헷갈렸음(2026-09-28)
@@ -794,7 +827,7 @@ const PerformanceChartSection = () => {
         plugins: {
           ...partRevCostOptions.plugins,
           // 목표선이 막대 수치를 지나갈 때 글자 윤곽만 카드 배경색으로 둘러서 선이 글자 뒤로 가게
-          datalabels: { ...partRevCostOptions.plugins?.datalabels, textStrokeColor: surfaceColor, textStrokeWidth: 3 },
+          datalabels: { ...partRevCostOptions.plugins?.datalabels, align: 'end' as const, textStrokeColor: surfaceColor, textStrokeWidth: 3 },
           // labelColor 생략 → 계획선 수치는 각 선 색으로(planLinePlugin 기본값)
           planLine: { series: planLineSeries, showLabels: vm.showLabels, surfaceColor },
           legend: {

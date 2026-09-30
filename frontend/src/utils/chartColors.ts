@@ -13,7 +13,8 @@
  *   costLabor    — 원가구성 도넛: 인건비 (Active Blue)
  *   costOverhead — 원가구성 도넛: 공통원가 (Sky Blue에 검정 30% 섞은 톤 — 원색은 너무 연해서)
  *   costMgmt     — 원가구성 도넛: 관리비 (Hyundai Gold — 파랑 3톤과 구분되는 유일한 브랜드색)
- *   plan         — 계획·목표 등 비교 기준선 계열 (Sand/블루그레이 중립 — 실적 계열과 겹치지 않게)
+ *   plan         — 계획·목표 등 비교 기준선 계열 (Sand/블루그레이 중립 — 실적 계열과 겹치지 않게). 계획 막대는 이 색으로 통일
+ *   planLabel    — 계획 막대 위 수치 글자색 (plan을 불투명·진하게 — 반투명 plan 그대로면 글자가 흐려서, 막대색은 유지)
  *   planRevenue  — "파트별 추정 매출/원가" 확대 모달 전용 매출 계획선 (매출과 같은 파랑 계열, 밝기만 다르게)
  *   planCost     — 같은 모달 전용 원가 계획선 (원가와 같은 Gold 계열, 라이트=훨씬 진하게 / 다크=훨씬 밝게)
  *                  — 막대와 완전히 같은 색이면 계획 < 실적인 파트에서 선이 막대 안에 묻혀 안 보임.
@@ -30,6 +31,7 @@ export interface ChartPalette {
   costOverhead: string;
   costMgmt:     string;
   plan:         string;
+  planLabel:    string;
   planRevenue:  string;
   planCost:     string;
 }
@@ -72,6 +74,7 @@ export const getChartPalette = (dark: boolean): ChartPalette => dark ? {
   costOverhead: 'rgba(119,141,161,1)',  /* Sky Blue에 검정 30% — 원래 Sky Blue는 흰 배경에서 너무 연했음(2026-09-29) */
   costMgmt:     'rgba(199,148,113,1)',  /* Hyundai Gold tint */
   plan:         'rgba(159,179,196,0.55)', /* 블루그레이 중립 — 계획·목표 */
+  planLabel:    'rgba(159,179,196,1)',  /* plan 불투명 — 수치 글자용 */
   planRevenue:  'rgba(170,202,230,1)',  /* Sky Blue — revenue tint보다 밝게 */
   planCost:     'rgba(245,225,205,1)',  /* Hyundai Gold 아주 밝은 파생 — cost tint(중간 밝기)와 밝기 차 크게 */
 } : {
@@ -85,6 +88,7 @@ export const getChartPalette = (dark: boolean): ChartPalette => dark ? {
   costOverhead: 'rgba(119,141,161,1)',  /* Sky Blue에 검정 30% — 원래 Sky Blue는 흰 배경에서 너무 연했음(2026-09-29) */
   costMgmt:     'rgba(163,107,79,1)',   /* Hyundai Gold */
   plan:         'rgba(107,98,87,0.45)',  /* Sand 계열 중립 — 계획·목표 */
+  planLabel:    'rgba(132,129,125,1)',  /* plan의 흰 배경 실효색(188,184,179)에 검정 30% — 수치 글자가 흐리다는 피드백(2026-09-29) */
   planRevenue:  'rgba(0,170,210,1)',    /* Active Blue — Hyundai Blue 막대 위에서도 보이게 */
   planCost:     'rgba(92,54,34,1)',     /* Hyundai Gold 진한 파생 — Gold 막대보다 확실히 어둡게(밝은 톤은 막대와 구분 안 됨) */
 };

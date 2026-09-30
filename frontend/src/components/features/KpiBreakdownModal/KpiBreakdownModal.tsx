@@ -1,18 +1,17 @@
 import { createPortal } from 'react-dom';
-import { Button, CopyText, alertDialog } from '@/components/ui';
+import { Button, CopyText } from '@/components/ui';
 import { useScrollLock } from '@/components/ui/useScrollLock';
 import { useEscToClose } from '@/components/ui/useEscToClose';
 import { useAnimatedClose } from '@/components/ui/useAnimatedClose';
 import { useKpiBreakdownViewModel } from '@/hooks/viewmodels/useKpiBreakdownViewModel';
 import { downloadCsvFile } from '@/hooks/useExport';
 import { stripPartPrefix } from '@/utils/format';
-import { openKpiFile, type KpiBreakdownRow } from '@/api/kpi.api';
+import type { KpiBreakdownRow } from '@/api/kpi.api';
 import BreakdownTable, { type BreakdownColumn } from '@/components/features/BreakdownModal/BreakdownTable';
 import styles from './KpiBreakdownModal.module.css';
+import { openKpiFileOrAlert } from '@/hooks/useOpenFile';
 
-const openFile = (filename: string) => {
-  openKpiFile(filename).then(r => { if (!r.ok) alertDialog(r.message ?? '파일을 열 수 없습니다.', { error: true }); });
-};
+const openFile = openKpiFileOrAlert;
 
 interface Props {
   name:    string;

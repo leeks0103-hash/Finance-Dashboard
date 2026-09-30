@@ -8,11 +8,11 @@ from pathlib import Path
 
 import numpy as np
 from dotenv import load_dotenv
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, request
 from flask.json.provider import DefaultJSONProvider
 from openpyxl import load_workbook
 
-from finance import finance_bp, get_df, load_excel, _sort_stages, _cache_lock, EXCEL_PATH, _read_excel_via_com
+from finance import finance_bp, get_df, load_excel, _cache_lock, EXCEL_PATH, _read_excel_via_com
 from performance import perf_bp
 from kpi import kpi_bp, get_kpi_df, _real_code, KPI_EXCEL_PATH, load_kpi_excel, _kpi_cache_lock
 from downloads import download_bp
@@ -451,16 +451,6 @@ def api_extract_cancel():
 def api_extract_status():
     with _extract_lock:
         return jsonify(dict(_extract_status))
-
-
-@app.route("/")
-def index():
-    df     = get_df()
-    years  = sorted(df[df["year"].str.strip() != ""]["year"].unique())
-    parts  = sorted(df[df["part"].str.strip() != ""]["part"].unique())
-    raw_stages = df[df["stage"].str.strip() != ""]["stage"].unique().tolist()
-    stages = _sort_stages(raw_stages)
-    return render_template("index.html", years=years, parts=parts, stages=stages)
 
 
 if __name__ == "__main__":

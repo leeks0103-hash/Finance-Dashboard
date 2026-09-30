@@ -7,7 +7,7 @@ import { useReactPagination } from '@/lib/pagination';
 import { useCountUp } from '@/hooks/useCountUp';
 import { usePerfStore } from '@/store/perf.store';
 import { useQuickSearchStore } from '@/store/quickSearch.store';
-import { formatEok, PERF_MONTH } from '@/utils';
+import { formatEok, PERF_MONTH, toEokNum } from '@/utils';
 import { partRank } from '@/utils/partOrder';
 import { getProjects } from '@/api/finance.api';
 import { STALE_5MIN, GC_10MIN } from '@/hooks/queryClient';
@@ -16,10 +16,6 @@ import type { Project, Filters } from '@/types/finance.types';
 import type { ServerPagination, ServerSearch } from '@/components/ui/DataTable';
 
 const FINANCE_EMPTY_FILTERS: Filters = { years: [], parts: [], stages: [] };
-
-// 천원 → 억원 — 표시 단위 변환(순수 포맷팅). null/undefined가 들어와도 NaN 대신 0으로 방어
-const toEokNum = (v: number | null | undefined) =>
-  Number.isFinite(Number(v)) ? +(Number(v) / 100_000).toFixed(1) : 0;
 
 type PerfAccent = 'brand' | 'warn' | 'profit' | 'loss' | 'purple';
 

@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
+import { prefersReducedMotion as reducedMotion } from '@/utils/format';
 
 const CLOSE_MS = 160;   // index.css .closingOverlay/.closingPanel 길이와 맞출 것
-
-const reducedMotion = () =>
-  typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 /**
  * 모달을 닫을 때 퇴장 애니메이션(index.css .closingOverlay/.closingPanel)을 먼저 보여주고 onClose 호출.

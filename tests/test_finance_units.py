@@ -2,7 +2,7 @@ import pandas as pd
 import pytest
 
 from finance import (
-    _extract_year, _extract_part, _sort_stages, bil, _safe_avg_rate, _build_part_stats,
+    _extract_year, _extract_part, bil, _safe_avg_rate, _build_part_stats,
 )
 
 
@@ -40,18 +40,6 @@ class TestExtractPart:
 
     def test_single_segment_filename_returns_기타(self):
         assert _extract_part("보고서.pptx") == "기타"
-
-
-class TestSortStages:
-    def test_sorts_by_fixed_priority_order(self):
-        result = _sort_stages(["완료", "제안", "검토", "착수"])
-        assert result == ["검토", "제안", "착수", "완료"]
-
-    def test_unknown_stage_is_not_dropped(self):
-        result = _sort_stages(["완료", "미지정단계", "검토"])
-        assert set(result) == {"완료", "미지정단계", "검토"}
-        # 알려진 단계 기준 순서는 유지되어야 함
-        assert result.index("검토") < result.index("완료")
 
 
 class TestBil:

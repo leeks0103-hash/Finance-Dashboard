@@ -32,8 +32,22 @@
 - 캔버스 차트 글자 전체 +1px(기본·범례 13→14, 막대 수치 13→14, 도넛 12→13, 인출선 11/15→12/16, 목표선 수치 11→12, Mixed 범례 11→12)
 - 실적 탭 메인 '전체 평균 원가 비율' 도넛 인출선 수치만 12→14px — `outsideLabelsPlugin` `md` 프리셋 신설(여백 28),
   모달 미니 도넛(sm)은 그대로
+- 네비바 탭(경영실적/재무데이터 · KPI/경영현황) 잘 안 보임 → 13px·400·흰색 55% → 14px·500·불투명 Hyundai Sand #E4DCD3(호버·활성 흰색, 768↓ 13px).
+  반투명 흰색은 남색과 섞여 탁해 보여서 불투명색으로
+- 파트별 추정 매출/원가(메인 카드만): 원가 수치 오른쪽 0.6px(`COST_LABEL_SHIFT`). datalabels엔 가로 오프셋이 없고
+  padding은 배경 박스만 키움(글자는 항상 기준점 가운데) → align을 -90°에서 글자 폭 기준으로 살짝 기울여 계산. 확대 모달은 'end' 유지
+- 파트별 계획 vs 추정 실적 수치 글자색 = 막대 색(계획 회색 / 추정 남색) — 둘 다 남색이라 구분 안 됐음
+- 계획 수치 글자만 진하게 — `palette.planLabel` 신설(라이트: plan 실효색 188,184,179에 검정 30% → rgb(132,129,125) 불투명,
+  다크: plan 불투명). 계획 막대색(`palette.plan`)은 계획 통일색이라 유지(한때 막대까지 바꿨다가 "색마다 역할 있음"으로 되돌림)
+- CopyText 복사 후 ✓ 아이콘 폭 auto(≈10.2px) → 12px 고정 — 모달 표 컬럼 폭 흔들림 의심(재현은 못 함, 사용자에게 어느 모달인지 확인 중)
 - 폰트 로드 전에 그려진 차트가 대체 글꼴(맑은 고딕)로 굳지 않게 `document.fonts` 로드 완료 시 전 차트 다시 그림(chartCrisp.ts)
 - 확대 모달 차트 높이 72%로 축소(세로 가운데), 표 행 위아래 여백 11px로 넓힘. 1024px 이하 위아래 배치에선 차트 원래대로
+- **코드 다이어트** (동작 변경 없음 — 전후 코드를 같은 데이터로 띄워 API 19개 응답 동일, 3개 탭 캡처 차이는 의도한 화면 수정뿐)
+  - 삭제: PNG 170개, `playgrounds/`, `diagnostic.py`, `ph.txt`, 옛 Flask 페이지(`/` 라우트·`templates/`·`static/`),
+    백엔드 미사용 함수(`_sort_stages`와 테스트 2개, `_kpi_num` 등), 인사이트 섹션과 그것만 쓰던 UI
+    (InsightComment·InsightListCard·InsightSectionView·ProjectRankRow), ScrollTop·SuspenseSection·KpiFilterBar·MixedBarLineChart
+  - 파일 열기+실패 알림 7곳 중복 → `hooks/useOpenFile.ts`의 `openFinanceFileOrAlert`/`openKpiFileOrAlert`
+  - 백엔드 테스트 62 통과 / 14 실패(기존과 같은 실패)
 
 ## [2026-09-29] 전체 평균 원가 비율 확대 도넛 — 금액(비중) 표기 롤백 + 그 외 정리
 

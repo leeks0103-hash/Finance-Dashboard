@@ -1,12 +1,10 @@
 import { Button, CopyText } from '@/components/ui';
-import { formatBillion, formatRate, alertDialog } from '@/utils';
-import { openFinanceFile } from '@/api/finance.api';
+import { formatBillion, formatRate } from '@/utils';
 import type { Project } from '@/types';
 import styles from './FinanceDetailPanel.module.css';
+import { openFinanceFileOrAlert } from '@/hooks/useOpenFile';
 
-const openFile = (filename: string) => {
-  openFinanceFile(filename).then(r => { if (!r.ok) alertDialog(r.message ?? '파일을 열 수 없습니다.', { error: true }); });
-};
+const openFile = openFinanceFileOrAlert;
 
 interface Props {
   project: Project;

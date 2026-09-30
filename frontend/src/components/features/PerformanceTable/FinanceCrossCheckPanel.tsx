@@ -2,6 +2,7 @@ import { useRef, useEffect, useMemo } from 'react';
 import { DataTable, Button, Spinner, CopyText } from '@/components/ui';
 import { useFinanceCrossCheckViewModel } from '@/hooks/viewmodels';
 import { useUiStore } from '@/store';
+import { prefersReducedMotion } from '@/utils';
 import type { Project } from '@/types/finance.types';
 // downloadFinanceCsv — 재무 이력 CSV 버튼 주석 처리로 미사용(2026-09-28). 복구 시 버튼과 함께 해제
 import { buildFinanceColumns /*, downloadFinanceCsv */ } from './financeColumns';
@@ -34,7 +35,7 @@ const FinanceCrossCheckPanel = ({ projectCode, onClose }: Props) => {
     if (!el) return;
     // 스크롤 위치를 바로 따라가지 않고 매 프레임 남은 거리의 18%씩 쫓아감 — 표가 먼저 움직이고 패널이
     // 살짝 끌려오다 제자리에 붙는 느낌(2026-09-29, "고정된 느낌 말고" 요청). 움직임 줄이기 설정이면 즉시
-    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const reduce = prefersReducedMotion();
     let current = el.scrollLeft;
     let raf = 0;
     const apply = () => { panel.style.transform = `translateX(${current}px)`; };

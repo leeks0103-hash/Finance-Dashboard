@@ -1,12 +1,10 @@
 import { createColumnHelper } from '@tanstack/react-table';
 import type { Project } from '@/types';
 import { formatMoney, formatPercent, getNoteVariant } from '@/utils';
-import { Badge, NegCell, CopyText, HighlightText, alertDialog } from '@/components/ui';
-import { openFinanceFile } from '@/api/finance.api';
+import { Badge, NegCell, CopyText, HighlightText } from '@/components/ui';
+import { openFinanceFileOrAlert } from '@/hooks/useOpenFile';
 
-const openFile = (filename: string) => {
-  openFinanceFile(filename).then(r => { if (!r.ok) alertDialog(r.message ?? '파일을 열 수 없습니다.', { error: true }); });
-};
+const openFile = openFinanceFileOrAlert;
 
 const h = createColumnHelper<Project>();
 

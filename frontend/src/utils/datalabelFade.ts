@@ -1,5 +1,6 @@
 import { Chart } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
+import { prefersReducedMotion as reducedMotion } from './format';
 
 // datalabels 플러그인 등록 + "그래프 수치" 토글 페이드 (BarChart / DoughnutChart 등에서 import).
 //
@@ -25,9 +26,6 @@ const refreshAll = () => {
     if (chart?.canvas?.isConnected) chart.update('none');
   }
 };
-
-const reducedMotion = () =>
-  typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 /** 불투명도를 현재값 → to 로 애니메이션. 진행 중이던 페이드는 취소하고 그 지점부터 이어감 */
 export const fadeDatalabels = (to: 0 | 1, onDone?: () => void) => {

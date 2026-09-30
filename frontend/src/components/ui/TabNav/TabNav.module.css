@@ -5,15 +5,16 @@
   background: transparent;
 }
 
-/* 탭 — 제목(굵고 좁은 자간)과 대비되게 얇게(400) + 넓은 자간 + 작은 크기.
-   활성 탭도 600까지만 올려 제목 800과 구분되게 둔다 */
+/* 탭 — 제목(굵고 좁은 자간)과 대비되게 + 넓은 자간. 활성 탭도 600까지만 올려 제목 800과 구분.
+   예전 13px·400·흰색 55%는 남색 바탕에서 잘 안 보인다는 피드백(2026-09-29) → 14px·500.
+   색은 반투명 흰색(rgba) 대신 불투명 Hyundai Sand — 반투명은 남색과 섞여 탁한 회색이 돼 흐려 보였음 */
 .tab {
   position: relative;
   padding: 14px 18px;
-  font-size: 13px;
-  font-weight: 400;
+  font-size: 14px;
+  font-weight: 500;
   letter-spacing: 0.03em;
-  color: rgba(255, 255, 255, 0.55);
+  color: #E4DCD3;   /* Hyundai Sand */
   background: none;
   border: none;
   cursor: pointer;
@@ -22,7 +23,7 @@
 }
 
 .tab:hover {
-  color: rgba(255, 255, 255, 0.85);
+  color: #fff;
 }
 
 .tab.active {
@@ -47,5 +48,5 @@
   .tab { padding: 14px 12px; }
 }
 @media (max-width: 768px) {
-  .tab { padding: 14px 8px; font-size: 12px; letter-spacing: 0; }
+  .tab { padding: 14px 8px; font-size: 13px; letter-spacing: 0; }
 }

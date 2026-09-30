@@ -237,13 +237,6 @@ def _build_part_stats(df: pd.DataFrame) -> pd.DataFrame:
     )
 
 
-def _sort_stages(stage_list):
-    priority_map = {s: i for i, s in enumerate(_STAGE_PRIORITY)}
-    known  = [s for s in _STAGE_PRIORITY if s in stage_list]
-    others = sorted(s for s in stage_list if s not in priority_map)
-    return known + others
-
-
 def _order_by_stage(df: pd.DataFrame) -> pd.DataFrame:
     """행 순서 = 보고단계 하드코딩 순서(_STAGE_PRIORITY), 같은 단계끼리는 기존(추출) 순서 유지.
     재무이력(2뎁스)과 같은 기준 — 예전엔 추출 순서 그대로였고, 한때 프로젝트별로 묶었더니 여러 프로젝트가
@@ -513,7 +506,6 @@ def api_insights():
 
     best_part    = part_stats["avg_rate"].idxmax() if not part_stats.empty else None
     worst_part   = part_stats["avg_rate"].idxmin() if not part_stats.empty else None
-    top_rev_part = part_stats["revenue"].idxmax() if not part_stats.empty else None
     biggest      = valid.nlargest(1, "revenue").iloc[0] if not valid.empty else None
 
     comments = []

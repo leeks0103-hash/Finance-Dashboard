@@ -1,16 +1,14 @@
 import { createColumnHelper } from '@tanstack/react-table';
 import { CopyText, HighlightText, NegCell } from '@/components/ui';
-import { openFinanceFile } from '@/api/finance.api';
 import { downloadCsvFile } from '@/hooks/useExport';
-import { formatMoney, formatPercent, alertDialog } from '@/utils';
+import { formatMoney, formatPercent } from '@/utils';
 import type { Project } from '@/types/finance.types';
+import { openFinanceFileOrAlert } from '@/hooks/useOpenFile';
 
 // 재무 데이터 검색 결과 · 재무 이력 2뎁스 패널이 같은 컬럼 정의를 공유 — 한쪽만 고치면
 // 두 표 모양이 어긋나던 문제(2026-09-28, "2뎁스도 검색결과 테이블과 동일하게")
 
-const openFile = (filename: string) => {
-  openFinanceFile(filename).then(r => { if (!r.ok) alertDialog(r.message ?? '파일을 열 수 없습니다.', { error: true }); });
-};
+const openFile = openFinanceFileOrAlert;
 
 const ch = createColumnHelper<Project>();
 

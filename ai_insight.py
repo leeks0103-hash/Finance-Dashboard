@@ -130,7 +130,6 @@ def _build_finance_metrics() -> dict:
     by_part = []
     for part, g in rev.groupby("part"):
         pl, ac, es = g["plan_initial"].sum(), g["jun_actual"].sum(), g["jun_check_total"].sum()
-        loss = g[g["operating_profit"] < 0]
         tc = g["cost_direct"].sum() + g["cost_labor"].sum() + g["cost_overhead"].sum() + g["cost_mgmt"].sum()
         remain_needed = es - ac
         month_avg_so_far = ac / month if month else 0
@@ -374,20 +373,6 @@ def get_finance_analysis(force: bool = False) -> dict:
 # ──────────────────────────────────────────────────────────────
 _KPI_ITEMS = ["NPS", "전략기술과정_건수", "전략기술과정_적절성", "특화교육체계_건수",
               "AI교육_고객사건수", "AI교육_적절성", "신사업_매출억", "신사업_신규기존건수"]
-
-
-def _kpi_num(v):
-    if v is None:
-        return None
-    if isinstance(v, (int, float)):
-        return float(v)
-    s = str(v).strip().replace(",", "")
-    if s in {"", "-", "N"}:
-        return None
-    try:
-        return float(s)
-    except ValueError:
-        return None
 
 
 def _build_kpi_metrics() -> dict:

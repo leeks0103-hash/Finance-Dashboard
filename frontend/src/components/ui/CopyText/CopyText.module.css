@@ -96,12 +96,14 @@
   right: 1px;
 }
 
-/* 복사 완료: ✓ 텍스트 표시 */
+/* 복사 완료: ✓ 텍스트 표시 — 폭은 12px 그대로(✓가 넘치면 overflow로 보이게만).
+   예전 width:auto는 ✓ 폭만큼 셀이 넓어져, 내용 폭 기준(table-layout:auto) 표에서 복사할 때마다
+   컬럼 폭이 1.5초간 바뀌었다 돌아왔음(2026-09-29) */
 .check {
   opacity: 1 !important;
   color: var(--profit);
   font-size: 0.85rem;
-  width: auto;
+  overflow: visible;
 }
 
 /* 복사 완료 행 전체 */

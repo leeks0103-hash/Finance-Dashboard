@@ -98,3 +98,11 @@ export const splitValueUnit = (value: string): { num: string; unit: string } => 
   const m = value.match(VALUE_UNIT_RE);
   return m ? { num: m[1], unit: m[2] } : { num: value, unit: '' };
 };
+
+/** 천원 → 억원 숫자(소수 첫째 자리) — 차트·표 표시용. null/undefined가 들어와도 NaN 대신 0 */
+export const toEokNum = (v: number | null | undefined) =>
+  Number.isFinite(Number(v)) ? +(Number(v) / 100_000).toFixed(1) : 0;
+
+/** OS "움직임 줄이기" 설정 — 켜져 있으면 애니메이션 없이 즉시 전환 */
+export const prefersReducedMotion = () =>
+  typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;

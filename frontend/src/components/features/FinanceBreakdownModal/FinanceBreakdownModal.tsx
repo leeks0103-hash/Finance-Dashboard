@@ -1,26 +1,24 @@
 import { createPortal } from 'react-dom';
 import { createColumnHelper } from '@tanstack/react-table';
-import { Button, CopyText, DataTable, alertDialog } from '@/components/ui';
+import { Button, CopyText, DataTable } from '@/components/ui';
 import { useScrollLock } from '@/components/ui/useScrollLock';
 import { useEscToClose } from '@/components/ui/useEscToClose';
 import { useAnimatedClose } from '@/components/ui/useAnimatedClose';
 import { downloadCsvFile } from '@/hooks/useExport';
-import { openFinanceFile } from '@/api/finance.api';
 import type { FinanceBreakdownRow } from '@/api/finance.api';
 import {
   useFinanceBreakdownViewModel,
   type FinanceBreakdownTarget,
 } from '@/hooks/viewmodels/useFinanceBreakdownViewModel';
 import styles from './FinanceBreakdownModal.module.css';
+import { openFinanceFileOrAlert } from '@/hooks/useOpenFile';
 
 interface Props {
   target:  FinanceBreakdownTarget;
   onClose: () => void;
 }
 
-const openFile = (filename: string) => {
-  openFinanceFile(filename).then(r => { if (!r.ok) alertDialog(r.message ?? '파일을 열 수 없습니다.', { error: true }); });
-};
+const openFile = openFinanceFileOrAlert;
 
 const fmtValue = (v: number, unit: string) =>
   unit === '%' ? `${v}%` : `${v.toLocaleString()}억원`;

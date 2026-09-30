@@ -12,10 +12,6 @@ export const setStoredExtractAuth = (key: string, name: string): void => {
   localStorage.setItem(KEY_STORAGE, key);
   localStorage.setItem(NAME_STORAGE, name);
 };
-export const clearStoredExtractAuth = (): void => {
-  localStorage.removeItem(KEY_STORAGE);
-  localStorage.removeItem(NAME_STORAGE);
-};
 
 export const authExtract = (key: string): Promise<boolean> =>
   client.post<{ ok: boolean }>('/extract/auth', { key })

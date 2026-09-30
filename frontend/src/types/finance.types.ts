@@ -89,7 +89,7 @@ export interface Insights {
   comments: Comment[];
 }
 
-/** 재무/실적현황 인사이트 순위 리스트 한 행 — InsightSectionView 공용 표시 단위 */
+/** 재무/실적현황 인사이트 순위 리스트 한 행 — 인사이트 순위 리스트 공용 표시 단위 */
 export interface InsightRow {
   key:         string;
   displayCode: string;
@@ -97,16 +97,6 @@ export interface InsightRow {
   value:       string;
   valueColor?: string;
   subValue?:   string;
-}
-
-export interface InsightListSpec {
-  variant: 'profit' | 'risk' | 'default';
-  title:   string;
-  rows:    InsightRow[];
-  /** 제공 시 기본 카드(테두리 박스) + ProjectRankRow 목록 대신 이 렌더러로 전체 바디를 그림 (예: 테이블) */
-  renderList?: (rows: InsightRow[], onCodeSearch: (code: string) => void) => import('react').ReactNode;
-  /** true면 카드 박스 없이 "주요 코멘트"와 동일한 평면 타이틀 스타일로 렌더 */
-  plain?: boolean;
 }
 
 // M-6: discriminated union — TypeScript가 ok:true/false 분기를 타입 안전하게 처리

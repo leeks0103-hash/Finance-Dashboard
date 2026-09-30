@@ -4,20 +4,18 @@ import { useKpiPageViewModel } from '@/hooks/viewmodels/useKpiPageViewModel';
 import { useKpiFilterOptions } from '@/hooks/useKpiFilterOptions';
 import { useKpiFilterStore } from '@/store/kpiFilter.store';
 import { sortStages } from '@/utils/stageOrder';
-import { ChartCard, BarChart, DataTable, CopyText, HighlightText, Button, Spinner, QueryGate, FilterSelect, alertDialog } from '@/components/ui';
+import { ChartCard, BarChart, DataTable, CopyText, HighlightText, Button, Spinner, QueryGate, FilterSelect } from '@/components/ui';
 import { FadeInSection } from '@/components/FadeInSection';
 import KpiRawTable from '@/components/features/KpiRawTable/KpiRawTable';
 import KpiBreakdownModal from '@/components/features/KpiBreakdownModal/KpiBreakdownModal';
 import KpiExcludeIndicator from '@/components/features/KpiExcludeIndicator/KpiExcludeIndicator';
-import { openKpiFile } from '@/api/kpi.api';
 import { kpiColLabel } from '@/utils/kpiColumns';
 import type { KpiRawRow } from '@/types/kpi.types';
 import type { KpiSummaryRow } from '@/hooks/viewmodels/useKpiPageViewModel';
 import styles from './KpiPage.module.css';
+import { openKpiFileOrAlert } from '@/hooks/useOpenFile';
 
-const openFile = (filename: string) => {
-  openKpiFile(filename).then(r => { if (!r.ok) alertDialog(r.message ?? '파일을 열 수 없습니다.', { error: true }); });
-};
+const openFile = openKpiFileOrAlert;
 
 // 신규:N건/기존:N건 패턴을 뱃지 2개로 분할 렌더링
 function CountCell({ value }: { value: string }) {
