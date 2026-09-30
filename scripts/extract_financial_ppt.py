@@ -999,6 +999,7 @@ def create_powerpoint_app():
 def main():
     if not os.path.isdir(BASE_DIR):
         log(f"[오류] 대상 폴더를 찾을 수 없습니다: {BASE_DIR}")
+        log("[안내] 이 PC에서 파일 탐색기로 \\10.206.32.3 에 한 번 접속(로그인)했는지, 폴더 권한이 있는지 확인하세요")
         return 1
 
     try:

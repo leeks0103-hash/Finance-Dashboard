@@ -289,15 +289,15 @@ python scripts/extract_financial_ppt.py  # 재무 PPT → data/재무관점 필�
 | `EXCEL_PATH` | 재무 추출 결과 엑셀 경로 | `data/재무관점 필수 데이터 추출.xlsx` |
 | `KPI_EXCEL_PATH` | KPI 추출 결과 엑셀 경로 | `data/KPI 지표 데이터 추출.xlsx` |
 | `PERF_EXCEL_PATH` | 실적(사업계획 통합관리) 엑셀 경로 | `data/` 안에서 이름에 "사업계획 통합관리 파일"이 들어간 파일 중 **최신 수정본 자동 선택** — 매달 새 버전 파일을 `data/`에 넣기만 하면 됨 |
-| `EXTRACT_BASE_DIR` | 재무 추출 스크립트가 스캔할 PPT 원본 폴더(보통 NAS 경로) | `paths.py`의 기본 경로 |
-| `EXTRACT_KPI_ROOT_DIR` | KPI 추출 스크립트가 스캔할 PPT 원본 폴더 | 위와 동일 |
 | `PYTHON_EXE` | `dashboard_manager.py`/추출 실행이 사용할 파이썬 경로 | 지금 스크립트를 실행 중인 인터프리터 |
 | `EXTRACT_ADMIN_KEY` | Navbar "PPT 데이터 추출" 기능 접근 키 | 비어있으면 기능 자체가 비활성화 |
 | `H_CHAT_API_KEY` / `H_CHAT_BASE_URL` / `H_CHAT_API_MODEL` | AI 인사이트(`/api/ai/*`)가 호출하는 사내 H-Chat 게이트웨이 설정 | 키가 없으면 AI 위젯 호출 시 오류 응답 |
 
 전부 `paths.py` 한 곳에서만 읽으므로, 경로가 바뀌면 `.env`만 고치면 되고 코드는 안 건드려도 됩니다.
-⚠️ 스케줄러가 쓰는 `dashboard_update.py`/`.bat`가 폴더 경로를 **CLI 인수로 스크립트에 직접 넘기면**
-`.env` 값을 그 실행 동안 완전히 덮어씁니다 — `.env`를 바꿨는데 반영이 안 될 때 가장 먼저 의심할 지점.
+
+**PPT 원본 폴더는 `.env`로 설정하지 않습니다** — `paths.py`의 `PPT_SOURCE_DIR`(NAS `\\10.206.32.3\기술교육팀\1. 실 공통\5. 보고서 수집`)로
+고정이고, 예전 `EXTRACT_BASE_DIR`/`EXTRACT_KPI_ROOT_DIR`·CLI 폴더 인수는 무시됩니다(2026-09-30).
+추출이 "대상 폴더를 찾을 수 없습니다"로 실패하면, 그 PC에서 파일 탐색기로 `\\10.206.32.3`에 접속(로그인)돼 있는지·폴더 권한이 있는지 먼저 확인하세요.
 
 ### `extract_financial_ppt.py` (재무 — 증분 처리, 안 바뀐 파일은 스킵)
 
@@ -305,7 +305,6 @@ python scripts/extract_financial_ppt.py  # 재무 PPT → data/재무관점 필�
 |------|--------|------|
 | `FORCE_REPROCESS` | `False` | `True`면 파일 서명(파일명\|수정시각\|크기) 일치 여부와 무관하게 **대상 폴더 전체를 처음부터 재추출**. 추출 로직 자체를 바꿔서 이미 처리된 파일들을 새 로직으로 다시 평가해야 할 때만 잠깐 켰다가, 끝나면 반드시 `False`로 되돌릴 것 — 안 그러면 이후 모든 실행이 전체 재스캔(느림)이 됨 |
 | `RESET_OUTPUT_ON_START` | `False` | `True`면 실행 시작 시 취합·처리이력 시트를 통째로 비우고 시작(완전 초기화) |
-| CLI 위치 인수 | (없음) | `python extract_financial_ppt.py "폴더경로"` — 이번 실행에 한해 `EXTRACT_BASE_DIR`을 덮어씀 |
 | `--retry` | - | AIP 암호화 해제 실패 목록(`data/aip_failed.txt`)에 남은 파일만 재처리 |
 | `EXCLUDE_FILENAMES` | `{"테스트 입니다.pptx"}` | 파일명이 일치하면 무조건 건너뜀 |
 | `TITLE_KEYWORD` | `"[내부용①] 재무관점 필수 데이터"` | PPT 슬라이드 제목에 이 문자열이 없으면 표를 못 찾은 것으로 보고 추출 안 함(품질 감사 보고서 필터 기준과 동일 — CLAUDE.md 참고) |
@@ -327,7 +326,6 @@ Navbar 데이터 이상 배지에 노출합니다(상세는 [데이터 품질 �
 | 설정 | 기본값 | 의미 |
 |------|--------|------|
 | (`FORCE_REPROCESS` 없음) | - | 재무와 달리 서명 캐시로 건너뛰는 로직 자체가 없어 **매 실행마다 대상 폴더 PPT 전체**를 다시 파싱함 |
-| CLI 위치 인수 | (없음) | `python extract_kpi_ppt.py "폴더경로"` — 이번 실행에 한해 `EXTRACT_KPI_ROOT_DIR`을 덮어씀 |
 | `--retry` | - | AIP 실패 목록(`data/kpi_aip_failed.txt`)만 재처리 |
 | `TITLE_KEYWORD` | `"KPI/경영현황"` | 이 문자열이 슬라이드 제목에 없으면 KPI 표를 못 찾은 것으로 보고 건너뜀 |
 | `REPORT_STAGE_KEYWORDS` | `[사전검토, 사업계획, 제안, 착수, 중간, 완료, 검토]` | 파일명에서 보고단계를 판별할 때 찾는 키워드 목록 |

@@ -1246,9 +1246,11 @@ def main():
     logger.info("집계 규칙: L/T열 제외 숫자만 반영, L/T열은 신규/기존만 카운트")
 
     if not ROOT_DIR.exists():
+        # 예전엔 그냥 return(종료코드 0)이라 대시보드에 "완료"로 떠서 추출 안 된 걸 몰랐음(2026-09-30)
         logger.error(f"대상 폴더가 존재하지 않습니다: {ROOT_DIR}")
         print(f"[ERROR] 대상 폴더가 존재하지 않습니다: {ROOT_DIR}")
-        return
+        print(f"[안내] 이 PC에서 파일 탐색기로 \\10.206.32.3 에 한 번 접속(로그인)했는지, 폴더 권한이 있는지 확인하세요")
+        return 1
 
     excel_path = TARGET_EXCEL_PATH
 
@@ -1378,4 +1380,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    _sys.exit(main())
