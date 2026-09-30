@@ -6,7 +6,6 @@ import {
 import {
   SortableContext, rectSortingStrategy, useSortable, arrayMove,
 } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import { useChartViewModel } from '@/hooks/viewmodels';
 import { useTheme, useFilterOptions } from '@/hooks';
 import { useFilterStore } from '@/store';
@@ -17,6 +16,7 @@ import { ChartCard, BarChart, DoughnutChart, Toggle, useTableDndSensors } from '
 import FinanceBreakdownModal from '@/components/features/FinanceBreakdownModal/FinanceBreakdownModal';
 import type { FinanceBreakdownTarget } from '@/hooks/viewmodels/useFinanceBreakdownViewModel';
 import type { ChartOptions } from 'chart.js';
+import { SORTABLE_TRANSITION, sortableItemStyle } from '@/components/ui/sortableMotion';
 import styles from './ChartSection.module.css';
 
 const DEFAULT_CHART_ORDER = ['profitRate', 'revExp', 'costBreakdown', 'stageChart'];
@@ -35,14 +35,12 @@ const withUnstackedTheme = (
 // 카드 전체가 아니라 좌상단 그립 아이콘만 드래그 핸들 — 차트 본문(호버·클릭·바 클릭)은 영향 없음
 interface SortableChartProps { id: string; children: ReactNode; }
 function SortableChart({ id, children }: SortableChartProps) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, transition: SORTABLE_TRANSITION });
   return (
     <div
       ref={setNodeRef}
       style={{
-        transform: CSS.Transform.toString(transform),
-        transition,
-        opacity: isDragging ? 0.5 : 1,
+        ...sortableItemStyle({ transform, transition, isDragging }),
         height: '100%',
         minWidth: 0,
         minHeight: 0,

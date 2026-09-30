@@ -6,10 +6,10 @@ import {
 import {
   SortableContext, rectSortingStrategy, useSortable, arrayMove,
 } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import { Button, DoughnutChart, useTableDndSensors } from '@/components/ui';
 import BigCostDoughnut from './BigCostDoughnut';
 import { stripPartPrefix } from '@/utils';
+import { SORTABLE_TRANSITION, sortableItemStyle } from '@/components/ui/sortableMotion';
 import styles from './CostBreakdownModal.module.css';
 
 interface CostData {
@@ -42,17 +42,15 @@ function SortableCard({ cell, colors, showLabels, cols4, onExpand }: {
   cell: Cell; colors: string[]; showLabels: boolean; cols4: boolean;
   onExpand: (key: string) => void;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: cell.key });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: cell.key, transition: SORTABLE_TRANSITION });
   return (
     <div
       ref={setNodeRef}
       {...attributes}
       {...listeners}
       style={{
-        transform: CSS.Transform.toString(transform),
-        transition,
-        opacity: isDragging ? 0.4 : 1,
-        cursor: 'grab',
+        ...sortableItemStyle({ transform, transition, isDragging }),
+        cursor: isDragging ? 'grabbing' : 'grab',
       }}
       className={styles.partCard}
     >

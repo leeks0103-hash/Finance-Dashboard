@@ -107,9 +107,11 @@ interface Props {
     onPageSizeChange: (s: number) => void;
   };
   serverSearch?: { value: string; onChange: (v: string) => void };
+  /** 제목줄 아래(툴바+표)에만 붙일 클래스 — TableTitleBar bodyClassName */
+  bodyClassName?: string;
 }
 
-const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, searchExtra, serverPagination, serverSearch }: Props) => {
+const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, searchExtra, serverPagination, serverSearch, bodyClassName }: Props) => {
   // ── 컬럼 순서 ─────────────────────────────────────────────
   const [colOrder, setColOrder] = useState<string[]>(() => {
     const saved  = loadFromLS<string[]>(LS_ORDER, []);
@@ -311,7 +313,7 @@ const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, searchE
   if (!title) return card;
 
   return (
-    <TableTitleBar title={title} count={totalLabel} toolbarExtra={toolbarExtra}>
+    <TableTitleBar title={title} count={totalLabel} toolbarExtra={toolbarExtra} bodyClassName={bodyClassName}>
       {card}
     </TableTitleBar>
   );

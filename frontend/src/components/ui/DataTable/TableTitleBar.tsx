@@ -9,11 +9,13 @@ interface Props {
   toolbarExtra?: ReactNode;
   /** 제공 시 제목 옆에 ⓘ 버튼 표시 — 클릭하면 데이터 기준 설명 팝오버 */
   info?:         ReactNode;
+  /** 제목줄 아래(툴바+표)에만 붙일 클래스 — 뷰 전환 페이드처럼 제목·토글은 가만히 두고 표만 움직일 때 */
+  bodyClassName?: string;
   children:      ReactNode;
 }
 
 /** 테이블 상단 제목 + 건수 배지 + 툴바 확장 슬롯 래퍼 — DataTable·KpiRawTable 공용 */
-export const TableTitleBar = ({ title, count, toolbarExtra, info, children }: Props) => (
+export const TableTitleBar = ({ title, count, toolbarExtra, info, bodyClassName, children }: Props) => (
   <div className={styles.outerGroup}>
     <div className={styles.outerTitle}>
       <div className={styles.outerTitleLeft}>
@@ -26,6 +28,6 @@ export const TableTitleBar = ({ title, count, toolbarExtra, info, children }: Pr
       </div>
       {toolbarExtra && <div className={styles.extra}>{toolbarExtra}</div>}
     </div>
-    {children}
+    {bodyClassName ? <div className={bodyClassName}>{children}</div> : children}
   </div>
 );

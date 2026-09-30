@@ -271,8 +271,10 @@ const KpiPage = () => {
                 <FilterSelect value={rawStageVal} onChange={setRawStage} options={stageOptions} allLabel="보고단계 전체" />
               </div>
             );
-            // 목록 ↔ KPI 상세 전환 시 뚝 바뀌지 않게 — 기존 표 .swapOut → 새 표 .swapFadeIn(key로 재생, index.css)
-            return <div key={shownView} className={viewLeaving ? 'swapOut' : 'swapFadeIn'}>{shownView === 'flat' ? (
+            // 목록 ↔ KPI 상세 전환 시 뚝 바뀌지 않게 — 기존 표 .swapOut → 새 표 .swapFadeIn(key로 재생, index.css).
+            // 제목·토글 줄은 가만히 두고 그 아래(툴바+표)만 움직이도록 bodyClassName으로 건다
+            const swapClass = viewLeaving ? 'swapOut' : 'swapFadeIn';
+            return <div key={shownView}>{shownView === 'flat' ? (
               <DataTable<KpiRawRow>
                 data={vm.rawRows}
                 columns={rawColumns as never}
@@ -291,6 +293,7 @@ const KpiPage = () => {
                 storageKey="kpi-raw-flat"
                 toolbarExtra={viewToggle}
                 searchExtra={rawFilters}
+                bodyClassName={swapClass}
               />
             ) : (
               <KpiRawTable
@@ -302,6 +305,7 @@ const KpiPage = () => {
                 serverSearch={vm.serverSearch}
                 toolbarExtra={viewToggle}
                 searchExtra={rawFilters}
+                bodyClassName={swapClass}
               />
             )}</div>;
           })()}

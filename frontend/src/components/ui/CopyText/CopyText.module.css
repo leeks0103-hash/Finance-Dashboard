@@ -38,15 +38,38 @@
   color: var(--text-muted);
   cursor: pointer;
   font: inherit;
-  font-size: 0.8rem;
   line-height: 1;
-  opacity: 0.7;
-  transition: background 0.14s ease, color 0.14s ease, opacity 0.14s ease;
+  opacity: 0.6;
+  transition: background-color 0.25s ease, color 0.25s ease, opacity 0.25s ease;
 }
-.openBtn:hover {
-  background: var(--bg-subtle);
-  color: var(--text-primary);
+/* 호버 — 회색(bg-subtle)은 표 줄 호버(연파랑 brand-bg) 위에서 탁해 보였음 → 브랜드색을 한 톤 진하게 섞어
+   줄 호버 위에서도 구분되게. 화살표만 오른쪽 위로 살짝 밀려 "열기" 느낌 */
+.openBtn:hover,
+.openBtn:focus-visible {
+  background: color-mix(in srgb, var(--brand-mid) 14%, transparent);
+  color: var(--brand-mid);
   opacity: 1;
+}
+.openIcon { display: block; overflow: visible; }
+.openArrow { transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1); }
+.openBtn:hover .openArrow { transform: translate(1px, -1px); }
+
+/* 파일 여는 중 — 서버 응답 올 때까지(최소 0.6초) 작은 스피너 */
+.opening { cursor: progress; opacity: 1; color: var(--brand-mid); }
+.openSpinner {
+  width: 10px;
+  height: 10px;
+  border: 1.5px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: openSpin 0.7s linear infinite, openSpinIn 0.2s ease both;
+}
+@keyframes openSpin   { to { transform: rotate(360deg); } }
+@keyframes openSpinIn { from { opacity: 0; } to { opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .openArrow, .openBtn:hover .openArrow { transition: none; transform: none; }
+  .openSpinner { animation-duration: 1.4s, 0s; }
 }
 
 .root:hover {
@@ -98,16 +121,29 @@
 
 /* 복사 완료: ✓ 텍스트 표시 — 폭은 12px 그대로(✓가 넘치면 overflow로 보이게만).
    예전 width:auto는 ✓ 폭만큼 셀이 넓어져, 내용 폭 기준(table-layout:auto) 표에서 복사할 때마다
-   컬럼 폭이 1.5초간 바뀌었다 돌아왔음(2026-09-29) */
+   컬럼 폭이 1.5초간 바뀌었다 돌아왔음(2026-09-29).
+   뚝 바뀌지 않게 — ✓는 서서히 떠올랐다 머문 뒤 사라짐. 길이 1.5s는 CopyText.tsx COPIED_MS와 맞출 것 */
 .check {
-  opacity: 1 !important;
   color: var(--profit);
   font-size: 0.85rem;
   overflow: visible;
+  animation: copiedCheck 1.5s ease both;
 }
 
-/* 복사 완료 행 전체 */
-.copied {
-  background: var(--profit-bg) !important;
-  color: var(--profit) !important;
+/* 복사 완료 행 전체 — 배경·글자색도 같은 리듬으로 번졌다가 원래 색으로 돌아감.
+   0%/100%를 비워둬서 시작·끝은 원래(호버 포함) 색 그대로 → 끝날 때 튀지 않음 */
+.copied { animation: copiedFlash 1.5s ease both; }
+
+@keyframes copiedCheck {
+  0%       { opacity: 0; transform: scale(0.6); }
+  18%, 70% { opacity: 1; transform: none; }
+  100%     { opacity: 0; transform: none; }
+}
+@keyframes copiedFlash {
+  18%, 70% { background: var(--profit-bg); color: var(--profit); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .check  { animation: none; opacity: 1; }
+  .copied { animation: none; background: var(--profit-bg); color: var(--profit); }
 }

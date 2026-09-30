@@ -108,7 +108,7 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
-  animation: chartModalIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: chartOverlayIn 0.3s ease-out both;
 }
 
 .modalCard {
@@ -121,6 +121,8 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
   padding: 16px 22px 20px;
+  /* 배경이 먼저 살짝 어두워진 뒤 카드가 천천히 떠오름 — 크게 튀지 않게 이동·확대는 작게 */
+  animation: chartCardIn 0.42s cubic-bezier(0.22, 1, 0.36, 1) 0.04s both;
 }
 
 .modalHeader {
@@ -160,13 +162,23 @@
   min-height: 0;
 }
 
-@keyframes chartModalIn {
-  from { opacity: 0; transform: scale(0.985); }
+/* 닫을 때 — 들어올 때의 반대로 가라앉으며 사라짐. 길이는 ChartCard.tsx CLOSE_MS(240ms)와 맞출 것 */
+.modalOverlay.closing { animation: chartOverlayOut 0.24s ease-in forwards; pointer-events: none; }
+.modalCard.closing    { animation: chartCardOut 0.22s cubic-bezier(0.4, 0, 1, 1) forwards; }
+
+@keyframes chartOverlayIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes chartCardIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
   to   { opacity: 1; transform: none; }
+}
+@keyframes chartOverlayOut { from { opacity: 1; } to { opacity: 0; } }
+@keyframes chartCardOut {
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: translateY(6px) scale(0.985); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .modalOverlay { animation: none; }
+  .modalOverlay, .modalCard { animation: none; }
 }
 
 @media (max-width: 600px) {

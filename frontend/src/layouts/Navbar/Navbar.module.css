@@ -250,7 +250,28 @@
   /* 폭 고정 — 내용(설명 글자수)에 따라 드롭다운 크기가 바뀌지 않게(2026-09-30) */
   width: 280px;
   z-index: 200;
-  animation: dropIn 0.15s cubic-bezier(0.16, 1, 0.3, 1) both;
+  /* 설정 패널은 다른 드롭다운(dropIn 0.15s)보다 느긋하게 — 위에서부터 커튼처럼 사르륵 펼쳐짐.
+     clip-path로 보이는 영역을 위→아래로 넓힘. 좌우·아래 -24px은 그림자(box-shadow)까지 잘리지 않게 여유 */
+  animation: settingsReveal 0.5s cubic-bezier(0.33, 1, 0.68, 1) both;
+}
+
+/* 투명(0)에서 시작해 펼쳐지는 동안 서서히 진해짐 — 처음에 확 보이지 않게.
+   이징도 초반 폭발이 적은 easeOutCubic으로 */
+@keyframes settingsReveal {
+  from { clip-path: inset(-24px -24px 100% -24px); opacity: 0;    transform: translateY(-6px); }
+  50%  {                                            opacity: 0.75; }
+  to   { clip-path: inset(-24px -24px -24px -24px); opacity: 1;    transform: none; }
+}
+
+/* 닫힐 때 — 펼쳐질 때의 반대로 아래→위로 사르륵 걷히며 흐려짐. 길이는 Navbar.tsx usePresence(open, 320)과 맞출 것 */
+.dropdown.closing {
+  animation: settingsConceal 0.32s cubic-bezier(0.32, 0, 0.67, 0) forwards;
+  pointer-events: none;
+}
+@keyframes settingsConceal {
+  from { clip-path: inset(-24px -24px -24px -24px); opacity: 1;    transform: none; }
+  50%  {                                            opacity: 0.75; }
+  to   { clip-path: inset(-24px -24px 100% -24px); opacity: 0;    transform: translateY(-6px); }
 }
 
 @keyframes dropIn {
@@ -480,4 +501,8 @@
     white-space: nowrap;
     border: 0;
   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dropdown { animation: none; }
 }

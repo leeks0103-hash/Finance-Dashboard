@@ -113,7 +113,8 @@ const Navbar = () => {
   const [healthOpen, setHealthOpen] = useState(false);
   const healthRef = useRef<HTMLDivElement>(null);
   // 닫힐 때도 퇴장 애니메이션 동안 남겨둠(index.css .closingDrop) — 예전엔 뚝 사라졌음
-  const settingsDrop = usePresence(open);
+  // 설정 패널은 자체 퇴장(Navbar.module.css .dropdown.closing, 0.32s) — 그 길이만큼 남겨둠
+  const settingsDrop = usePresence(open, 320);
   const healthDrop   = usePresence(healthOpen);
   // PPT 파일명 옆 ↗ 바로가기(CopyText onOpen) — 2026-09-15 주석 처리했다가 2026-09-29 복구
   const { openFile } = useOpenFile();
@@ -326,7 +327,7 @@ const Navbar = () => {
           </Button>
 
           {settingsDrop.mounted && (
-            <div className={`${styles.dropdown} ${settingsDrop.closing ? 'closingDrop' : ''}`}>
+            <div className={`${styles.dropdown} ${settingsDrop.closing ? styles.closing : ''}`}>
               <div className={styles.section}>
                 <span className={styles.sectionLabel}>테마</span>
                 <div className={styles.row}>

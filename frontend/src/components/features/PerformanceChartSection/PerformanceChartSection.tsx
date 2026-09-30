@@ -6,7 +6,6 @@ import {
 import {
   SortableContext, rectSortingStrategy, useSortable, arrayMove,
 } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import { usePerformanceChartViewModel } from '@/hooks/viewmodels';
 import type { MonthlyTableRow, PlanVsActualRow } from '@/hooks/viewmodels/usePerformanceChartViewModel';
 import { useTheme } from '@/hooks';
@@ -28,6 +27,7 @@ import {
 import type { ChartOptions } from 'chart.js';
 import { stripPartPrefix } from '@/utils/format';
 import { getDatalabelAlpha } from '@/utils/datalabelFade';
+import { SORTABLE_TRANSITION, sortableItemStyle } from '@/components/ui/sortableMotion';
 import styles from './PerformanceChartSection.module.css';
 
 // 레이아웃: 월별 실적 추이(전체 너비 1줄) → 파트별 이익율+원가구성(1줄) → 파트별 계획vs실적+진행단계(1줄)
@@ -402,15 +402,13 @@ const withUnstackedTheme = (
 //   재배치해도 파트별 추정 매출/원가가 좁아지지 않게
 interface SortableChartProps { id: string; fullRow?: boolean; spanClassName?: string; children: ReactNode; }
 function SortableChart({ id, fullRow, spanClassName, children }: SortableChartProps) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, transition: SORTABLE_TRANSITION });
   return (
     <div
       ref={setNodeRef}
       className={[fullRow ? styles.fullRow : '', spanClassName ?? ''].filter(Boolean).join(' ') || undefined}
       style={{
-        transform: CSS.Transform.toString(transform),
-        transition,
-        opacity: isDragging ? 0.5 : 1,
+        ...sortableItemStyle({ transform, transition, isDragging }),
         height: '100%',
         minWidth: 0,
         minHeight: 0,

@@ -24,6 +24,9 @@ interface RootProps {
   modalHeight?: string;
 }
 
+// 확대 모달 퇴장 길이 — ChartCard.module.css .modalOverlay.closing과 맞출 것
+const CLOSE_MS = 240;
+
 const Root = ({ children, compact = true, expandable = true, modalContent, modalHeight }: RootProps) => {
   const [title, body] = Children.toArray(children);
   const [expanded, setExpanded] = useState(false);
@@ -31,7 +34,7 @@ const Root = ({ children, compact = true, expandable = true, modalContent, modal
   // 모달 열림 동안 배경 스크롤 잠금 (스크롤바 폭 보정 포함 — 화면 튐 방지)
   useScrollLock(expanded);
   // ESC 닫기 — 모달을 겹쳐 열었을 땐 맨 위 것만 닫힌다
-  const { closing, close } = useAnimatedClose(() => setExpanded(false));
+  const { closing, close } = useAnimatedClose(() => setExpanded(false), CLOSE_MS);
   useEscToClose(close, expanded);
 
   const titleRow = (className: string) => (
@@ -55,9 +58,9 @@ const Root = ({ children, compact = true, expandable = true, modalContent, modal
 
   // 카드와 같은 title/body를 그대로 재사용 — 모달 안에서는 더 큰 영역에 다시 그려진다
   const modal = expanded && createPortal(
-    <div className={`${styles.modalOverlay} ${closing ? 'closingOverlay' : ''}`} onClick={close} role="presentation">
+    <div className={`${styles.modalOverlay} ${closing ? styles.closing : ''}`} onClick={close} role="presentation">
       <div
-        className={`${styles.modalCard} ${closing ? 'closingPanel' : ''}`}
+        className={`${styles.modalCard} ${closing ? styles.closing : ''}`}
         style={modalHeight ? { height: modalHeight } : undefined}
         role="dialog"
         aria-modal="true"

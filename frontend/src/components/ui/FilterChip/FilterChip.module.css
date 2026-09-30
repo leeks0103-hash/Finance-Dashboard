@@ -7,7 +7,14 @@
   color: var(--text-sub);
   background: var(--surface);
   cursor: pointer;
-  transition: all var(--transition);
+  /* 켜고 끌 때 색이 뚝 바뀌지 않게 — 공통 --transition(0.18s)보다 느긋하게 번지듯 전환 */
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease,
+    color 0.3s ease,
+    box-shadow 0.3s ease,
+    filter 0.2s ease,
+    transform 0.2s ease;
   line-height: 1.4;
   user-select: none;
   white-space: nowrap;
@@ -29,11 +36,17 @@
   /* font-weight는 안 바꿈 — bold면 글자 폭이 늘어나 체크할 때마다 칩 크기가 미세하게 들썩임.
      배경 채움 + 테두리 + 그림자 + 팝 애니메이션만으로 선택 상태를 충분히 구분 가능 */
   box-shadow: 0 2px 8px color-mix(in srgb, var(--brand-mid) 30%, transparent);
-  animation: chipPop 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: chipSettle 0.32s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .checked:hover { filter: brightness(1.08); }
 
-@keyframes chipPop {
-  0%   { transform: scale(0.85); }
-  100% { transform: scale(1); }
+/* 선택 시 — 튕기는 팝(0.85→오버슈트) 대신 살짝 눌렸다가 차분히 제자리로 */
+@keyframes chipSettle {
+  from { transform: scale(0.95); }
+  to   { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chip { transition: none; }
+  .checked { animation: none; }
 }

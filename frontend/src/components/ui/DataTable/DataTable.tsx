@@ -259,6 +259,8 @@ interface Props<T> {
   searchExtra?: ReactNode;
   /** 제목 옆 ⓘ 버튼 — 클릭 시 데이터 기준 설명 팝오버 */
   info?: ReactNode;
+  /** 제목줄 아래(툴바+표)에만 붙일 클래스 — TableTitleBar bodyClassName */
+  bodyClassName?: string;
   /** 더블클릭 시 검색바에 해당 셀 값을 자동 입력할 컬럼 id 목록 (예: project_code) */
   searchOnDblClick?: string[];
   /** 더블클릭 시 행 바로 아래에 콘텐츠를 펼치는 기능 — searchOnDblClick과 동시 사용 시 이쪽이 우선 */
@@ -318,6 +320,7 @@ const DataTable = <T extends object>({
   toolbarExtra,
   searchExtra,
   info,
+  bodyClassName,
   searchOnDblClick,
   expandableRow,
   mergeRowsByKey,
@@ -997,7 +1000,7 @@ const DataTable = <T extends object>({
   if (!title) return tableCard;
 
   return (
-    <TableTitleBar title={title} count={!hideCount ? pagination.countLabel : undefined} toolbarExtra={toolbarExtra} info={info}>
+    <TableTitleBar title={title} count={!hideCount ? pagination.countLabel : undefined} toolbarExtra={toolbarExtra} info={info} bodyClassName={bodyClassName}>
       {tableCard}
     </TableTitleBar>
   );

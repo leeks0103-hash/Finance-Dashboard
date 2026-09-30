@@ -6,8 +6,9 @@ const CLOSE_MS = 160;   // index.css .closingOverlay/.closingPanel 길이와 맞
 /**
  * 모달을 닫을 때 퇴장 애니메이션(index.css .closingOverlay/.closingPanel)을 먼저 보여주고 onClose 호출.
  * closing이 true인 동안 overlay/panel에 그 클래스를 붙이면 된다. 움직임 줄이기 설정이면 즉시 닫음.
+ * 자체 퇴장 애니메이션을 쓰는 곳(ChartCard 등)은 ms에 그 길이를 넘긴다.
  */
-export const useAnimatedClose = (onClose: () => void) => {
+export const useAnimatedClose = (onClose: () => void, ms = CLOSE_MS) => {
   const [closing, setClosing] = useState(false);
   const timer = useRef<number | undefined>(undefined);
   const cb = useRef(onClose);
@@ -22,7 +23,7 @@ export const useAnimatedClose = (onClose: () => void) => {
     timer.current = window.setTimeout(() => {
       setClosing(false);
       cb.current();
-    }, CLOSE_MS);
+    }, ms);
   };
 
   return { closing, close };
@@ -50,15 +51,16 @@ export const useSwapView = <V,>(view: V) => {
  * open 상태로 켜고 끄는 드롭다운용 — open이 false가 된 뒤에도 퇴장 애니메이션 동안(CLOSE_MS) 남겨둔다.
  * mounted면 렌더, closing이면 index.css .closingDrop 같은 퇴장 클래스를 붙이면 됨.
  * setOpen을 부르는 곳(바깥 클릭·항목 클릭 등)을 하나도 안 바꿔도 되는 게 장점.
+ * 자체 퇴장 애니메이션을 쓰는 곳(설정 패널 등)은 ms에 그 길이를 넘긴다.
  */
-export const usePresence = (open: boolean) => {
+export const usePresence = (open: boolean, ms = CLOSE_MS) => {
   const [mounted, setMounted] = useState(open);
   useEffect(() => {
     if (open) { setMounted(true); return; }
     if (!mounted) return;
     if (reducedMotion()) { setMounted(false); return; }
-    const t = window.setTimeout(() => setMounted(false), CLOSE_MS);
+    const t = window.setTimeout(() => setMounted(false), ms);
     return () => window.clearTimeout(t);
-  }, [open, mounted]);
+  }, [open, mounted, ms]);
   return { mounted: open || mounted, closing: !open && mounted };
 };

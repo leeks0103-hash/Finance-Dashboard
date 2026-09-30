@@ -6,10 +6,10 @@ import {
 import {
   SortableContext, rectSortingStrategy, useSortable, arrayMove,
 } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import { KpiCard, useTableDndSensors } from '@/components/ui';
 import PerfCompareCard from './PerfCompareCard';
 import type { PerfKpiCard } from '@/hooks/viewmodels/usePerformanceViewModel';
+import { SORTABLE_TRANSITION, sortableItemStyle } from '@/components/ui/sortableMotion';
 import styles from './PerformanceKpiSection.module.css';
 
 // usePerformanceViewModel의 카드 id와 동일해야 함 — 매출 → 원가 → 매출이익 (계획→추정 비교) → 경상손익 → 누계 실적
@@ -25,12 +25,12 @@ interface Props {
 // 위치만 사용자 지정으로 우측 상단
 interface SortableCardProps { id: string; wide: boolean; children: React.ReactNode }
 function SortableCard({ id, wide, children }: SortableCardProps) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, transition: SORTABLE_TRANSITION });
   return (
     <div
       ref={setNodeRef}
       className={`${styles.sortable} ${wide ? styles.wide : styles.narrow}`}
-      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }}
+      style={sortableItemStyle({ transform, transition, isDragging })}
     >
       <div className={styles.dragHandle} {...attributes} {...listeners} aria-label="카드 순서 이동" title="드래그하여 순서 변경">
         ⠿
