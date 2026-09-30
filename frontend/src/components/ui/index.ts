@@ -10,6 +10,7 @@ export * from './FilterSelect';
 export * from './Sparkline';
 export * from './ErrorFallback';
 export * from './EmptyState';
+export * from './LineIcon';
 export * from './Chart';
 export * from './Button';
 export * from './CsvExportBar';

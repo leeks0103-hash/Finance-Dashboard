@@ -4,7 +4,7 @@ import { useKpiPageViewModel } from '@/hooks/viewmodels/useKpiPageViewModel';
 import { useKpiFilterOptions } from '@/hooks/useKpiFilterOptions';
 import { useKpiFilterStore } from '@/store/kpiFilter.store';
 import { sortStages } from '@/utils/stageOrder';
-import { ChartCard, BarChart, DataTable, CopyText, HighlightText, Button, Spinner, QueryGate, FilterSelect } from '@/components/ui';
+import { ChartCard, BarChart, DataTable, CopyText, HighlightText, Button, Spinner, QueryGate, FilterSelect, LineIcon } from '@/components/ui';
 import { FadeInSection } from '@/components/FadeInSection';
 import { useSwapView } from '@/components/ui/useAnimatedClose';
 import KpiRawTable from '@/components/features/KpiRawTable/KpiRawTable';
@@ -146,7 +146,7 @@ const KpiPage = () => {
   const emptyView = (
     <main className={styles.main}>
       <div className={styles.stub}>
-        <div className={styles.icon}>📊</div>
+        <div className={styles.icon}><LineIcon kind="chart" size={48} /></div>
         <h2 className={styles.title}>KPI 데이터</h2>
         <p className={styles.desc}>{vm.message ?? 'KPI 추출 스크립트를 먼저 실행해주세요.'}</p>
         <code className={styles.path}>extract_kpi_ppt.py 실행 → KPI 지표 데이터 추출.xlsx</code>

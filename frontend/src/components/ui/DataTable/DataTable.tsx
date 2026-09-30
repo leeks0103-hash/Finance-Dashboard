@@ -21,6 +21,7 @@ import {
 import { Button } from '@/components/ui/Button';
 import { Pagination } from '@/components/ui/Pagination';
 import { FilterSelect } from '@/components/ui/FilterSelect';
+import { LineIcon } from '@/components/ui/LineIcon';
 import { prefersReducedMotion } from '@/utils/format';
 import { useColumnHighlight } from './useColumnHighlight';
 import { useClipboardPopup } from './useClipboardPopup';
@@ -207,24 +208,6 @@ export interface ExpandableRow<T> {
 }
 
 export type EmptyIconKind = 'search' | 'list';
-
-/** 빈 상태 아이콘 — 글자색(muted)을 따라가는 얇은 선. 이모지는 OS마다 모양·색이 달라 튀어 보였음 */
-const EmptyIcon = ({ kind }: { kind: EmptyIconKind }) => (
-  <svg className={styles.emptyIcon} viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"
-    fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    {kind === 'search' ? (
-      <>
-        <circle cx="10.5" cy="10.5" r="6" />
-        <path d="M15 15l5 5" />
-      </>
-    ) : (
-      <>
-        <rect x="4" y="4" width="16" height="16" rx="2.5" />
-        <path d="M8 9h8M8 12.5h8M8 16h5" />
-      </>
-    )}
-  </svg>
-);
 
 interface Props<T> {
   data:               T[];
@@ -894,7 +877,7 @@ const DataTable = <T extends object>({
       ) : rows.length === 0 ? (
         /* 결과 없음 — 테이블 자체를 그리지 않아 불필요한 가로 스크롤 방지 */
         <div className={styles.emptyInner}>
-          <EmptyIcon kind={emptyIcon} />
+          <LineIcon kind={emptyIcon} className={styles.emptyIcon} />
           <strong>{emptyTitle}</strong>
           <span>{emptyDescription}</span>
         </div>

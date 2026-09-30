@@ -1,15 +1,16 @@
 import type { ReactNode } from 'react';
+import { LineIcon } from '../LineIcon';
 import styles from './EmptyState.module.css';
 
 interface Props {
-  icon?:        string;
+  icon?:        ReactNode;
   title?:       string;
   description?: string;
   action?:      ReactNode;
 }
 
 const EmptyState = ({
-  icon = '📭',
+  icon = <LineIcon kind="inbox" size={36} />,
   title = '데이터가 없습니다',
   description = '필터 조건을 변경하거나 데이터를 확인해 주세요.',
   action,

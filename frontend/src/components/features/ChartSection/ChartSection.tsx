@@ -12,7 +12,7 @@ import { useFilterStore } from '@/store';
 import { makeBarOptions } from '@/utils/chartOptions';
 import { getChartPalette, getChartTheme } from '@/utils/chartColors';
 import { isAllSelected } from '@/utils/array';
-import { ChartCard, BarChart, DoughnutChart, Toggle, useTableDndSensors } from '@/components/ui';
+import { ChartCard, BarChart, DoughnutChart, Toggle, useTableDndSensors, LineIcon } from '@/components/ui';
 import FinanceBreakdownModal from '@/components/features/FinanceBreakdownModal/FinanceBreakdownModal';
 import type { FinanceBreakdownTarget } from '@/hooks/viewmodels/useFinanceBreakdownViewModel';
 import type { ChartOptions } from 'chart.js';
@@ -56,7 +56,7 @@ function SortableChart({ id, children }: SortableChartProps) {
 }
 
 // 로딩/에러/데이터없음 4칸 플레이스홀더 — 셋이 카드 4개짜리 그리드라는 구조만 같고 내용만 다름
-interface ChartStateGridProps { variant: 'skeleton' | 'error' | 'empty'; icon?: string; message?: string; }
+interface ChartStateGridProps { variant: 'skeleton' | 'error' | 'empty'; icon?: ReactNode; message?: string; }
 function ChartStateGrid({ variant, icon, message }: ChartStateGridProps) {
   return (
     <>
@@ -272,7 +272,7 @@ const ChartSection = () => {
 
   const content = chartState === 'loading' ? <ChartStateGrid variant="skeleton" />
     : chartState === 'error' ? <ChartStateGrid variant="error" icon="⚠" message="데이터를 불러올 수 없습니다" />
-    : chartState === 'empty' ? <ChartStateGrid variant="empty" icon="📊" message="데이터 없음" />
+    : chartState === 'empty' ? <ChartStateGrid variant="empty" icon={<LineIcon kind="chart" />} message="데이터 없음" />
     : visibleCharts.map(c => <SortableChart key={c.id} id={c.id}>{c.node}</SortableChart>);
 
   return (

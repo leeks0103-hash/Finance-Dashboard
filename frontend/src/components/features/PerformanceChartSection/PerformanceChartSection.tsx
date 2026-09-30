@@ -13,7 +13,7 @@ import { makeBarOptions, legendRadioClick } from '@/utils/chartOptions';
 import { getChartPalette, getChartTheme } from '@/utils/chartColors';
 // Toggle — 파트별 경상이익 토글 비활성화로 미사용(주석 처리). 복구 시 함께 import
 import { createColumnHelper } from '@tanstack/react-table';
-import { ChartCard, BarChart, DoughnutChart, DataTable, useTableDndSensors, InfoButton, Button } from '@/components/ui';
+import { ChartCard, BarChart, DoughnutChart, DataTable, useTableDndSensors, InfoButton, Button, LineIcon } from '@/components/ui';
 import type { Plugin, Chart, LegendItem, LegendElement, ChartEvent } from 'chart.js';
 import CostFilterPopover from './CostFilterPopover';
 import PerfBreakdownModal from '@/components/features/PerfBreakdownModal/PerfBreakdownModal';
@@ -426,7 +426,7 @@ function SortableChart({ id, fullRow, spanClassName, children }: SortableChartPr
 // 로딩/에러/데이터없음 플레이스홀더 — 실제 차트와 같은 id 목록·span을 그대로 써서 레이아웃을
 // 맞춘다. 예전엔 카드 span 없이 고정 개수(5)만 찍어서, 2번째 줄(카드 3개, span 5+3+4=12)이
 // 에러/빈 상태가 되면 각 칸이 span 없는 기본 1칸으로 쪼그라들어 오른쪽이 텅 비어 보였음
-interface ChartStateGridProps { variant: 'skeleton' | 'error' | 'empty'; icon?: string; message?: string; ids: string[]; }
+interface ChartStateGridProps { variant: 'skeleton' | 'error' | 'empty'; icon?: ReactNode; message?: string; ids: string[]; }
 function ChartStateGrid({ variant, icon, message, ids }: ChartStateGridProps) {
   return (
     <>
@@ -990,7 +990,7 @@ const PerformanceChartSection = () => {
 
   const content = chartState === 'loading' ? <ChartStateGrid variant="skeleton" ids={chartOrder} />
     : chartState === 'error' ? <ChartStateGrid variant="error" icon="⚠" message="데이터를 불러올 수 없습니다" ids={chartOrder} />
-    : chartState === 'empty' ? <ChartStateGrid variant="empty" icon="📊" message="데이터 없음" ids={chartOrder} />
+    : chartState === 'empty' ? <ChartStateGrid variant="empty" icon={<LineIcon kind="chart" />} message="데이터 없음" ids={chartOrder} />
     : visibleCharts.map(c => (
         <SortableChart
           key={c.id}
