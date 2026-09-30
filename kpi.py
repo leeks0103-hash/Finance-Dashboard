@@ -905,5 +905,5 @@ def api_kpi_open_file():
         return jsonify({"ok": False, "message": "파일명이 없습니다."}), 400
     path = find_source_path(KPI_EXCEL_PATH, "처리 이력", filename)
     logger.info("[파일 열기/KPI] filename=%s -> path=%s", filename, path)
-    body, status = open_source_file(path)
+    body, status = open_source_file(path, check_only=bool(data.get("check")))
     return jsonify(body), status

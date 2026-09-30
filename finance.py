@@ -581,7 +581,7 @@ def api_finance_open_file():
     # 처리이력 시트의 전체경로로 서버 PC에서 직접 실행 (AIP 암호화돼도 COM 우회 — read_sheet_cached)
     path = find_source_path(EXCEL_PATH, "처리이력", filename)
     logger.info("[파일 열기/재무] filename=%s -> path=%s", filename, path)
-    body, status = open_source_file(path)
+    body, status = open_source_file(path, check_only=bool(data.get("check")))
     return jsonify(body), status
 
 

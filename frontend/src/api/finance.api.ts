@@ -30,13 +30,17 @@ export const getFinanceCodes = (): Promise<Record<string, number>> =>
 export interface OpenFileResult {
   ok:       boolean;
   message?: string;
+  /** 다른 사람이 열람 중(잠금파일 있음) — 오류가 아니라 안내로 보여줌 */
+  locked?:  boolean;
+  /** check=true 요청에 대한 응답(실제로 열지는 않음) */
+  checked?: boolean;
 }
 
 /** 파일명으로 원본 PPT 위치를 찾아 서버(로컬 PC)에서 직접 실행.
  *  실패(404 못 찾음 · 409 이미 열려있음)도 axios가 던지는 예외가 아니라
  *  { ok:false, message } 형태로 정상 resolve — 호출부가 항상 .then(r => r.ok)만 보면 되게 */
-export const openFinanceFile = (filename: string): Promise<OpenFileResult> =>
-  client.post<OpenFileResult>('/finance/open-file', { filename })
+export const openFinanceFile = (filename: string, check = false): Promise<OpenFileResult> =>
+  client.post<OpenFileResult>('/finance/open-file', { filename, check })
     .then(r => r.data)
     .catch((err): OpenFileResult => err?.response?.data ?? { ok: false, message: '파일을 열 수 없습니다.' });
 
