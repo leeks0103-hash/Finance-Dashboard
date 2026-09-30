@@ -19,6 +19,22 @@ def is_ranked_valid_code(code: str) -> bool:
     return True
 
 
+# 파트명 앞 원문자(①~⑳) — 프론트 stripPartPrefix와 동일 범위
+PART_PREFIX_RE = re.compile(r"^[①-⑳]\s*")
+
+
+def strip_part_prefix(part) -> str:
+    return PART_PREFIX_RE.sub("", str(part)).strip()
+
+
+def safe_mtime(path):
+    """파일 수정시각 — 없거나 못 읽으면 None (mtime 캐시 비교용)."""
+    try:
+        return os.path.getmtime(path)
+    except OSError:
+        return None
+
+
 _STAGE_SUFFIXES = ["사전검토", "착수", "중간", "완료", "제안"]
 
 
@@ -182,3 +198,35 @@ def read_sheet_cached(path: str, sheet_name: str):
     if df is not None:
         _sheet_cache[key] = (mtime, df)
     return df
+
+
+def find_source_path(excel_path: str, sheet_name: str, filename: str) -> "str | None":
+    """추출 결과 xlsx의 처리이력 시트에서 파일명으로 원본 PPT 전체경로를 찾는다(재무·KPI 공용).
+    같은 파일명이 여러 번 재처리됐으면 가장 최근(처리일시 최대) 걸 사용."""
+    if not filename or not os.path.exists(excel_path):
+        return None
+    hist = read_sheet_cached(excel_path, sheet_name)
+    if hist is None:
+        logger.warning("처리이력 시트 읽기 실패: %s[%s]", excel_path, sheet_name)
+        return None
+    matches = hist[hist["파일명"] == filename]
+    if matches.empty:
+        return None
+    path = str(matches.sort_values("처리일시").iloc[-1]["전체경로"]).strip()
+    return path or None
+
+
+def open_source_file(path: "str | None") -> "tuple[dict, int]":
+    """원본 파일을 서버 PC에서 연다 — (응답 dict, HTTP 상태)를 돌려주고 jsonify는 라우트에서.
+    한 대의 PC(호스트)를 여러 사람이 공유해서 보는 구조라, 누군가 이미 열어둔 파일은 막는다
+    (닫혔는지는 잠금파일이 사라졌는지로 자동 판단 — is_file_locked 참고)."""
+    if not path or not os.path.exists(path):
+        return {"ok": False, "message": "원본 위치를 찾을 수 없습니다 — 폴더가 이동했거나 재추출이 필요할 수 있습니다."}, 404
+    if is_file_locked(path):
+        return {"ok": False, "message": "다른 사람이 이미 열어둔 파일입니다 — 닫힌 뒤 다시 시도해주세요."}, 409
+    try:
+        os.startfile(path)
+    except Exception as e:
+        logger.error("파일 열기 실패(%s): %s", path, e)
+        return {"ok": False, "message": f"파일 실행 실패: {e}"}, 500
+    return {"ok": True}, 200

@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from dotenv import load_dotenv
 from flask import Blueprint, jsonify, request
-from shared import is_file_locked, new_excel_app, read_sheet_cached
+from shared import new_excel_app, safe_mtime, find_source_path, open_source_file
 import paths
 
 load_dotenv()
@@ -35,13 +35,6 @@ _kpi_raw_df: pd.DataFrame = pd.DataFrame()   # 취합 전체 (테이블 표시�
 _kpi_dedup_df: pd.DataFrame = pd.DataFrame() # 프로젝트별 최우선 단계 1건 (집계용)
 _kpi_agg_df: pd.DataFrame = pd.DataFrame()
 _kpi_last_loaded  = None
-
-
-def _safe_mtime(path):
-    try:
-        return os.path.getmtime(path)
-    except OSError:
-        return None
 
 
 def _safe_num(v) -> float:
@@ -294,17 +287,17 @@ def load_kpi_excel():
     logger.info("KPI 취합 %d행 / 집계(중복제거) %d행 / kpi집계 %d행 로드 완료",
                 len(_kpi_raw_df), len(_kpi_dedup_df), len(_kpi_agg_df))
     _kpi_last_loaded  = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    _kpi_cached_mtime = _safe_mtime(KPI_EXCEL_PATH)
+    _kpi_cached_mtime = safe_mtime(KPI_EXCEL_PATH)
 
 
 def get_kpi_df() -> pd.DataFrame:
     """파일 mtime이 바뀌면 자동으로 다시 읽는다."""
     global _kpi_raw_df, _kpi_cached_mtime
-    current_mtime = _safe_mtime(KPI_EXCEL_PATH)
+    current_mtime = safe_mtime(KPI_EXCEL_PATH)
     if not _kpi_raw_df.empty and current_mtime == _kpi_cached_mtime:
         return _kpi_raw_df
     with _kpi_cache_lock:
-        current_mtime = _safe_mtime(KPI_EXCEL_PATH)
+        current_mtime = safe_mtime(KPI_EXCEL_PATH)
         if _kpi_raw_df.empty or current_mtime != _kpi_cached_mtime:
             try:
                 load_kpi_excel()
@@ -904,52 +897,13 @@ def api_kpi_reload():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
-def _find_kpi_file_path(filename: str) -> str | None:
-    """'처리 이력' 시트에서 파일명으로 전체경로를 찾는다 (finance.py _find_file_path와 동일 패턴).
-    같은 파일명이 여러 번 재처리됐으면 가장 최근(처리일시 최대) 걸 사용."""
-    if not filename or not os.path.exists(KPI_EXCEL_PATH):
-        return None
-    # openpyxl만 쓰면 출력 xlsx에 AIP가 붙는 순간 "원본 위치 없음"이 됨 → COM 우회 + mtime 캐시(shared)
-    hist = read_sheet_cached(KPI_EXCEL_PATH, "처리 이력")
-    if hist is None:
-        logger.warning("KPI 처리 이력 시트 읽기 실패: %s", KPI_EXCEL_PATH)
-        return None
-    matches = hist[hist["파일명"] == filename]
-    if matches.empty:
-        return None
-    matches = matches.sort_values("처리일시")
-    path = str(matches.iloc[-1]["전체경로"]).strip()
-    return path or None
-
-
 @kpi_bp.route("/api/kpi/open-file", methods=["POST"])
 def api_kpi_open_file():
     data = request.get_json(silent=True) or {}
     filename = str(data.get("filename", "")).strip()
     if not filename:
         return jsonify({"ok": False, "message": "파일명이 없습니다."}), 400
-
-    path = _find_kpi_file_path(filename)
+    path = find_source_path(KPI_EXCEL_PATH, "처리 이력", filename)
     logger.info("[파일 열기/KPI] filename=%s -> path=%s", filename, path)
-    if not path or not os.path.exists(path):
-        return jsonify({
-            "ok": False,
-            "message": "원본 위치를 찾을 수 없습니다 — 폴더가 이동했거나 재추출이 필요할 수 있습니다.",
-        }), 404
-
-    # 한 대의 PC(호스트)를 여러 사람이 공유해서 보는 구조 — 누군가 이미 열어둔 파일을
-    # 또 열려고 하면 막는다. "닫혔는지"는 이 잠금파일이 사라졌는지로 자동 판단되므로
-    # 별도로 닫힘을 추적할 필요가 없다.
-    if is_file_locked(path):
-        return jsonify({
-            "ok": False,
-            "message": "다른 사람이 이미 열어둔 파일입니다 — 닫힌 뒤 다시 시도해주세요.",
-        }), 409
-
-    try:
-        os.startfile(path)
-    except Exception as e:
-        logger.error("파일 열기 실패(%s): %s", path, e)
-        return jsonify({"ok": False, "message": f"파일 실행 실패: {e}"}), 500
-
-    return jsonify({"ok": True})
+    body, status = open_source_file(path)
+    return jsonify(body), status

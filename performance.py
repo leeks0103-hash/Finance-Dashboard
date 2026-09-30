@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from flask import Blueprint, jsonify, request
 from markupsafe import escape as html_escape
 
-from shared import is_ranked_valid_code
+from shared import is_ranked_valid_code, safe_mtime, PART_PREFIX_RE
 
 load_dotenv()
 
@@ -223,13 +223,6 @@ _PERF_COL_MAPS = {
 }
 
 
-def _safe_mtime(path):
-    try:
-        return os.path.getmtime(path)
-    except OSError:
-        return None
-
-
 def _resolve_perf_sheet(sheet_names):
     candidates = {}
     for name in sheet_names:
@@ -399,7 +392,7 @@ def load_perf_excel():
 
     _perf_cached_df   = df
     _perf_last_loaded = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    _perf_cached_mtime = _safe_mtime(PERF_EXCEL_PATH)
+    _perf_cached_mtime = safe_mtime(PERF_EXCEL_PATH)
     logger.info("실적 엑셀 로드 완료: %d행 (매출 %d, 원가 %d)",
                 len(df),
                 int((df["category"] == "매출").sum()),
@@ -410,11 +403,11 @@ def load_perf_excel():
 def get_perf_df() -> pd.DataFrame:
     """파일 mtime이 바뀌면 자동으로 다시 읽는다."""
     global _perf_cached_df, _perf_cached_mtime
-    current_mtime = _safe_mtime(PERF_EXCEL_PATH)
+    current_mtime = safe_mtime(PERF_EXCEL_PATH)
     if not _perf_cached_df.empty and current_mtime == _perf_cached_mtime:
         return _perf_cached_df
     with _perf_cache_lock:
-        current_mtime = _safe_mtime(PERF_EXCEL_PATH)
+        current_mtime = safe_mtime(PERF_EXCEL_PATH)
         if _perf_cached_df.empty or current_mtime != _perf_cached_mtime:
             try:
                 load_perf_excel()
@@ -425,8 +418,6 @@ def get_perf_df() -> pd.DataFrame:
     return _perf_cached_df
 
 
-_PART_PREFIX_RE = re.compile(r"^[①-⑳]\s*")   # 프론트 stripPartPrefix와 동일 범위
-
 _PROGRESS_PRIORITY = ["제안", "협의", "착수", "중간", "완료", "인큐베이팅", "이월", "드롭", "미정"]
 
 
@@ -434,7 +425,7 @@ def apply_perf_filters(df: pd.DataFrame) -> pd.DataFrame:
     parts = request.args.getlist("part")
     team  = request.args.get("team", "")
     if parts:
-        stripped_part = df["part"].astype(str).apply(lambda p: _PART_PREFIX_RE.sub("", p))
+        stripped_part = df["part"].astype(str).apply(lambda p: PART_PREFIX_RE.sub("", p))
         df = df[stripped_part.isin(parts)]
     if team:
         df = df[df["team"] == team]
@@ -855,7 +846,7 @@ def _perf_breakdown_series(df, spec, s, key):
         sub    = df[df["category"].isin(signs.keys())]
         key_label = key
     elif spec["dim"] == "part":
-        stripped  = df["part"].astype(str).apply(lambda p: _PART_PREFIX_RE.sub("", p).strip())
+        stripped  = df["part"].astype(str).apply(lambda p: PART_PREFIX_RE.sub("", p).strip())
         sub       = df[(df["category"] == s["category"]) & (stripped == key)]
         key_label = key
     else:  # none — 전체 대상

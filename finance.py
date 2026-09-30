@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 from flask import Blueprint, jsonify, request, make_response
 from markupsafe import escape as html_escape
 
-from shared import is_ranked_valid_code, is_file_locked, read_excel_via_com, read_sheet_cached
+from shared import is_ranked_valid_code, read_excel_via_com, safe_mtime, find_source_path, open_source_file
 import paths
 
 load_dotenv()
@@ -50,13 +50,6 @@ _STAGE_PRIORITY = ["검토", "사업계획", "사전검토", "제안", "착수",
 
 def _empty_df() -> pd.DataFrame:
     return pd.DataFrame(columns=COLUMNS)
-
-
-def _safe_mtime(path):
-    try:
-        return os.path.getmtime(path)
-    except OSError:
-        return None
 
 
 def _extract_year(filename: str, reflected_at) -> str:
@@ -177,7 +170,7 @@ def load_excel():
 
     _cached_df = df
     _last_loaded = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    _cached_mtime = _safe_mtime(EXCEL_PATH)
+    _cached_mtime = safe_mtime(EXCEL_PATH)
     logger.info("엑셀 로드 완료: %d행", len(df))
     return df
 
@@ -185,11 +178,11 @@ def load_excel():
 def get_df() -> pd.DataFrame:
     """파일 mtime이 바뀌면 자동으로 다시 읽는다."""
     global _cached_df, _last_loaded, _cached_mtime
-    current_mtime = _safe_mtime(EXCEL_PATH)
+    current_mtime = safe_mtime(EXCEL_PATH)
     if not _cached_df.empty and current_mtime == _cached_mtime:
         return _cached_df
     with _cache_lock:
-        current_mtime = _safe_mtime(EXCEL_PATH)
+        current_mtime = safe_mtime(EXCEL_PATH)
         if _cached_df.empty or current_mtime != _cached_mtime:
             try:
                 load_excel()
@@ -579,56 +572,17 @@ def api_reload():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
-def _find_file_path(filename: str) -> str | None:
-    """처리이력 시트에서 파일명으로 전체경로를 찾는다 — 재추출 없이 이미 매 실행 기록되고
-    있던 절대경로를 그대로 활용(2026-09-15, NAS 이전 전 로컬 경로로 먼저 검증).
-    같은 파일명이 여러 번 재처리됐으면 가장 최근(처리일시 최대) 걸 사용."""
-    if not filename or not os.path.exists(EXCEL_PATH):
-        return None
-    # openpyxl만 쓰면 출력 xlsx에 AIP가 붙는 순간 모든 바로가기가 "원본 위치 없음"이 됐음 → COM 우회 + mtime 캐시
-    hist = read_sheet_cached(EXCEL_PATH, "처리이력")
-    if hist is None:
-        logger.warning("처리이력 시트 읽기 실패: %s", EXCEL_PATH)
-        return None
-    matches = hist[hist["파일명"] == filename]
-    if matches.empty:
-        return None
-    matches = matches.sort_values("처리일시")
-    path = str(matches.iloc[-1]["전체경로"]).strip()
-    return path or None
-
-
 @finance_bp.route("/api/finance/open-file", methods=["POST"])
 def api_finance_open_file():
     data = request.get_json(silent=True) or {}
     filename = str(data.get("filename", "")).strip()
     if not filename:
         return jsonify({"ok": False, "message": "파일명이 없습니다."}), 400
-
-    path = _find_file_path(filename)
+    # 처리이력 시트의 전체경로로 서버 PC에서 직접 실행 (AIP 암호화돼도 COM 우회 — read_sheet_cached)
+    path = find_source_path(EXCEL_PATH, "처리이력", filename)
     logger.info("[파일 열기/재무] filename=%s -> path=%s", filename, path)
-    if not path or not os.path.exists(path):
-        return jsonify({
-            "ok": False,
-            "message": "원본 위치를 찾을 수 없습니다 — 폴더가 이동했거나 재추출이 필요할 수 있습니다.",
-        }), 404
-
-    # 한 대의 PC(호스트)를 여러 사람이 공유해서 보는 구조 — 누군가 이미 열어둔 파일을
-    # 또 열려고 하면 막는다. "닫혔는지"는 이 잠금파일이 사라졌는지로 자동 판단되므로
-    # 별도로 닫힘을 추적할 필요가 없다.
-    if is_file_locked(path):
-        return jsonify({
-            "ok": False,
-            "message": "다른 사람이 이미 열어둔 파일입니다 — 닫힌 뒤 다시 시도해주세요.",
-        }), 409
-
-    try:
-        os.startfile(path)
-    except Exception as e:
-        logger.error("파일 열기 실패(%s): %s", path, e)
-        return jsonify({"ok": False, "message": f"파일 실행 실패: {e}"}), 500
-
-    return jsonify({"ok": True})
+    body, status = open_source_file(path)
+    return jsonify(body), status
 
 
 @finance_bp.route("/api/export/pdf")
