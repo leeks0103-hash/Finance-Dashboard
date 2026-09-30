@@ -8,7 +8,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { makeBarOptions } from '@/utils/chartOptions';
 import { getChartTheme } from '@/utils/chartColors';
 import { sortProgress } from '@/utils/progressOrder';
-import { sortParts } from '@/utils/partOrder';
+import { sortTeams, sortParts } from '@/utils/partOrder';
 import { PERF_MONTH, stripPartPrefix, toEokNum } from '@/utils';
 import type { ChartOptions } from 'chart.js';
 
@@ -136,7 +136,7 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
     setSelectedCostTeamRaw('');
   }, []);
 
-  const teams     = useMemo(() => options?.teams ?? [], [options]);
+  const teams     = useMemo(() => sortTeams(options?.teams ?? []), [options]);
   const teamParts = useMemo(() => options?.team_parts ?? {}, [options]);
 
   const monthlyLength = summary?.monthly.length ?? 12;

@@ -1,7 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { usePerformanceOptions } from '@/hooks/usePerformanceData';
 import { stripPartPrefix } from '@/utils';
-import { sortParts } from '@/utils/partOrder';
+import { sortParts, sortTeams } from '@/utils/partOrder';
 import { usePerfStore } from '@/store/perf.store';
 import { FilterChip, MultiSelectDropdown } from '@/components/ui';
 import { isAllSelected } from '@/utils/array';
@@ -18,7 +18,8 @@ const PerformanceFilterBar = () => {
   const initializeDefaults = usePerfStore(s => s.initializeDefaults);
 
   const parts = sortParts((options?.parts ?? []).map(stripPartPrefix));
-  const teams = options?.teams ?? [];
+  // 고정 순서(기획 → 전동화/모빌리티 → SW). 아래 effect deps라 옵션이 바뀔 때만 새 배열
+  const teams = useMemo(() => sortTeams(options?.teams ?? []), [options?.teams]);
   const teamParts = options?.team_parts ?? {};
 
   // 최초 방문 시 한 번만 — 파트 전체 선택 상태로 시작

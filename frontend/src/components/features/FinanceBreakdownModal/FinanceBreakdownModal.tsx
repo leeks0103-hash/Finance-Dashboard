@@ -84,7 +84,8 @@ const FinanceBreakdownModal = ({ target, onClose }: Props) => {
     <Modal
       onClose={onClose}
       width={1000}
-      title={`${vm.dimLabel} · ${vm.keyLabel || '전체'}`}
+      // 파트는 이름만으로 충분해 "파트 · " 머리말 생략(2026-09-30, 실적 드릴다운과 통일)
+      title={vm.dimLabel === '파트' && vm.keyLabel ? vm.keyLabel : `${vm.dimLabel} · ${vm.keyLabel || '전체'}`}
       sub={`${vm.fieldLabel} 합계 = ${vm.totalStr}${vm.unit === '%' ? '%' : '억원'} (${vm.count}건)`}
       className={styles.modal}
       footer={hasRows && <Button variant="success" size="sm" onClick={handleCsv}>↓ 이 목록 CSV</Button>}

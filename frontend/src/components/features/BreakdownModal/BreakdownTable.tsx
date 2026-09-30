@@ -12,6 +12,8 @@ export interface BreakdownColumn<R> {
    *  title(브라우저 기본 툴팁)로 전체 텍스트 확인. 이 표는 컬럼 리사이즈가 안 되고, 어차피
    *  CopyText가 title로 전체 텍스트를 보여주므로 wrap(여러 줄)보다 이쪽이 행 높이가 안정적 */
   truncate?: boolean;
+  /** truncate 컬럼의 최대 폭(px, 기본 220) — 코드처럼 짧게 두고 싶은 컬럼용 */
+  maxWidth?: number;
   /** 정렬용 원시값 */
   sortValue: (row: R) => string | number;
   /** 화면 표시 */
@@ -87,8 +89,11 @@ export function BreakdownTable<R>({
           {sorted.map((row, i) => (
             <tr key={i} className={rowClassName?.(row)}>
               {columns.map(c => (
-                <td key={c.key} className={`${alignClass(c.align)} ${c.wrap ? styles.wrapCell : ''} ${c.truncate ? styles.truncateCell : ''}`}>
-                  {c.render(row)}
+                <td key={c.key} className={`${alignClass(c.align)} ${c.wrap ? styles.wrapCell : ''}`}>
+                  {/* 표 칸(td)의 max-width는 브라우저가 무시하기도 해서 안쪽 div로 자름 — 가로 스크롤 방지 */}
+                  {c.truncate
+                    ? <div className={styles.truncateCell} style={c.maxWidth ? { maxWidth: c.maxWidth } : undefined}>{c.render(row)}</div>
+                    : c.render(row)}
                 </td>
               ))}
             </tr>

@@ -50,3 +50,23 @@ export const sortByPart = <T>(items: T[], getPart: (item: T) => string): T[] =>
     const d = partRank(getPart(a)) - partRank(getPart(b));
     return d !== 0 ? d : getPart(a).localeCompare(getPart(b), 'ko');
   });
+
+/** 팀 표시 순서 — 담당자 지정 고정 순서(2026-09-30): 기술교육사업기획팀 → 전동화/모빌리티 기술교육팀 → SW 기술교육팀.
+ *  표기 흔들림(공백·슬래시) 대비 키워드 부분일치. 목록에 없는 팀은 뒤에 가나다순 */
+const TEAM_ORDER: string[][] = [
+  ['사업기획'],
+  ['전동화', '모빌리티'],
+  ['SW'],
+];
+
+const teamRank = (team: string): number => {
+  const t = norm(team);
+  const i = TEAM_ORDER.findIndex(keys => keys.some(k => t.includes(norm(k))));
+  return i < 0 ? TEAM_ORDER.length : i;
+};
+
+export const sortTeams = (values: string[]): string[] =>
+  [...values].sort((a, b) => {
+    const d = teamRank(a) - teamRank(b);
+    return d !== 0 ? d : a.localeCompare(b, 'ko');
+  });

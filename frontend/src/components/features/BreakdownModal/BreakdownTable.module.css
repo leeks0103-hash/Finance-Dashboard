@@ -51,7 +51,10 @@
 /* 코드·프로젝트명·파일명처럼 긴 텍스트 컬럼 — nowrap이면 표가 옆으로 넘쳐서(스크롤 발생)
    줄바꿈 허용. 예전엔 ":first-child"로 코드 컬럼을 잡았는데, KPI 모달에 체크박스 컬럼이
    맨 앞에 추가되면서 위치가 밀려 안 먹던 버그가 있었음 — 컬럼별 wrap prop으로 명시 지정 */
-.wrapCell { white-space: normal; word-break: break-word; }
+/* overflow-wrap:anywhere — break-word는 표 칸의 최소 폭 계산엔 안 먹어서 밑줄로만 이어진 긴 이름
+   (예: 26년_…_…_PM)이 칸을 안 줄여 가로 스크롤이 생겼음(2026-09-30). anywhere는 최소 폭에도 반영됨 */
+/* .table td(nowrap)보다 우선순위가 높아야 함 — 예전엔 .wrapCell만 써서 nowrap에 져 줄바꿈이 한 번도 안 먹었음 */
+.table td.wrapCell { white-space: normal; overflow-wrap: anywhere; }
 
 /* placeholder 코드처럼 가끔 비정상적으로 긴 값이 들어오는 컬럼 — 이 표는 컬럼 리사이즈가
    안 되니 wrap(여러 줄)으로 행이 들쭉날쭉해지는 대신 한 줄로 자르고 title 툴팁(CopyText가

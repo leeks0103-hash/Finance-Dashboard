@@ -147,3 +147,12 @@
   .check  { animation: none; opacity: 1; }
   .copied { animation: none; background: var(--profit-bg); color: var(--profit); }
 }
+
+/* truncate — 부모 폭 안에서 한 줄 말줄임(… 표시). 글자를 감싼 span이 있어야 ellipsis가 붙음 */
+.truncWrap { max-width: 100%; }
+.truncText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

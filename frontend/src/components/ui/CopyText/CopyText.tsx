@@ -7,6 +7,8 @@ import styles from './CopyText.module.css';
 interface Props {
   text: string;
   className?: string;
+  /** 부모 폭을 넘으면 한 줄로 자르고 … 표시(전체는 title 툴팁) — 좁은 칸에 긴 값이 오는 표용 */
+  truncate?: boolean;
   highlight?: string;
   /** 제공 시: 더블클릭→onSearch 호출(클릭은 항상 복사). 미제공 시: 더블클릭 동작 없음 */
   onSearch?: (text: string) => void;
@@ -30,7 +32,7 @@ const OpenIcon = () => (
 // 복사 완료 표시 길이 — CopyText.module.css .check/.copied 애니메이션(1.5s)과 맞출 것
 const COPIED_MS = 1500;
 
-const CopyText = ({ text, className, highlight, onSearch, onOpen }: Props) => {
+const CopyText = ({ text, className, highlight, onSearch, onOpen, truncate }: Props) => {
   const [copied, setCopied] = useState(false);
   const [opening, setOpening] = useState(false);
   const canOpen = useContext(FileOpenVisibleContext);
@@ -73,9 +75,9 @@ const CopyText = ({ text, className, highlight, onSearch, onOpen }: Props) => {
     : (copied ? '복사됨!' : text);
 
   return (
-    <span className={styles.wrap}>
+    <span className={`${styles.wrap} ${truncate ? styles.truncWrap : ''}`}>
       <span
-        className={`${styles.root} ${copied ? styles.copied : ''} ${className ?? ''}`}
+        className={`${styles.root} ${truncate ? styles.truncWrap : ''} ${copied ? styles.copied : ''} ${className ?? ''}`}
         onClick={handleClick}
         onDoubleClick={handleDblClick}
         title={title}
@@ -83,7 +85,9 @@ const CopyText = ({ text, className, highlight, onSearch, onOpen }: Props) => {
         tabIndex={0}
         onKeyDown={e => e.key === 'Enter' && copy()}
       >
-        <HighlightText text={text} query={highlight} />
+        {truncate
+          ? <span className={styles.truncText}><HighlightText text={text} query={highlight} /></span>
+          : <HighlightText text={text} query={highlight} />}
         {/* 복사 후: 텍스트 체크마크 / 복사 전: CSS로만 만든 아이콘 */}
         <span className={`${styles.icon} ${copied ? styles.check : ''}`}>
           {copied ? '✓' : ''}
