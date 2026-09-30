@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, useCallback, useEffect, Fragment, type CSSProperties, type ReactNode, type PointerEvent as ReactPointerEvent } from 'react';
+import { useState, useRef, useMemo, useCallback, useEffect, useLayoutEffect, Fragment, type CSSProperties, type ReactNode, type PointerEvent as ReactPointerEvent } from 'react';
 import { usePresence } from '@/components/ui/useAnimatedClose';
 import {
   useReactTable,
@@ -700,6 +700,42 @@ const DataTable = <T extends object>({
   // 실제 보여지는 행 수 기준 — pageSize를 다 못 채워도(검색 결과 적음) 그만큼만 여백 확보
   const dtRows = Math.max(minRows, Math.min(pagination.pageSize, rows.length));
 
+  // ── 본문 높이 전환 ──
+  // 검색으로 행 수가 확 줄거나(1건) 표 ↔ "결과 없음"이 바뀌면(다른 요소라 CSS 전환이 안 먹음)
+  // 높이가 한 프레임에 뚝 바뀌어 싸 보였음(2026-09-30). 본문+페이지 버튼을 한 칸(bodyRef)으로 묶고,
+  // 내용이 바뀌는 순간에만 "직전 높이 → 새 높이"로 이어 줌. 평소엔 높이 auto라 행 펼침(2뎁스) 등은 그대로
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const lastBodyH = useRef(0);
+  useEffect(() => {
+    const el = bodyRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => { if (!el.style.height) lastBodyH.current = el.offsetHeight; });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const bodyKey = isLoading ? 'loading' : `${rows.length}|${pagination.pageCount > 1}`;
+  useLayoutEffect(() => {
+    const el = bodyRef.current;
+    const from = lastBodyH.current;
+    if (!el || !from || prefersReducedMotion()) return;
+    const to = el.offsetHeight;
+    if (Math.abs(from - to) < 2) return;
+    el.style.overflow = 'hidden';
+    el.style.height = `${from}px`;
+    void el.offsetHeight;   // 시작 높이를 먼저 확정시켜야 전환이 걸림
+    el.style.transition = 'height 0.32s cubic-bezier(0.22, 1, 0.36, 1)';
+    el.style.height = `${to}px`;
+    const clear = () => { el.style.height = ''; el.style.overflow = ''; el.style.transition = ''; };
+    const t = window.setTimeout(() => { clear(); lastBodyH.current = el.offsetHeight; }, 340);
+    return () => {
+      // 전환 도중 또 바뀌면 지금 보이는 높이에서 이어가게
+      window.clearTimeout(t);
+      const cur = el.getBoundingClientRect().height;
+      clear();
+      lastBodyH.current = cur;
+    };
+  }, [bodyKey]);
+
   // ── 서버/클라이언트 검색 통합 ──
   const tableSearch = useMemo(() => {
     if (isServerMode) {
@@ -811,6 +847,7 @@ const DataTable = <T extends object>({
         </div>
       )}
 
+      <div ref={bodyRef}>
       {isLoading ? (
         <div className={styles.skeletonWrap}>
           {[...Array(6)].map((_, i) => <div key={i} className={styles.skeletonRow} />)}
@@ -1021,6 +1058,7 @@ const DataTable = <T extends object>({
           onPageChange={p => pagination.goToPage(p - 1)}
         />
       )}
+      </div>
 
       <CellPopup title="내용" popup={popup} copied={popupCopied} onClose={closePopup} onCopy={copyPopupText} />
 
