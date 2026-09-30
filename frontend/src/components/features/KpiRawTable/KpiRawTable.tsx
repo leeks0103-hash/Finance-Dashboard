@@ -13,6 +13,7 @@ import {
 } from '@/components/ui';
 import { cellVal, isImplausibleScoreRow, isPrematureActualRow } from '@/utils/kpiColumns';
 import { openKpiFileOrAlert } from '@/hooks/useOpenFile';
+import { usePageSwapClass } from '@/components/ui/useAnimatedClose';
 import styles from './KpiRawTable.module.css';
 
 export const KPI_METRICS = [
@@ -196,6 +197,8 @@ const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, searchE
   const totalLabel = serverPagination ? `${serverPagination.total}건` : `${data.length}건`;
   // 표시 행 수 — 프로젝트 수 × KPI 항목 수 (최소 5줄 보장)
   const visibleRows = Math.max(5, data.length * KPI_METRICS.length);
+  // 페이지 넘김 — DataTable과 같은 등장(새 데이터 도착 후)
+  const pageSwapClass = usePageSwapClass(serverPagination?.page ?? 1, isFetching);
 
   const card = (
     <div ref={wrapRef} className={styles.wrapper} style={{ '--kpi-rows': visibleRows } as React.CSSProperties}>
@@ -252,7 +255,7 @@ const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, searchE
                   </tr>
                 </thead>
               </SortableContext>
-            <tbody>
+            <tbody className={pageSwapClass}>
               {data.length === 0 ? (
                 <tr><td colSpan={orderedCols.length} className={styles.empty}>데이터가 없습니다.</td></tr>
               ) : data.map(row => {

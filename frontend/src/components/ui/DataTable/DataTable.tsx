@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo, useCallback, useEffect, useLayoutEffect, Fragment, type CSSProperties, type ReactNode, type PointerEvent as ReactPointerEvent } from 'react';
-import { usePresence } from '@/components/ui/useAnimatedClose';
+import { usePresence, usePageSwapClass } from '@/components/ui/useAnimatedClose';
 import {
   useReactTable,
   getCoreRowModel, getSortedRowModel,
@@ -245,6 +245,9 @@ interface Props<T> {
    *  높이만큼만 자연스럽게 렌더 — 페이지 안에 짧게 끼워 넣는 결과 패널처럼 테이블
    *  자체가 스크롤 영역을 가질 필요 없을 때(기본 true, 2026-09-22) */
   scrollable?:        boolean;
+  /** 부모 높이를 꽉 채움 — 표 본문만 안에서 세로 스크롤, 헤더·툴바·페이지 버튼은 제자리(모달 안 표용).
+   *  부모가 높이가 정해진 칸이어야 함(flex 자식이면 min-height:0) */
+  fillHeight?:        boolean;
   searchable?:        boolean;
   searchPlaceholder?: string;
   compact?:           boolean;
@@ -334,6 +337,7 @@ const DataTable = <T extends object>({
   pageSizeOptions   = DEFAULT_PAGE_SIZES,
   minRows           = MIN_TABLE_ROWS,
   scrollable        = true,
+  fillHeight        = false,
   searchable        = false,
   searchPlaceholder = '검색… (Esc: 초기화)',
   compact           = false,
@@ -729,6 +733,9 @@ const DataTable = <T extends object>({
     };
   }, [isServerMode, serverPagination, table, isInfiniteMode, infiniteLoadMore, globalFilter, filtered, data.length, rows.length]);
 
+  // 페이지 넘김 — 새 페이지 행이 뚝 바뀌지 않고 살짝 올라오며 나타남(서버 모드는 새 데이터가 도착한 뒤)
+  const pageSwapClass = usePageSwapClass(pagination.pageIndex, isFetching);
+
   // 실제 보여지는 행 수 기준 — pageSize를 다 못 채워도(검색 결과 적음) 그만큼만 여백 확보
   const dtRows = Math.max(minRows, Math.min(pagination.pageSize, rows.length));
 
@@ -804,7 +811,7 @@ const DataTable = <T extends object>({
   const tableCard = (
     <div
       ref={tableWrapRef}
-      className={`${styles.wrapper} ${compact ? styles.compact : ''}`}
+      className={`${styles.wrapper} ${compact ? styles.compact : ''} ${fillHeight ? styles.fill : ''}`}
       style={{ '--dt-rows': dtRows } as CSSProperties}
     >
 
@@ -879,7 +886,7 @@ const DataTable = <T extends object>({
         </div>
       )}
 
-      <div ref={bodyRef}>
+      <div ref={bodyRef} className={fillHeight ? styles.fillBody : undefined}>
       {isLoading ? (
         <div className={styles.skeletonWrap}>
           {[...Array(6)].map((_, i) => <div key={i} className={styles.skeletonRow} />)}
@@ -936,7 +943,7 @@ const DataTable = <T extends object>({
               ))}
             </thead>
 
-            <tbody>
+            <tbody className={pageSwapClass}>
               {rowGroups.map(group => {
                 // 그룹 안에서 모든 행의 값이 같은 컬럼 → 첫 행에만 rowSpan으로 한 칸 병합
                 const mergedCols = group.length > 1
@@ -1100,7 +1107,7 @@ const DataTable = <T extends object>({
   if (!title) return tableCard;
 
   return (
-    <TableTitleBar title={title} count={!hideCount ? pagination.countLabel : undefined} toolbarExtra={toolbarExtra} info={info} bodyClassName={bodyClassName}>
+    <TableTitleBar title={title} count={!hideCount ? pagination.countLabel : undefined} toolbarExtra={toolbarExtra} info={info} bodyClassName={bodyClassName} fill={fillHeight}>
       {tableCard}
     </TableTitleBar>
   );

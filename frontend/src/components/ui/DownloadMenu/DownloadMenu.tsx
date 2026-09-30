@@ -68,14 +68,18 @@ export const DownloadMenu = ({ items, hrefOf, isLoading = false, buttonLabel = '
 
   return (
     <div className={styles.wrap} ref={ref}>
-      <Button variant="success" size="sm" onClick={() => setOpen(o => !o)} disabled={isLoading}>
+      {/* 파일 목록을 불러오는 동안에도 버튼은 그대로 — 예전엔 disabled(투명도 0.45)로 뒀다가 목록이 오면
+          풀려서, 새로고침할 때마다 버튼이 흐려졌다 진해지며 깜빡였음(2026-09-30). 로딩 안내는 메뉴 안에서 */}
+      <Button variant="success" size="sm" onClick={() => setOpen(o => !o)}>
         {buttonLabel}
       </Button>
 
       {drop.mounted && (
         <div className={`${styles.menu} ${drop.closing ? 'closingDrop' : ''}`} role="menu">
           <div className={styles.menuHead}>추출 엑셀 원본</div>
-          {items.length === 0 && <div className={styles.empty}>받을 수 있는 파일이 없습니다</div>}
+          {items.length === 0 && (
+            <div className={styles.empty}>{isLoading ? '파일 목록 불러오는 중…' : '받을 수 있는 파일이 없습니다'}</div>
+          )}
           {items.map(f => (
             f.available ? (
               <a

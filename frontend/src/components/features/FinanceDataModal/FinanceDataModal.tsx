@@ -29,7 +29,7 @@ const FinanceDataModal = ({ onClose }: Props) => {
             <ModalCloseButton onClick={close} />
           </div>
           <div className={styles.body}>
-            <ProjectTable toolbarExtra={<Button variant="success" size="sm" onClick={exportCsv}>↓ CSV</Button>} />
+            <ProjectTable fillHeight toolbarExtra={<Button variant="success" size="sm" onClick={exportCsv}>↓ CSV</Button>} />
           </div>
         </>
       )}

@@ -2,6 +2,7 @@ import { useContext, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/Button';
 import { useAnimatedClose } from '@/components/ui/useAnimatedClose';
+import { useEscToClose } from '@/components/ui/useEscToClose';
 import { FileOpenVisibleContext } from '@/components/ui/fileOpenContext';
 import styles from './CellPopup.module.css';
 
@@ -25,6 +26,9 @@ interface Props {
 /** 셀 내용 팝업 포털 — DataTable·KpiRawTable 공용 */
 export const CellPopup = ({ title, popup, copied, onClose, onCopy }: Props) => {
   const { closing, close } = useAnimatedClose(onClose);
+  // ESC는 맨 위에 뜬 것 하나만 닫음 — 모달 안 표에서 연 팝업이면 팝업만 닫히고 모달은 남음
+  // (등록 안 하면 모달 쪽 ESC가 같이 먹어 팝업과 모달이 한꺼번에 닫혔음, 2026-09-30)
+  useEscToClose(close, !!popup);
   const canOpen = useContext(FileOpenVisibleContext);
   if (!popup) return null;
   const onOpen = canOpen ? popup.onOpen : undefined;

@@ -269,10 +269,16 @@ h1, h2, h3, h4, h5, h6 {
   to   { opacity: 1; transform: none; }
 }
 .swapFadeIn { animation: swapFadeIn 0.32s cubic-bezier(0.22, 1, 0.36, 1) both; }
+/* 표 페이지 넘김(usePageSwapClass) — 새 페이지 행들이 살짝 아래에서 올라오며 나타남. A/B는 같은 동작,
+   클래스가 바뀌어야 애니메이션이 다시 재생되므로 이름만 둘 */
+@keyframes pageInA { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+@keyframes pageInB { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+.pageInA { animation: pageInA 0.3s cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+.pageInB { animation: pageInB 0.3s cubic-bezier(0.22, 1, 0.36, 1) backwards; }
 /* 접이식(<details>) 펼칠 때 내용이 뚝 튀어나오지 않게 — 계산식 용어·데이터 이상 상세 등 전부 */
 details[open] > :not(summary) { animation: swapIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both; }
 @media (prefers-reduced-motion: reduce) {
-  .swapIn, .swapOut, .swapFadeIn, details[open] > :not(summary) { animation: none; }
+  .swapIn, .swapOut, .swapFadeIn, .pageInA, .pageInB, details[open] > :not(summary) { animation: none; }
 }
 
 @keyframes pulse {

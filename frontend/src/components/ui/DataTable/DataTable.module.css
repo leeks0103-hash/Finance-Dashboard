@@ -54,6 +54,15 @@
   transition: box-shadow 0.2s ease, height 0.2s ease;
 }
 
+/* fillHeight — 부모 높이를 꽉 채우고 본문(.scroll)만 안에서 세로 스크롤. 헤더(sticky)·툴바·페이지 버튼은 제자리.
+   모달 안 표처럼 바깥 칸이 스크롤되면 스크롤바가 생기는 순간 폭이 줄며 표가 다시 맞춰지는 걸 막음 */
+.fill { flex: 1; min-height: 0; }
+.fillBody { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.fillBody > .scroll { flex: 1; min-height: 0; }
+.fillBody > .skeletonWrap,
+.fillBody > .emptyInner { flex: 1; justify-content: center; }
+.fillBody > .skeletonWrap { justify-content: flex-start; }
+
 /* compact — 부모 div(.wrapper/.scroll)에는 테두리를 전혀 안 주고, 테이블 자기 자신(.table)에
    직접 테두리+둥근모서리를 줌. "부모 div css를 테이블에 그대로 옮기라"는 요청 반영 */
 .compact {

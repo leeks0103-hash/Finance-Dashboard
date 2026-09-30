@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { prefersReducedMotion as reducedMotion } from '@/utils/format';
 
 const CLOSE_MS = 160;   // index.css .closingOverlay/.closingPanel 길이와 맞출 것
@@ -45,6 +45,23 @@ export const useSwapView = <V,>(view: V) => {
     return () => window.clearTimeout(t);
   }, [view, shown]);
   return { shown, leaving: !Object.is(view, shown) };
+};
+
+/**
+ * 표 페이지를 넘길 때 본문이 뚝 바뀌지 않게 — 페이지가 바뀌고 새 데이터가 도착한(조회 끝난) 순간
+ * index.css .pageInA / .pageInB 를 번갈아 돌려줌(같은 애니메이션, 이름만 달라 클래스가 바뀔 때마다 다시 재생).
+ * tbody에 붙이면 됨 — key로 다시 마운트하지 않으니 행 상태(펼침 등)는 그대로. 첫 렌더엔 안 붙음.
+ */
+export const usePageSwapClass = (page: number, isFetching = false) => {
+  const [n, setN] = useState(0);
+  const prev = useRef(page);
+  const pending = useRef(false);
+  // layout effect여야 함 — 일반 effect면 새 행이 한 번 그려진 뒤(2~3프레임) 클래스가 붙어 "보였다 → 사라졌다 → 등장"으로 번쩍임
+  useLayoutEffect(() => {
+    if (prev.current !== page) { prev.current = page; pending.current = true; }
+    if (pending.current && !isFetching) { pending.current = false; setN(v => v + 1); }
+  }, [page, isFetching]);
+  return n === 0 ? '' : n % 2 ? 'pageInA' : 'pageInB';
 };
 
 /**

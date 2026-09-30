@@ -11,12 +11,14 @@ interface Props {
   info?:         ReactNode;
   /** 제목줄 아래(툴바+표)에만 붙일 클래스 — 뷰 전환 페이드처럼 제목·토글은 가만히 두고 표만 움직일 때 */
   bodyClassName?: string;
+  /** 부모 높이를 꽉 채움(DataTable fillHeight) */
+  fill?:         boolean;
   children:      ReactNode;
 }
 
 /** 테이블 상단 제목 + 건수 배지 + 툴바 확장 슬롯 래퍼 — DataTable·KpiRawTable 공용 */
-export const TableTitleBar = ({ title, count, toolbarExtra, info, bodyClassName, children }: Props) => (
-  <div className={styles.outerGroup}>
+export const TableTitleBar = ({ title, count, toolbarExtra, info, bodyClassName, fill, children }: Props) => (
+  <div className={`${styles.outerGroup} ${fill ? styles.fill : ''}`}>
     <div className={styles.outerTitle}>
       <div className={styles.outerTitleLeft}>
         <div className={styles.titleGroup}>

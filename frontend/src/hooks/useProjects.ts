@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { getProjects } from '@/api';
 import { useFilters } from './useFilters';
 import type { PageParams, PagedResponse, Project } from '@/types/finance.types';
@@ -13,7 +13,19 @@ const selectProjects = (raw: PagedResponse<Project>) => ({
 });
 
 export const useProjects = (page: PageParams) => {
-  const { filters } = useFilters();
+  const { filters: globalFilters } = useFilters();
+  // 표의 셀렉트(보고단계 / 팀·파트)가 켜져 있으면 전역 필터의 해당 항목을 그 값으로 바꿔서 조회
+  // (정확히 일치 — 검색어 방식이면 "제안"에 "추가제안"까지 걸림)
+  const filters = useMemo(
+    () => (page.stage || page.parts
+      ? {
+          ...globalFilters,
+          ...(page.stage ? { stages: [page.stage] } : {}),
+          ...(page.parts ? { parts: page.parts } : {}),
+        }
+      : globalFilters),
+    [globalFilters, page.stage, page.parts],
+  );
   const qc = useQueryClient();
 
   const query = useQuery({

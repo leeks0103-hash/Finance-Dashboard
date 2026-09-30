@@ -16,6 +16,9 @@ interface Props {
   /** 셀렉트 앞에 붙는 텍스트 라벨 (예: "파트") */
   label?:     string;
   ariaLabel?: string;
+  /** 고정 폭(px). 셀렉트 폭은 가장 긴 옵션을 따라가서, 옵션 목록이 바뀌는 셀렉트(팀을 고르면 좁혀지는 파트 등)나
+   *  옵션이 늦게 도착하는 셀렉트는 폭이 출렁임 — 그런 곳은 폭을 못박아 둔다 */
+  width?:     number;
 }
 
 const norm = (o: string | FilterSelectOption): FilterSelectOption =>
@@ -26,7 +29,7 @@ const norm = (o: string | FilterSelectOption): FilterSelectOption =>
  * 페이지 곳곳에서 반복되던 `<select className={styles.filterSelect}>` 패턴을 하나로.
  */
 export const FilterSelect = ({
-  value, onChange, options, allLabel = '전체', label, ariaLabel,
+  value, onChange, options, allLabel = '전체', label, ariaLabel, width,
 }: Props) => (
   <span className={styles.wrap}>
     {label && <span className={styles.label}>{label}</span>}
@@ -34,6 +37,7 @@ export const FilterSelect = ({
       className={styles.select}
       value={value}
       aria-label={ariaLabel ?? label}
+      style={width ? { width } : undefined}
       onChange={(e: ChangeEvent<HTMLSelectElement>) => onChange(e.target.value)}
     >
       {allLabel != null && <option value="">{allLabel}</option>}

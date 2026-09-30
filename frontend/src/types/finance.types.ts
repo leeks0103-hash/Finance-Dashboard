@@ -115,4 +115,8 @@ export interface PageParams {
   search:   string;
   /** 검색 대상 컬럼 — 미지정("") 시 기존처럼 전체 컬럼 대상 검색 */
   field?:   string;
+  /** 표 자체의 보고단계 필터(셀렉트) — 값이 있으면 전역 필터의 stages 대신 이 단계 하나만 조회 */
+  stage?:   string;
+  /** 표 자체의 팀·파트 필터(셀렉트) — 값이 있으면 전역 필터의 parts 대신 이 파트들만 조회 */
+  parts?:   string[];
 }

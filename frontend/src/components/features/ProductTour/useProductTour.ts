@@ -54,10 +54,13 @@ export const useProductTour = () => {
     if (driverRef.current?.isActive()) return;
     const originTab = tabRef.current;
     let busy = false;
+    // 평소엔 안 보이는 단계(데이터 이상 배지 — 헤더에 있어 어느 탭에서든 판별 가능)는 시작할 때 아예 뺌.
+    // 예전엔 단계 수(14)에 그대로 넣고 넘어갈 때 건너뛰어서 진행 표시가 12 → 14로 튀었음(2026-09-30)
+    const defs = TOUR_STEPS.filter(def => !def.optional || findVisible(def));
 
     // 탭이 바뀌면 이동 → 요소가 뜰 때까지 대기 → 해당 단계로. optional 단계는 기다리지 않음
     const go = async (d: Driver, index: number) => {
-      const def = TOUR_STEPS[index];
+      const def = defs[index];
       if (!def) { d.destroy(); return; }
       if (busy) return;
       busy = true;
@@ -71,7 +74,7 @@ export const useProductTour = () => {
       if (d.isActive()) d.moveTo(index);
     };
 
-    const steps: DriveStep[] = TOUR_STEPS.map(def => ({
+    const steps: DriveStep[] = defs.map(def => ({
       // 함수로 넘겨야 이동 시점에 다시 찾음 — 못 찾으면(null) skipMissingElement로 건너뜀
       element: def.anchor ? (() => findVisible(def) as Element) : undefined,
       popover: {
@@ -102,7 +105,7 @@ export const useProductTour = () => {
       // 요소가 끝내 없으면 moveTo 안에서 skipMissingElement가 진행 방향으로 건너뜀
       onNextClick: (_el, _step, { driver: drv }) => {
         const i = drv.getActiveIndex() ?? 0;
-        if (i + 1 >= TOUR_STEPS.length) { drv.destroy(); return; }
+        if (i + 1 >= defs.length) { drv.destroy(); return; }
         void go(drv, i + 1);
       },
       onPrevClick: (_el, _step, { driver: drv }) => {
@@ -118,7 +121,7 @@ export const useProductTour = () => {
     });
     driverRef.current = d;
 
-    const first = TOUR_STEPS[0];
+    const first = defs[0];
     if (first.tab !== tabRef.current) navigate(`/${first.tab}`);
     d.drive(0);
   }, [navigate, markTourSeen]);

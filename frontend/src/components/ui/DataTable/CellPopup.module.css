@@ -2,7 +2,10 @@
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.45);
-  z-index: 500;
+  /* 모달(기본 1000, 재무 데이터 모달 600) 안의 표에서 열려도 위에 떠야 함 — 예전 500은 모달 뒤에 깔려
+     "눌러도 안 뜨는" 것처럼 보였음(2026-09-30). ⓘ 팝오버(1050)·확인창(SweetAlert 1060)보다는 아래 —
+     팝업의 '바로가기'가 띄우는 확인창이 이 팝업 위에 와야 하므로 */
+  z-index: 1040;
   display: flex;
   align-items: center;
   justify-content: center;

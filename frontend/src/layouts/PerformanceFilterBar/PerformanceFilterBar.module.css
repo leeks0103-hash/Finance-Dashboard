@@ -52,6 +52,8 @@
   gap: 6px;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  /* 칩 한 줄 높이를 미리 확보 — 옵션이 오기 전(칩 없음)에도 필터바 높이가 같아서 칩이 생길 때 아래 본문이 안 밀림 */
+  min-height: 27px;
 }
 .chips::-webkit-scrollbar { display: none; }
 

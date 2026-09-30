@@ -16,8 +16,10 @@
   z-index: 90;
   /* KPI 탭은 이 바 자체가 없어서(의도된 설계), KPI ↔ 재무/실적 탭 전환마다 이 바가
      마운트/언마운트되며 아래 콘텐츠가 훅 밀림 — 최소한 바 자체는 툭 튀어나오지 않고
-     부드럽게 나타나도록 */
-  animation: filterGroupIn 0.22s ease;
+     부드럽게 나타나도록.
+     파란 헤더 밑에서 아래로 미끄러져 내려옴(투명도 없이 위치만) — 헤더(z-index 100)가 위에 있어 헤더 뒤에서
+     나오는 것처럼 보임. 예전 페이드(opacity 0→1)는 흐릿하게 깜빡이는 느낌이라 교체(2026-09-30) */
+  animation: filterGroupIn 0.42s cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
 
 @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
@@ -29,8 +31,11 @@
 }
 
 @keyframes filterGroupIn {
-  from { opacity: 0; transform: translateY(-6px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { transform: translateY(-100%); }
+  to   { transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .filterGroup { animation: none; }
 }
 
 /* ActionBar를 오른쪽 끝으로 — 2개 이상일 때만 */

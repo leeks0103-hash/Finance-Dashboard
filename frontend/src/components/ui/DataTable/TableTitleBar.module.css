@@ -3,6 +3,8 @@
   flex-direction: column;
   gap: 8px;
 }
+/* DataTable fillHeight — 제목줄은 제 높이, 아래 표 카드가 남은 높이를 다 가짐 */
+.fill { height: 100%; min-height: 0; }
 
 .outerTitle {
   display: flex;

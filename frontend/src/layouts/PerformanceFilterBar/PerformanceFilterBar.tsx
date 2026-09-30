@@ -29,7 +29,12 @@ const PerformanceFilterBar = () => {
     }
   }, [initialized, parts, initializeDefaults]);
 
-  const allPartsSelected = isAllSelected(selectedParts, parts);
+  // 옵션(팀·파트 목록)이 오기 전엔 칩을 그리지 않음 — 예전엔 "전체"만 먼저 켜진 채로 떠 있다가
+  // 옵션이 오면 저장된 선택(팀 등)으로 옮겨가며 깜빡였음(2026-09-30)
+  const ready = !!options;
+  // 첫 방문은 아래 effect가 전체 선택으로 채우기 전 한 프레임이 비어 있음 — 그 사이도 전체 선택으로 그림
+  const isPartOn = (p: string) => !initialized || selectedParts.includes(p);
+  const allPartsSelected = !initialized || isAllSelected(selectedParts, parts);
   const toggleAllParts = () => {
     (allPartsSelected ? selectedParts : parts.filter(p => !selectedParts.includes(p)))
       .forEach(togglePart);
@@ -46,23 +51,27 @@ const PerformanceFilterBar = () => {
   // 현재 선택된 파트 집합이 어느 한 팀의 소속 파트 집합과 정확히 같으면 그 팀을 하이라이트,
   // 아니면(팀 선택 중 파트를 건드려 세트가 달라진 경우 포함) "전체 팀"으로 되돌림
   useEffect(() => {
+    // 옵션 로드·첫 초기화 전엔 건드리지 않음 — 팀 목록이 비어 있는 동안 계산하면 저장된 팀 선택이 ''로 지워짐
+    if (!ready || !initialized) return;
     const matchedTeam = teams.find(team => {
       const expected = (teamParts[team] ?? []).map(stripPartPrefix);
       return expected.length === selectedParts.length && expected.every(p => selectedParts.includes(p));
     }) ?? '';
     setTeamLabel(matchedTeam);
-  }, [selectedParts, teams, teamParts, setTeamLabel]);
+  }, [ready, initialized, selectedParts, teams, teamParts, setTeamLabel]);
 
   return (
     <div className={styles.panel}>
       <div className={`${styles.group} ${styles.chipsOnly}`}>
         <span className={styles.label}>팀</span>
         <div className={styles.chips}>
-          <FilterChip label="전체" checked={!selectedTeam} onChange={() => handleTeamChange('')} />
-          {teams.map(team => (
-            <FilterChip key={team} label={team} checked={selectedTeam === team}
-              onChange={() => handleTeamChange(team)} />
-          ))}
+          {ready && <>
+            <FilterChip label="전체" checked={!selectedTeam} onChange={() => handleTeamChange('')} />
+            {teams.map(team => (
+              <FilterChip key={team} label={team} checked={selectedTeam === team}
+                onChange={() => handleTeamChange(team)} />
+            ))}
+          </>}
         </div>
       </div>
       <div className={styles.dropdownOnly}>
@@ -83,11 +92,13 @@ const PerformanceFilterBar = () => {
       <div className={`${styles.group} ${styles.chipsOnly}`}>
         <span className={styles.label}>파트</span>
         <div className={styles.chips}>
-          <FilterChip label="전체" checked={allPartsSelected} onChange={toggleAllParts} />
-          {parts.map(p => (
-            <FilterChip key={p} label={p} checked={selectedParts.includes(p)}
-              onChange={() => togglePart(p)} />
-          ))}
+          {ready && <>
+            <FilterChip label="전체" checked={allPartsSelected} onChange={toggleAllParts} />
+            {parts.map(p => (
+              <FilterChip key={p} label={p} checked={isPartOn(p)}
+                onChange={() => togglePart(p)} />
+            ))}
+          </>}
         </div>
       </div>
       <div className={styles.dropdownOnly}>

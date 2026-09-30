@@ -24,7 +24,7 @@ export interface TourStepDef {
 export const TOUR_STEPS: TourStepDef[] = [
   {
     tab: 'performance',
-    title: '경영현황 통합 대시보드에 오신 걸 환영합니다 👋',
+    title: '경영현황 통합 대시보드 사용 안내',
     description:
       '주요 화면을 순서대로 짧게 소개합니다.<br>' +
       '<b>다음</b> 버튼이나 키보드 <b>→</b> 키로 넘기고, <b>ESC</b>로 언제든 닫을 수 있어요.<br>' +

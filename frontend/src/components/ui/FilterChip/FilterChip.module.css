@@ -36,9 +36,10 @@
   /* font-weight는 안 바꿈 — bold면 글자 폭이 늘어나 체크할 때마다 칩 크기가 미세하게 들썩임.
      배경 채움 + 테두리 + 그림자 + 팝 애니메이션만으로 선택 상태를 충분히 구분 가능 */
   box-shadow: 0 2px 8px color-mix(in srgb, var(--brand-mid) 30%, transparent);
-  animation: chipSettle 0.32s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .checked:hover { filter: brightness(1.08); }
+/* 눌러서 켰을 때만 붙음(FilterChip.tsx) — .checked에 직접 걸면 첫 화면에서도 재생돼 칩이 줄었다 커짐 */
+.settle { animation: chipSettle 0.32s cubic-bezier(0.22, 1, 0.36, 1); }
 
 /* 선택 시 — 튕기는 팝(0.85→오버슈트) 대신 살짝 눌렸다가 차분히 제자리로 */
 @keyframes chipSettle {
@@ -48,5 +49,5 @@
 
 @media (prefers-reduced-motion: reduce) {
   .chip { transition: none; }
-  .checked { animation: none; }
+  .settle { animation: none; }
 }

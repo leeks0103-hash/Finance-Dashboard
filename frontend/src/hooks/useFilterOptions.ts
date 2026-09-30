@@ -30,5 +30,7 @@ export const useFilterOptions = () => {
     years:  getUnique(all, 'year'),
     parts:  getUnique(all, 'part'),
     stages: getUnique(all, 'stage', STAGE_SKIP),
+    /** 로우데이터 표의 단계 셀렉트용 — 필터 칩에선 빼는 "추가제안"까지 실제 있는 단계 전부 */
+    rawStages: getUnique(all, 'stage'),
   }), [all]);
 };
