@@ -6,6 +6,7 @@ import {
   useFinanceBreakdownViewModel,
   type FinanceBreakdownTarget,
 } from '@/hooks/viewmodels/useFinanceBreakdownViewModel';
+import { BreakdownGate } from '@/components/features/BreakdownModal/BreakdownParts';
 import styles from './FinanceBreakdownModal.module.css';
 import { openFinanceFileOrAlert } from '@/hooks/useOpenFile';
 
@@ -62,13 +63,8 @@ const FinanceBreakdownModal = ({ target, onClose }: Props) => {
     );
   };
 
-  const body = (() => {
-    if (vm.isLoading)  return <div className={styles.state}>불러오는 중…</div>;
-    if (vm.isError)    return <div className={styles.state}>데이터를 불러오지 못했습니다.</div>;
-    if (!vm.available) return <div className={styles.state}>{vm.message ?? '표시할 데이터가 없습니다.'}</div>;
-    if (!vm.rows.length) return <div className={styles.state}>이 항목에 집계된 프로젝트 행이 없습니다.</div>;
-
-    return (
+  const body = (
+    <BreakdownGate vm={vm} empty={!vm.rows.length} emptyText="이 항목에 집계된 프로젝트 행이 없습니다.">
       <DataTable<FinanceBreakdownRow>
         data={vm.rows}
         columns={columns as never}
@@ -80,8 +76,8 @@ const FinanceBreakdownModal = ({ target, onClose }: Props) => {
         storageKey="finance-breakdown"
         footer={{ value: <div className={styles.valueCell}>합계 {fmtValue(Number(vm.totalStr.replace(/,/g, '')), vm.unit)}</div> }}
       />
-    );
-  })();
+    </BreakdownGate>
+  );
   const hasRows = !vm.isLoading && !vm.isError && vm.available && vm.rows.length > 0;
 
   return (
