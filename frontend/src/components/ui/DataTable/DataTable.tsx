@@ -201,6 +201,9 @@ export interface ExpandableRow<T> {
   /** 이 컬럼 id들은 더블클릭해도 확장 안 됨 (예: 파일명 — 기존 팝업 복사 기능 유지) */
   excludeColumns?: string[];
   renderContent:   (row: T, close: () => void) => ReactNode;
+  /** 이 키의 행을 자동으로 펼침 — 값이 바뀔 때만 반응(사용자가 닫으면 같은 값 동안은 다시 안 열림).
+   *  null로 바뀌면 자동으로 연 행을 닫음. 자동으로 열 땐 페이지 스크롤 안 함(검색창 입력 중이라) */
+  autoExpandKey?:  string | null;
 }
 
 export type EmptyIconKind = 'search' | 'list';
@@ -314,6 +317,8 @@ const DEFAULT_PAGE_SIZES = [10, 20, 30, 50, 100];
 const INDEX_COL_W = 52;
 // 검색·필터로 행이 줄어도 최소 이 정도 높이는 유지 — 결과 1건일 때도 빈 상태처럼 휑해 보이지 않게
 const MIN_TABLE_ROWS = 5;
+/** 자동 펼침 지연 — 본문 높이 전환(0.32s)이 끝난 뒤 + 약간의 여유 */
+const AUTO_EXPAND_DELAY_MS = 420;
 
 const DataTable = <T extends object>({
   data,
@@ -496,11 +501,38 @@ const DataTable = <T extends object>({
     setExpandSettled(false);
     setExpandedKey(key);
   }, [expandedKey, expandClosing, closeExpanded]);
+
+  // 자동 펼침(검색 결과에 재무 이력이 있을 때 등) — autoExpandKey가 바뀐 순간에만
+  const autoExpandKey = expandableRow?.autoExpandKey ?? null;
+  const lastAutoKey = useRef<string | null>(null);
+  const skipExpandScroll = useRef(false);
+  // 검색 결과가 바뀌며 본문 높이가 전환되는 중(bodyRef, 320ms)에 2뎁스까지 같이 펼치면 높이가 두 번 겹쳐
+  // 출렁임(2026-09-30) → 표가 먼저 자리 잡은 뒤에 펼침. 그 사이 검색어가 또 바뀌면 예약 취소
+  const autoExpandTimer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(autoExpandTimer.current), []);
+  useEffect(() => {
+    const prev = lastAutoKey.current;
+    lastAutoKey.current = autoExpandKey;
+    if (autoExpandKey === prev) return;
+    window.clearTimeout(autoExpandTimer.current);
+    if (autoExpandKey) {
+      autoExpandTimer.current = window.setTimeout(() => {
+        window.clearTimeout(expandTimer.current);
+        skipExpandScroll.current = true;
+        setExpandClosing(false);
+        setExpandSettled(false);
+        setExpandedKey(autoExpandKey);
+      }, prefersReducedMotion() ? 0 : AUTO_EXPAND_DELAY_MS);
+    } else if (prev && expandedKey === prev) {
+      closeExpanded();
+    }
+  }, [autoExpandKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const expandedRowRef = useRef<HTMLTableRowElement>(null);
 
   // 펼쳐진 행이 뷰포트 밖에 있으면 페이지 스크롤
   useEffect(() => {
     if (!expandedKey || !expandedRowRef.current) return;
+    if (skipExpandScroll.current) { skipExpandScroll.current = false; return; }
     const timer = setTimeout(() => {
       const el = expandedRowRef.current;
       if (!el) return;

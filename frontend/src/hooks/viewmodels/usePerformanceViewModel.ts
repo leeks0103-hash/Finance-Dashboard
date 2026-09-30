@@ -7,6 +7,8 @@ import { useReactPagination } from '@/lib/pagination';
 import { useCountUp } from '@/hooks/useCountUp';
 import { usePerfStore } from '@/store/perf.store';
 import { useQuickSearchStore } from '@/store/quickSearch.store';
+import { useFinanceCodes } from '@/hooks/useFinanceCodes';
+import { countFinanceHistory } from '@/utils/projectCode';
 import { formatEok, PERF_MONTH, toEokNum } from '@/utils';
 import { partRank } from '@/utils/partOrder';
 import { getProjects } from '@/api/finance.api';
@@ -86,7 +88,9 @@ export interface PerformanceViewModel {
   resetFilters:  () => void;
   serverPagination: ServerPagination;
   serverSearch:     ServerSearch;
-  /** 2depth: 재무 데이터 검색 결과 */
+  /** 검색 중 재무 이력이 있는 첫 프로젝트 행의 키 — 그 행의 재무 이력(2뎁스)을 자동으로 펼침. 검색 안 하면 null */
+  autoExpandKey:     string | null;
+  /** 2depth: 재무 데이터 검색 결과 — 섹션 비활성(2026-09-30), 복구용으로 필드만 유지 */
   financeResults:    Project[];
   hasFinanceResults: boolean;
   financeSearchTerm: string;
@@ -135,7 +139,11 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
   const { data: options } = usePerformanceOptions();
 
   // 2depth: 실적 검색과 동일한 debounced 값으로 재무 API 병렬 조회
-  const financeSearchEnabled = search.debouncedValue.trim().length > 0;
+  // ── 비활성(2026-09-30) — 검색하면 프로젝트 상세 아래에 "재무 데이터 검색 결과" 표가 따로 생겨
+  //    "왜 갑자기 표가 2개지?" 헷갈림. 대신 검색 결과 행의 재무 이력(2뎁스)을 자동으로 펼침(autoExpandKey).
+  //    복구 시: 아래 false를 지우고 PerformancePage의 FinanceSearchResults 블록 주석 해제
+  const FINANCE_SEARCH_SECTION = false;
+  const financeSearchEnabled = FINANCE_SEARCH_SECTION && search.debouncedValue.trim().length > 0;
   const { data: financeData } = useQuery({
     queryKey: ['finance-2depth', search.debouncedValue],
     queryFn:  () => getProjects(FINANCE_EMPTY_FILTERS, {
@@ -241,6 +249,16 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
 
   const projects: PerfProject[] = paged?.rows ?? [];
 
+  // 검색 결과에 재무 이력이 있는 프로젝트가 있으면 표 순서상 첫 번째 것을 자동 펼침(한 번에 하나만 열리는 표).
+  // 조회 중엔 옛 결과 기준으로 열리지 않게 null. 행 키는 PerformancePage expandableRow.getKey와 같은 _row_num
+  const { data: financeCodes } = useFinanceCodes();
+  const searching = search.debouncedValue.trim().length > 0;
+  const autoExpandKey = useMemo(() => {
+    if (!searching || isFetching || !financeCodes) return null;
+    const hit = paged?.rows.find(p => countFinanceHistory(p.project_code, financeCodes) > 0);
+    return hit ? String(hit._row_num) : null;
+  }, [searching, isFetching, financeCodes, paged]);
+
   return {
     isLoading, isFetching: isFetching ?? false,
     isEmpty: !isLoading && !total,
@@ -267,6 +285,7 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
       fieldOptions:  SEARCH_FIELD_OPTIONS,
     },
 
+    autoExpandKey,
     financeResults,
     hasFinanceResults: financeSearchEnabled && financeResults.length > 0,
     financeSearchTerm: search.debouncedValue,

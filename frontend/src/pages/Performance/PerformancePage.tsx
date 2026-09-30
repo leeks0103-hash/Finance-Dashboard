@@ -5,7 +5,8 @@ import { useState } from 'react';
 import { usePerformanceViewModel } from '@/hooks/viewmodels/usePerformanceViewModel';
 import { useFinanceCodes } from '@/hooks/useFinanceCodes';
 import { DataTable, InfoButton, FilterSelect } from '@/components/ui';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
+// ErrorBoundary — 재무 검색 결과 섹션 비활성으로 미사용, 복구 시 함께 해제
+// import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { FadeInSection } from '@/components/FadeInSection';
 import PerfBreakdownModal from '@/components/features/PerfBreakdownModal/PerfBreakdownModal';
 import type { PerfBreakdownTarget } from '@/hooks/viewmodels/usePerfBreakdownViewModel';
@@ -15,7 +16,8 @@ import PerformanceInsightSection from '@/components/features/PerformanceInsightS
 import PartAchievementBars from '@/components/features/PartAchievementBars/PartAchievementBars';
 import { perfColumns, PERF_HIDEABLE_COLS, PERF_DEFAULT_HIDDEN } from '@/components/features/PerformanceTable/columns';
 import FinanceCrossCheckPanel from '@/components/features/PerformanceTable/FinanceCrossCheckPanel';
-import FinanceSearchResults from '@/components/features/PerformanceTable/FinanceSearchResults';
+// FinanceSearchResults·INFO_FINANCE_SEARCH — 재무 검색 결과 섹션 비활성(아래 주석), 복구 시 함께 해제
+// import FinanceSearchResults from '@/components/features/PerformanceTable/FinanceSearchResults';
 import { useUiStore } from '@/store';
 import type { PerfProject } from '@/types/performance.types';
 // PERF_YEAR·stripPartPrefix·INFO_PART_TABLE — 파트별 실적 표 비활성으로 미사용, 복구 시 함께 해제
@@ -24,7 +26,7 @@ import {
   INFO_ACHIEVEMENT_BARS,
   INFO_INSIGHT,
   INFO_PROJECT_TABLE,
-  INFO_FINANCE_SEARCH,
+  // INFO_FINANCE_SEARCH,
 } from '@/utils/infoTexts';
 import styles from './PerformancePage.module.css';
 
@@ -195,12 +197,16 @@ const PerformancePage = () => {
               getKey: (row) => String(row._row_num),
               excludeColumns: ['filename'],
               renderContent: (row, close) => <FinanceCrossCheckPanel projectCode={row.project_code} onClose={close} />,
+              // 검색 결과에 재무 이력이 있는 프로젝트가 있으면 첫 번째 것의 2뎁스를 자동 펼침(2026-09-30)
+              autoExpandKey: vm.autoExpandKey,
             }}
           />
       </FadeInSection>
 
       {/* 2depth: 재무 데이터 검색 결과 */}
-      {/* 항상 렌더 — 결과가 생기면 펼치고, 없어지면 접힌 뒤 스스로 제거(open) */}
+      {/* 2depth: 재무 데이터 검색 결과 — 비활성(2026-09-30). 검색하면 표가 하나 더 생겨 "왜 2개지?" 헷갈려서,
+          대신 프로젝트 상세 검색 결과 행의 재무 이력(2뎁스)을 자동으로 펼침(expandableRow.autoExpandKey).
+          복구 시 usePerformanceViewModel의 FINANCE_SEARCH_SECTION도 true로
       <ErrorBoundary>
         <FinanceSearchResults
           open={vm.hasFinanceResults}
@@ -209,6 +215,7 @@ const PerformancePage = () => {
           info={INFO_FINANCE_SEARCH}
         />
       </ErrorBoundary>
+      */}
 
       {achieveBreakdown && (
         <PerfBreakdownModal target={achieveBreakdown} onClose={() => setAchieveBreakdown(null)} />
