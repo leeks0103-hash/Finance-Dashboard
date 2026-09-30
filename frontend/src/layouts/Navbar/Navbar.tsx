@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Toggle, Button, CopyText } from '@/components/ui';
 import { usePresence } from '@/components/ui/useAnimatedClose';
 import TabNav from '@/components/ui/TabNav/TabNav';
@@ -76,6 +76,8 @@ const Navbar = () => {
   // 설정 패널은 자체 퇴장(Navbar.module.css .dropdown.closing, 0.32s) — 그 길이만큼 남겨둠
   const settingsDrop = usePresence(open, 320);
   const healthDrop   = usePresence(healthOpen);
+  // "추출 중…" 배지 — 추출이 끝나도 퇴장 애니메이션 동안 남겨둠
+  const extractBadge = usePresence(extractJob.isAuthed && extractJob.isRunning);
   // PPT 파일명 옆 ↗ 바로가기(CopyText onOpen) — 2026-09-15 주석 처리했다가 2026-09-29 복구
   const { openFile } = useOpenFile();
 
@@ -100,8 +102,16 @@ const Navbar = () => {
       <div className={styles.inner}>
         {/* 좌측 — 로고 + 제목 */}
         <div className={styles.left}>
-          <NgvLogo className={styles.logo} />
-          <h1 className={styles.brand}>경영현황 통합 대시보드</h1>
+          {/* 로고·제목 클릭 → 첫 화면(경영실적/재무데이터). 이미 그 탭이면 맨 위로만 */}
+          <Link
+            to="/performance"
+            className={styles.home}
+            aria-label="경영현황 통합 대시보드 — 첫 화면으로"
+            onClick={() => window.scrollTo({ top: 0 })}
+          >
+            <NgvLogo className={styles.logo} />
+            <h1 className={styles.brand}>경영현황 통합 대시보드</h1>
+          </Link>
         </div>
 
         {/* 중앙 — 탭 네비게이션 */}
@@ -115,11 +125,11 @@ const Navbar = () => {
               visibility:hidden으로 숨김(display:none/조건부 마운트 대신). 그래야 이상 건수가
               0→N으로 바뀌는 순간에도 이 자리(너비+gap)가 그대로라 옆 버튼들이 리플로우로
               밀리지 않음(예전엔 조건부 렌더로 나타날 때마다 ActionBar가 옆으로 밀렸음) */}
+          {/* 나타나고 사라질 때 살짝 커지며 페이드(.healthShown) — 예전엔 인라인 visibility로 뚝 켜지고 꺼졌음 */}
           <div
-            className={styles.health}
+            className={`${styles.health} ${healthTotal > 0 ? styles.healthShown : ''}`}
             ref={healthRef}
             data-tour="health"
-            style={{ visibility: healthTotal > 0 ? 'visible' : 'hidden' }}
             aria-hidden={healthTotal === 0}
           >
               <Button unstyled
@@ -265,9 +275,9 @@ const Navbar = () => {
           {/* ⚙ 드롭다운을 닫아도 진행 상황을 놓치지 않도록 — 설정창 밖에 항상 보이는 작은 배지.
               권한 없는 사람에겐 이 기능 자체가 안 보여야 해서 isAuthed일 때만(2026-09-23 요청,
               "페이지에 재추출중입니다 스피너가 있어야할듯 — 전체 스켈레톤까진 필요없고") */}
-          {extractJob.isAuthed && extractJob.isRunning && (
+          {extractBadge.mounted && (
             <Button unstyled
-              className={styles.extractRunningBadge}
+              className={`${styles.extractRunningBadge} ${extractBadge.closing ? 'closingDrop' : ''}`}
               onClick={() => setAdminOpen(true)}
               title="PPT 데이터 추출이 진행 중입니다 — 클릭해서 자세히 보기"
             >

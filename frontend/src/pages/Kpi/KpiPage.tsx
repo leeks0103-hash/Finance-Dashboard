@@ -137,6 +137,10 @@ const KpiPage = () => {
     ),
   [vm.rawCols]);
 
+  // 첫 로딩 스피너가 뚝 사라지지 않게 — 로딩이 끝나면 스피너가 페이드아웃(.swapOut)된 뒤 본문으로 교체
+  // (본문 섹션은 FadeInSection이 등장 애니메이션을 담당)
+  const gate = useSwapView(vm.isLoading && !vm.available);
+
   // 로딩 / 데이터없음 / 정상 분기 — QueryGate가 우선순위(loading > empty)를 강제해
   // "로딩 중인데 스텁이 먼저 뜨는" 문제를 구조적으로 막는다
   const emptyView = (
@@ -152,9 +156,9 @@ const KpiPage = () => {
 
   return (
     <QueryGate
-      loading={vm.isLoading && !vm.available}
+      loading={gate.shown}
       empty={!vm.available}
-      loadingView={<main className={styles.main}><Spinner label="KPI 데이터 불러오는 중…" /></main>}
+      loadingView={<main className={`${styles.main} ${gate.leaving ? 'swapOut' : ''}`}><Spinner label="KPI 데이터 불러오는 중…" /></main>}
       emptyView={emptyView}
     >
     <main className={styles.mainFull}>

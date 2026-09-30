@@ -17,17 +17,20 @@ const isFinishedEmpty = (row: Project, key: keyof Project) => row.stage === '완
 // 컬럼 기본 폭(size) = 리사이즈 핸들 더블클릭 auto-fit과 같은 계산식(헤더+32 / 셀 값+20, 60~400px)을
 // 실데이터 240행 전체에 돌린 최댓값(2026-09-28, 헤드리스 Chrome + HyundaiSans 실측). 사용자가 매번
 // 더블클릭으로 맞추던 폭이 사실상 고정값이라 기본값으로 박음. 비고·파일명은 400 상한
+// 단, 그 계산식은 글자 폭만 재서 배지 안쪽 여백·복사 아이콘 자리가 빠짐 → 파트("신사업…")·단계("사업계획…")가
+// 옆 비고 칸이 텅 비어 있는데도 말줄임됐음(2026-09-30 실측: 필요 83·87px). 코드·파트·단계만 넓힘
+// (비고를 줄여 상쇄하려다 비고 글이 잘려서 400 유지 — 표가 97px 넓어져 파일명 쪽 가로 스크롤이 그만큼 늘어남)
 export const columns = [
   h.accessor('project_code', {
-    header: '프로젝트코드', size: 134,
+    header: '프로젝트코드', size: 176,
     cell: i => <CopyText text={i.getValue()} highlight={i.table.options.meta?.searchQuery} />,
   }),
   h.accessor('year', {
     header: '연도', size: 60,
     cell: i => <HighlightText text={i.getValue()} query={i.table.options.meta?.searchQuery} />,
   }),
-  h.accessor('part',  { header: '파트', size: 62,  cell: i => <Badge label={i.getValue()} variant="part"  /> }),
-  h.accessor('stage', { header: '단계', size: 63,  cell: i => <Badge label={i.getValue()} variant="stage" /> }),
+  h.accessor('part',  { header: '파트', size: 88,  cell: i => <Badge label={i.getValue()} variant="part"  /> }),
+  h.accessor('stage', { header: '단계', size: 92,  cell: i => <Badge label={i.getValue()} variant="stage" /> }),
   h.accessor('revenue',      { header: '매출', size: 90,     cell: i => formatMoney(i.getValue(), i.table.options.meta?.rawValues) }),
   h.accessor('expenditure',  { header: '지출', size: 90,
     meta: { cellMuted: row => isFinishedEmpty(row, 'expenditure') },

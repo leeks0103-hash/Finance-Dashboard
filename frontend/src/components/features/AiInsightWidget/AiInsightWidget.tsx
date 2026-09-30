@@ -4,6 +4,7 @@ import { useAiAnalysis, type AiTab } from '@/hooks';
 import { Button } from '@/components/ui';
 import { useScrollLock } from '@/components/ui/useScrollLock';
 import { useEscToClose } from '@/components/ui/useEscToClose';
+import { usePresence } from '@/components/ui/useAnimatedClose';
 import { useUiStore } from '@/store';
 import styles from './AiInsightWidget.module.css';
 
@@ -102,6 +103,9 @@ const AiInsightWidget = ({ aiTab }: Props) => {
 
   useScrollLock(open);
   useEscToClose(() => setOpen(false), open);
+  // 닫힐 때도 퇴장 애니메이션 동안 남겨둠(index.css .closingOverlay/.closingPanel) — 다른 모달은 다 있는데
+  // 여기만 뚝 사라졌음(2026-09-30)
+  const presence = usePresence(open);
 
   // 최초 분석이든 "다시 분석"이든 진행 중이면 버튼을 "… 분석중…"으로 — 모달을 닫거나 탭을 옮겨도
   // 진행 상태가 보이게(끝나면 원래 라벨로 복귀 + 완료 토스트는 useAiAnalysis가 띄움, 2026-09-28).
@@ -137,9 +141,9 @@ const AiInsightWidget = ({ aiTab }: Props) => {
         </span>
       </Button>
 
-      {open && createPortal(
-        <div className={styles.overlay} onClick={() => setOpen(false)}>
-          <div className={styles.panel} onClick={e => e.stopPropagation()}>
+      {presence.mounted && createPortal(
+        <div className={`${styles.overlay} ${presence.closing ? 'closingOverlay' : ''}`} onClick={() => setOpen(false)}>
+          <div className={`${styles.panel} ${presence.closing ? 'closingPanel' : ''}`} onClick={e => e.stopPropagation()}>
             <div className={styles.header}>
               <span className={styles.title}>{TAB_LABEL[aiTab]}</span>
               <div className={styles.headerActions}>

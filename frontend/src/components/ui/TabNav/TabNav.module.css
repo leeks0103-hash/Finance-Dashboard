@@ -26,20 +26,12 @@
   color: #fff;
 }
 
-.tab.active {
-  color: #fff;
+/* 선택된 탭 — 제목(Navbar .brand)과 같은 주황 #FF9E1B 글자로만 표시. 예전 흰 글자 + 파란 밑줄(--brand-mid)은
+   남색 바 위에서 밑줄이 거의 안 보여 어느 탭인지 덜 드러났음. 밑줄 막대는 뺌(2026-09-30 요청) */
+.tab.active,
+.tab.active:hover {
+  color: #FF9E1B;
   font-weight: 600;
-}
-
-.tab.active::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 2.5px;
-  background: var(--brand-mid);
-  border-radius: 2px 2px 0 0;
 }
 
 /* ─ 태블릿 단계(2026-09-29 통일): 1280 / 1024 / 768. 768 미만(모바일)은 대상 아님 ─ */

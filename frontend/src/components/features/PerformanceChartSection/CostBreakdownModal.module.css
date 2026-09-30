@@ -262,3 +262,17 @@
 @media (max-width: 560px) {
   .partGrid { grid-template-columns: 1fr; }
 }
+
+/* 팀↔파트 전환 시 미니 카드가 차례대로 다다닥 등장 — 지연(animation-delay)은 TSX에서 index × 60ms.
+   카드엔 드래그용 인라인 transform·opacity가 있어서: 위치는 별도 속성 translate/scale로 움직이고,
+   fill-mode는 backwards — 대기 중엔 첫 프레임(투명), 끝나면 효과를 남기지 않아 드래그 스타일과 안 싸움 */
+.staggerIn {
+  animation: staggerIn 0.36s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+@keyframes staggerIn {
+  from { opacity: 0; translate: 0 10px; scale: 0.97; }
+  to   { opacity: 1; translate: 0 0;   scale: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .staggerIn { animation: none; }
+}

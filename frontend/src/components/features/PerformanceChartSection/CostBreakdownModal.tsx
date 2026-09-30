@@ -30,6 +30,8 @@ interface Props {
 }
 
 const COST_LABELS = ['직접원가', '인건비', '공통원가', '관리비', '경상손익'];
+/** 미니 카드 등장 간격 — 팀↔파트 전환 시 차례대로 */
+const STAGGER_MS = 60;
 
 const loadOrder = (key: string): string[] => {
   try { return JSON.parse(localStorage.getItem(key) ?? '[]'); } catch { return []; }
@@ -38,9 +40,11 @@ const loadOrder = (key: string): string[] => {
 interface Cell { key: string; label: string; data: CostData }
 
 // ── 드래그 가능한 미니 카드 — 이 그리드 안에서만 순서 교체됨(다른 영역과 무관) ──
-function SortableCard({ cell, colors, showLabels, cols4, onExpand }: {
+function SortableCard({ cell, colors, showLabels, cols4, onExpand, index }: {
   cell: Cell; colors: string[]; showLabels: boolean; cols4: boolean;
   onExpand: (key: string) => void;
+  /** 등장 순서 — 팀↔파트 전환 때 카드가 차례대로 다다닥 나타나게 */
+  index: number;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: cell.key, transition: SORTABLE_TRANSITION });
   return (
@@ -51,8 +55,10 @@ function SortableCard({ cell, colors, showLabels, cols4, onExpand }: {
       style={{
         ...sortableItemStyle({ transform, transition, isDragging }),
         cursor: isDragging ? 'grabbing' : 'grab',
+        animationDelay: `${index * STAGGER_MS}ms`,
       }}
-      className={styles.partCard}
+      // 차례대로 등장(staggerIn) — 드래그가 쓰는 transform·opacity 인라인과 안 겹치게 CSS 쪽 주석 참고
+      className={`${styles.partCard} ${styles.staggerIn}`}
     >
       {/* 드래그 센서가 pointerdown을 가로채지 않도록 stopPropagation — 클릭만 확대 토글 */}
       <Button
@@ -237,11 +243,12 @@ const CostBreakdownModal = ({ total, byPart, partsRaw, teams, teamParts, colors,
         ) : (
           <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={cells.map(c => c.key)} strategy={rectSortingStrategy}>
-              {/* 팀↔파트 전환·목록으로 복귀 때 뚝 바뀌지 않게 swapIn — key로 모드 바뀔 때 다시 재생 */}
-              <div key={rightMode} className={`${styles.partGrid} ${gridColsClass} swapIn`}>
-                {cells.map(cell => (
+              {/* 팀↔파트 전환·목록으로 복귀 때 key로 다시 마운트 → 카드가 index 순서로 차례대로 등장(staggerIn) */}
+              <div key={rightMode} className={`${styles.partGrid} ${gridColsClass}`}>
+                {cells.map((cell, i) => (
                   <SortableCard
                     key={cell.key}
+                    index={i}
                     cell={cell}
                     colors={colors}
                     showLabels={showLabels}

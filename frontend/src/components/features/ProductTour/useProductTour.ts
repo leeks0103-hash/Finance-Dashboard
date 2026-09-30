@@ -95,6 +95,9 @@ export const useProductTour = () => {
       stageRadius: 8,
       smoothScroll: true,
       skipMissingElement: true,
+      // 어두운 여백을 실수로 눌러도 종료되지 않게 — 기본값 'close' 대신 아무것도 안 하는 함수.
+      // allowClose:false는 × 버튼까지 없애서 쓰지 않음(종료는 ×·ESC·마지막 '완료'로만)
+      overlayClickBehavior: () => {},
       // driver 기본 hasNextStep()은 숨은 탭의 요소를 '없음'으로 보므로 인덱스로 직접 판단.
       // 요소가 끝내 없으면 moveTo 안에서 skipMissingElement가 진행 방향으로 건너뜀
       onNextClick: (_el, _step, { driver: drv }) => {

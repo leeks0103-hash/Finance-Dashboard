@@ -42,7 +42,7 @@ export const kpiColLabel = (col: string): string =>
  * 이 표는 폭을 저장하지 않아(persistColumnSizes=false) 들어올 때마다 이 값으로 보임.
  */
 const FIXED_COL_SIZE: Record<string, number> = {
-  프로젝트코드: 150,   // 코드 16자 + 복사 아이콘
+  프로젝트코드: 176,   // 코드 16자 + 복사 아이콘 자리(150이면 아이콘 자리가 모자라 긴 코드가 말줄임됨)
   수행연도:     90,
   파트명:       90,
   보고단계:     90,

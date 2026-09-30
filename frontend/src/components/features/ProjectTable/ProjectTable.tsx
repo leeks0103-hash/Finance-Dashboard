@@ -41,7 +41,7 @@ const ProjectTable = ({ toolbarExtra }: Props) => {
       emptyDescription="다른 검색어나 필터 조건을 시도해보세요."
       initialColumnVisibility={{ filename: true }}
       storageKey="finance-project"
-      sizeVersion={2}   // columns.tsx 기본 폭 변경(2026-09-28) — 저장된 옛 폭 1회 무효화
+      sizeVersion={3}   // columns.tsx 기본 폭 변경(2026-09-28, 09-30) — 저장된 옛 폭 1회 무효화
       searchOnDblClick={['project_code']}
     />
   );
