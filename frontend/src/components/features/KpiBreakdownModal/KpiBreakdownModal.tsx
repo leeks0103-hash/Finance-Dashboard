@@ -1,8 +1,4 @@
-import { createPortal } from 'react-dom';
-import { Button, CopyText } from '@/components/ui';
-import { useScrollLock } from '@/components/ui/useScrollLock';
-import { useEscToClose } from '@/components/ui/useEscToClose';
-import { useAnimatedClose } from '@/components/ui/useAnimatedClose';
+import { Button, CopyText, Modal, ModalBadge } from '@/components/ui';
 import { useKpiBreakdownViewModel } from '@/hooks/viewmodels/useKpiBreakdownViewModel';
 import { downloadCsvFile } from '@/hooks/useExport';
 import { stripPartPrefix } from '@/utils/format';
@@ -29,12 +25,6 @@ const METRIC_LABEL_FALLBACK: Record<Props['metric'], string> = {
  */
 const KpiBreakdownModal = ({ name, metric, onClose }: Props) => {
   const vm = useKpiBreakdownViewModel(name, metric);
-
-  // 배경 스크롤 잠금 (스크롤바 폭 보정 포함 — 화면 튐 방지)
-  useScrollLock();
-  const { closing, close } = useAnimatedClose(onClose);
-  // ESC 닫기 — 차트 확대 모달 위에 겹쳐 떠도 이 모달만 닫힌다
-  useEscToClose(close);
 
   const handleCsv = () => {
     downloadCsvFile(
@@ -123,23 +113,19 @@ const KpiBreakdownModal = ({ name, metric, onClose }: Props) => {
     );
   })();
 
-  return createPortal(
-    <div className={`${styles.overlay} ${closing ? 'closingOverlay' : ''}`} onClick={close} role="presentation">
-      <div className={`${styles.modal} ${closing ? 'closingPanel' : ''}`} role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
-        <div className={styles.header}>
-          <div className={styles.titleWrap}>
-            <h3 className={styles.title}>{vm.name}</h3>
-            <div className={styles.sub}>
-              <span className={styles.badge}>{vm.metricLabel || METRIC_LABEL_FALLBACK[metric]}</span>
-              {vm.available && `${vm.aggLabel}으로 산출`}
-            </div>
-          </div>
-          <Button unstyled className={styles.close} onClick={close} aria-label="닫기">×</Button>
-        </div>
-        <div className={styles.body}>{body}</div>
-      </div>
-    </div>,
-    document.body,
+  // 스크롤 잠금·ESC(겹쳐 떠도 이 모달만 닫힘)·퇴장 애니메이션은 Modal이 처리
+  return (
+    <Modal
+      onClose={onClose}
+      width={1160}
+      title={vm.name}
+      sub={<>
+        <ModalBadge>{vm.metricLabel || METRIC_LABEL_FALLBACK[metric]}</ModalBadge>
+        {vm.available && `${vm.aggLabel}으로 산출`}
+      </>}
+    >
+      {body}
+    </Modal>
   );
 };
 

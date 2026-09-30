@@ -1,8 +1,4 @@
-import { createPortal } from 'react-dom';
-import { Button, CopyText } from '@/components/ui';
-import { useScrollLock } from '@/components/ui/useScrollLock';
-import { useEscToClose } from '@/components/ui/useEscToClose';
-import { useAnimatedClose } from '@/components/ui/useAnimatedClose';
+import { Button, CopyText, Modal, ModalBadge } from '@/components/ui';
 import {
   usePerfBreakdownViewModel,
   fmtPerfBreakdown,
@@ -25,11 +21,6 @@ interface Props {
  */
 const PerfBreakdownModal = ({ target, onClose }: Props) => {
   const vm = usePerfBreakdownViewModel(target);
-
-  useScrollLock();
-  const { closing, close } = useAnimatedClose(onClose);
-  // ESC 닫기 — 차트 확대 모달 위에 겹쳐 떠도 이 모달만 닫힌다
-  useEscToClose(close);
 
   const compare = vm.compare;
 
@@ -187,30 +178,25 @@ const PerfBreakdownModal = ({ target, onClose }: Props) => {
     );
   })();
 
-  return createPortal(
-    <div className={`${styles.overlay} ${closing ? 'closingOverlay' : ''}`} onClick={close} role="presentation">
-      <div className={`${styles.modal} ${closing ? 'closingPanel' : ''}`} role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
-        <div className={styles.header}>
-          <div className={styles.titleWrap}>
-            <h3 className={styles.title}>{vm.dimLabel} · {vm.keyLabel}</h3>
-            <div className={styles.sub}>
-              {compare ? (
-                <>
-                  <span className={styles.badge}>{compare.plan_label}</span>
-                  <span className={styles.badge}>{compare.actual_label}</span>
-                </>
-              ) : (
-                <span className={styles.badge}>{vm.seriesLabel || '값'}</span>
-              )}
-              {vm.available && '합계로 산출'}
-            </div>
-          </div>
-          <Button unstyled className={styles.close} onClick={close} aria-label="닫기">×</Button>
-        </div>
-        <div className={styles.body}>{body}</div>
-      </div>
-    </div>,
-    document.body,
+  // 스크롤 잠금·ESC(겹쳐 떠도 이 모달만 닫힘)·퇴장 애니메이션은 Modal이 처리
+  return (
+    <Modal
+      onClose={onClose}
+      title={`${vm.dimLabel} · ${vm.keyLabel}`}
+      sub={<>
+        {compare ? (
+          <>
+            <ModalBadge>{compare.plan_label}</ModalBadge>
+            <ModalBadge>{compare.actual_label}</ModalBadge>
+          </>
+        ) : (
+          <ModalBadge>{vm.seriesLabel || '값'}</ModalBadge>
+        )}
+        {vm.available && '합계로 산출'}
+      </>}
+    >
+      {body}
+    </Modal>
   );
 };
 

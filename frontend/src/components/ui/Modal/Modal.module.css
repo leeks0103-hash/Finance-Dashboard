@@ -1,0 +1,103 @@
+/*
+ * 모든 모달 공통 뼈대.
+ * 모달별로 다른 값은 클래스로 덮어쓰지 말고 아래 --modal-* 변수만 지정한다
+ * (여기선 변수를 정의하지 않고 기본값만 쓰므로 CSS 로드 순서·우선순위와 무관하게 적용됨).
+ *   overlayClassName: --modal-z, --modal-dim
+ *   className(패널):  --modal-w, --modal-max-w, --modal-h, --modal-max-h, --modal-radius, --modal-pad, --modal-body-pad
+ */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--modal-dim, rgba(0, 0, 0, 0.45));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--modal-z, 1000);
+  padding: 24px;
+  animation: fadeIn 0.16s ease;
+}
+
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--modal-radius, var(--radius));
+  box-shadow: var(--shadow-lg);
+  width: var(--modal-w, 920px);
+  max-width: var(--modal-max-w, 100%);
+  height: var(--modal-h, auto);
+  max-height: var(--modal-max-h, 90vh);
+  padding: var(--modal-pad, 0);
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.18s ease;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.titleWrap { min-width: 0; }
+
+.title {
+  margin: 0;
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+.sub {
+  margin-top: 3px;
+  font-size: 0.76rem;
+  color: var(--text-muted);
+}
+
+.badge {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
+  background: var(--brand-bg);
+  color: var(--brand-mid);
+  font-weight: 700;
+  font-size: 0.7rem;
+  margin-right: 6px;
+}
+
+.close {
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 1.5rem;
+  line-height: 1;
+  padding: 0 4px;
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  transition: color 0.15s ease, background 0.15s ease;
+}
+.close:hover { color: var(--text-primary); background: var(--bg-subtle); }
+
+.body {
+  padding: var(--modal-body-pad, 14px 20px 18px);
+  overflow-y: auto;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 10px 20px 16px;
+  border-top: 1px solid var(--border);
+}
+
+@keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp {
+  from { transform: translateY(14px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}

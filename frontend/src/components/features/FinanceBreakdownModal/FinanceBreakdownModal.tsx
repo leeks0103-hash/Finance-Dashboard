@@ -1,9 +1,5 @@
-import { createPortal } from 'react-dom';
 import { createColumnHelper } from '@tanstack/react-table';
-import { Button, CopyText, DataTable } from '@/components/ui';
-import { useScrollLock } from '@/components/ui/useScrollLock';
-import { useEscToClose } from '@/components/ui/useEscToClose';
-import { useAnimatedClose } from '@/components/ui/useAnimatedClose';
+import { Button, CopyText, DataTable, Modal } from '@/components/ui';
 import { downloadCsvFile } from '@/hooks/useExport';
 import type { FinanceBreakdownRow } from '@/api/finance.api';
 import {
@@ -31,10 +27,6 @@ const h = createColumnHelper<FinanceBreakdownRow>();
  */
 const FinanceBreakdownModal = ({ target, onClose }: Props) => {
   const vm = useFinanceBreakdownViewModel(target);
-
-  useScrollLock();
-  const { closing, close } = useAnimatedClose(onClose);
-  useEscToClose(close);
 
   const columns = [
     h.accessor('project_code', {
@@ -77,41 +69,32 @@ const FinanceBreakdownModal = ({ target, onClose }: Props) => {
     if (!vm.rows.length) return <div className={styles.state}>이 항목에 집계된 프로젝트 행이 없습니다.</div>;
 
     return (
-      <>
-        <div className={styles.body}>
-          <DataTable<FinanceBreakdownRow>
-            data={vm.rows}
-            columns={columns as never}
-            getRowId={r => `${r.project_code}-${r.filename}`}
-            compact
-            hideToolbar
-            defaultPageSize={vm.rows.length}
-            pageSizeOptions={[vm.rows.length]}
-            storageKey="finance-breakdown"
-            footer={{ value: <div className={styles.valueCell}>합계 {fmtValue(Number(vm.totalStr.replace(/,/g, '')), vm.unit)}</div> }}
-          />
-        </div>
-        <div className={styles.foot}>
-          <Button variant="success" size="sm" onClick={handleCsv}>↓ 이 목록 CSV</Button>
-        </div>
-      </>
+      <DataTable<FinanceBreakdownRow>
+        data={vm.rows}
+        columns={columns as never}
+        getRowId={r => `${r.project_code}-${r.filename}`}
+        compact
+        hideToolbar
+        defaultPageSize={vm.rows.length}
+        pageSizeOptions={[vm.rows.length]}
+        storageKey="finance-breakdown"
+        footer={{ value: <div className={styles.valueCell}>합계 {fmtValue(Number(vm.totalStr.replace(/,/g, '')), vm.unit)}</div> }}
+      />
     );
   })();
+  const hasRows = !vm.isLoading && !vm.isError && vm.available && vm.rows.length > 0;
 
-  return createPortal(
-    <div className={`${styles.overlay} ${closing ? 'closingOverlay' : ''}`} onClick={close} role="presentation">
-      <div className={`${styles.modal} ${closing ? 'closingPanel' : ''}`} role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
-        <div className={styles.header}>
-          <div className={styles.titleWrap}>
-            <div className={styles.title}>{vm.dimLabel} · {vm.keyLabel || '전체'}</div>
-            <div className={styles.sub}>{vm.fieldLabel} 합계 = {vm.totalStr}{vm.unit === '%' ? '%' : '억원'} ({vm.count}건)</div>
-          </div>
-          <Button unstyled className={styles.close} onClick={close} aria-label="닫기">×</Button>
-        </div>
-        {body}
-      </div>
-    </div>,
-    document.body,
+  return (
+    <Modal
+      onClose={onClose}
+      width={1000}
+      title={`${vm.dimLabel} · ${vm.keyLabel || '전체'}`}
+      sub={`${vm.fieldLabel} 합계 = ${vm.totalStr}${vm.unit === '%' ? '%' : '억원'} (${vm.count}건)`}
+      className={styles.modal}
+      footer={hasRows && <Button variant="success" size="sm" onClick={handleCsv}>↓ 이 목록 CSV</Button>}
+    >
+      {body}
+    </Modal>
   );
 };
 
