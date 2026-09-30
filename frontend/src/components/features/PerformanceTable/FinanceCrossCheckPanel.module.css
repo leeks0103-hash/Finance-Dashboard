@@ -75,12 +75,16 @@
 .reveal {
   display: grid;
   grid-template-rows: 1fr;
+  /* overflow가 visible로 풀리면 grid 자식 최소 폭이 0 → 표 내용 폭으로 바뀌어 칸이 표만큼 넓어지고,
+     표 가로 스크롤바가 펼침 끝나는 순간 사라지며 패널 밖으로 삐져나왔음(2026-09-30) — 폭은 패널에 고정 */
+  grid-template-columns: minmax(0, 1fr);
   animation:
     revealGrow 360ms cubic-bezier(0.16, 1, 0.3, 1) both,
     revealFade 420ms ease-out both;
 }
 .revealInner {
   min-height: 0;
+  min-width: 0;
   animation: revealClip 360ms step-end both;
 }
 @keyframes revealGrow {

@@ -9,8 +9,8 @@ Flask 앱(app/finance/kpi/performance)과 scripts/ 추출 스크립트가 전부
     EXCEL_PATH            재무 추출 결과 엑셀
     KPI_EXCEL_PATH        KPI 추출 결과 엑셀
     PERF_EXCEL_PATH       실적(사업계획 통합관리) 엑셀 — 매달 새 ver 파일로 교체됨
-    EXTRACT_BASE_DIR      재무 추출 스크립트가 스캔할 PPT 원본 폴더
-    EXTRACT_KPI_ROOT_DIR  KPI 추출 스크립트가 스캔할 PPT 원본 폴더
+
+PPT 원본 폴더(추출 스크립트 입력)는 .env를 따르지 않고 NAS 경로로 고정 — 아래 PPT_SOURCE_DIR
 """
 
 import glob
@@ -79,6 +79,8 @@ QUALITY_REPORT_XLSX  = os.path.join(DATA_DIR, "quality_report.xlsx")
 COMPARE_REPORT_XLSX  = os.path.join(DATA_DIR, "compare_report.xlsx")
 
 # ── PPT 원본 폴더 (추출 스크립트 입력) ───────────────────────
-_DEFAULT_PPT_DIR = r"C:\Users\aaa\Desktop\5. 보고서 수집"
-EXTRACT_BASE_DIR     = os.environ.get("EXTRACT_BASE_DIR", _DEFAULT_PPT_DIR)
-EXTRACT_KPI_ROOT_DIR = os.environ.get("EXTRACT_KPI_ROOT_DIR", _DEFAULT_PPT_DIR)
+# .env(EXTRACT_BASE_DIR/EXTRACT_KPI_ROOT_DIR)·CLI 인수와 무관하게 NAS 보고서 수집 폴더로 강제 고정(2026-09-30 요청).
+# ⚠️ NAS는 읽기 전용 — 스캔만 하고 출력은 항상 로컬 data/
+PPT_SOURCE_DIR       = r"\\10.206.32.3\기술교육팀\1. 실 공통\5. 보고서 수집"
+EXTRACT_BASE_DIR     = PPT_SOURCE_DIR
+EXTRACT_KPI_ROOT_DIR = PPT_SOURCE_DIR

@@ -22,8 +22,7 @@ def run(script_name):
     script = ROOT / "scripts" / script_name
     print(f"[실행] {script_name}")
     result = subprocess.run(
-        # CLI 인수를 안 넘겨야 스크립트 자체의 .env(EXTRACT_BASE_DIR/EXTRACT_KPI_ROOT_DIR)
-        # 폴백 로직이 그대로 적용됨 — 여기서 폴더를 하드코딩하면 .env를 바꿔도 무시됨(2026-09-16 버그)
+        # PPT 원본 폴더는 스크립트가 paths.PPT_SOURCE_DIR(NAS)로 고정 — CLI 인수로 폴더를 넘겨도 무시됨
         [PYTHON, str(script)],
         cwd=str(ROOT),
         capture_output=True,

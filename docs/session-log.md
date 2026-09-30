@@ -1,5 +1,19 @@
 # 세션 진행 기록
 
+## [2026-09-30 저녁] 2뎁스 펼침 흔들림·가로 스크롤바 튐 수정 + PPT 추출 원본 폴더 NAS 고정
+
+- **펼칠 때 프로젝트 상세 표 전체가 1.5px 밀림** — 헤드리스 Edge 실측(thX 245 → 246.5, 표 폭 +1.5px).
+  펼침 칸 `border-left: 3px`가 `border-collapse` 표에서 절반만큼 표 바깥 테두리로 잡혀 모든 컬럼이 밀렸음 →
+  `box-shadow: inset 3px 0 0`으로 교체(폭을 안 먹음). 패널 폭도 `clientWidth - 3` → `clientWidth`
+- **2뎁스 표 가로 스크롤바가 펼침 끝나는 순간 사라지며 표가 패널 밖으로 삐져나옴** — 1200px 폭 실측에서
+  스크롤 영역 1099 → 1343px. 애니메이션 끝에 `overflow: hidden → visible`로 풀리면 grid 자식의 자동 최소 폭이
+  0 → 내용 폭(min-content)으로 바뀌어 grid 칸이 표 폭만큼 넓어졌음 → `.reveal`/`.expandSlide`에
+  `grid-template-columns: minmax(0, 1fr)` + 자식 `min-width: 0`. 수정 후 끝까지 1102px 유지(스크롤바 유지)
+- KPI 취합 목록 ↔ KPI 상세 전환: 기존 표 페이드아웃(`.swapOut`) 뒤 새 표 페이드인(`.swapFadeIn`) — `useSwapView`
+- **PPT 데이터 추출 원본 폴더 NAS 고정** — `paths.PPT_SOURCE_DIR = \\10.206.32.3\기술교육팀\1. 실 공통\5. 보고서 수집`.
+  `.env`(EXTRACT_BASE_DIR/EXTRACT_KPI_ROOT_DIR)·CLI 인수·`compare_and_update.py`의 env 주입 전부 무시.
+  NAS는 읽기만, 출력은 그대로 로컬 `data/`
+
 ## [2026-09-30] 2뎁스 재무 이력 펼침 슬라이드 + Navbar 제목 스타일 원복
 
 - 프로젝트 상세 행 더블클릭 → 재무 이력(2뎁스) 패널이 갑자기 생기던 것 → 위에서 아래로 슬라이드(열기 320ms / 닫기 220ms).

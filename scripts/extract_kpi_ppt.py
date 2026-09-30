@@ -24,8 +24,7 @@ load_dotenv()  # .env 파일이 있으면 환경변수로 로드 (없으면 무�
 # =========================================
 # 사용자 설정
 # =========================================
-# 환경변수 EXTRACT_KPI_ROOT_DIR 우선 사용 (.env 또는 compare_and_update.py가 자동 주입)
-# CLI 인수로도 덮어쓰기 가능: python extract_kpi_ppt.py "C:\새폴더경로"
+# PPT 원본 폴더 — NAS 보고서 수집 폴더로 강제 고정(paths.PPT_SOURCE_DIR). .env·CLI 인수 무시(2026-09-30)
 import sys as _sys
 
 import sys as _sys_boot, os as _os_boot
@@ -33,12 +32,7 @@ _sys_boot.path.insert(0, _os_boot.path.dirname(_os_boot.path.dirname(_os_boot.pa
 import paths as _paths
 from shared import strip_stage_suffix as _shared_strip_stage_suffix
 RETRY_MODE = "--retry" in _sys.argv
-ROOT_DIR = Path(os.environ.get(
-    "EXTRACT_KPI_ROOT_DIR",
-    r"D:\24.기술교육사업기획팀\23. 표준 템플릿 데이터 추출 프로젝트\(기술교육실)프로젝트 보고서 수집",
-))
-if not RETRY_MODE and len(_sys.argv) > 1 and Path(_sys.argv[1]).is_dir():
-    ROOT_DIR = Path(_sys.argv[1])
+ROOT_DIR = Path(_paths.PPT_SOURCE_DIR)
 
 # 출력 엑셀: 프로젝트 data/ 폴더로 저장
 _DATA_DIR = Path(_paths.DATA_DIR)

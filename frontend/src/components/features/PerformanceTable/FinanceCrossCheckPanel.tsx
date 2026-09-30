@@ -53,8 +53,8 @@ const FinanceCrossCheckPanel = ({ projectCode, onClose }: Props) => {
     apply();
     el.addEventListener('scroll', sync, { passive: true });
     // 패널 폭 = 스크롤 컨테이너의 "보이는" 폭 — 고정 1600px이면 넓은 화면에선 남고 좁은 화면에선
-    // 잘렸음(2026-09-28). 펼침 td의 좌측 보더(3px)만큼 뺀다
-    const fit = () => { panel.style.width = `${el!.clientWidth - 3}px`; };
+    // 잘렸음(2026-09-28). 펼침 td 좌측 막대는 inset 그림자라 폭을 먹지 않음
+    const fit = () => { panel.style.width = `${el!.clientWidth}px`; };
     fit();
     const ro = new ResizeObserver(fit);
     ro.observe(el);

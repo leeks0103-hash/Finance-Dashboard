@@ -101,11 +101,10 @@ def _run_script(script_name: str, env: dict):
 
 
 def extract(new_dir: str):
+    # 추출 스크립트는 PPT 원본 폴더가 NAS(paths.PPT_SOURCE_DIR)로 고정이라 new_dir을 넘겨도 안 따름(2026-09-30)
     env = os.environ.copy()
-    env["EXTRACT_BASE_DIR"]    = new_dir   # 재무 추출 경로
-    env["EXTRACT_KPI_ROOT_DIR"] = new_dir  # KPI 추출 경로
 
-    log.info("재무 데이터 추출 시작: %s", new_dir)
+    log.info("재무 데이터 추출 시작 (원본: NAS 고정, 비교 폴더: %s)", new_dir)
     _run_script("extract_financial_ppt.py", env)
     log.info("재무 추출 완료")
 

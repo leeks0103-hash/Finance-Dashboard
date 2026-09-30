@@ -249,10 +249,22 @@ h1, h2, h3, h4, h5, h6 {
   to   { opacity: 1; transform: none; }
 }
 .swapIn { animation: swapIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both; }
+/* 같은 자리 뷰 교체(useSwapView) — 기존 뷰가 서서히 빠지고(.swapOut, 180ms) 새 뷰가 천천히 들어옴(.swapFadeIn).
+   짧은 swapIn보다 느긋하게, 움직임은 거의 없이 투명도 위주로 */
+@keyframes swapOut {
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: translateY(-3px); }
+}
+.swapOut { animation: swapOut 0.18s ease-in forwards; pointer-events: none; }
+@keyframes swapFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: none; }
+}
+.swapFadeIn { animation: swapFadeIn 0.32s cubic-bezier(0.22, 1, 0.36, 1) both; }
 /* 접이식(<details>) 펼칠 때 내용이 뚝 튀어나오지 않게 — 계산식 용어·데이터 이상 상세 등 전부 */
 details[open] > :not(summary) { animation: swapIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both; }
 @media (prefers-reduced-motion: reduce) {
-  .swapIn, details[open] > :not(summary) { animation: none; }
+  .swapIn, .swapOut, .swapFadeIn, details[open] > :not(summary) { animation: none; }
 }
 
 @keyframes pulse {

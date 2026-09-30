@@ -20,16 +20,10 @@ load_dotenv()  # .env 파일이 있으면 환경변수로 로드 (없으면 무�
 # =========================
 # 설정값
 # =========================
-# 환경변수 EXTRACT_BASE_DIR 우선 사용 (.env 또는 compare_and_update.py가 자동 주입)
-# CLI 인수로도 덮어쓰기 가능: python extract_financial_ppt.py "C:\새폴더경로"
-BASE_DIR = os.environ.get(
-    "EXTRACT_BASE_DIR",
-    r"D:\24.기술교육사업기획팀\23. 표준 템플릿 데이터 추출 프로젝트\(기술교육실)프로젝트 보고서 수집",
-)
+# PPT 원본 폴더 — NAS 보고서 수집 폴더로 강제 고정(paths.PPT_SOURCE_DIR). .env·CLI 인수 무시(2026-09-30)
+BASE_DIR = _paths.PPT_SOURCE_DIR
 # --retry 플래그: AIP 실패 목록만 재처리
 RETRY_MODE = "--retry" in sys.argv
-if not RETRY_MODE and len(sys.argv) > 1 and os.path.isdir(sys.argv[1]):
-    BASE_DIR = sys.argv[1]
 
 # 출력 엑셀: 프로젝트 data/ 폴더로 저장
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))

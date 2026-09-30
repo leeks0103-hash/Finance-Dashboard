@@ -542,7 +542,9 @@
    여기서 색을 입히면 겹쳐 보인다. 배경은 중립(surface)으로 두고 경계선만 표시 */
 .expandedRow > td {
   background: var(--surface);
-  border-left: 3px solid var(--border);
+  /* 좌측 막대는 border 대신 inset 그림자 — border-collapse 표에서 3px 테두리는 절반(1.5px)이 표 바깥
+     테두리로 잡혀, 펼칠 때마다 표 전체가 1.5px 오른쪽으로 밀리고 폭도 늘었음(2026-09-30 실측) */
+  box-shadow: inset 3px 0 0 var(--border);
   padding: 0;
 }
 
@@ -575,6 +577,7 @@
 .expandSlide {
   display: grid;
   grid-template-rows: 1fr;
+  grid-template-columns: minmax(0, 1fr);   /* 클립 해제(.expandSettled) 뒤에도 내용 폭에 끌려 넓어지지 않게 */
   /* 높이는 빠르게 펼치고, 투명도는 따로 천천히(선형에 가깝게) — 같은 ease-out을 쓰면 처음 몇 ms에
      거의 다 불투명해져 "갑자기 생긴" 느낌이었음(2026-09-30) */
   animation:
@@ -583,6 +586,7 @@
 }
 .expandInner {
   min-height: 0;
+  min-width: 0;
   overflow: hidden;
 }
 /* 다 펼쳐진 뒤엔 클립 해제 — 패널 안 표의 컬럼 메뉴·드롭다운이 잘리지 않게 */

@@ -6,6 +6,7 @@ import { useKpiFilterStore } from '@/store/kpiFilter.store';
 import { sortStages } from '@/utils/stageOrder';
 import { ChartCard, BarChart, DataTable, CopyText, HighlightText, Button, Spinner, QueryGate, FilterSelect } from '@/components/ui';
 import { FadeInSection } from '@/components/FadeInSection';
+import { useSwapView } from '@/components/ui/useAnimatedClose';
 import KpiRawTable from '@/components/features/KpiRawTable/KpiRawTable';
 import KpiBreakdownModal from '@/components/features/KpiBreakdownModal/KpiBreakdownModal';
 import KpiExcludeIndicator from '@/components/features/KpiExcludeIndicator/KpiExcludeIndicator';
@@ -43,6 +44,8 @@ const KpiPage = () => {
   const [anomalyOnly, setAnomalyOnly] = useState(false);
   const vm = useKpiPageViewModel(summaryPart, anomalyOnly);
   const [rawView, setRawView] = useState<'flat' | 'rowspan'>('flat');
+  // 목록 ↔ KPI 상세 전환 — 기존 표가 페이드아웃된 뒤 새 표가 페이드인(버튼 활성 표시는 rawView로 즉시)
+  const { shown: shownView, leaving: viewLeaving } = useSwapView(rawView);
   // KPI 목표 vs 실적 막대 또는 KPI 집계 표 셀 클릭 → 드릴다운 모달
   const [breakdown, setBreakdown] = useState<{ name: string; metric: 'target' | 'actual' | 'prev' } | null>(null);
 
@@ -268,8 +271,8 @@ const KpiPage = () => {
                 <FilterSelect value={rawStageVal} onChange={setRawStage} options={stageOptions} allLabel="보고단계 전체" />
               </div>
             );
-            // 목록 ↔ KPI 상세 전환 시 뚝 바뀌지 않게 swapIn(index.css) — key로 뷰 바뀔 때마다 재생
-            return <div key={rawView} className="swapIn">{rawView === 'flat' ? (
+            // 목록 ↔ KPI 상세 전환 시 뚝 바뀌지 않게 — 기존 표 .swapOut → 새 표 .swapFadeIn(key로 재생, index.css)
+            return <div key={shownView} className={viewLeaving ? 'swapOut' : 'swapFadeIn'}>{shownView === 'flat' ? (
               <DataTable<KpiRawRow>
                 data={vm.rawRows}
                 columns={rawColumns as never}

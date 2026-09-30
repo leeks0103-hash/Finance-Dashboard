@@ -28,6 +28,24 @@ export const useAnimatedClose = (onClose: () => void) => {
   return { closing, close };
 };
 
+const SWAP_OUT_MS = 180;   // index.css .swapOut 길이와 맞출 것
+
+/**
+ * 같은 자리에서 뷰를 바꿀 때(목록 ↔ 상세 등) — 기존 뷰가 페이드아웃(.swapOut)된 뒤 새 뷰로 교체.
+ * shown = 지금 그릴 뷰, leaving = 퇴장 중(.swapOut 붙이기). 새 뷰는 key={shown} + .swapFadeIn으로 등장.
+ * 퇴장 중 원래 뷰로 되돌리면 교체 없이 그대로 복귀. 움직임 줄이기 설정이면 즉시 교체.
+ */
+export const useSwapView = <V,>(view: V) => {
+  const [shown, setShown] = useState(view);
+  useEffect(() => {
+    if (Object.is(view, shown)) return;
+    if (reducedMotion()) { setShown(view); return; }
+    const t = window.setTimeout(() => setShown(view), SWAP_OUT_MS);
+    return () => window.clearTimeout(t);
+  }, [view, shown]);
+  return { shown, leaving: !Object.is(view, shown) };
+};
+
 /**
  * open 상태로 켜고 끄는 드롭다운용 — open이 false가 된 뒤에도 퇴장 애니메이션 동안(CLOSE_MS) 남겨둔다.
  * mounted면 렌더, closing이면 index.css .closingDrop 같은 퇴장 클래스를 붙이면 됨.
