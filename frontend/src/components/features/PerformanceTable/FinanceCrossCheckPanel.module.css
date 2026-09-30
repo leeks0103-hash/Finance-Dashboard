@@ -69,3 +69,32 @@
 .emptyIcon  { font-size: 2rem; line-height: 1; }
 .emptyTitle { font-size: 0.9rem; font-weight: 700; color: var(--text); }
 .emptySub   { font-size: 0.8rem; color: var(--text-muted); }
+
+/* ── 표 등장 — 높이 0 → 내용 높이로 펼치며 페이드인. 스피너 → 표 전환이 뚝 끊기지 않게.
+   끝나면 overflow를 풀어 표 컬럼 메뉴·드롭다운이 잘리지 않게 함 ── */
+.reveal {
+  display: grid;
+  grid-template-rows: 1fr;
+  animation:
+    revealGrow 360ms cubic-bezier(0.16, 1, 0.3, 1) both,
+    revealFade 420ms ease-out both;
+}
+.revealInner {
+  min-height: 0;
+  animation: revealClip 360ms step-end both;
+}
+@keyframes revealGrow {
+  from { grid-template-rows: 0fr; transform: translateY(-6px); }
+  to   { grid-template-rows: 1fr; transform: none; }
+}
+@keyframes revealFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes revealClip {
+  from { overflow: hidden; }
+  to   { overflow: visible; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reveal, .revealInner { animation: none; }
+}

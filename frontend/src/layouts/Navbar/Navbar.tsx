@@ -28,18 +28,18 @@ const EXTRACT_MODE_INFO: Record<ExtractMode, { label: string; desc: string }> = 
     desc: '이전에 처리한 적 없는 새 파일 · 내용이 바뀐 파일만 골라서 반영합니다. 기존 데이터는 그대로 유지. 평소엔 이 방식을 씁니다.',
   },
   force: {
-    label: '전체 재처리',
+    label: '전체',
     desc: '기존 데이터는 지우지 않되, 모든 PPT 파일을 처음부터 다시 읽어 반영합니다. 추출 로직 자체를 고친 뒤 이미 처리된 파일에도 새 로직을 다시 적용하고 싶을 때 씁니다. 파일 수가 많으면 시간이 오래 걸립니다.',
   },
   reset: {
-    label: '초기화 후 재구축',
+    label: '초기화',
     desc: '기존 추출 데이터를 전부 지우고 모든 PPT 파일을 처음부터 다시 추출합니다.',
   },
 };
 
 const FILE_OPEN_OPTIONS: { value: FileOpenVisibility; label: string; title: string }[] = [
   { value: 'all',   label: '전체',     title: '모든 사람에게 ↗ 버튼 표시' },
-  { value: 'admin', label: '관리자만', title: '관리자 인증한 브라우저에만 표시' },
+  { value: 'admin', label: '관리자',   title: '관리자 인증한 브라우저에만 표시' },
   { value: 'none',  label: '숨김',     title: '아무에게도 표시 안 함' },
 ];
 
@@ -415,13 +415,18 @@ const Navbar = () => {
                   <>
                     {/* 달성률 표시 — 파트별 계획 vs 실적 드릴다운의 달성률(행별·합계·CSV). 기본 꺼짐.
                         저조한 팀이 한눈에 드러나지 않게 관리자만 켤 수 있게 둠(2026-09-29) */}
-                    <div className={styles.row}>
-                      <span className={styles.rowText}>달성률 {showAchieveRate ? '표시 중' : '숨김'}</span>
-                      <Toggle checked={showAchieveRate} onChange={toggleAchieveRate} />
+                    {/* 달성률 / 파일 바로가기 / PPT 추출을 소제목 붙은 묶음으로 구분 — 다 붙어 있어 헷갈린다는 피드백(2026-09-30) */}
+                    <div className={styles.subGroup}>
+                      <span className={styles.subLabel}>달성률</span>
+                      <div className={styles.row}>
+                        <span className={styles.rowText}>{showAchieveRate ? '표시 중' : '숨김'}</span>
+                        <Toggle checked={showAchieveRate} onChange={toggleAchieveRate} />
+                      </div>
                     </div>
 
                     {/* 파일 바로가기(↗) 공개 범위 — 기본 관리자만(2026-09-30) */}
-                    <span className={styles.rowText}>파일 바로가기(↗) 표시</span>
+                    <div className={styles.subGroup}>
+                    <span className={styles.subLabel}>파일 바로가기(↗)</span>
                     <div className={styles.viewToggle}>
                       {FILE_OPEN_OPTIONS.map(o => (
                         <Button key={o.value} variant="ghost" size="sm"
@@ -431,7 +436,10 @@ const Navbar = () => {
                         >{o.label}</Button>
                       ))}
                     </div>
+                    </div>
 
+                    <div className={styles.subGroup}>
+                    <span className={styles.subLabel}>PPT 데이터 추출(파싱)</span>
                     {/* 추출 진행 중엔 대상/방식을 바꿀 수 없게 잠금(2026-09-23 요청) */}
                     <div className={styles.viewToggle}>
                       <Button variant="ghost" size="sm"
@@ -456,24 +464,31 @@ const Navbar = () => {
                         className={`${styles.toggleBtn} ${extractMode === 'force' ? styles.toggleActive : ''}`}
                         onClick={() => setExtractMode('force')}
                         disabled={extractLocked}
-                      >전체 재처리</Button>
+                      >전체</Button>
                       <Button variant="ghost" size="sm"
                         className={`${styles.toggleBtn} ${extractMode === 'reset' ? styles.toggleActive : ''}`}
                         onClick={() => setExtractMode('reset')}
                         disabled={extractLocked}
-                      >초기화 후 재구축</Button>
+                      >초기화</Button>
                     </div>
 
                     {/* 선택된 방식 설명 — 토글 3개 라벨만으론 뭐가 다른지 알기 어렵다는 피드백
                         (2026-09-23, "설명이 너무 간략해") */}
-                    <span className={styles.extractHint}>{EXTRACT_MODE_INFO[extractMode].desc}</span>
+                    {/* 설명 3개를 한 칸에 겹쳐 두고 선택된 것만 보이게 — 칸 높이가 항상 가장 긴 설명 기준이라
+                        방식을 바꿔도 드롭다운 높이가 출렁이지 않음(2026-09-30) */}
+                    <div className={styles.hintStack}>
+                      {(Object.keys(EXTRACT_MODE_INFO) as (keyof typeof EXTRACT_MODE_INFO)[]).map(m => (
+                        <span key={m} className={`${styles.extractHint} ${m === extractMode ? '' : styles.hintHidden}`}>
+                          {EXTRACT_MODE_INFO[m].desc}
+                        </span>
+                      ))}
+                    </div>
 
-                    {/* KPI 추출은 스킵 로직 자체가 없어 매번 전량 재파싱 — 방식 토글이 안 먹힘을 알림 */}
-                    {extractTargets.includes('kpi') && (
-                      <span className={styles.extractHint}>
-                        KPI는 매번 전체 재처리라 방식 선택과 무관합니다{extractTargets.includes('finance') ? ' (재무에만 적용)' : ''}
-                      </span>
-                    )}
+                    {/* KPI 추출은 스킵 로직 자체가 없어 매번 전량 재파싱 — 방식 토글이 안 먹힘을 알림.
+                        자리는 항상 잡아 두고 보이기만 전환(높이 고정) */}
+                    <span className={`${styles.extractHint} ${extractTargets.includes('kpi') ? '' : styles.hintHidden}`}>
+                      KPI는 매번 전체 재처리라 방식 선택과 무관합니다{extractTargets.includes('finance') ? ' (재무에만 적용)' : ''}
+                    </span>
 
                     <div className={styles.extractActions}>
                       <Button
@@ -514,6 +529,7 @@ const Navbar = () => {
                             : `실패 — ${extractJob.status.message.slice(0, 120)}`}
                       </span>
                     )}
+                    </div>
                   </>
                 )}
               </div>

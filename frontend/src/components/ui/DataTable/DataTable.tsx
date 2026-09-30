@@ -21,6 +21,7 @@ import {
 import { Button } from '@/components/ui/Button';
 import { Pagination } from '@/components/ui/Pagination';
 import { FilterSelect } from '@/components/ui/FilterSelect';
+import { prefersReducedMotion } from '@/utils/format';
 import { useColumnHighlight } from './useColumnHighlight';
 import { useClipboardPopup } from './useClipboardPopup';
 import { useTableEscapePriority } from './useTableEscapePriority';
@@ -29,6 +30,10 @@ import { SortableHeaderCell } from './SortableHeaderCell';
 import { CellPopup } from './CellPopup';
 import { TableTitleBar } from './TableTitleBar';
 import styles from './DataTable.module.css';
+
+// 펼침 패널 슬라이드 길이 — DataTable.module.css .expandSlide/.expandClosing 애니메이션과 맞출 것
+const EXPAND_OPEN_MS = 320;
+const EXPAND_CLOSE_MS = 220;
 
 // 정렬 상태 → 화살표 문자 (중첩 삼항 대신 순차 조건으로 — 어떤 상태가 어떤 기호인지 한눈에 보이게)
 function sortArrow(sorted: false | 'asc' | 'desc'): string {
@@ -433,8 +438,31 @@ const DataTable = <T extends object>({
   const colMenuRef = useRef<HTMLDivElement>(null);
 
   // expandableRow — 더블클릭한 행 바로 아래에 콘텐츠 펼치기, 한 번에 하나만
+  // 열 때·닫을 때 위아래로 슬라이드(.expandSlide) — 닫힘은 퇴장 애니메이션(EXPAND_CLOSE_MS)이 끝난 뒤 제거.
+  // 다른 행을 더블클릭하면 기존 패널은 바로 빠지고 새 행에서 다시 슬라이드되며 열림
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
-  const closeExpanded = useCallback(() => setExpandedKey(null), []);
+  const [expandClosing, setExpandClosing] = useState(false);
+  // 슬라이드가 끝나면 overflow 클립을 풂 — 패널 안 표의 컬럼 메뉴 등 드롭다운이 잘리지 않게
+  const [expandSettled, setExpandSettled] = useState(false);
+  const expandTimer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(expandTimer.current), []);
+  const closeExpanded = useCallback(() => {
+    window.clearTimeout(expandTimer.current);
+    if (prefersReducedMotion()) { setExpandedKey(null); return; }
+    setExpandClosing(true);
+    setExpandSettled(false);
+    expandTimer.current = window.setTimeout(() => {
+      setExpandedKey(null);
+      setExpandClosing(false);
+    }, EXPAND_CLOSE_MS);
+  }, []);
+  const toggleExpanded = useCallback((key: string) => {
+    if (expandedKey === key && !expandClosing) { closeExpanded(); return; }
+    window.clearTimeout(expandTimer.current);
+    setExpandClosing(false);
+    setExpandSettled(false);
+    setExpandedKey(key);
+  }, [expandedKey, expandClosing, closeExpanded]);
   const expandedRowRef = useRef<HTMLTableRowElement>(null);
 
   // 펼쳐진 행이 뷰포트 밖에 있으면 페이지 스크롤
@@ -448,7 +476,7 @@ const DataTable = <T extends object>({
       if (!inView) {
         el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }
-    }, 80);
+    }, prefersReducedMotion() ? 80 : EXPAND_OPEN_MS);   // 슬라이드로 다 펼쳐진 뒤 높이 기준
     return () => clearTimeout(timer);
   }, [expandedKey]);
 
@@ -875,7 +903,7 @@ const DataTable = <T extends object>({
                               } : undefined}
                               onDoubleClick={
                                 canExpand
-                                  ? () => setExpandedKey(k => k === expandKey ? null : expandKey!)
+                                  ? () => toggleExpanded(expandKey!)
                                   : searchOnDblClick?.includes(cell.column.id) && text
                                     ? () => tableSearch.fillFromCell(text)
                                     : undefined
@@ -900,7 +928,21 @@ const DataTable = <T extends object>({
                   {expandedInGroup && (
                     <tr ref={expandedRowRef} className={styles.expandedRow}>
                       <td colSpan={table.getVisibleLeafColumns().length}>
-                        {expandableRow!.renderContent(expandedInGroup.original, closeExpanded)}
+                        <div
+                          key={expandedKey}
+                          className={[
+                            styles.expandSlide,
+                            expandClosing ? styles.expandClosing : '',
+                            expandSettled ? styles.expandSettled : '',
+                          ].join(' ')}
+                          onAnimationEnd={e => {
+                            if (e.target === e.currentTarget && !expandClosing) setExpandSettled(true);
+                          }}
+                        >
+                          <div className={styles.expandInner}>
+                            {expandableRow!.renderContent(expandedInGroup.original, closeExpanded)}
+                          </div>
+                        </div>
                       </td>
                     </tr>
                   )}

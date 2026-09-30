@@ -89,6 +89,8 @@ const FinanceCrossCheckPanel = ({ projectCode, onClose }: Props) => {
           <span className={styles.emptySub}>이 코드를 {fileCount}개 파일이 공유합니다</span>
         </div>
       ) : (
+        // 데이터 도착 후 표가 한 번에 튀어나오지 않게 — 위에서 아래로 펼치며 페이드인(2026-09-30)
+        <div className={styles.reveal}><div className={styles.revealInner}>
         <DataTable<Project>
           data={sorted}
           columns={columns as never}
@@ -104,6 +106,7 @@ const FinanceCrossCheckPanel = ({ projectCode, onClose }: Props) => {
           storageKey="perf-finance-cross-check"
           scrollable={false}
         />
+        </div></div>
       )}
     </div>
   );

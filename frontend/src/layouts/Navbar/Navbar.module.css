@@ -65,11 +65,11 @@
    글자 높이를 옆 로고(.logo height)에 맞춰 키운다 */
 .brand {
   margin: 0;
-  /* font-size: 13px; */
-  font-weight: 500;
+  font-size: 16px;
+  font-weight: 700;
   line-height: 1;
-  color: #fff;
-  letter-spacing: -0.1em;   /* 타이트하게(2026-09-29 요청) */
+  color: #FF9E1B;
+  letter-spacing: -0.01em;
   white-space: nowrap;
 }
 
@@ -247,7 +247,8 @@
   border-radius: var(--radius);
   box-shadow: var(--shadow-md);
   padding: 12px 0;
-  min-width: 200px;
+  /* 폭 고정 — 내용(설명 글자수)에 따라 드롭다운 크기가 바뀌지 않게(2026-09-30) */
+  width: 280px;
   z-index: 200;
   animation: dropIn 0.15s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
@@ -333,7 +334,9 @@
 }
 
 .viewToggle .toggleBtn {
-  flex: 1;
+  flex: 1 1 0;
+  justify-content: center;
+  text-align: center;
   padding: 4px 10px;
   font-size: 0.74rem;
   font-weight: 600;
@@ -380,6 +383,33 @@
   font-size: 0.68rem;
   color: var(--text-muted);
   line-height: 1.4;
+}
+
+/* 방식 설명 3개를 같은 칸에 겹침 — 칸 높이 = 가장 긴 설명 */
+.hintStack {
+  display: grid;
+}
+.hintStack > * {
+  grid-area: 1 / 1;
+}
+.hintHidden {
+  visibility: hidden;
+}
+
+/* 관리자용 기능 안의 묶음(달성률 / 파일 바로가기 / PPT 추출) — 소제목 + 위 구분선 */
+.subGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.subLabel {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--text-sub);
 }
 
 .extractResult {
