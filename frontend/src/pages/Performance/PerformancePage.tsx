@@ -186,9 +186,6 @@ const PerformancePage = () => {
             emptyTitle="검색 결과 없음"
             emptyDescription="다른 검색어나 필터 조건을 시도해보세요."
             storageKey="performance-project"
-            // 표 높이 고정 대신 절충(2026-09-30) — 검색 결과가 1~2건이어도 10줄 높이는 유지해 덜 쪼그라듦.
-            // 결과가 많으면 원래대로 늘어남
-            minRows={10}
             // 글씨 많은 컬럼(프로젝트명·사유·중복점검 등) 기본 폭을 넓히면서 저장된 폭 1회 무효화
             sizeVersion={2}
             // 예전 세션에 저장된 컬럼 표시/숨김 값이 그 뒤 추가된 컬럼(월별 컬럼·계획 대비 추정
