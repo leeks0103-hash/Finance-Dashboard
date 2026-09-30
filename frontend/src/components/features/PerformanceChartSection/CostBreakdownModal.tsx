@@ -141,6 +141,13 @@ const CostBreakdownModal = ({ total, byPart, partsRaw, teams, teamParts, colors,
 
   const previewCell = previewKey ? cells.find(c => c.key === previewKey) : null;
 
+  // 팀/파트 탭 — 확대해서 보는 중에 누르면(지금 켜져 있는 탭을 다시 눌러도) 목록으로 돌아감.
+  // 예전엔 같은 탭을 누르면 아무 일도 없어서 "목록으로" 버튼을 따로 찾아야 했음(2026-09-30)
+  const selectMode = (mode: 'team' | 'part') => {
+    setRightMode(mode);
+    setPreviewKey(null);
+  };
+
   return (
     <div className={styles.wrap}>
       {/* 왼쪽 — 항상 전사평균 고정. 조각 클릭 → 산출근거 표 모달 */}
@@ -166,14 +173,14 @@ const CostBreakdownModal = ({ total, byPart, partsRaw, teams, teamParts, colors,
           <Button
             unstyled
             className={`${styles.modeTab} ${rightMode === 'team' ? styles.modeTabActive : ''}`}
-            onClick={() => setRightMode('team')}
+            onClick={() => selectMode('team')}
           >
             팀
           </Button>
           <Button
             unstyled
             className={`${styles.modeTab} ${rightMode === 'part' ? styles.modeTabActive : ''}`}
-            onClick={() => setRightMode('part')}
+            onClick={() => selectMode('part')}
           >
             파트
           </Button>

@@ -62,7 +62,7 @@ export const CellPopup = ({ title, popup, copied, onClose, onCopy }: Props) => {
                 </Button>
               )}
               {onOpen && (
-                <Button unstyled className={styles.iconBtn} onClick={onOpen} title="바로가기" aria-label="바로가기">
+                <Button unstyled className={styles.iconBtn} onClick={onOpen} title="원본 파일 열기(바로가기)" aria-label="바로가기">
                   <svg viewBox="0 0 16 16" aria-hidden><path d="M9 2.5h4.5V7" /><path d="M13.5 2.5 7 9" /><path d="M11.5 9.5v3a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1h3" /></svg>
                 </Button>
               )}

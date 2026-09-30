@@ -25,7 +25,7 @@ import {
   INFO_PLAN_VS_ACTUAL,
 } from '@/utils/infoTexts';
 import type { ChartOptions } from 'chart.js';
-import { stripPartPrefix } from '@/utils/format';
+import { stripPartPrefix, prefersReducedMotion } from '@/utils/format';
 import { getDatalabelAlpha } from '@/utils/datalabelFade';
 import { SORTABLE_TRANSITION, sortableItemStyle } from '@/components/ui/sortableMotion';
 import styles from './PerformanceChartSection.module.css';
@@ -180,9 +180,17 @@ interface PlanLinePluginOpts { series: PlanLineSeries[]; showLabels?: boolean; l
 //   · 값이 바뀌면(필터 등) — 이전 위치 → 새 위치로 값 공간에서 이동
 // easeInOutQuart는 막대(makeBarOptions)와 동일. 상태는 차트 인스턴스별(WeakMap — 차트 destroy 시
 // 자동 해제), 시리즈는 barIndex로 구분
+//   · 껐을 때(exit) — 그릴 때의 반대로 오른쪽 → 왼쪽으로 걷힘. 예전엔 범례를 누르는 순간 뚝 사라졌음(2026-09-30)
 const PLAN_ANIM_MS = 900;
+const PLAN_EXIT_MS = 500;
 const easeInOutQuart = (t: number) => (t < 0.5 ? 8 * t ** 4 : 1 - (-2 * t + 2) ** 4 / 2);
-interface PlanTween { from: (number | null)[]; to: (number | null)[]; start: number; reveal: boolean; }
+interface PlanTween {
+  from: (number | null)[]; to: (number | null)[]; start: number; reveal: boolean;
+  /** 마지막으로 그린 모양 — 꺼진 뒤(옵션에서 빠진 뒤)에도 퇴장 동안 같은 색·점선으로 그리려고 보관 */
+  color: string; dash: number[];
+  /** 퇴장 중이면 시작 시각 + 그때 보이던 폭 비율(그리는 도중에 끄면 그린 데까지만 걷힘) */
+  exit?: { start: number; from: number };
+}
 const planTweens = new WeakMap<object, Map<number, PlanTween>>();
 const planRafPending = new WeakSet<object>();
 const tweenValueAt = (tw: PlanTween, i: number, e: number) => {
@@ -228,6 +236,37 @@ const costLabelAlign = (ctx: { chart: Chart; datasetIndex: number; dataIndex: nu
 };
 const overlaps = (a: Rect, b: Rect) => a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b;
 
+// 한 계열(점선 + 점)을 그림 — clipX가 있으면 차트 왼쪽 끝부터 거기까지만 보이게
+const strokePlanSeries = (chart: Chart<'bar'>, pts: (PlanPt | null)[], color: string, dash: number[], clipX: number) => {
+  const { ctx } = chart;
+  const { left, top, bottom } = chart.chartArea;
+  ctx.save();
+  if (clipX !== Infinity) {
+    ctx.beginPath();
+    ctx.rect(left, top - 30, clipX - left, bottom - top + 30);   // 위 30px = 수치 라벨 자리
+    ctx.clip();
+  }
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.setLineDash(dash);
+  ctx.beginPath();
+  let started = false;
+  pts.forEach(p => {
+    if (!p) { started = false; return; }
+    if (!started) { ctx.moveTo(p.x, p.y); started = true; } else ctx.lineTo(p.x, p.y);
+  });
+  ctx.stroke();
+  ctx.setLineDash([]);
+  pts.forEach(p => {
+    if (!p) return;
+    ctx.beginPath();
+    ctx.fillStyle = color;
+    ctx.arc(p.x, p.y, 3.5, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  ctx.restore();
+};
+
 const drawPlanLines = (chart: Chart<'bar'>) => {
   const drawn: PlanDrawn[] = [];
   planDrawn.set(chart, drawn);
@@ -235,18 +274,25 @@ const drawPlanLines = (chart: Chart<'bar'>) => {
   const series = opts?.series ?? [];
   const tweens = planTweens.get(chart) ?? new Map<number, PlanTween>();
   planTweens.set(chart, tweens);
-  // 꺼진 시리즈는 상태를 버려서, 다시 켜면 0부터 다시 올라오게
-  [...tweens.keys()].forEach(k => { if (!series.some(s => s.barIndex === k)) tweens.delete(k); });
-  if (!series.length) return;
+  if (!series.length && !tweens.size) return;
   const now = performance.now();
   let animating = false;
-  const { ctx } = chart;
-  series.forEach(({ barIndex, values: targets, color, dash }) => {
+  const { left, right } = chart.chartArea;
+  const ptsOf = (barIndex: number, values: (number | null)[], labels: (number | null)[]) => {
     const meta = chart.getDatasetMeta(barIndex);
     const yScale = chart.scales[meta?.yAxisID ?? 'y'];
-    if (!meta?.data?.length || !yScale) return;
+    if (!meta?.data?.length || !yScale) return null;
+    return meta.data.map((el, i) => {
+      const v = values[i];
+      if (v == null) return null;
+      return { x: (el as unknown as { x: number }).x, y: yScale.getPixelForValue(v), v: labels[i] ?? null };
+    });
+  };
 
+  series.forEach(({ barIndex, values: targets, color, dash }) => {
     let tw = tweens.get(barIndex);
+    // 걷히는 도중에 다시 켜면 처음부터 다시 그려 나감
+    if (tw?.exit) { tweens.delete(barIndex); tw = undefined; }
     const changed = !tw || tw.to.length !== targets.length || tw.to.some((v, i) => v !== targets[i]);
     if (changed) {
       const prev = tw;
@@ -257,50 +303,43 @@ const drawPlanLines = (chart: Chart<'bar'>) => {
         to:     [...targets],
         start:  now,
         reveal: !prev || (prev.reveal && now - prev.start < PLAN_ANIM_MS),
+        color, dash,
       };
       tweens.set(barIndex, tw);
     }
+    tw!.color = color;
+    tw!.dash = dash;
     const t = Math.min(1, (now - tw!.start) / PLAN_ANIM_MS);
     if (t < 1) animating = true;
     const e = easeInOutQuart(t);
     const values = tw!.reveal ? targets : targets.map((_, i) => tweenValueAt(tw!, i, e));
     // reveal이면 차트 왼쪽 끝부터 진행률만큼만 보이게
-    const { left, right, top, bottom } = chart.chartArea;
     const clipX = tw!.reveal && t < 1 ? left + (right - left) * e : Infinity;
     // 수치 라벨은 datalabels가 못 봄(실제 데이터셋이 아니라 캔버스 직접 그리기) — 3단계에서 직접 그림.
     // 라벨 수치는 트윈 중간값이 아니라 최종 목표값(targets) — 위치만 움직이고 숫자는 고정
-    const pts = meta.data.map((el, i) => {
-      const v = values[i];
-      if (v == null) return null;
-      return { x: (el as unknown as { x: number }).x, y: yScale.getPixelForValue(v), v: targets[i] };
-    });
+    const pts = ptsOf(barIndex, values, targets);
+    if (!pts) return;
     drawn.push({ pts, color, clipX });
-    ctx.save();
-    if (clipX !== Infinity) {
-      ctx.beginPath();
-      ctx.rect(left, top - 30, clipX - left, bottom - top + 30);   // 위 30px = 수치 라벨 자리
-      ctx.clip();
-    }
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
-    ctx.setLineDash(dash);
-    ctx.beginPath();
-    let started = false;
-    pts.forEach(p => {
-      if (!p) { started = false; return; }
-      if (!started) { ctx.moveTo(p.x, p.y); started = true; } else ctx.lineTo(p.x, p.y);
-    });
-    ctx.stroke();
-    ctx.setLineDash([]);
-    pts.forEach(p => {
-      if (!p) return;
-      ctx.beginPath();
-      ctx.fillStyle = color;
-      ctx.arc(p.x, p.y, 3.5, 0, Math.PI * 2);
-      ctx.fill();
-    });
-    ctx.restore();
+    strokePlanSeries(chart, pts, color, dash, clipX);
   });
+
+  // 꺼진 계열 — 바로 지우지 않고 오른쪽부터 걷어냄. 끝나면 상태를 버려서 다시 켤 때 처음부터 그려지게
+  tweens.forEach((tw, barIndex) => {
+    if (series.some(sr => sr.barIndex === barIndex)) return;
+    if (!tw.exit) {
+      const t = Math.min(1, (now - tw.start) / PLAN_ANIM_MS);
+      tw.exit = { start: now, from: tw.reveal ? easeInOutQuart(t) : 1 };
+    }
+    const te = Math.min(1, (now - tw.exit.start) / PLAN_EXIT_MS);
+    if (te >= 1 || prefersReducedMotion()) { tweens.delete(barIndex); return; }
+    animating = true;
+    const pts = ptsOf(barIndex, tw.to, tw.to);
+    if (!pts) { tweens.delete(barIndex); return; }
+    const clipX = left + (right - left) * tw.exit.from * (1 - easeInOutQuart(te));
+    drawn.push({ pts, color: tw.color, clipX });
+    strokePlanSeries(chart, pts, tw.color, tw.dash, clipX);
+  });
+
   // 트윈 중이면 다음 프레임 다시 그리기 — 막대 애니메이션과 겹쳐도 프레임당 1회만 예약.
   // chart.draw()는 update 없이 현재 상태만 다시 그려서 막대 애니메이션을 방해하지 않음
   if (animating && !planRafPending.has(chart)) {

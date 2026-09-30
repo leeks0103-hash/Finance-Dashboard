@@ -178,7 +178,9 @@
   display: flex;
   flex-shrink: 0;
   gap: 14px;
-  max-height: 260px;
+  /* 표(머리글 + 파트 7행)가 261px — 예전 260px 상한은 1px이 모자라 표 칸에 스크롤바가 생기고 마지막 행
+     아래 테두리가 잘렸음(2026-09-30 실측). 표 높이만큼은 다 보이게 상한을 넉넉히 */
+  max-height: 320px;
 }
 
 .chartModalTable {

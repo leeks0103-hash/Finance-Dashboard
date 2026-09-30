@@ -91,22 +91,55 @@ interface LabelItem {
   color: string;
 }
 
-// 같은 쪽(좌/우)에서 라벨끼리 세로로 너무 가까우면(겹치면) 위→아래 순으로 최소 간격만큼 밀어낸다.
-// (예: 얇은 조각 여러 개가 붙어있으면 인출선 끝 y가 비슷해져 텍스트가 겹침 — 실사용 스샷으로 확인된 문제)
-const resolveOverlaps = (items: LabelItem[], minGap: number) => {
+// 같은 쪽(좌/우)에서 라벨끼리 세로로 너무 가까우면(겹치면) 최소 간격만큼 벌린다.
+// 얇은 조각 여러 개가 붙어 있으면 인출선 끝 y가 비슷해져 글자가 겹침 — 실사용 스샷으로 확인된 문제.
+//  · 예전엔 위 → 아래 한 방향으로만 밀어서 첫 라벨만 제자리고 나머지는 자기 조각에서 점점 멀어졌음
+//    → 서로 반씩 밀어내(묶음 가운데가 원래 위치에 남음) 조각 근처에 고르게 퍼지게
+//  · 캔버스 위아래(lo~hi) 밖으로 나가면 잘리므로 그 안에 가둠. 마지막에 한 번 더 훑어 간격을 보장
+const resolveOverlaps = (items: LabelItem[], minGap: number, lo: number, hi: number) => {
+  if (!items.length) return;
   items.sort((a, b) => a.naturalY - b.naturalY);
-  for (let i = 1; i < items.length; i++) {
-    const prev = items[i - 1];
-    const cur  = items[i];
-    if (cur.y < prev.y + minGap) cur.y = prev.y + minGap;
+  const clamp = () => items.forEach(it => { it.y = Math.min(hi, Math.max(lo, it.y)); });
+  for (let iter = 0; iter < 80; iter++) {
+    let moved = false;
+    for (let i = 1; i < items.length; i++) {
+      const d = items[i].y - items[i - 1].y;
+      if (d < minGap - 0.01) {
+        const push = (minGap - d) / 2;
+        items[i - 1].y -= push;
+        items[i].y     += push;
+        moved = true;
+      }
+    }
+    clamp();
+    if (!moved) break;
   }
+  for (let i = 1; i < items.length; i++) {
+    if (items[i].y < items[i - 1].y + minGap) items[i].y = items[i - 1].y + minGap;
+  }
+  const last = items[items.length - 1];
+  if (last.y > hi) {
+    last.y = hi;
+    for (let i = items.length - 2; i >= 0; i--) {
+      if (items[i].y > items[i + 1].y - minGap) items[i].y = items[i + 1].y - minGap;
+    }
+  }
+};
+
+/** 보정된 y에서 인출선이 꺾이는 x — 링 바깥 원(반지름 r2) 위의 점. 예전엔 y만 옮기고 x는 원래 각도 그대로라,
+ *  아래로 밀린 라벨이 링이 더 넓어지는 자리에서 링 위에 올라앉았음(글자가 조각을 덮음, 2026-09-30).
+ *  y가 원 밖(꼭대기보다 위 / 바닥보다 아래)이면 원래 x를 그대로 씀 */
+const elbowX = (it: LabelItem): number => {
+  const dy = it.y - it.y0;
+  if (Math.abs(dy) >= it.r2) return it.x0 + it.cos * it.r2;
+  return it.x0 + (it.isRight ? 1 : -1) * Math.sqrt(it.r2 * it.r2 - dy * dy);
 };
 
 /**
  * 도넛 조각 비율이 작으면(예: 0.1%) 링 안쪽 라벨이 얇은 조각에 눌려 안 보임 —
  * 링 바깥으로 짧은 인출선을 긋고 그 끝에 조각 색과 같은 색으로 텍스트를 그린다.
  * 인접한 얇은 조각이 여러 개면 인출선 끝 위치가 겹치므로, 좌/우 반쪽마다 세로로
- * 최소 간격을 두고 밀어내는 보정을 거친다(인출선은 진짜 각도에서 시작해 살짝 꺾여 나감).
+ * 최소 간격을 두고 벌린 뒤 링 바깥 원을 따라 x를 다시 잡는다(인출선은 진짜 각도에서 시작해 살짝 꺾여 나감).
  * `showLabels`(전역 "그래프 수치" 토글)와 별개로, 이 플러그인이 켜진 차트에서만 동작.
  */
 export const outsideLabelsPlugin: Plugin<'doughnut'> = {
@@ -153,13 +186,16 @@ export const outsideLabelsPlugin: Plugin<'doughnut'> = {
     ctx.lineWidth = 1;
 
     const lineH  = preset.font + 2;
-    const minGap = lineH * (opts.showValue ? 2 : 1) + 4;   // 두 줄 라벨은 그만큼 더 띄움
-    resolveOverlaps(items.filter(it => it.isRight), minGap);
-    resolveOverlaps(items.filter(it => !it.isRight), minGap);
+    const labelH = lineH * (opts.showValue ? 2 : 1);
+    const minGap = labelH + 4;   // 두 줄 라벨은 그만큼 더 띄움
+    const lo = labelH / 2 + 2;
+    const hi = chart.height - labelH / 2 - 2;
+    resolveOverlaps(items.filter(it => it.isRight), minGap, lo, hi);
+    resolveOverlaps(items.filter(it => !it.isRight), minGap, lo, hi);
 
     for (const it of items) {
       const x1 = it.x0 + it.cos * it.r1, y1 = it.y0 + it.sin * it.r1;
-      const x2 = it.x0 + it.cos * it.r2;                       // 꺾이는 지점 x는 원래 각도 기준
+      const x2 = elbowX(it);                                   // 꺾이는 지점 — 보정된 y에서 링 바깥 원 위
       const x3 = x2 + (it.isRight ? it.horiz : -it.horiz);     // 수평 마무리
 
       ctx.strokeStyle = it.color;

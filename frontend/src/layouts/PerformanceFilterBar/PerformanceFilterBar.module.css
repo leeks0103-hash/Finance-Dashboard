@@ -59,10 +59,13 @@
 
 .panel { display: flex; align-items: center; gap: 10px; flex-wrap: nowrap; }
 
-/* 좁은 화면 — 칩 그룹 대신 드롭다운으로 전환 (가로 스크롤/잘림 방지) */
+/* 좁은 화면 — 칩 그룹 대신 드롭다운으로 전환 (가로 스크롤/잘림 방지).
+   기준 1340px = 칩 12개 + "업데이트" 표시가 한 줄에 들어가는 최소 폭(실측 1307px + 세로 스크롤바·여유).
+   예전 1100px은 칩이 다 안 들어가는 1100~1264px 구간에서 페이지 전체에 가로 스크롤이 생겼고,
+   칩 글꼴을 현대 서체로 맞추면서 필요한 폭이 1264 → 1307로 늘어 1280 화면까지 넘쳤음(2026-09-30) */
 .dropdownOnly { display: none; }
 
-@media (max-width: 1100px) {
+@media (max-width: 1340px) {
   .panel { flex-wrap: wrap; }
   .chipsOnly    { display: none; }
   .dropdownOnly { display: block; }

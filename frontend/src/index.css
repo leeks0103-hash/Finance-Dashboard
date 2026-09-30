@@ -205,6 +205,10 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* 입력·버튼류는 브라우저 기본값이 글꼴을 물려받지 않음(Arial → 한글은 시스템 글꼴) — 필터 칩·탭·검색창만
+   현대 서체가 아니었던 원인(2026-09-30 실측). 한 곳에서 물려받게 해서 전부 본문 서체로 통일 */
+button, input, select, textarea { font-family: inherit; }
+
 h1, h2, h3, h4, h5, h6 {
   font-family: 'HyundaiSansHead', 'HyundaiSans', 'Malgun Gothic', sans-serif;
 }

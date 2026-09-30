@@ -35,11 +35,13 @@
   outline: none;
   background: none;
   border-radius: 3px;
-  color: var(--text-muted);
+  /* 처음 회색(--text-muted)·투명도 0.6은 표 안에서 거의 안 보였고, Active Blue(--accent)로 칠했더니 너무 튀었음
+     (2026-09-30) → 그 사이: 글자와 같은 계열의 진한 회색(--text-sub)을 살짝 옅게. 색은 호버할 때만(아래 규칙) */
+  color: var(--text-sub);
   cursor: pointer;
   font: inherit;
   line-height: 1;
-  opacity: 0.6;
+  opacity: 0.75;
   transition: background-color 0.25s ease, color 0.25s ease, opacity 0.25s ease;
 }
 /* 호버 — 회색(bg-subtle)은 표 줄 호버(연파랑 brand-bg) 위에서 탁해 보였음 → 브랜드색을 한 톤 진하게 섞어
@@ -90,6 +92,9 @@
   transition: opacity 0.15s ease;
   font-size: 0.75rem;
 }
+
+/* ↗ 바로가기가 있을 땐 호버 복사 아이콘 없이, 복사한 직후의 ✓만 ↗ 뒤에 표시(CopyText.tsx) */
+.iconAfter { margin-left: 2px; pointer-events: none; }
 
 /* hover 시 아이콘 테두리 표시 */
 .root:hover .icon:not(.check) {

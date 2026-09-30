@@ -133,10 +133,11 @@
   /* 캡션(약 10px)+gap(3px)을 빼고도 막대 트랙이 충분히 남도록 44 → 52px.
      margin-top 18 + 52 = 70px로, 옆의 값 영역(계획/추정 두 줄 ≈ 70px)과 같아
      카드 전체 높이(min 140px)는 그대로 유지됨 */
-  height: 52px;
+  /* 캡션을 키우며(2026-09-30) 트랙 높이가 줄지 않게 52 → 54px, 그만큼 위 여백 18 → 16px — 합 70px 유지 */
+  height: 54px;
   flex-shrink: 0;
   /* perf-kpi-card(140px) 높이에 맞추려고 예전보다 위로 당김(36→18px) */
-  margin-top: 18px;
+  margin-top: 16px;
   margin-right: 14px;
 }
 .barCol {
@@ -210,11 +211,14 @@
 .profit .barEst { background: var(--profit);   --barest-color: var(--profit);   --barest-pulse-color: var(--sky-blue); }
 .loss   .barEst { background: var(--loss);     --barest-color: var(--loss);     --barest-pulse-color: #FF6A4D; }
 .purple .barEst { background: var(--brand-mid); --barest-color: var(--brand-mid); --barest-pulse-color: var(--sky-blue); }
+/* 0.6rem(9.6px)·굵게는 너무 작고 뭉개져 "계획/추정"이 거의 안 읽혔음 → 0.72rem(11.5px)·600(2026-09-30) */
 .barCap {
-  font-size: 0.6rem;
-  font-weight: 700;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1;
   color: var(--text-primary);
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
 }
 
 :global([data-theme="dark"]) .card { border-color: var(--border); }
