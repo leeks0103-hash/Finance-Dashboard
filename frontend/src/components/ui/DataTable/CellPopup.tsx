@@ -1,7 +1,8 @@
-import type { ReactNode } from 'react';
+import { useContext, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/Button';
 import { useAnimatedClose } from '@/components/ui/useAnimatedClose';
+import { FileOpenVisibleContext } from '@/components/ui/fileOpenContext';
 import styles from './CellPopup.module.css';
 
 interface PopupState {
@@ -24,7 +25,9 @@ interface Props {
 /** 셀 내용 팝업 포털 — DataTable·KpiRawTable 공용 */
 export const CellPopup = ({ title, popup, copied, onClose, onCopy }: Props) => {
   const { closing, close } = useAnimatedClose(onClose);
+  const canOpen = useContext(FileOpenVisibleContext);
   if (!popup) return null;
+  const onOpen = canOpen ? popup.onOpen : undefined;
 
   return createPortal(
     <div className={`${styles.popupOverlay} ${closing ? 'closingOverlay' : ''}`} onClick={close}>
@@ -37,7 +40,7 @@ export const CellPopup = ({ title, popup, copied, onClose, onCopy }: Props) => {
             큰 버튼이었음(2026-09-29 버튼으로 통일, 바로가기 복구) */}
         <div className={styles.popupBody}>
           <span className={styles.popupText}>{popup.text}</span>
-          {(popup.copyable || popup.onOpen) && (
+          {(popup.copyable || onOpen) && (
             <span className={styles.popupActions}>
               {popup.copyable && (
                 <Button
@@ -54,8 +57,8 @@ export const CellPopup = ({ title, popup, copied, onClose, onCopy }: Props) => {
                   )}
                 </Button>
               )}
-              {popup.onOpen && (
-                <Button unstyled className={styles.iconBtn} onClick={popup.onOpen} title="바로가기" aria-label="바로가기">
+              {onOpen && (
+                <Button unstyled className={styles.iconBtn} onClick={onOpen} title="바로가기" aria-label="바로가기">
                   <svg viewBox="0 0 16 16" aria-hidden><path d="M9 2.5h4.5V7" /><path d="M13.5 2.5 7 9" /><path d="M11.5 9.5v3a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1h3" /></svg>
                 </Button>
               )}

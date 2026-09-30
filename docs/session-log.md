@@ -1,5 +1,24 @@
 # 세션 진행 기록
 
+## [2026-09-30] 코드 재사용 정리 + 파일 바로가기 공개 범위 설정
+
+- **모달 뼈대 공용화** `components/ui/Modal` — `Modal`(제목·부제·닫기 헤더+본문+푸터) / `ModalShell`(뼈대만) /
+  `ModalCloseButton` / `ModalBadge`. Finance/Kpi/Perf 드릴다운·재무데이터 모달 4곳이 각자 만들던 포털·배경·
+  스크롤 잠금·ESC·퇴장 애니메이션·헤더를 대체. 모달별 차이는 `--modal-*` CSS 변수로만(클래스 덮어쓰기는
+  CSS 로드 순서에 따라 결과가 달라지고, `:where()`로 우선순위를 낮추면 전역 리셋 `* {padding:0}`에 짐).
+  재무 드릴다운 제목·× 크기를 다른 모달과 통일, 재무데이터 모달 ✕ → ×
+- **드릴다운 모달 공통 조각** `features/BreakdownModal/BreakdownParts` — `BreakdownGate`(기존 `QueryGate` 기반
+  로딩·오류·사용불가·빈 상태) · `BreakdownExplain` · `BreakdownFoot`(기준 안내+CSV) · `BreakdownNote`. 3벌 CSS 제거
+- **백엔드 중복 → shared.py** — `safe_mtime`(3벌), `find_source_path`(처리이력 경로 찾기 2벌),
+  `open_source_file`(파일 열기 응답 2벌), `PART_PREFIX_RE`/`strip_part_prefix`(2벌).
+  `get_*_df` mtime 캐시 3벌은 실패 처리가 조금씩 달라 그대로 둠
+- 검증: 전후 코드를 같은 데이터로 따로 띄워 API 19개 동일, 실제 파일명 80개 경로 조회 동일, 모달 5종 캡처 비교
+- **파일 바로가기(↗) 공개 범위** — ⚙ > 관리자용 기능 > "파일 바로가기(↗) 표시": 전체 / 관리자만(기본) / 숨김.
+  `ui.store.fileOpenVisibility`(localStorage) + `adminAuthed`(useExtractJob이 동기화) → `useFileOpenVisible` →
+  App의 `FileOpenVisibleContext` → `CopyText`·`CellPopup`이 읽음(ui는 store를 모르게). 모드×인증 8경우 확인
+- ⚠️ 재무데이터 모달(z-index 600) 안에서 셀 팝업(z-index 500, body 포털)을 열면 모달 뒤에 깔릴 수 있음 — 미확인·미수정
+- ⚠️ 5000번 서버가 09-29 14:00 코드로 떠 있음 — 재시작 필요(`/`가 500, KPI 요약 옛 캐시)
+
 ## [2026-09-29 오후 늦게] KPI 추출 보고단계 — 파일명 → PPT 재무 표 '구분' 기준
 
 - **문제**: `…해외연구소 추가개발_미모_제안.pptx`(추가제안)가 같은 코드의 `…펀더멘털…_제안.pptx`와 KPI 키

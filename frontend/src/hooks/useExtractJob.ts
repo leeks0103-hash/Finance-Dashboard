@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useUiStore } from '@/store';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   runExtract, getExtractStatus, cancelExtract, authExtract,
@@ -17,6 +18,10 @@ export const useExtractJob = () => {
   const wasRunningRef = useRef(false);
   const [isAuthed, setIsAuthed] = useState(() => !!getStoredExtractKey());
   const [authedName, setAuthedName] = useState(() => getStoredExtractName());
+
+  // 인증 여부를 store에도 — 바로가기(↗) 공개 범위 '관리자만' 판단용(useFileOpenVisible)
+  const setAdminAuthed = useUiStore(s => s.setAdminAuthed);
+  useEffect(() => { setAdminAuthed(isAuthed); }, [isAuthed, setAdminAuthed]);
 
   const statusQuery = useQuery({
     queryKey: ['extract-status'],

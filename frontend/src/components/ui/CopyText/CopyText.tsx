@@ -1,6 +1,7 @@
-import { useState, useCallback, type MouseEvent } from 'react';
+import { useState, useCallback, useContext, type MouseEvent } from 'react';
 import HighlightText from '@/components/ui/HighlightText/HighlightText';
 import { Button } from '@/components/ui/Button';
+import { FileOpenVisibleContext } from '@/components/ui/fileOpenContext';
 import styles from './CopyText.module.css';
 
 interface Props {
@@ -10,12 +11,13 @@ interface Props {
   /** 제공 시: 더블클릭→onSearch 호출(클릭은 항상 복사). 미제공 시: 더블클릭 동작 없음 */
   onSearch?: (text: string) => void;
   /** 제공 시: 텍스트 옆에 "↗" 바로가기 버튼 — 클릭하면 onOpen(원본 PPT 열기).
-   *  2026-09-15 주석 처리했다가 2026-09-29 복구 */
+   *  2026-09-15 주석 처리했다가 2026-09-29 복구. 관리자 설정(FileOpenVisibleContext)이 숨김이면 안 보임 */
   onOpen?: (text: string) => void;
 }
 
 const CopyText = ({ text, className, highlight, onSearch, onOpen }: Props) => {
   const [copied, setCopied] = useState(false);
+  const canOpen = useContext(FileOpenVisibleContext);
 
   const copy = useCallback(async () => {
     try {
@@ -59,7 +61,7 @@ const CopyText = ({ text, className, highlight, onSearch, onOpen }: Props) => {
           {copied ? '✓' : ''}
         </span>
       </span>
-      {onOpen && (
+      {onOpen && canOpen && (
         <Button
           unstyled
           className={styles.openBtn}

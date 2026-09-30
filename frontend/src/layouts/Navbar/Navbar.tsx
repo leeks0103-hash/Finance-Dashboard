@@ -15,6 +15,7 @@ import { useChartLabelToggle } from '@/hooks/useChartLabelToggle';
 import { useExtractJob } from '@/hooks/useExtractJob';
 import { useOpenFile } from '@/hooks/useOpenFile';
 import { useUiStore } from '@/store';
+import type { FileOpenVisibility } from '@/store/ui.store';
 import { pathToTab } from '@/utils/routing';
 import type { ExtractTarget, ExtractMode } from '@/types/extract.types';
 import styles from './Navbar.module.css';
@@ -36,9 +37,18 @@ const EXTRACT_MODE_INFO: Record<ExtractMode, { label: string; desc: string }> = 
   },
 };
 
+const FILE_OPEN_OPTIONS: { value: FileOpenVisibility; label: string; title: string }[] = [
+  { value: 'all',   label: '전체',     title: '모든 사람에게 ↗ 버튼 표시' },
+  { value: 'admin', label: '관리자만', title: '관리자 인증한 브라우저에만 표시' },
+  { value: 'none',  label: '숨김',     title: '아무에게도 표시 안 함' },
+];
+
 const Navbar = () => {
   const { theme, toggle: toggleTheme } = useTheme();
-  const { showRawValues, toggleRawValues, showAchieveRate, toggleAchieveRate } = useUiStore();
+  const {
+    showRawValues, toggleRawValues, showAchieveRate, toggleAchieveRate,
+    fileOpenVisibility, setFileOpenVisibility,
+  } = useUiStore();
   // 그래프 수치 — 켤 때/끌 때 페이드(끌 때는 투명해진 뒤 숨김)
   const chartLabels = useChartLabelToggle();
   const [open, setOpen] = useState(false);
@@ -408,6 +418,18 @@ const Navbar = () => {
                     <div className={styles.row}>
                       <span className={styles.rowText}>달성률 {showAchieveRate ? '표시 중' : '숨김'}</span>
                       <Toggle checked={showAchieveRate} onChange={toggleAchieveRate} />
+                    </div>
+
+                    {/* 파일 바로가기(↗) 공개 범위 — 기본 관리자만(2026-09-30) */}
+                    <span className={styles.rowText}>파일 바로가기(↗) 표시</span>
+                    <div className={styles.viewToggle}>
+                      {FILE_OPEN_OPTIONS.map(o => (
+                        <Button key={o.value} variant="ghost" size="sm"
+                          className={`${styles.toggleBtn} ${fileOpenVisibility === o.value ? styles.toggleActive : ''}`}
+                          onClick={() => setFileOpenVisibility(o.value)}
+                          title={o.title}
+                        >{o.label}</Button>
+                      ))}
                     </div>
 
                     {/* 추출 진행 중엔 대상/방식을 바꿀 수 없게 잠금(2026-09-23 요청) */}

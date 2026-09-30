@@ -26,7 +26,18 @@ interface UiStore {
    *  저조한 팀이 한눈에 드러나지 않게 하려는 배려(2026-09-29). 실제 표시는 관리자 인증 상태일 때만 */
   showAchieveRate: boolean;
   toggleAchieveRate: () => void;
+
+  /** 파일 바로가기(↗) 버튼 공개 범위 — 관리자용 기능(Navbar)에서 설정, 기본 관리자만.
+   *  all 전체 / admin 관리자 인증된 브라우저만 / none 아무도 */
+  fileOpenVisibility: FileOpenVisibility;
+  setFileOpenVisibility: (v: FileOpenVisibility) => void;
+
+  /** 이 브라우저가 관리자 인증됐는지 — useExtractJob이 동기화(키 자체는 extract.api가 localStorage에 보관) */
+  adminAuthed: boolean;
+  setAdminAuthed: (v: boolean) => void;
 }
+
+export type FileOpenVisibility = 'all' | 'admin' | 'none';
 
 export const useUiStore = create<UiStore>()(
   persist(
@@ -47,13 +58,19 @@ export const useUiStore = create<UiStore>()(
 
       showAchieveRate: false,
       toggleAchieveRate: () => set(s => ({ showAchieveRate: !s.showAchieveRate })),
+
+      fileOpenVisibility: 'admin',
+      setFileOpenVisibility: (v) => set({ fileOpenVisibility: v }),
+
+      adminAuthed: false,
+      setAdminAuthed: (v) => set({ adminAuthed: v }),
     }),
     {
       name: 'ui-store',
-      // 그래프 수치·표 실제값·달성률 표시 여부·투어 시청 여부만 로컬에 저장 — 나머지는 세션 한정
+      // 그래프 수치·표 실제값·달성률·바로가기 공개 범위·투어 시청 여부만 로컬에 저장 — 나머지는 세션 한정
       partialize: (s) => ({
         showChartLabels: s.showChartLabels, showRawValues: s.showRawValues, tourSeen: s.tourSeen,
-        showAchieveRate: s.showAchieveRate,
+        showAchieveRate: s.showAchieveRate, fileOpenVisibility: s.fileOpenVisibility,
       }),
     },
   ),
