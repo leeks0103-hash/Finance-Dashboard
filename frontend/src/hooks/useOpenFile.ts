@@ -1,12 +1,15 @@
 import { openFinanceFile, openKpiFile } from '@/api';
+import { openCoverageFile } from '@/api/extract.api';
 import { alertDialog, confirmDialog } from '@/utils/dialog';
 
-interface OpenResult { ok: boolean; message?: string; locked?: boolean; checked?: boolean }
+interface OpenResult { ok: boolean; message?: string; locked?: boolean; blocked?: boolean; checked?: boolean }
 type OpenApi = (filename: string, check?: boolean) => Promise<OpenResult>;
 
-/** 실패 안내 — 누가 열람 중이면 오류가 아니라 안내(ⓘ), 그 외(위치 없음·실행 실패)는 오류 */
+/** 실패 안내 — 누가 열람 중이면 오류가 아니라 안내(ⓘ), DRM 파일은 열기 차단, 그 외(위치 없음·실행 실패)는 오류 */
 const alertFailure = (r: OpenResult) => {
-  if (r.locked) {
+  if (r.blocked) {
+    alertDialog(r.message ?? '문서보안(DRM) 암호화 파일이라 대시보드에서 열 수 없습니다.', { title: '열 수 없는 파일', error: true });
+  } else if (r.locked) {
     alertDialog(r.message ?? '다른 사람이 열람 중인 파일입니다 — 닫힌 뒤 다시 시도해주세요.', { title: '열람 중' });
   } else {
     alertDialog(r.message ?? '파일을 열 수 없습니다.', { error: true });
@@ -24,8 +27,8 @@ const confirmAndOpen = async (filename: string, apis: OpenApi[]): Promise<OpenRe
   let last: OpenResult = { ok: false };
   for (const api of apis) {
     const pre = await api(filename, true);
-    // 열람 중이면 다른 이력은 볼 필요 없음(같은 원본 파일)
-    if (pre.ok || pre.locked) { found = { api, pre }; break; }
+    // 열람 중·DRM 차단이면 다른 이력은 볼 필요 없음(같은 원본 파일)
+    if (pre.ok || pre.locked || pre.blocked) { found = { api, pre }; break; }
     last = pre;
   }
   if (!found) { alertFailure(last); return last; }
@@ -46,6 +49,8 @@ const confirmAndOpen = async (filename: string, apis: OpenApi[]): Promise<OpenRe
 export const openFinanceFileOrAlert = (filename: string) => confirmAndOpen(filename, [openFinanceFile]);
 /** KPI 처리이력 기준으로 원본 PPT 열기(확인창 포함) */
 export const openKpiFileOrAlert = (filename: string) => confirmAndOpen(filename, [openKpiFile]);
+/** 추출 현황 목록 기준(폴더에서 찾은 경로)으로 열기 — 처리이력에 없는 미처리·실패 파일도 열림 */
+export const openCoverageFileOrAlert = (filename: string) => confirmAndOpen(filename, [openCoverageFile]);
 
 /**
  * 파일명으로 원본 PPT를 서버(로컬 PC)에서 직접 연다(확인창 포함).

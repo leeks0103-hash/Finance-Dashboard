@@ -1,7 +1,8 @@
 export type ExtractTarget = 'finance' | 'kpi';
 
 /** incremental=증분(기본, 바뀐 파일만) · force=초기화 없이 전체 재처리 · reset=출력 초기화 후 전체 재구축(파괴적) */
-export type ExtractMode = 'incremental' | 'force' | 'reset';
+/** failed = 추출 현황에서 '실패'인 파일만 다시(DRM 제외, 2026-10-01) */
+export type ExtractMode = 'incremental' | 'force' | 'reset' | 'failed';
 
 export interface ExtractStatus {
   running:     boolean;
@@ -26,6 +27,8 @@ export interface CoverageItem {
   /** 취합 시트에서 이 파일 이름으로 남은 행 수 */
   rows:   number;
   reason: string;
+  /** 원본 처리 메시지(오류 코드 등) — 실패 항목만, 화면엔 툴팁으로만 */
+  detail?: string;
   /** 마지막 처리 시각 */
   at:     string;
 }

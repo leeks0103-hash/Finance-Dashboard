@@ -21,7 +21,7 @@ from datetime import datetime
 from pathlib import Path
 
 import paths
-from shared import read_sheet_cached
+from shared import is_drm_file, read_sheet_cached
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +59,8 @@ SOURCES = {
 _CACHE_TTL = 30  # 초 — 모달을 열 때마다 NAS 폴더를 다시 훑지 않게
 _cache_lock = threading.Lock()
 _cache: dict = {"at": 0.0, "data": None}
+# 마지막으로 훑은 폴더의 파일명 → 전체경로(바로가기 ↗용). 미처리·실패 파일은 처리이력에 경로가 없어서 여기서 찾음
+_file_paths: dict[str, str] = {}
 
 
 def _list_finance_files(root: str) -> list[str]:
@@ -69,7 +71,7 @@ def _list_finance_files(root: str) -> list[str]:
                 continue
             if name.strip().lower() in {f.lower() for f in FINANCE_EXCLUDE}:
                 continue
-            out.append(name)
+            out.append(os.path.join(dirpath, name))
     return out
 
 
@@ -85,7 +87,7 @@ def _list_kpi_files(root: str) -> list[str]:
                 if item.is_file():
                     if item.name.startswith("~$") or item.suffix.lower() not in PPT_EXTS or item.name == excel_name:
                         continue
-                    out.append(item.name)
+                    out.append(str(item))
                 elif item.is_dir():
                     walk(item, depth + 1)
         except OSError as e:
@@ -95,20 +97,21 @@ def _list_kpi_files(root: str) -> list[str]:
     return out
 
 
-def _explain_failure(path: str, message: str) -> str:
-    """실패 메시지(대개 PowerPoint COM 오류 코드)만으론 원인을 알 수 없어서, 파일 맨 앞 몇 바이트로 종류를 짚어 줌.
+def _explain_failure(path: str) -> str:
+    """실패 메시지(대개 PowerPoint COM 오류 코드 — com_error(-2147352567, …))는 봐도 알 수 없어서,
+    파일 맨 앞 몇 바이트로 종류를 짚어 쉬운 말 한 줄로. 원본 오류는 화면에 안 보이고 항목의 detail(마우스 올리면)로만.
     읽기만 함(8바이트) — NAS 파일을 열어 PowerPoint로 띄우는 게 아님"""
-    kind = ""
     try:
         with open(path, "rb") as f:
             head = f.read(8)
-        if head.startswith(b"SCDSA"):
-            kind = "문서보안(SoftCamp DRM) 암호화 파일이라 자동 추출로 못 엶 — PowerPoint로 직접 열리는지 확인, 안 되면 원본 다시 받기"
-        elif head.startswith(bytes.fromhex("d0cf11e0")):
-            kind = "AIP 암호화 또는 구형 .ppt — 자동 해제에 실패함"
     except OSError:
-        kind = "원본 위치에서 파일을 찾지 못함(이동·이름 변경?)"
-    return f"{kind} · {message}" if kind else message
+        return "원본 폴더에서 파일을 찾지 못함 — 옮겨졌거나 이름이 바뀐 듯"
+    if head.startswith(b"SCDSA"):
+        # 프론트 isDrmItem이 'DRM' 글자로 판단 — 문구를 바꾸면 같이 볼 것
+        return "보안 문서(DRM)라 열 수 없음 — 이 PC에서 직접 열지 말고 원본 담당자에게 확인"
+    if head.startswith(bytes.fromhex("d0cf11e0")):
+        return "암호화(AIP)됐거나 옛 형식(.ppt)이라 열지 못함"
+    return "PowerPoint로 열다가 실패 — 일시 오류일 수 있으니 다시 추출해 보세요"
 
 
 def _source_coverage(key: str, folder_files: list[str]) -> dict:
@@ -153,7 +156,7 @@ def _source_coverage(key: str, folder_files: list[str]) -> dict:
         if h is None:
             status, reason = "pending", "아직 처리 안 됨(처리이력에 없음) — 다음 추출 때 처리됨"
         elif h["status"] in cfg["fail_status"]:
-            status, reason = "failed", _explain_failure(h["path"], h["message"] or "실패")
+            status, reason = "failed", _explain_failure(h["path"])
         elif rows > 0:
             status, reason = "extracted", ""
         elif _NO_TABLE_RE.search(h["message"]):
@@ -166,6 +169,8 @@ def _source_coverage(key: str, folder_files: list[str]) -> dict:
             reason = f"{h['message']} → 같은 (코드/연도/단계) 행을 다른 파일이 덮어써 그 파일 이름으로 남음(보통 같은 프로젝트의 다른 단계 보고서)"
         result["counts"][status] += 1
         result["items"].append({"file": name, "status": status, "rows": rows, "reason": reason,
+                                # 원본 처리 메시지(오류 코드 등) — 실패일 때만, 화면엔 마우스 올렸을 때만
+                                "detail": h["message"] if status == "failed" else "",
                                 "at": h["at"] if h else ""})
 
     # 결과 엑셀엔 있는데 폴더엔 없는 파일 — 다음 추출 때 정리되지만, 그 전까진 숫자가 안 맞는 원인
@@ -181,8 +186,10 @@ def coverage(force: bool = False) -> dict:
     if not os.path.isdir(root):
         return {"ok": False, "error": f"원본 폴더에 접근할 수 없습니다: {root}"}
     t0 = time.time()
-    finance_files = _list_finance_files(root)
-    kpi_files = _list_kpi_files(root)
+    finance_paths = _list_finance_files(root)
+    kpi_paths = _list_kpi_files(root)
+    finance_files = [os.path.basename(p) for p in finance_paths]
+    kpi_files = [os.path.basename(p) for p in kpi_paths]
     data = {
         "ok": True,
         "folder": root,
@@ -193,4 +200,39 @@ def coverage(force: bool = False) -> dict:
     logger.info("추출 현황 계산 %.1f초 (재무 %d개 · KPI %d개)", time.time() - t0, len(finance_files), len(kpi_files))
     with _cache_lock:
         _cache.update(at=time.time(), data=data)
+        _file_paths.clear()
+        _file_paths.update({os.path.basename(p): p for p in finance_paths + kpi_paths})
     return data
+
+
+def find_path(filename: str) -> str | None:
+    """추출 현황 목록의 파일명 → 원본 전체경로. 아직 안 훑었으면 한 번 훑음"""
+    with _cache_lock:
+        scanned = bool(_file_paths)
+    if not scanned:
+        coverage()
+    with _cache_lock:
+        return _file_paths.get(filename)
+
+
+def failed_paths(key: str) -> tuple[list[str], list[str]]:
+    """'실패 파일만 다시 추출'용 — (다시 추출할 전체경로, DRM이라 뺀 파일명).
+    상태 판정은 추출 현황과 같은 기준(처리이력 최신 1건이 실패). 매번 새로 셈(30초 캐시 무시)
+    DRM(SCDSA) 파일은 제외 — 이 PC의 PowerPoint로 여는 순간 NAS 원본이 재암호화됐던 전례(2026-09-23)"""
+    data = coverage(force=True)
+    if not data.get("ok") or key not in data:
+        return [], []
+    with _cache_lock:
+        lookup = dict(_file_paths)
+    targets, skipped = [], []
+    for it in data[key]["items"]:
+        if it["status"] != "failed":
+            continue
+        path = lookup.get(it["file"])
+        if not path:
+            continue
+        if is_drm_file(path):
+            skipped.append(it["file"])
+        else:
+            targets.append(path)
+    return targets, skipped

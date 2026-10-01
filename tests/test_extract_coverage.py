@@ -36,7 +36,8 @@ def test_statuses(monkeypatch, tmp_path):
     assert by["a.pptx"]["status"] == "extracted" and by["a.pptx"]["rows"] == 2
     assert by["b.pptx"]["status"] == "no_table"
     assert by["c.pptx"]["status"] == "merged"
-    assert by["d.pptx"]["status"] == "failed" and "SoftCamp" in by["d.pptx"]["reason"]
+    assert by["d.pptx"]["status"] == "failed" and "DRM" in by["d.pptx"]["reason"]
+    assert by["d.pptx"]["detail"] == "com_error"
     assert by["e.pptx"]["status"] == "extracted"
     assert by["new.pptx"]["status"] == "pending"
     assert res["folder_files"] == 6

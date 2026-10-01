@@ -23,7 +23,10 @@ load_dotenv()  # .env 파일이 있으면 환경변수로 로드 (없으면 무�
 # PPT 원본 폴더 — NAS 보고서 수집 폴더로 강제 고정(paths.PPT_SOURCE_DIR). .env·CLI 인수 무시(2026-09-30)
 BASE_DIR = _paths.PPT_SOURCE_DIR
 # --retry 플래그: AIP 실패 목록만 재처리
-RETRY_MODE = "--retry" in sys.argv
+# EXTRACT_ONLY_LIST: 대시보드 "실패 파일만 다시 추출"이 넘기는 경로 목록 파일(한 줄에 하나) — 그 파일만 처리.
+#   부분 실행이라 --retry와 똑같이 정리(삭제·옛 행 제거) 단계는 건너뜀. AIP 실패 목록 파일은 안 건드림(2026-10-01)
+ONLY_LIST = os.environ.get("EXTRACT_ONLY_LIST", "").strip()
+RETRY_MODE = "--retry" in sys.argv or bool(ONLY_LIST)
 
 # 출력 엑셀: 프로젝트 data/ 폴더로 저장
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -871,7 +874,9 @@ def save_as_unprotected(ppt_app, ppt_path):
                 pass
 
 
-def open_presentation_with_retry(ppt_app, ppt_path, max_retries=2, wait_seconds=1):
+def open_presentation_with_retry(ppt_app, ppt_path, max_retries=3, wait_seconds=3):
+    """PowerPoint가 직전 파일(특히 AIP 변환) 처리 직후 일시적으로 E_FAIL(-2147467259)을 내는 경우가 있어
+    간격을 두고 재시도 — 2026-10-01 정상 pptx가 1초 간격 2회 만에 실패 처리됨(2회·1초 → 3회·3초)"""
     last_error = None
     for attempt in range(1, max_retries + 1):
         try:
@@ -1026,12 +1031,13 @@ def main():
 
     # --retry: aip_failed.txt에 기록된 파일만 재처리
     if RETRY_MODE:
-        if not os.path.exists(AIP_FAILED_FILE):
+        list_file = ONLY_LIST or AIP_FAILED_FILE
+        if not os.path.exists(list_file):
             log("[retry] 실패 목록 파일이 없습니다. 먼저 일반 실행으로 추출하세요.")
             return
-        with open(AIP_FAILED_FILE, encoding="utf-8") as f:
+        with open(list_file, encoding="utf-8") as f:
             target_files = [p.strip() for p in f if p.strip() and os.path.exists(p.strip())]
-        log(f"[retry] AIP 실패 목록 {len(target_files)}개 재처리 시작")
+        log(f"[retry] {'지정된 실패 파일' if ONLY_LIST else 'AIP 실패 목록'} {len(target_files)}개 재처리 시작")
         # 성공한 파일만 제거 — 재실패 파일은 목록에 남김
         _retry_remaining = list(target_files)
     else:
@@ -1124,8 +1130,8 @@ def main():
                 if RETRY_MODE:
                     _retry_remaining = [p for p in _retry_remaining if p != ppt_path]
 
-        # retry 모드: 최종 실패 파일 목록 다시 저장
-        if RETRY_MODE:
+        # retry 모드: 최종 실패 파일 목록 다시 저장(대시보드 지정 목록 실행은 AIP 목록을 안 건드림)
+        if RETRY_MODE and not ONLY_LIST:
             with open(AIP_FAILED_FILE, "w", encoding="utf-8") as f:
                 for p in _retry_remaining:
                     f.write(p + "\n")

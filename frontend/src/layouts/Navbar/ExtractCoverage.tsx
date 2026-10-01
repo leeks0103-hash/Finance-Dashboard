@@ -1,6 +1,7 @@
-import { Button } from '@/components/ui';
+import { Button, CopyText } from '@/components/ui';
 import { useExtractCoverage } from '@/hooks/useExtractCoverage';
-import type { CoverageItem, CoverageStatus, SourceCoverage } from '@/types/extract.types';
+import { openCoverageFileOrAlert } from '@/hooks/useOpenFile';
+import type { CoverageItem, CoverageStatus, ExtractTarget, SourceCoverage } from '@/types/extract.types';
 import styles from './ExtractCoverage.module.css';
 
 const STATUS_LABEL: Record<CoverageStatus, string> = {
@@ -39,15 +40,28 @@ const ItemList = ({ items }: { items: CoverageItem[] }) => (
     {items.map(it => (
       <li key={it.file} className={styles.item}>
         <span className={`${styles.pill} ${styles[`pill_${it.status}`]}`}>{STATUS_LABEL[it.status]}</span>
-        <span className={styles.file}>{it.file}</span>
-        {it.reason && <span className={styles.reason}>{it.reason}</span>}
+        {/* 클릭 = 파일명 복사, ↗ = 원본 열기(폴더에서 찾은 경로라 미처리·실패 파일도 열림) */}
+        <span className={styles.file}><CopyText text={it.file} onOpen={openCoverageFileOrAlert} /></span>
+        {/* 원본 오류(com_error 등)는 알아보기 어려워 화면엔 안 보이고 마우스 올렸을 때만 */}
+        {it.reason && <span className={styles.reason} title={it.detail || undefined}>{it.reason}</span>}
       </li>
     ))}
   </ul>
 );
 
-const SourceCard = ({ src }: { src: SourceCoverage }) => {
+/** DRM 실패는 다시 돌려도 안 되고, 열면 NAS 원본이 재암호화될 수 있어 재추출 대상에서 뺌(서버도 똑같이 뺌) */
+const isDrmItem = (it: CoverageItem) => it.reason.includes('DRM');
+
+interface SourceCardProps {
+  src: SourceCoverage;
+  /** 실패 파일만 다시 추출 — 없으면 버튼 안 그림 */
+  onRetryFailed?: () => void;
+  retryDisabled?: boolean;
+}
+
+const SourceCard = ({ src, onRetryFailed, retryDisabled }: SourceCardProps) => {
   const by = (s: CoverageStatus) => src.items.filter(it => it.status === s);
+  const retriable = by('failed').filter(it => !isDrmItem(it)).length;
   const c = src.counts;
   const total = src.folder_files || 1;
   const pct = Math.round((c.extracted / total) * 1000) / 10;
@@ -59,6 +73,12 @@ const SourceCard = ({ src }: { src: SourceCoverage }) => {
         <span className={`${styles.stateBadge} ${allOk ? styles.stateOk : styles.stateWarn}`}>
           {allOk ? '이상 없음' : `확인 필요 ${c.failed + c.pending}건`}
         </span>
+        {onRetryFailed && retriable > 0 && (
+          <Button variant="primary" size="sm" className={styles.retryBtn} disabled={retryDisabled} onClick={onRetryFailed}
+            title="실패한 파일만 다시 추출합니다(DRM 암호화 파일은 제외)">
+            실패 {retriable}개 다시 추출
+          </Button>
+        )}
       </div>
 
       <div className={styles.figure}>
@@ -104,7 +124,8 @@ const SourceCard = ({ src }: { src: SourceCoverage }) => {
         <details className={styles.details}>
           <summary>폴더엔 없는데 결과에 남은 파일 {src.orphans.length}건</summary>
           <ul className={styles.list}>
-            {src.orphans.map(f => <li key={f} className={styles.item}><span className={styles.file}>{f}</span></li>)}
+            {/* 폴더에 없는 파일이라 열기(↗)는 없음 — 복사만 */}
+            {src.orphans.map(f => <li key={f} className={styles.item}><span className={styles.file}><CopyText text={f} /></span></li>)}
           </ul>
         </details>
       )}
@@ -115,13 +136,17 @@ const SourceCard = ({ src }: { src: SourceCoverage }) => {
 interface Props {
   /** 마지막 추출이 끝난 시각 — 바뀌면 현황을 다시 셈 */
   finishedAt: string | null | undefined;
+  /** 실패 파일만 다시 추출(확인창은 호출하는 쪽에서) */
+  onRetryFailed?: (target: ExtractTarget) => void;
+  /** 추출 실행 중이면 버튼 막음 */
+  retryDisabled?: boolean;
 }
 
 /**
  * 추출 현황 — "폴더에 N개 있는데 몇 개가 실제로 들어갔고, 안 된 건 무엇이며 왜인지"(2026-10-01 요청).
  * 파일 수와 취합 행 수를 섞어 "260개"처럼 오판하지 않게 둘을 나눠 보여줌. 디버깅용으로도 씀
  */
-const ExtractCoverage = ({ finishedAt }: Props) => {
+const ExtractCoverage = ({ finishedAt, onRetryFailed, retryDisabled }: Props) => {
   const { data, isLoading, isFetching, refresh } = useExtractCoverage(true, finishedAt);
 
   return (
@@ -143,8 +168,10 @@ const ExtractCoverage = ({ finishedAt }: Props) => {
       {data && !data.ok && <div className={styles.warn}>{data.error}</div>}
       {data?.ok && (
         <div className={styles.cards}>
-          {data.finance && <SourceCard src={data.finance} />}
-          {data.kpi && <SourceCard src={data.kpi} />}
+          {data.finance && <SourceCard src={data.finance} retryDisabled={retryDisabled}
+            onRetryFailed={onRetryFailed && (() => onRetryFailed('finance'))} />}
+          {data.kpi && <SourceCard src={data.kpi} retryDisabled={retryDisabled}
+            onRetryFailed={onRetryFailed && (() => onRetryFailed('kpi'))} />}
         </div>
       )}
     </section>

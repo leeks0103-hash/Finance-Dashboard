@@ -52,6 +52,12 @@ export const cancelExtract = (): Promise<CancelExtractResult> =>
     .catch((err): CancelExtractResult => err?.response?.data ?? { ok: false, error: '중지 요청에 실패했습니다.' });
 
 /** 추출 현황 — 원본 폴더 파일 수 vs 실제로 추출된 파일, 안 된 파일과 이유. refresh면 서버 캐시(30초) 무시 */
+/** 추출 현황 목록의 원본 PPT 열기 — 폴더에서 찾은 경로 기준(미처리·실패 파일도 열림). check=true면 열 수 있는지만 */
+export const openCoverageFile = (filename: string, check = false): Promise<{ ok: boolean; message?: string; locked?: boolean; blocked?: boolean; checked?: boolean }> =>
+  client.post('/extract/open-file', { filename, check }, { headers: authHeaders() })
+    .then(r => r.data)
+    .catch(err => err?.response?.data ?? { ok: false, message: '파일을 열 수 없습니다.' });
+
 export const getExtractCoverage = (refresh = false): Promise<ExtractCoverage> =>
   client.get<ExtractCoverage>('/extract/coverage', { params: refresh ? { refresh: 1 } : undefined, headers: authHeaders() })
     .then(r => r.data)

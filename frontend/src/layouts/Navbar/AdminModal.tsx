@@ -9,7 +9,9 @@ import styles from './AdminModal.module.css';
 
 const EXTRACT_TARGET_LABEL: Record<ExtractTarget, string> = { finance: '재무', kpi: 'KPI' };
 
-const EXTRACT_MODE_INFO: Record<ExtractMode, { label: string; desc: string }> = {
+/** 방식 선택 버튼에 나오는 것만 — 'failed'(실패 파일만)는 추출 현황 카드의 버튼으로 따로 실행 */
+type PickMode = Exclude<ExtractMode, 'failed'>;
+const EXTRACT_MODE_INFO: Record<PickMode, { label: string; desc: string }> = {
   incremental: {
     label: '증분',
     desc: '이전에 처리한 적 없는 새 파일 · 내용이 바뀐 파일만 골라서 반영합니다. 기존 데이터는 그대로 유지. 평소엔 이 방식을 씁니다.',
@@ -52,8 +54,8 @@ const AdminModal = ({ extractJob, onClose }: Props) => {
   const [extractTargets, setExtractTargets] = useState<ExtractTarget[]>(
     () => running?.targets ?? ['finance', 'kpi'],
   );
-  const [extractMode, setExtractMode] = useState<ExtractMode>(
-    () => running?.mode ?? 'incremental',
+  const [extractMode, setExtractMode] = useState<PickMode>(
+    () => (running?.mode && running.mode !== 'failed' ? running.mode : 'incremental'),
   );
   const extractLocked = extractJob.isRunning || extractJob.isStarting;
   const [extractAuthError, setExtractAuthError] = useState('');
@@ -91,6 +93,18 @@ const AdminModal = ({ extractJob, onClose }: Props) => {
       { title: '추출 중지', danger: true, confirmText: '중지', cancelText: '계속 진행' },
     );
     if (ok) extractJob.cancel();
+  };
+  // 추출 현황 카드의 "실패 N개 다시 추출" — 실패한 파일만 다시 읽음(DRM 파일은 서버가 뺌, 2026-10-01 요청)
+  const handleRetryFailed = async (target: ExtractTarget) => {
+    if (extractLocked) return;
+    const ok = await confirmDialog(
+      `${EXTRACT_TARGET_LABEL[target]} 추출에서 실패한 파일만 다시 추출합니다.
+
+`
+      + '다른 파일과 기존 데이터는 그대로 둡니다. DRM(문서보안) 암호화 파일은 열면 원본이 재암호화될 수 있어 제외합니다.',
+      { title: '실패 파일 다시 추출', confirmText: '다시 추출', cancelText: '취소' },
+    );
+    if (ok) extractJob.run({ targets: [target], mode: 'failed' });
   };
 
   const sub = extractJob.isAuthed
@@ -155,7 +169,7 @@ const AdminModal = ({ extractJob, onClose }: Props) => {
             <div className={styles.field}>
               <span className={styles.fieldLabel}>방식</span>
               <div className={styles.segment}>
-                {(Object.keys(EXTRACT_MODE_INFO) as ExtractMode[]).map(m => (
+                {(Object.keys(EXTRACT_MODE_INFO) as PickMode[]).map(m => (
                   <Button key={m} variant="ghost" size="sm"
                     className={`${styles.segBtn} ${extractMode === m ? styles.segActive : ''}`}
                     onClick={() => setExtractMode(m)}
@@ -168,7 +182,7 @@ const AdminModal = ({ extractJob, onClose }: Props) => {
             {/* 선택된 방식 설명 — 설명 3개를 한 칸에 겹쳐 두고 선택된 것만 보이게.
                 칸 높이가 항상 가장 긴 설명 기준이라 방식을 바꿔도 모달 높이가 출렁이지 않음 */}
             <div className={styles.hintStack}>
-              {(Object.keys(EXTRACT_MODE_INFO) as ExtractMode[]).map(m => (
+              {(Object.keys(EXTRACT_MODE_INFO) as PickMode[]).map(m => (
                 <span key={m} className={`${styles.hint} ${m === extractMode ? '' : styles.hintHidden}`}>
                   {EXTRACT_MODE_INFO[m].desc}
                 </span>
@@ -220,7 +234,8 @@ const AdminModal = ({ extractJob, onClose }: Props) => {
           </section>
 
           {/* 추출 현황 — 폴더 파일 수 vs 실제로 들어간 파일, 안 된 파일과 이유(2026-10-01) */}
-          <ExtractCoverage finishedAt={extractJob.status?.finished_at} />
+          <ExtractCoverage finishedAt={extractJob.status?.finished_at}
+            onRetryFailed={handleRetryFailed} retryDisabled={extractLocked} />
         </div>
       )}
     </Modal>

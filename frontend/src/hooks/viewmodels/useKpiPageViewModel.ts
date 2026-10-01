@@ -69,12 +69,9 @@ export interface KpiPageViewModel {
   anomalies:        KpiAnomaly[];
 }
 
-const fmtNum = (v: number) => v !== 0 ? v.toLocaleString() : '0';
-
-// "(교육 내용 구성 적절성)" 항목(전략기술과정_적절성 · AI교육_적절성)은 0~5 척도라
-// 프로젝트 목표 평균이 4.3333… 식으로 길게 찍힘 — 소수점 한 자리로 고정 (담당자 지정)
-const isScoreItem = (name: string) => name.includes('적절성');
-const fmtScore    = (v: number) => v.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+// KPI 탭 숫자 — 자릿수 맞춤 없이 값 그대로, 소수점은 둘째 자리까지 (2026-10-01 담당자 지정.
+// 예전 "적절성은 소수점 한 자리 고정(4.0)"은 폐기 — 0.18 같은 값이 0.2로 보였음)
+const fmtNum = (v: number) => v.toLocaleString(undefined, { maximumFractionDigits: 2 });
 
 const SEARCH_FIELD_OPTIONS = [
   { value: '',        label: '전체' },
@@ -123,12 +120,7 @@ export const useKpiPageViewModel = (summaryPart = '', anomalyOnly = false): KpiP
       datalabels: {
         anchor: 'end',
         align:  'end',
-        // "적절성"(0~5 척도) 막대는 값이 정수로 떨어져도 "4.0"처럼 소수점 첫째 자리까지 표시 —
-        // 다른 항목 막대의 "4.33" 같은 표기와 자릿수를 맞춘다 (표 targetStr/actual과 동일 기준)
-        formatter: (v: number, ctx) => {
-          const label = String(ctx.chart.data.labels?.[ctx.dataIndex] ?? '');
-          return isScoreItem(label) && Math.abs(v) < 10 ? fmtScore(v) : v.toLocaleString();
-        },
+        formatter: (v: number) => fmtNum(v),
       },
     },
   }), [showLabels, labelColor]);
@@ -166,16 +158,16 @@ export const useKpiPageViewModel = (summaryPart = '', anomalyOnly = false): KpiP
         agg:        it.agg === 'sum' ? '합계' : '평균',
         planTarget: it.plan_target || '-',
         targetStr:  typeof it.target_2026 === 'number'
-          ? (isScoreItem(it.name) ? fmtScore(it.target_2026) : fmtNum(it.target_2026))
+          ? fmtNum(it.target_2026)
           : String(it.target_2026),
         targetNum:  typeof it.target_2026 === 'number' ? it.target_2026 : 0,
         // 신규/기존 타입: API가 이미 "신규:N건/기존:N건" 문자열 반환 → 그대로 사용
         actual:     isCountRow
           ? (it.actual_2026 != null && it.actual_2026 !== 0 ? String(it.actual_2026) : '신규:0건/기존:0건')
-          : (it.actual_2026 ? (isScoreItem(it.name) ? fmtScore(it.actual_2026) : fmtNum(it.actual_2026)) : '-'),
+          : (it.actual_2026 ? fmtNum(it.actual_2026) : '-'),
         prevActual: isCountRow
           ? (it.prev_actual != null && it.prev_actual !== 0 ? String(it.prev_actual) : '신규:0건/기존:0건')
-          : (it.prev_actual ? (isScoreItem(it.name) ? fmtScore(it.prev_actual) : fmtNum(it.prev_actual)) : '-'),
+          : (it.prev_actual ? fmtNum(it.prev_actual) : '-'),
         achieveRate: it.achieve_rate !== null && it.achieve_rate !== undefined ? `${it.achieve_rate}%` : '-',
         isGood: (it.achieve_rate ?? 0) >= 100,
       };

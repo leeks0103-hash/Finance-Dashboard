@@ -18,6 +18,8 @@ export interface BreakdownColumn<R> {
   sortValue: (row: R) => string | number;
   /** 화면 표시 */
   render:    (row: R) => ReactNode;
+  /** true면 같은 묶음(groupKey) 행끼리 이 칸을 셀 병합(rowSpan) — 묶음 첫 행에만 그림 */
+  groupSpan?: (row: R) => boolean;
 }
 
 const alignClass = (align: BreakdownColumn<unknown>['align']) =>
@@ -38,13 +40,15 @@ interface Props<R> {
   defaultSortKey?: string;
   /** 행별 추가 클래스(예: 임시 제외된 행 흐리게) — 지정 없으면 기존과 동일 */
   rowClassName?: (row: R) => string | undefined;
+  /** 같은 값을 돌려주는 행끼리 정렬 후에도 붙여서 보여줌(묶음 첫 행 자리에 모음). null이면 묶음 아님 */
+  groupKey?: (row: R) => string | null | undefined;
 }
 
 const arrow = (state: 'asc' | 'desc' | null) =>
   state === 'asc' ? '▲' : state === 'desc' ? '▼' : '↕';
 
 export function BreakdownTable<R>({
-  columns, rows, totalLabel, totalValue, totalValues, totalSpan, defaultSortKey, rowClassName,
+  columns, rows, totalLabel, totalValue, totalValues, totalSpan, defaultSortKey, rowClassName, groupKey,
 }: Props<R>) {
   const lastKey = columns[columns.length - 1]?.key;
   const [sort, setSort] = useState<{ key: string; dir: 'asc' | 'desc' }>(
@@ -63,6 +67,27 @@ export function BreakdownTable<R>({
       return String(va).localeCompare(String(vb), 'ko') * dir;
     });
   }, [rows, columns, sort]);
+
+  // 묶음 행은 정렬 뒤 첫 행 자리에 모으고, 행마다 묶음 크기·첫 행 여부를 기록(셀 병합용)
+  const laidOut = useMemo(() => {
+    if (!groupKey) return sorted.map(row => ({ row, span: 1, first: true }));
+    const members = new Map<string, R[]>();
+    for (const r of sorted) {
+      const g = groupKey(r);
+      if (g) members.set(g, [...(members.get(g) ?? []), r]);
+    }
+    const out: { row: R; span: number; first: boolean }[] = [];
+    const placed = new Set<string>();
+    for (const r of sorted) {
+      const g = groupKey(r);
+      if (!g) { out.push({ row: r, span: 1, first: true }); continue; }
+      if (placed.has(g)) continue;
+      placed.add(g);
+      const ms = members.get(g)!;
+      ms.forEach((m, i) => out.push({ row: m, span: ms.length, first: i === 0 }));
+    }
+    return out;
+  }, [sorted, groupKey]);
 
   const onHeader = (key: string) =>
     setSort(s => (s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' }));
@@ -86,16 +111,24 @@ export function BreakdownTable<R>({
           </tr>
         </thead>
         <tbody>
-          {sorted.map((row, i) => (
+          {laidOut.map(({ row, span, first }, i) => (
             <tr key={i} className={rowClassName?.(row)}>
-              {columns.map(c => (
-                <td key={c.key} className={`${alignClass(c.align)} ${c.wrap ? styles.wrapCell : ''}`}>
+              {columns.map((c, ci) => {
+                const merged = span > 1 && !!c.groupSpan?.(row);
+                if (merged && !first) return null;
+                return (
+                <td
+                  key={c.key}
+                  rowSpan={merged ? span : undefined}
+                  className={`${alignClass(c.align)} ${c.wrap ? styles.wrapCell : ''} ${merged ? styles.spanCell : ''} ${ci === columns.length - 1 ? styles.lastCol : ''}`}
+                >
                   {/* 표 칸(td)의 max-width는 브라우저가 무시하기도 해서 안쪽 div로 자름 — 가로 스크롤 방지 */}
                   {c.truncate
                     ? <div className={styles.truncateCell} style={c.maxWidth ? { maxWidth: c.maxWidth } : undefined}>{c.render(row)}</div>
                     : c.render(row)}
                 </td>
-              ))}
+                );
+              })}
             </tr>
           ))}
           <tr className={styles.totalRow}>

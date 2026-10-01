@@ -44,7 +44,9 @@
   color: var(--text);
   white-space: nowrap;
 }
-.table td:last-child { border-right: none; }
+/* 오른쪽 선은 '진짜 마지막 컬럼'에서만 뺌 — td:last-child로 하면 병합 칸이 첫 행에만 그려지는 묶음의 2·3번째 행에서
+   중간 칸(보고단계 등)이 그 행의 마지막 td가 돼 세로선이 사라졌음(2026-10-01) */
+.table td.lastCol { border-right: none; }
 .table tbody tr:last-child td { border-bottom: none; }
 .table tbody tr:hover td { background: var(--bg-subtle); }
 
@@ -92,3 +94,6 @@
 }
 .totalRow td:last-child { border-right: none; }
 .totalRow:hover td { background: var(--bg-subtle); }
+
+/* 묶음(groupKey) 행끼리 셀 병합된 칸 — 세로 가운데 */
+.table td.spanCell { vertical-align: middle; }

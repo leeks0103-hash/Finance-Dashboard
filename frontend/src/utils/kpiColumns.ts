@@ -63,17 +63,13 @@ export const kpiRawColSize = (col: string): number => {
 
 /**
  * KPI 취합 셀 값 정규화 — 미입력/0은 "-", 명시적 해당없음(N/n)은 "N".
- * metricKey가 "_적절성"(0~5 척도) 지표면 한 자리 수 점수를 소수점 첫째 자리까지 통일 표시
- * (예: 평균이 딱 4로 떨어지면 "4"가 아니라 "4.0") — 다른 행의 "4.33" 같은 표기와 자릿수를 맞춘다.
+ * 숫자는 자릿수 맞춤 없이 값 그대로, 소수점은 둘째 자리까지(2026-10-01 — 예전 적절성 "4.0" 고정 폐기)
  */
-export const cellVal = (v: unknown, metricKey?: string): string => {
+export const cellVal = (v: unknown): string => {
   if (v === null || v === undefined || v === '' || v === 0 || v === '0') return '-';
   const s = String(v).trim();
   if (s === 'N' || s === 'n') return 'N';
-  if (metricKey?.endsWith('_적절성')) {
-    const n = Number(v);
-    if (Number.isFinite(n) && Math.abs(n) < 10) return n.toFixed(1);
-  }
+  if (typeof v === 'number' && Number.isFinite(v)) return String(Math.round(v * 100) / 100);
   return s;
 };
 

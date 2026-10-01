@@ -216,14 +216,30 @@ def find_source_path(excel_path: str, sheet_name: str, filename: str) -> "str | 
     return path or None
 
 
+def is_drm_file(path: str) -> bool:
+    """SoftCamp DRM(머리 'SCDSA') 파일인지 — 앞 8바이트만 읽음.
+    이런 파일은 이 PC의 PowerPoint로 여는 순간 DRM이 NAS 원본을 제자리 재암호화했고(2026-09-23, 모비우스 등),
+    그 뒤로 추출도 계속 실패함 → 대시보드에서 아예 안 열게 막는다(2026-10-01 요청)"""
+    try:
+        with open(path, "rb") as f:
+            return f.read(8).startswith(b"SCDSA")
+    except OSError:
+        return False
+
+
 def open_source_file(path: "str | None", check_only: bool = False) -> "tuple[dict, int]":
     """원본 파일을 서버 PC에서 연다 — (응답 dict, HTTP 상태)를 돌려주고 jsonify는 라우트에서.
     한 대의 PC(호스트)를 여러 사람이 공유해서 보는 구조라, 누군가 이미 열어둔 파일은 막는다
     (닫혔는지는 잠금파일이 사라졌는지로 자동 판단 — is_file_locked 참고).
     check_only=True면 열지 않고 "열 수 있는지"만 — 프론트가 열람 중이면 안내, 아니면 "진짜 열까요?"
-    확인창을 띄운 뒤 다시 호출한다(2026-09-30). 응답의 checked=True로 확인만 했음을 알림."""
+    확인창을 띄운 뒤 다시 호출한다(2026-09-30). 응답의 checked=True로 확인만 했음을 알림.
+    DRM 파일은 check 단계부터 거절(blocked=True) — 확인창 없이 바로 "열 수 없는 파일" 안내."""
     if not path or not os.path.exists(path):
         return {"ok": False, "message": "원본 위치를 찾을 수 없습니다 — 폴더가 이동했거나 재추출이 필요할 수 있습니다."}, 404
+    if is_drm_file(path):
+        logger.warning("DRM 파일 열기 차단: %s", path)
+        return {"ok": False, "blocked": True,
+                "message": "문서보안(DRM) 암호화 파일이라 대시보드에서 열 수 없습니다.\n원본 담당자에게 확인해주세요."}, 403
     if is_file_locked(path):
         return {"ok": False, "locked": True, "message": "다른 사람이 열람 중인 파일입니다 — 닫힌 뒤 다시 시도해주세요."}, 409
     if check_only:

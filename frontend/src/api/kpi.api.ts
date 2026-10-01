@@ -62,6 +62,10 @@ export interface KpiBreakdownRow {
   /** 임시 제외 목록(exclude 파라미터)에 이 행의 파일명이 포함돼있는지 — true면 합계/평균에서
    *  이미 빠진 상태(행 자체는 계속 보여줘서 체크박스로 다시 포함시킬 수 있게 함) */
   excluded: boolean;
+  /** 계산상 한 프로젝트로 묶이는 행 묶음(RISE-MEGA 3개 코드) — 화면에선 붙여서 보여줌 */
+  group?:  string;
+  /** 묶음 행 값이 전부 같아 계산에서 한 번만 센 경우 — 값 칸을 셀 병합 */
+  shared?: boolean;
 }
 
 export interface KpiBreakdown {

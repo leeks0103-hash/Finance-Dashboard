@@ -30,6 +30,8 @@ export const getFinanceCodes = (): Promise<Record<string, number>> =>
 export interface OpenFileResult {
   ok:       boolean;
   message?: string;
+  /** DRM(SoftCamp) 암호화 파일 — 서버가 열기를 막음(PowerPoint로 열면 NAS 원본이 재암호화됐음) */
+  blocked?: boolean;
   /** 다른 사람이 열람 중(잠금파일 있음) — 오류가 아니라 안내로 보여줌 */
   locked?:  boolean;
   /** check=true 요청에 대한 응답(실제로 열지는 않음) */

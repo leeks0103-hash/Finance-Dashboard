@@ -15,7 +15,27 @@
   HYUNDAI는 currentColor(라이트 CI 남색 `#014282` / 다크 흰색). 비율은 원본 515×227 실측(원 간격 = 지름×0.9 등). PNG 삭제
 - 제목 굵기 400 → 500(탭 글자와 같게). 같은 HyundaiSans에선 400·500 차이가 거의 안 보임 — 더 필요하면 HyundaiSansHead 500
 
+- **추출 현황 실패 문구 정리**(같은 날): `com_error(-2147352567, …)` 같은 원본 오류가 그대로 붙어 못 알아듣는다는 피드백 →
+  `_explain_failure`가 쉬운 말 한 줄만(DRM / AIP·옛 형식 / 파일 없음 / 그 밖 "PowerPoint로 열다가 실패 — 다시 추출해 보세요").
+  원본 메시지는 항목 `detail`로만 내려가 문구에 마우스 올리면 툴팁. 프론트 DRM 판단은 'DRM' 글자 기준으로. ⚠️ Flask 재시작 필요
+
 ## [2026-10-01] 실적 기준월을 "오늘 - 1개월" 짐작 → 실제로 읽은 시트 기준으로
+
+- **DRM 파일 열기 차단** — 파일 바로가기(↗)·추출 현황 등 모든 열기 경로가 지나는 `shared.open_source_file`에서
+  파일 앞 8바이트가 `SCDSA`(SoftCamp DRM)이면 열지 않고 403 `blocked` → 프론트 "열 수 없는 파일" 오류 알림(확인창 없이 바로).
+  이 PC의 PowerPoint로 열면 NAS 원본이 재암호화됐던 전례 때문. 실측: NAS에서 6개 해당(모비우스 포함), check·실제 열기 모두 403.
+  ⚠️ Flask 재시작 필요
+- **재무 추출 실패 원인 — `수소 Generic Material 자료 개발_미모_제안.pptx`**(14:31, `com_error -2147467259`=E_FAIL):
+  파일은 정상 pptx(python-pptx로 23장 읽힘, KPI 추출은 같은 파일 성공). 바로 앞 파일이 AIP 변환(K-뉴딜)이었고
+  PowerPoint 열기가 1초 간격 2회 만에 포기 → 일시적 오류로 판단. 오늘 실행이 전부 '추가'라 이 파일 재무 행이 지금 없음
+  → 재무 열기 재시도 2회·1초 → 3회·3초(`open_presentation_with_retry`)
+- **실패 파일만 다시 추출** — 관리자 모달 추출 현황 카드에 "실패 N개 다시 추출" 버튼(DRM 실패는 개수에서도 뺌).
+  백엔드 mode `failed`: `extract_coverage.failed_paths`(현황과 같은 판정, DRM 제외)로 경로 목록 파일을 만들어
+  env `EXTRACT_ONLY_LIST`로 넘김 → 두 스크립트가 그 파일만 처리(기존 `--retry`와 같은 부분 실행 — 정리 단계 건너뜀, AIP 목록 안 건드림).
+  KPI `--retry`가 파트·단계 메타를 빈 값으로 넣던 것도 `get_file_meta`로 수정. DRM 실패 안내 문구 "PowerPoint로 직접 열어 확인" → "이 PC에서 열지 말 것"
+  확인: 목록 생성(재무 1개=수소 / 모비우스는 DRM 제외, KPI 0개). 실제 재추출은 안 돌림. ⚠️ Flask 재시작 필요
+- 드릴다운 표(`BreakdownTable`) 병합 묶음의 2·3번째 행에서 보고단계 오른쪽 세로선이 없던 것 — `td:last-child`가
+  병합 칸이 빠진 행의 중간 칸에 걸렸음 → 진짜 마지막 컬럼에만 `.lastCol`
 
 - **책임님 PC에서 "재시작하면 API 오류 + 여전히 9월 진하게"** — 이 PC 서버는 base=8 정상. `dashboard_start.bat`/`dashboard_update.bat`이
   `C:\Users\aaa\coding\dashboard`·`C:\Python314\python.exe` 고정이라 경로가 다른 PC에선 재시작이 안 되고 옛 서버(base 없음 → 달력 폴백 9월)가 남음 →

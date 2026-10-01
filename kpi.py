@@ -32,7 +32,8 @@ _PLAN_TARGETS = ["62", "15", "4.0", "12", "10", "4.0", "60.3", "10"]
 _kpi_cache_lock   = threading.Lock()
 _kpi_cached_mtime = None
 _kpi_raw_df: pd.DataFrame = pd.DataFrame()   # 취합 전체 (테이블 표시용)
-_kpi_dedup_df: pd.DataFrame = pd.DataFrame() # 프로젝트별 최우선 단계 1건 (집계용)
+_kpi_dedup_df: pd.DataFrame = pd.DataFrame() # 프로젝트별 최우선 단계 1건 — RISE-MEGA는 3행 그대로(드릴다운 표시용)
+_kpi_calc_df: pd.DataFrame = pd.DataFrame()  # _kpi_dedup_df + RISE-MEGA 3행을 1행으로 계산 병합(집계값 계산용)
 _kpi_agg_df: pd.DataFrame = pd.DataFrame()
 _kpi_last_loaded  = None
 
@@ -116,7 +117,8 @@ def _load_kpi_via_com() -> tuple[pd.DataFrame, pd.DataFrame]:
 # 예외 하드코딩 — "(정부 교육부) 25년 영남대학교 RISE-MEGA_신사업_완료.pptx"가 청탁 업체 3곳
 # 때문에 프로젝트코드 3개(E145600125110002/E146600425120002/E146600425120003)로 쪼개져
 # 있는데, 실제로는 같은 프로젝트 1건 — 2026-09-14 사용자 확인. KPI에서만 예외 적용(재무는 그대로).
-# 표시 라벨은 코드가 아니라 파일명 기준 — "{파일명}(프로젝트 3개 병합)" (사용자 지정).
+# 2026-10-01: 화면(드릴다운)에선 다시 3행으로 나눠 보여주고, 3행이 같은 값(목표 1.5, NPS 등)은
+# 셀 병합으로 1칸 — 계산은 예전 병합 그대로(_kpi_calc_df)라 집계·평균값은 바뀌지 않음(사용자 지정).
 _RISE_MEGA_CODES = ["E145600125110002", "E146600425120002", "E146600425120003"]
 
 
@@ -127,9 +129,7 @@ def _merge_rise_mega_rows(df: pd.DataFrame, code_col: str) -> pd.DataFrame:
     1개만 남기고, 값이 다르고 전부 숫자면(=실적처럼 업체별로 쪼개져 기재된 경우) 합산.
     그 외(텍스트가 갈리는 경우)는 첫 행 값을 그대로 사용.
 
-    ⚠️ 병합 후 코드 컬럼 값을 파일명 기반 라벨로 바꾸므로, 이 함수는 _build_agg_df()가
-    _real_code() 정식코드 필터를 이미 적용한 *이후*에만 호출해야 함(먼저 호출하면 라벨이
-    정식코드 형식이 아니라서 필터에 걸려 통째로 제외됨).
+    집계 계산 전용(_kpi_calc_df) — 화면에 보내는 행(_kpi_dedup_df)은 병합하지 않는다.
     """
     mask = df[code_col].isin(_RISE_MEGA_CODES)
     group = df[mask]
@@ -140,11 +140,6 @@ def _merge_rise_mega_rows(df: pd.DataFrame, code_col: str) -> pd.DataFrame:
                 len(_RISE_MEGA_CODES), len(group),
             )
         return df
-
-    file_col = next((c for c in group.columns if "파일명" in str(c)), None)
-    filename = str(group.iloc[0][file_col]).strip() if file_col else str(group.iloc[0][code_col])
-    filename = re.sub(r"\.pptx?$", "", filename, flags=re.IGNORECASE)
-    label = f"{filename}(프로젝트 3개 병합)"
 
     merged = group.iloc[0].copy()
     for col in group.columns:
@@ -157,7 +152,6 @@ def _merge_rise_mega_rows(df: pd.DataFrame, code_col: str) -> pd.DataFrame:
         if nums.notna().all():
             merged[col] = nums.sum()
         # 텍스트가 갈리는 경우는 iloc[0] 값(위에서 이미 복사됨) 유지
-    merged[code_col] = label
 
     return pd.concat(
         [df[~mask], merged.to_frame().T],
@@ -243,20 +237,26 @@ def _build_agg_df(df: pd.DataFrame) -> pd.DataFrame:
     )
     logger.info("KPI 집계 대상: 단계 중복 제거 후 %d행", len(d))
 
-    # RISE-MEGA 3코드 병합 — 집계(KPI 집계 카드, KPI 목표 vs 실적 차트)에만 적용.
-    # "KPI 취합" 표는 _kpi_raw_df(이 함수의 입력 df)를 그대로 쓰므로 영향 없음.
-    d = _merge_rise_mega_rows(d, code_col).reset_index(drop=True)
-
+    # RISE-MEGA 3코드 병합은 여기서 안 함 — 계산용 _kpi_calc_df에서만(load_kpi_excel)
     return d
+
+
+def _calc_df_from(df: pd.DataFrame) -> pd.DataFrame:
+    """집계값 계산용 df — RISE-MEGA 3행을 1행으로 병합(같은 값은 1번, 다른 숫자는 합산)."""
+    code_col = next((c for c in df.columns if "프로젝트코드" in str(c)), None)
+    if df.empty or code_col is None:
+        return df
+    return _merge_rise_mega_rows(df, code_col).reset_index(drop=True)
 
 
 def load_kpi_excel():
     """_kpi_cache_lock 보유 상태에서만 호출."""
-    global _kpi_raw_df, _kpi_dedup_df, _kpi_agg_df, _kpi_last_loaded, _kpi_cached_mtime
+    global _kpi_raw_df, _kpi_dedup_df, _kpi_calc_df, _kpi_agg_df, _kpi_last_loaded, _kpi_cached_mtime
     if not os.path.exists(KPI_EXCEL_PATH):
         logger.warning("KPI_EXCEL_PATH 없음 — 추출 스크립트 실행 필요: %s", KPI_EXCEL_PATH)
         _kpi_raw_df       = pd.DataFrame()
         _kpi_dedup_df     = pd.DataFrame()
+        _kpi_calc_df      = pd.DataFrame()
         _kpi_agg_df       = pd.DataFrame()
         _kpi_last_loaded  = None
         _kpi_cached_mtime = None
@@ -272,6 +272,7 @@ def load_kpi_excel():
             logger.error("KPI COM 읽기 실패")
             _kpi_raw_df   = pd.DataFrame()
             _kpi_dedup_df = pd.DataFrame()
+            _kpi_calc_df  = pd.DataFrame()
             _kpi_agg_df   = pd.DataFrame()
             return
         _kpi_raw_df   = _post_process_raw(raw_df)
@@ -284,6 +285,7 @@ def load_kpi_excel():
         _kpi_dedup_df = _build_agg_df(_kpi_raw_df)
         _kpi_agg_df   = wb.parse("kpi 집계", header=0) if "kpi 집계" in sheet_names else pd.DataFrame()
 
+    _kpi_calc_df = _calc_df_from(_kpi_dedup_df)
     logger.info("KPI 취합 %d행 / 집계(중복제거) %d행 / kpi집계 %d행 로드 완료",
                 len(_kpi_raw_df), len(_kpi_dedup_df), len(_kpi_agg_df))
     _kpi_last_loaded  = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -428,7 +430,7 @@ def _exclude_by_file(df: pd.DataFrame, exclude_files: set[str] | None) -> pd.Dat
 
 def _aggregate_kpi_col(kpi_items: list, col_keyword: str, part: str | None = None,
                         exclude_files: set[str] | None = None) -> list:
-    df = _filter_part(_kpi_dedup_df if not _kpi_dedup_df.empty else _kpi_raw_df, part)
+    df = _filter_part(_kpi_calc_df if not _kpi_calc_df.empty else _kpi_raw_df, part)
     df = _exclude_by_file(df, exclude_files)
     if df.empty:
         return [0.0] * len(kpi_items)
@@ -527,7 +529,7 @@ def _compute_achieve_rates(kpi_items: list, part: str | None = None,
     신규/기존 건수 타입: None 반환 (호출부에서 별도 계산).
     집계는 프로젝트별 최우선 단계 1건만 사용 (완료>중간>착수>제안).
     """
-    df = _filter_part(_kpi_dedup_df if not _kpi_dedup_df.empty else _kpi_raw_df, part)
+    df = _filter_part(_kpi_calc_df if not _kpi_calc_df.empty else _kpi_raw_df, part)
     df = _exclude_by_file(df, exclude_files)
     if df.empty:
         return [None] * len(kpi_items)
@@ -751,7 +753,9 @@ def api_kpi_summary_breakdown():
     KPI 집계 막대 하나가 '어떤 프로젝트 행들을 합/평균해서' 나온 값인지 드릴다운.
     - name:   차트 라벨(= KPI 항목명, 신규/기존 건수는 "…(신규 …)" / "…(기존 …)")
     - metric: target | actual | prev
-    집계와 동일하게 _kpi_dedup_df(프로젝트당 최우선 단계 1건) 기준 — 반환 total이 막대값과 일치한다.
+    집계와 동일하게 프로젝트당 최우선 단계 1건 기준 — 반환 total이 막대값과 일치한다.
+    행(rows)은 _kpi_dedup_df(RISE-MEGA 3행 그대로), total/count는 _kpi_calc_df(3행 병합)로 계산.
+    RISE-MEGA 행엔 group을 붙이고, 3행 값이 같아 한 번만 센 경우 shared=True(화면에서 셀 병합).
     """
     if not os.path.exists(KPI_EXCEL_PATH):
         return jsonify({"available": False, "message": "KPI 추출 스크립트를 먼저 실행해주세요."})
@@ -790,7 +794,8 @@ def api_kpi_summary_breakdown():
             return jsonify({"available": False, "message": f"KPI 항목을 찾을 수 없습니다: {name}"})
 
         kpi = kpi_items[idx]
-        df  = _kpi_dedup_df if not _kpi_dedup_df.empty else _kpi_raw_df
+        df      = _kpi_dedup_df if not _kpi_dedup_df.empty else _kpi_raw_df
+        calc_df = _kpi_calc_df  if not _kpi_calc_df.empty  else df
         if df.empty:
             return jsonify({"available": False, "message": "취합 데이터가 없습니다."})
 
@@ -808,49 +813,59 @@ def api_kpi_summary_breakdown():
 
         is_count_type = isinstance(kpi.get("target", 0), str) and "신규" in str(kpi.get("target", ""))
 
-        rows_out = []
-        for _, r in df.iterrows():
-            raw = r[col]
-            if raw is None:
-                continue
-            vs = str(raw).strip()
-            if not vs or vs in _SKIP_VALS:
-                continue
+        def collect(src: pd.DataFrame) -> list:
+            out = []
+            for _, r in src.iterrows():
+                raw = r[col]
+                if raw is None:
+                    continue
+                vs = str(raw).strip()
+                if not vs or vs in _SKIP_VALS:
+                    continue
 
-            if is_count_type:
-                if ":" in vs:
-                    m_new = re.search(r"신규\s*:\s*(\d+)건", vs)
-                    m_old = re.search(r"기존\s*:\s*(\d+)건", vs)
-                    n_new = int(m_new.group(1)) if m_new else 0
-                    n_old = int(m_old.group(1)) if m_old else 0
-                elif vs == "신규":
-                    n_new, n_old = 1, 0
-                elif vs == "기존":
-                    n_new, n_old = 0, 1
+                if is_count_type:
+                    if ":" in vs:
+                        m_new = re.search(r"신규\s*:\s*(\d+)건", vs)
+                        m_old = re.search(r"기존\s*:\s*(\d+)건", vs)
+                        n_new = int(m_new.group(1)) if m_new else 0
+                        n_old = int(m_old.group(1)) if m_old else 0
+                    elif vs == "신규":
+                        n_new, n_old = 1, 0
+                    elif vs == "기존":
+                        n_new, n_old = 0, 1
+                    else:
+                        continue
+                    contrib = n_new if sub == "신규" else n_old if sub == "기존" else n_new + n_old
+                    if contrib == 0:
+                        continue
+                    value = contrib
                 else:
-                    continue
-                contrib = n_new if sub == "신규" else n_old if sub == "기존" else n_new + n_old
-                if contrib == 0:
-                    continue
-                value = contrib
-            else:
-                num = _parse_col_num(vs)
-                if num is None or num == 0:
-                    continue
-                value = round(num, 4)
+                    num = _parse_col_num(vs)
+                    if num is None or num == 0:
+                        continue
+                    value = round(num, 4)
 
-            file_val = str(r[file_col]).strip() if file_col and r[file_col] not in (None, 0) else ""
-            rows_out.append({
-                "project_code": str(r[code_col]).strip() if code_col and r[code_col] not in (None, 0) else "",
-                "project_name": str(r[pname_col]).strip() if pname_col and r[pname_col] not in (None, 0) else "",
-                "part":  str(r[part_col]).strip()  if part_col  and r[part_col]  not in (None, 0) else "",
-                "stage": str(r[stage_col]).strip() if stage_col and r[stage_col] not in (None, 0) else "",
-                "file":  file_val,
-                "value": value,
-                "excluded": file_val in exclude_files if file_val else False,
-            })
+                file_val = str(r[file_col]).strip() if file_col and r[file_col] not in (None, 0) else ""
+                out.append({
+                    "project_code": str(r[code_col]).strip() if code_col and r[code_col] not in (None, 0) else "",
+                    "project_name": str(r[pname_col]).strip() if pname_col and r[pname_col] not in (None, 0) else "",
+                    "part":  str(r[part_col]).strip()  if part_col  and r[part_col]  not in (None, 0) else "",
+                    "stage": str(r[stage_col]).strip() if stage_col and r[stage_col] not in (None, 0) else "",
+                    "file":  file_val,
+                    "value": value,
+                    "excluded": file_val in exclude_files if file_val else False,
+                })
+            return out
 
-        active_vals = [x["value"] for x in rows_out if not x["excluded"]]
+        rows_out = collect(df)
+        # RISE-MEGA — 3행 값이 같으면 계산에서 한 번만 셈(shared → 화면 셀 병합), 다르면 각자 더함
+        rise = [x for x in rows_out if x["project_code"] in _RISE_MEGA_CODES]
+        shared = len(rise) == len(_RISE_MEGA_CODES) and len({x["value"] for x in rise}) == 1
+        for x in rise:
+            x["group"]  = "RISE-MEGA"
+            x["shared"] = shared
+
+        active_vals = [x["value"] for x in collect(calc_df) if not x["excluded"]]
         use_sum = is_count_type or kpi["agg"] == "sum"
         if not active_vals:
             total = 0.0

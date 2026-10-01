@@ -31,7 +31,9 @@ import sys as _sys_boot, os as _os_boot
 _sys_boot.path.insert(0, _os_boot.path.dirname(_os_boot.path.dirname(_os_boot.path.abspath(__file__))))
 import paths as _paths
 from shared import strip_stage_suffix as _shared_strip_stage_suffix
-RETRY_MODE = "--retry" in _sys.argv
+# EXTRACT_ONLY_LIST: 대시보드 "실패 파일만 다시 추출"이 넘기는 경로 목록 파일 — 그 파일만 처리(부분 실행, 2026-10-01)
+ONLY_LIST = _os_boot.environ.get("EXTRACT_ONLY_LIST", "").strip()
+RETRY_MODE = "--retry" in _sys.argv or bool(ONLY_LIST)
 ROOT_DIR = Path(_paths.PPT_SOURCE_DIR)
 
 # 출력 엑셀: 프로젝트 data/ 폴더로 저장
@@ -166,7 +168,7 @@ def normalize_int_value(value):
     """
     정수형 데이터 처리
     - 공백, '-', 빈값 => 0
-    - 숫자형 문자열 => int 변환
+    - 숫자형 문자열 => int 변환 (소수가 있으면 버리지 않고 소수점 둘째 자리까지 — 2026-10-01)
     - 문자열 => 그대로 반환
     """
     if value is None:
@@ -181,7 +183,8 @@ def normalize_int_value(value):
 
     if re.fullmatch(r"[+-]?\d+(\.\d+)?", text_no_comma):
         try:
-            return int(float(text_no_comma))
+            f = float(text_no_comma)
+            return int(f) if f.is_integer() else round(f, 2)
         except ValueError:
             return text
 
@@ -192,7 +195,8 @@ def normalize_float_value(value):
     """
     실수형 데이터 처리
     - 공백, '-', 빈값 => 0
-    - 숫자형 문자열 => float 변환 후 소수점 첫째 자리 반올림
+    - 숫자형 문자열 => float 변환 후 소수점 둘째 자리 반올림
+      (예전엔 첫째 자리 — RISE-MEGA 실적 0.18/0.15/0.13이 0.2/0.1/0.1로 저장돼 2026-10-01 변경)
     - 문자열 => 그대로 반환
     """
     if value is None:
@@ -207,7 +211,7 @@ def normalize_float_value(value):
 
     if re.fullmatch(r"[+-]?\d+(\.\d+)?", text_no_comma):
         try:
-            return round(float(text_no_comma), 1)
+            return round(float(text_no_comma), 2)
         except ValueError:
             return text
 
@@ -1274,24 +1278,21 @@ def main():
 
     # --retry: kpi_aip_failed.txt에 기록된 파일만 재처리
     if RETRY_MODE:
-        if not AIP_FAILED_FILE.exists():
+        list_file = Path(ONLY_LIST) if ONLY_LIST else AIP_FAILED_FILE
+        if not list_file.exists():
             logger.info("[retry] 실패 목록 파일이 없습니다. 먼저 일반 실행으로 추출하세요.")
-            print("[retry] kpi_aip_failed.txt 없음. 일반 실행 먼저 하세요.")
+            print("[retry] 실패 목록 파일 없음. 일반 실행 먼저 하세요.")
             return
-        failed_paths = [p.strip() for p in AIP_FAILED_FILE.read_text(encoding="utf-8").splitlines() if p.strip()]
-        all_target_files = [
-            (Path(p), {
-                '파트명': '',
-                '보고단계': '',
-                '전체경로': p,
-                '파일명': Path(p).name,
-                '수정일시': '',
-                '파일크기': '',
-                '해시': '',
-            })
-            for p in failed_paths if Path(p).exists()
-        ]
-        logger.info(f"[retry] AIP 실패 목록 {len(all_target_files)}개 재처리 시작")
+        failed_paths = [p.strip() for p in list_file.read_text(encoding="utf-8").splitlines() if p.strip()]
+        # 메타(파트명·보고단계 등)는 일반 실행과 같은 함수로 — 예전엔 빈 값으로 넣어 파트가 비었음
+        all_target_files = []
+        for p in failed_paths:
+            if Path(p).exists():
+                try:
+                    all_target_files.append((Path(p), get_file_meta(Path(p))))
+                except Exception as e:
+                    logger.exception(f"파일 메타 조회 실패: {p} / {e}")
+        logger.info(f"[retry] {'지정된 실패 파일' if ONLY_LIST else 'AIP 실패 목록'} {len(all_target_files)}개 재처리 시작")
         _retry_remaining = [str(p) for p, _ in all_target_files]
         # 목록은 성공 시에만 제거 — 재실패 파일은 유지
     else:
@@ -1358,8 +1359,8 @@ def main():
 
     wb.save(excel_path)
 
-    # retry 모드: 최종 실패 파일 목록 다시 저장
-    if RETRY_MODE:
+    # retry 모드: 최종 실패 파일 목록 다시 저장(대시보드 지정 목록 실행은 AIP 목록을 안 건드림)
+    if RETRY_MODE and not ONLY_LIST:
         AIP_FAILED_FILE.write_text("\n".join(_retry_remaining) + ("\n" if _retry_remaining else ""), encoding="utf-8")
         if _retry_remaining:
             logger.info(f"[retry] 재실패 {len(_retry_remaining)}개 → {AIP_FAILED_FILE} 에 유지")

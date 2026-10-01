@@ -55,10 +55,14 @@ const KpiBreakdownModal = ({ name, metric, onClose }: Props) => {
 
       <BreakdownTable
         rowClassName={r => r.excluded ? styles.rowExcluded : undefined}
+        // RISE-MEGA처럼 코드 여러 개가 계산상 한 프로젝트인 행은 붙여서 보여주고,
+        // 계산에서 한 번만 센 값(shared)·같은 파일의 포함 체크·파일명은 셀 병합
+        groupKey={r => r.group}
         columns={[
           {
             key: 'include', header: '포함', align: 'center',
             sortValue: r => r.excluded ? 0 : 1,
+            groupSpan: () => true,
             render: r => (
               <input
                 type="checkbox"
@@ -73,8 +77,7 @@ const KpiBreakdownModal = ({ name, metric, onClose }: Props) => {
           {
             // 코드만 보이게 좁게 — 프로젝트명까지 옆에 붙이면 컬럼이 넓어져 가로스크롤 유발.
             // truncate 필수 — placeholder 코드(생성예정 등)는 파일명 기반 긴 문자열이 그대로
-            // project_code 자리에 들어올 때가 있어(예: "(정부 교육부) 25년 영남대학교
-            // RISE-MEGA_신사업_완료(프로젝트 3개 병합)") 그대로 두면 그 한 컬럼 때문에
+            // project_code 자리에 들어올 때가 있어 그대로 두면 그 한 컬럼 때문에
             // 표 전체가 가로로 넘침. 이 표는 컬럼 리사이즈가 안 되고 CopyText가 title로
             // 전체 텍스트를 이미 보여주므로 wrap(여러 줄)보다 말줄임이 나음
             key: 'code', header: '프로젝트코드', truncate: true,
@@ -86,11 +89,13 @@ const KpiBreakdownModal = ({ name, metric, onClose }: Props) => {
           {
             key: 'value', header: vm.column || '값', align: 'right',
             sortValue: r => r.value,
-            render: r => (Number.isInteger(r.value) ? r.value.toLocaleString() : r.value),
+            groupSpan: r => !!r.shared,
+            render: r => r.value.toLocaleString(undefined, { maximumFractionDigits: 2 }),
           },
           {
             key: 'file', header: '파일명', wrap: true,
             sortValue: r => r.file,
+            groupSpan: () => true,
             render: r => (r.file ? <CopyText text={r.file} onOpen={openFile} /> : '—'),
           },
         ] satisfies BreakdownColumn<KpiBreakdownRow>[]}

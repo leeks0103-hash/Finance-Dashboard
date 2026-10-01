@@ -277,7 +277,7 @@ _EXTRACT_SCRIPTS = {
     "finance": "extract_financial_ppt.py",
     "kpi":     "extract_kpi_ppt.py",
 }
-_EXTRACT_MODES = {"incremental", "force", "reset"}
+_EXTRACT_MODES = {"incremental", "force", "reset", "failed"}
 # Navbar에서 "PPT 데이터 추출" 자체를 보이게/실행 가능하게 하는 공용 키 — 아직 배포 전이라
 # LAN에 공유돼도 아무나 못 누르게(2026-09-23, 본인+책임님만 권한). 비어있으면 무조건 거부(안전 기본값)
 EXTRACT_ADMIN_KEY = os.environ.get("EXTRACT_ADMIN_KEY", "").strip()
@@ -295,7 +295,7 @@ def _extract_key_valid(req) -> bool:
     return bool(EXTRACT_ADMIN_KEY) and req.headers.get("X-Extract-Key", "") == EXTRACT_ADMIN_KEY
 
 
-def _run_extract_script(name: str, mode: str) -> tuple[bool, str]:
+def _run_extract_script(name: str, mode: str, only_list: "str | None" = None) -> tuple[bool, str]:
     """Popen으로 돌려서 핸들을 _extract_proc에 남겨야 '중지' 버튼이 해당 프로세스를 찾아 죽일 수 있음.
     스크립트는 파일 하나 처리 시작 시점 외에는 wb.save()를 거의 안 부르고(cleanup 직후 1회,
     전체 완료/예외 시 finally에서 1회뿐) 대부분의 시간을 PowerPoint COM 호출에 쓰므로,
@@ -309,6 +309,10 @@ def _run_extract_script(name: str, mode: str) -> tuple[bool, str]:
     env = os.environ.copy()
     env["FORCE_REPROCESS"] = "1" if mode in ("force", "reset") else "0"
     env["RESET_OUTPUT_ON_START"] = "1" if mode == "reset" else "0"
+    # mode=failed: 스크립트가 이 목록 파일에 적힌 경로만 처리(부분 실행 — 정리 단계 건너뜀)
+    env.pop("EXTRACT_ONLY_LIST", None)
+    if only_list:
+        env["EXTRACT_ONLY_LIST"] = only_list
 
     proc = subprocess.Popen(
         [python, str(script)],
@@ -341,13 +345,42 @@ def _run_extract_script(name: str, mode: str) -> tuple[bool, str]:
     return True, tail
 
 
+def _write_failed_list(target: str) -> "tuple[str | None, str]":
+    """mode=failed — 추출 현황에서 '실패'인 파일 경로를 임시 목록 파일로. (목록 경로 또는 None, 안내 문구)
+    DRM 파일은 extract_coverage.failed_paths가 이미 뺌"""
+    import tempfile
+    from extract_coverage import failed_paths
+    paths_, skipped = failed_paths(target)
+    note = f"DRM 파일 {len(skipped)}개는 제외(열면 원본이 재암호화될 수 있음): {', '.join(skipped)}" if skipped else ""
+    if not paths_:
+        return None, note
+    fd, list_path = tempfile.mkstemp(suffix=".txt", prefix=f"extract_failed_{target}_")
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        f.write("\n".join(paths_) + "\n")
+    return list_path, f"실패 파일 {len(paths_)}개 다시 추출" + (f" · {note}" if note else "")
+
+
 def _extract_job(targets: list, mode: str):
     global _extract_cancel_requested
     logs = []
     ok_all = True
     cancelled = False
     for t in targets:
-        ok, msg = _run_extract_script(t, mode)
+        if mode == "failed":
+            list_path, note = _write_failed_list(t)
+            if list_path is None:
+                logs.append(f"[{t}] 다시 추출할 실패 파일 없음" + (f" — {note}" if note else ""))
+                continue
+            try:
+                ok, msg = _run_extract_script(t, mode, list_path)
+            finally:
+                try:
+                    os.remove(list_path)
+                except OSError:
+                    pass
+            msg = f"{note}\n{msg}"
+        else:
+            ok, msg = _run_extract_script(t, mode)
         if msg == "__CANCELLED__":
             cancelled = True
             logs.append(f"[{t}] 사용자가 중지함 — 마지막으로 저장된 지점까지만 반영됨")
@@ -465,6 +498,24 @@ def api_extract_coverage():
     except Exception as e:
         logger.exception("추출 현황 계산 실패")
         return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/extract/open-file", methods=["POST"])
+def api_extract_open_file():
+    """추출 현황 목록의 원본 PPT 열기(↗). 미처리·실패 파일은 처리이력에 경로가 없어 재무/KPI 열기 API로는
+    못 찾음 → 추출 현황이 폴더를 훑으며 찾은 경로로 연다. 목록에 있는 파일만(임의 경로 X), 관리자 키 필요"""
+    if not _extract_key_valid(request):
+        return jsonify({"ok": False, "message": "권한이 없습니다"}), 403
+    import extract_coverage
+    from shared import open_source_file
+    data = request.get_json(silent=True) or {}
+    filename = str(data.get("filename", "")).strip()
+    if not filename:
+        return jsonify({"ok": False, "message": "파일명이 없습니다."}), 400
+    path = extract_coverage.find_path(filename)
+    logger.info("[파일 열기/추출 현황] filename=%s -> path=%s", filename, path)
+    body, status = open_source_file(path, check_only=bool(data.get("check")))
+    return jsonify(body), status
 
 
 if __name__ == "__main__":

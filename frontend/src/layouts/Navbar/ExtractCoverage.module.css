@@ -57,6 +57,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
 }
 .srcLabel {
   font-size: 0.8rem;
@@ -64,6 +65,7 @@
   color: var(--text-primary);
 }
 .stateBadge {
+  margin-left: auto; /* 다시 추출 버튼이 있어도 배지·버튼이 오른쪽에 붙게 */
   font-size: 0.68rem;
   font-weight: 700;
   padding: 2px 8px;
@@ -202,3 +204,5 @@
   color: var(--text-muted);
   word-break: break-all;
 }
+
+.retryBtn { flex-shrink: 0; }
