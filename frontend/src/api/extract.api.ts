@@ -1,5 +1,5 @@
 import client from './client';
-import type { ExtractTarget, ExtractMode, ExtractStatus } from '@/types/extract.types';
+import type { ExtractTarget, ExtractMode, ExtractStatus, ExtractCoverage } from '@/types/extract.types';
 
 // 서버 EXTRACT_ADMIN_KEY와 대조해서 통과한 값만 저장 — 이 브라우저(=이 PC)에서만 유효,
 // 한 번 입력하면 다음부턴 다시 안 물어봄. 이름은 보안용이 아니라 "누가 실행 중인지" 표시용
@@ -50,3 +50,9 @@ export const cancelExtract = (): Promise<CancelExtractResult> =>
   client.post<CancelExtractResult>('/extract/cancel', undefined, { headers: authHeaders() })
     .then(r => r.data)
     .catch((err): CancelExtractResult => err?.response?.data ?? { ok: false, error: '중지 요청에 실패했습니다.' });
+
+/** 추출 현황 — 원본 폴더 파일 수 vs 실제로 추출된 파일, 안 된 파일과 이유. refresh면 서버 캐시(30초) 무시 */
+export const getExtractCoverage = (refresh = false): Promise<ExtractCoverage> =>
+  client.get<ExtractCoverage>('/extract/coverage', { params: refresh ? { refresh: 1 } : undefined, headers: authHeaders() })
+    .then(r => r.data)
+    .catch((err): ExtractCoverage => err?.response?.data ?? { ok: false, error: '추출 현황을 불러오지 못했습니다.' });

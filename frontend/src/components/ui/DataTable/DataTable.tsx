@@ -35,6 +35,8 @@ import styles from './DataTable.module.css';
 // 펼침 패널 슬라이드 길이 — DataTable.module.css .expandSlide/.expandClosing 애니메이션과 맞출 것
 const EXPAND_OPEN_MS = 320;
 const EXPAND_CLOSE_MS = 220;
+// 검색 결과가 바뀔 때 본문 높이 전환 길이 — 0.32 → 0.4초(2026-10-01 요청, 1건으로 확 줄 때 너무 빨랐음)
+const BODY_RESIZE_MS = 400;
 
 // 정렬 상태 → 화살표 문자 (중첩 삼항 대신 순차 조건으로 — 어떤 상태가 어떤 기호인지 한눈에 보이게)
 function sortArrow(sorted: false | 'asc' | 'desc'): string {
@@ -303,8 +305,8 @@ const DEFAULT_PAGE_SIZES = [10, 20, 30, 50, 100];
 const INDEX_COL_W = 52;
 // 검색·필터로 행이 줄어도 최소 이 정도 높이는 유지 — 결과 1건일 때도 빈 상태처럼 휑해 보이지 않게
 const MIN_TABLE_ROWS = 5;
-/** 자동 펼침 지연 — 본문 높이 전환(0.32s)이 끝난 뒤 + 약간의 여유 */
-const AUTO_EXPAND_DELAY_MS = 420;
+/** 자동 펼침 지연 — 본문 높이 전환(BODY_RESIZE_MS)이 끝난 뒤 + 약간의 여유 */
+const AUTO_EXPAND_DELAY_MS = 500;   // 본문 높이 전환(BODY_RESIZE_MS)이 끝난 뒤에 펼치도록 — 높이 전환보다 길게
 
 const DataTable = <T extends object>({
   data,
@@ -464,7 +466,9 @@ const DataTable = <T extends object>({
 
   // expandableRow — 더블클릭한 행 바로 아래에 콘텐츠 펼치기, 한 번에 하나만
   // 열 때·닫을 때 위아래로 슬라이드(.expandSlide) — 닫힘은 퇴장 애니메이션(EXPAND_CLOSE_MS)이 끝난 뒤 제거.
-  // 다른 행을 더블클릭하면 기존 패널은 바로 빠지고 새 행에서 다시 슬라이드되며 열림
+  // 다른 행을 더블클릭하면 순서대로: 기존 패널이 접히고(220ms) → 다 접힌 뒤 새 행에서 펼침.
+  // 예전엔 기존 패널을 한 프레임에 통째로 빼고 바로 새로 펼쳐서, 위쪽 패널 높이만큼 표가 확 당겨졌다가
+  // 다시 밀리며 크게 출렁였음(2026-10-01). 접히는 동안엔 누른 행이 화면에서 제자리에 있도록 스크롤을 같이 맞춤
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const [expandClosing, setExpandClosing] = useState(false);
   // 슬라이드가 끝나면 overflow 클립을 풂 — 패널 안 표의 컬럼 메뉴 등 드롭다운이 잘리지 않게
@@ -481,8 +485,37 @@ const DataTable = <T extends object>({
       setExpandClosing(false);
     }, EXPAND_CLOSE_MS);
   }, []);
-  const toggleExpanded = useCallback((key: string) => {
+  // 위쪽 패널이 접히는 동안 누른 행(anchor)이 화면에서 움직인 만큼 페이지를 같이 스크롤 — 행이 커서 아래 그대로.
+  // 브라우저 스크롤 앵커링이 이미 맞춰준 만큼은 실제 이동량에 안 잡히므로 이중 보정 없음
+  const keepRowInPlace = (anchor: Element | null, ms: number) => {
+    if (!anchor) return;
+    const top0 = anchor.getBoundingClientRect().top;
+    const end = performance.now() + ms + 60;
+    const tick = () => {
+      if (!anchor.isConnected) return;
+      const d = anchor.getBoundingClientRect().top - top0;
+      if (Math.abs(d) > 0.5) window.scrollBy(0, d);
+      if (performance.now() < end) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  };
+  const toggleExpanded = useCallback((key: string, anchor: Element | null = null) => {
     if (expandedKey === key && !expandClosing) { closeExpanded(); return; }
+    // 다른 행이 펼쳐져 있으면(또는 접히는 중이면) 먼저 접고, 다 접힌 뒤에 새 행을 펼침
+    if (expandedKey && expandedKey !== key && !prefersReducedMotion()) {
+      window.clearTimeout(expandTimer.current);
+      if (!expandClosing) {
+        setExpandClosing(true);
+        setExpandSettled(false);
+        keepRowInPlace(anchor, EXPAND_CLOSE_MS);
+      }
+      expandTimer.current = window.setTimeout(() => {
+        setExpandClosing(false);
+        setExpandSettled(false);
+        setExpandedKey(key);
+      }, EXPAND_CLOSE_MS);
+      return;
+    }
     window.clearTimeout(expandTimer.current);
     setExpandClosing(false);
     setExpandSettled(false);
@@ -493,7 +526,7 @@ const DataTable = <T extends object>({
   const autoExpandKey = expandableRow?.autoExpandKey ?? null;
   const lastAutoKey = useRef<string | null>(null);
   const skipExpandScroll = useRef(false);
-  // 검색 결과가 바뀌며 본문 높이가 전환되는 중(bodyRef, 320ms)에 2뎁스까지 같이 펼치면 높이가 두 번 겹쳐
+  // 검색 결과가 바뀌며 본문 높이가 전환되는 중(bodyRef, BODY_RESIZE_MS)에 2뎁스까지 같이 펼치면 높이가 두 번 겹쳐
   // 출렁임(2026-09-30) → 표가 먼저 자리 잡은 뒤에 펼침. 그 사이 검색어가 또 바뀌면 예약 취소
   const autoExpandTimer = useRef<number | undefined>(undefined);
   useEffect(() => () => window.clearTimeout(autoExpandTimer.current), []);
@@ -728,12 +761,17 @@ const DataTable = <T extends object>({
   // 내용이 바뀌는 순간에만 "직전 높이 → 새 높이"로 이어 줌. 평소엔 높이 auto라 행 펼침(2뎁스) 등은 그대로
   const bodyRef = useRef<HTMLDivElement>(null);
   const lastBodyH = useRef(0);
+  // 마지막으로 알고 있던 페이지 스크롤 위치 — 아래 전환에서 브라우저가 스크롤을 잘라 먹은 걸 되돌릴 때 씀
+  const lastScrollY = useRef(0);
   useEffect(() => {
     const el = bodyRef.current;
     if (!el) return;
     const ro = new ResizeObserver(() => { if (!el.style.height) lastBodyH.current = el.offsetHeight; });
     ro.observe(el);
-    return () => ro.disconnect();
+    const onScroll = () => { lastScrollY.current = window.scrollY; };
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => { ro.disconnect(); window.removeEventListener('scroll', onScroll); };
   }, []);
   const bodyKey = isLoading ? 'loading' : `${rows.length}|${pagination.pageCount > 1}`;
   useLayoutEffect(() => {
@@ -745,12 +783,20 @@ const DataTable = <T extends object>({
     el.style.overflow = 'hidden';
     el.style.height = `${from}px`;
     void el.offsetHeight;   // 시작 높이를 먼저 확정시켜야 전환이 걸림
-    el.style.transition = 'height 0.32s cubic-bezier(0.22, 1, 0.36, 1)';
+    // 새 높이를 재는 순간(위 offsetHeight) 문서가 잠깐 짧아져, 페이지 맨 아래를 보고 있었다면 브라우저가 스크롤을
+    // 그만큼 한 번에 잘라 먹음 → 표가 줄기도 전에 화면 전체가 수백 px 튀었음(2026-10-01). 시작 높이를 다시 걸었으니
+    // 원래 위치로 되돌리고, 줄어드는 동안 프레임마다 조금씩 따라 올라가게 둠
+    if (Math.abs(window.scrollY - lastScrollY.current) > 1) window.scrollTo({ top: lastScrollY.current, behavior: 'instant' });
+    el.style.transition = `height ${BODY_RESIZE_MS}ms cubic-bezier(0.22, 1, 0.36, 1)`;
     el.style.height = `${to}px`;
     const clear = () => { el.style.height = ''; el.style.overflow = ''; el.style.transition = ''; };
-    const t = window.setTimeout(() => { clear(); lastBodyH.current = el.offsetHeight; }, 340);
+    let done = false;
+    const t = window.setTimeout(() => { done = true; clear(); lastBodyH.current = el.offsetHeight; }, BODY_RESIZE_MS + 20);
     return () => {
-      // 전환 도중 또 바뀌면 지금 보이는 높이에서 이어가게
+      // 이미 끝난 전환이면 손대지 않음 — 이 정리 함수는 다음 내용이 DOM에 들어간 "뒤"에 불려서, 여기서 높이를 재면
+      // 새 높이가 "직전 높이"로 덮여 다음 전환이 아예 안 걸렸음(검색해서 1건이 되면 뚝 줄던 원인, 2026-10-01)
+      if (done) return;
+      // 전환 도중 또 바뀌면 지금 보이는 높이에서 이어가게(인라인 높이가 걸려 있어 새 내용과 무관하게 현재 높이가 잡힘)
       window.clearTimeout(t);
       const cur = el.getBoundingClientRect().height;
       clear();
@@ -995,7 +1041,7 @@ const DataTable = <T extends object>({
                               } : undefined}
                               onDoubleClick={
                                 canExpand
-                                  ? () => toggleExpanded(expandKey!)
+                                  ? (e: React.MouseEvent) => toggleExpanded(expandKey!, (e.currentTarget as Element).closest('tr'))
                                   : searchOnDblClick?.includes(cell.column.id) && text
                                     ? () => tableSearch.fillFromCell(text)
                                     : undefined

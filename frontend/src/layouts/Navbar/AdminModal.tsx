@@ -4,6 +4,7 @@ import type { useExtractJob } from '@/hooks/useExtractJob';
 import { useUiStore } from '@/store';
 import type { FileOpenVisibility } from '@/store/ui.store';
 import type { ExtractTarget, ExtractMode } from '@/types/extract.types';
+import ExtractCoverage from './ExtractCoverage';
 import styles from './AdminModal.module.css';
 
 const EXTRACT_TARGET_LABEL: Record<ExtractTarget, string> = { finance: '재무', kpi: 'KPI' };
@@ -37,7 +38,7 @@ interface Props {
 }
 
 /**
- * ⚙ > 관리자용 기능 — 달성률 / 파일 바로가기 공개 범위 / PPT 데이터 추출.
+ * ⚙ > 관리자용 기능 — 달성률 / 파일 바로가기 공개 범위 / PPT 데이터 추출 / 추출 현황.
  * 예전엔 280px 드롭다운 안에 다 들어 있어 비좁았고, 확인창 버튼을 누르면 "바깥 클릭"으로 드롭다운이
  * 닫히는 문제도 있어 모달로 분리(2026-09-30 요청). 권한(EXTRACT_ADMIN_KEY) 없으면 인증 버튼만 보임.
  */
@@ -217,6 +218,9 @@ const AdminModal = ({ extractJob, onClose }: Props) => {
               </span>
             )}
           </section>
+
+          {/* 추출 현황 — 폴더 파일 수 vs 실제로 들어간 파일, 안 된 파일과 이유(2026-10-01) */}
+          <ExtractCoverage finishedAt={extractJob.status?.finished_at} />
         </div>
       )}
     </Modal>

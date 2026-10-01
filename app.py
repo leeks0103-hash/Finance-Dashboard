@@ -453,6 +453,20 @@ def api_extract_status():
         return jsonify(dict(_extract_status))
 
 
+@app.route("/api/extract/coverage")
+def api_extract_coverage():
+    """추출 현황 — NAS 폴더의 PPT 파일 수 vs 실제로 추출된 파일, 안 된 파일과 이유(관리자용 기능 모달).
+    파일 이름 목록이 나가므로 관리자 키 필요. ?refresh=1이면 30초 캐시 무시하고 폴더를 다시 훑음"""
+    if not _extract_key_valid(request):
+        return jsonify({"ok": False, "error": "권한이 없습니다"}), 403
+    import extract_coverage
+    try:
+        return jsonify(extract_coverage.coverage(force=request.args.get("refresh") == "1"))
+    except Exception as e:
+        logger.exception("추출 현황 계산 실패")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 if __name__ == "__main__":
     with _cache_lock:
         load_excel()
