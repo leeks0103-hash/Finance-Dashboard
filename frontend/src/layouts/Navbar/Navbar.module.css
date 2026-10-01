@@ -52,28 +52,19 @@
   cursor: pointer;
 }
 
-/* 라이트 — 컬러 CI(배경 투명 PNG). 흰 네비바 위 */
-.logoImg {
+/* Hyundai NGV CI SVG — HYUNDAI만 currentColor(라이트 CI 남색 / 다크 흰색), 원은 주황·글자는 흰색 고정(NgvLogo.tsx) */
+.logo {
   height: 34px;
   width: auto;
   display: block;
   flex-shrink: 0;
-}
-:global([data-theme="dark"]) .logoImg { display: none; }
-:global([data-theme="light"]) .logo { display: none; }
-
-/* 다크 — Hyundai NGV 락업 SVG — HYUNDAI 워드마크 + NGV 세로 2단(currentColor). 다크 바 위 흰색 */
-.logo {
-  height: 32px;
-  width: auto;
-  display: block;
-  flex-shrink: 0;
-  color: #fff;
+  color: #014282;   /* CI 원본 HYUNDAI 남색 */
   /* sticky 헤더가 만드는 합성 레이어 안에서 SVG가 저해상도 래스터로 캐시돼 흐릿하게 보이고
      (다른 요소 hover 등으로) 페인트가 무효화될 때만 또렷해지던 문제 —
      자체 레이어로 승격해 항상 device 해상도로 렌더 */
   transform: translateZ(0);
 }
+:global([data-theme="dark"]) .logo { color: #fff; }
 
 /* 중앙 — 탭 네비게이션 */
 .center {
@@ -87,7 +78,7 @@
 .brand {
   margin: 0;
   font-size: 16px;
-  font-weight: 400;   /* 굵은 제목이 부담스럽다는 의견(2026-10-01) — 기본 굵기 */
+  font-weight: 500;   /* 탭 글자(TabNav .tab 500)와 같은 굵기 — 700은 부담스럽다는 의견(2026-10-01) */
   line-height: 1;
   color: var(--header-title);
   letter-spacing: -0.01em;
