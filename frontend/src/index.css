@@ -75,7 +75,7 @@
   --header-border:     rgba(255,255,255,0.06);
   --header-title:      #FF9E1B;
   --header-fg:         #E4DCD3;
-  --header-fg-strong:  #FF9E1B;
+  --header-fg-strong:  #00AAD2;   /* 탭 호버·선택 — 다크 주력색 Active Blue(청록). 제목은 로고와 맞춰 주황 유지(2026-10-01) */
   --header-ctl-bg:     rgba(255,255,255,0.12);
   --header-ctl-bg-hover: rgba(255,255,255,0.22);
   --header-ctl-border: rgba(255,255,255,0.25);
