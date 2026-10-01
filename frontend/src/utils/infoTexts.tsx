@@ -116,10 +116,11 @@ export const INFO_PROGRESS = (
   ]} />
 );
 
-export const INFO_ACHIEVEMENT_BARS = (
+/** actualRange = 1~기준월 점검열 범위(usePerfPeriod().actualRange) — 실제로 읽은 시트 기준이라 함수로 받음 */
+export const infoAchievementBars = (actualRange: string) => (
   <InfoTable rows={[
     ['출처',   '실적현황 엑셀'],
-    ['계산',   `${PERF_COL.actualRange} ÷ ${PERF_COL.planInitial}열(매출 계획) × 100`],
+    ['계산',   `${actualRange} ÷ ${PERF_COL.planInitial}열(매출 계획) × 100`],
     ['기준선', <>
       분자는 <b>N개월 누계</b>인데 분모는 <b>연간 계획</b>이라, 경과 시점(예: 8월 = 66.7%)까지는
       100%에 못 미치는 게 정상입니다. 트랙 위 세로선이 그 <b>정상 페이스 위치</b> —

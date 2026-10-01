@@ -1,13 +1,11 @@
 /**
- * 실적현황 데이터 기준 시점 — 실적 엑셀은 항상 **전월 결산/추정** 시트가 최신이므로
- * (예: 9월에는 "2026년 (8월 추정)") 현재 달 - 1 로 자동 계산한다. 매달 손댈 필요 없음.
+ * 실적현황 데이터 기준 시점 — 정답은 백엔드가 실제로 읽은 시트(performance.py `_resolve_perf_sheet`)이고,
+ * `/api/performance/summary`의 `base`로 내려온다 → 화면에선 `usePerfPeriod()`(hooks)로 읽을 것.
  *
- * `Date.getMonth()` 가 0-based라 그 값 자체가 곧 "전월"이 된다 (9월 → 8).
- * 1월이면 전년 12월로 넘어감.
- *
- * ※ 더 엄밀히는 백엔드가 실제로 읽은 시트명(performance.py `_resolve_perf_sheet`)이
- *   정답이다. 팀 마감이 밀려 시트가 두 달 전이면 이 계산과 어긋날 수 있음 —
- *   그때는 `/api/performance/summary` 에 기준월을 실어보내 여기서 읽도록 바꿀 것.
+ * 아래 상수는 그 응답이 오기 전·옛 서버용 **폴백** — "오늘 - 1개월"로 짐작한다.
+ * ⚠️ 이 짐작은 팀 마감보다 달력이 먼저 넘어가면 틀림: 10월 1일에 9월 시트가 아직 없는데도 9월을
+ *   실적으로 칠했음(2026-10-01). 그래서 화면은 base를 우선으로 씀.
+ * `Date.getMonth()` 가 0-based라 그 값 자체가 곧 "전월"이 된다 (9월 → 8). 1월이면 전년 12월.
  */
 const _now = new Date();
 const _prevMonth = _now.getMonth();  // 0-based == 전월(1~11), 1월이면 0
@@ -31,7 +29,10 @@ const colAdd = (col: string, n: number): string => {
 // chk_m01(1월 점검) 열 — performance.py _PERF_COL_MAPS의 "현재 활성 시트" 맵과 일치해야 함.
 // 컬럼맵이 또 밀리면(신규 컬럼 삽입 등) 여기 한 곳만 갱신하면 actualRange가 자동으로 따라감.
 const CHK_M01_COL = 'BI';   // 8월 시트(ver8.3_260901) 기준 — performance.py _PERF_COL_MAP_AUG 참고
-const _monthNum = parseInt(PERF_MONTH, 10);
+
+/** 1~기준월 점검열 범위 설명 — 예: 8 → "BI~BP (1~8월 점검열 합계)" */
+export const perfActualRange = (monthNum: number): string =>
+  `${CHK_M01_COL}~${colAdd(CHK_M01_COL, monthNum - 1)} (1~${monthNum}월 점검열 합계)`;
 
 /**
  * 실적현황 엑셀(performance.py `_PERF_COL_MAPS`의 현재 활성 시트, 2026-09-09 기준 8월 시트
@@ -40,9 +41,8 @@ const _monthNum = parseInt(PERF_MONTH, 10);
  */
 export const PERF_COL = {
   planInitial:    'V',
-  // 1월~기준월(PERF_MONTH) 점검열 합계 — CHK_M01_COL 기준으로 매달 자동 계산되므로
-  // 컬럼 배치가 그대로면(월만 넘어가면) 손댈 필요 없음
-  actualRange:    `${CHK_M01_COL}~${colAdd(CHK_M01_COL, _monthNum - 1)} (1~${PERF_MONTH} 점검열 합계)`,
+  // 1월~기준월 점검열 합계(폴백 기준월) — 화면에선 perfActualRange(기준월)로 실제 기준월에 맞춰 씀
+  actualRange:    perfActualRange(parseInt(PERF_MONTH, 10)),
   // chk_m01~chk_m12 전체 12개월 열 범위 — 월별 실적 추이 차트 ⓘ 설명용
   chkFullYearRange: `${CHK_M01_COL}~${colAdd(CHK_M01_COL, 11)}`,
   checkTotal:     'BH',

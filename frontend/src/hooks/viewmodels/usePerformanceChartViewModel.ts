@@ -9,12 +9,11 @@ import { makeBarOptions } from '@/utils/chartOptions';
 import { getChartTheme } from '@/utils/chartColors';
 import { sortProgress } from '@/utils/progressOrder';
 import { sortTeams, sortParts } from '@/utils/partOrder';
-import { PERF_MONTH, stripPartPrefix, toEokNum } from '@/utils';
+import { stripPartPrefix, toEokNum } from '@/utils';
+import { usePerfPeriod } from '@/hooks/usePerfPeriod';
 import type { ChartOptions } from 'chart.js';
 
-// PERF_MONTH("7월") 기준 — 이후 달은 아직 실적이 없는 추정 구간이므로 흐릿하게 표시
-const CURRENT_MONTH_NUM = parseInt(PERF_MONTH, 10);
-const isFutureMonth = (label: string) => parseInt(label, 10) > CURRENT_MONTH_NUM;
+// 월별 차트: 기준월(usePerfPeriod — 실제로 읽은 시트) 이후 달은 아직 실적이 없는 추정 구간이라 흐릿하게 표시
 
 /**
  * "월별 실적 추이" 확대 모달 표 한 행(억). 손익·누계는 반올림된 월 값이 아니라 원금액(천원)으로
@@ -116,6 +115,7 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
   const { data: summary, isLoading, isError } = usePerformanceSummary();
   // "전체 평균 원가 비율" 카드만 메인 필터와 무관하게 항상 전체 데이터 기준
   const { data: summaryAll } = usePerformanceSummaryAll();
+  const period = usePerfPeriod();
   const { data: options } = usePerformanceOptions();
   const showLabels = useUiStore(s => s.showChartLabels);
   const showRate   = useUiStore(s => s.showAchieveRate) && !!getStoredExtractKey();
@@ -215,7 +215,7 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
         labels:   monthly.map(m => m.month),
         revenues: monthly.map(m => toEokNum(m.revenue)),
         costs:    monthly.map(m => toEokNum(m.cost)),
-        isFuture: monthly.map(m => isFutureMonth(m.month)),
+        isFuture: monthly.map(m => parseInt(m.month, 10) > period.monthNum),
         rows: (() => {
           let cumRev = 0;
           let cumCost = 0;
@@ -305,7 +305,7 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
         expenditures: progressEntries.map(p => toEokNum(summary.by_progress[p].cost)),
       },
     };
-  }, [summary, summaryAll, isLoading, teams, teamParts]);
+  }, [summary, summaryAll, isLoading, teams, teamParts, period.monthNum]);
 
   // 원가 비율 카드에서 고른 파트(접두어 뗀 이름) → 원본 파트명. 드릴다운 모달이 메인 필터
   // 대신 이 카드의 선택 기준으로만 조회하도록 넘겨주기 위함(partOverride)

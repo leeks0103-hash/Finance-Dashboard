@@ -163,6 +163,8 @@ export interface PerfSummary {
   by_progress: Record<string, PerfProgressStats>;
   monthly:     PerfMonthly[];
   loaded_at?:  string | null;
+  /** 실제로 읽은 시트의 기준 연·월(예: "2026년 (8월 집계)" → { year: 2026, month: 8 }). 옛 서버엔 없음 */
+  base?:       { year: number; month: number } | null;
 }
 
 export interface PerfOptions {

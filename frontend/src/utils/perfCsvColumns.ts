@@ -1,5 +1,6 @@
 import type { PerfProject } from '@/types/performance.types';
 import { PERF_MONTH } from './perfPeriod';
+// ⚠️ PERF_MONTH는 "오늘 - 1개월" 폴백 — CSV 버튼(usePerfExport)을 되살리면 usePerfPeriod().month(실제 시트 기준월)로 바꿀 것
 
 /**
  * 실적현황 CSV 내보내기용 핵심 컬럼 — 재무 탭 CSV와 동일하게 전체 80여개 필드 중

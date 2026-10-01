@@ -9,7 +9,8 @@ import { usePerfStore } from '@/store/perf.store';
 import { useQuickSearchStore } from '@/store/quickSearch.store';
 import { useFinanceCodes } from '@/hooks/useFinanceCodes';
 import { countFinanceHistory } from '@/utils/projectCode';
-import { formatEok, PERF_MONTH, toEokNum } from '@/utils';
+import { formatEok, toEokNum } from '@/utils';
+import { usePerfPeriod, type PerfPeriod } from '@/hooks/usePerfPeriod';
 import { partRank } from '@/utils/partOrder';
 import { getProjects } from '@/api/finance.api';
 import { STALE_5MIN, GC_10MIN } from '@/hooks/queryClient';
@@ -100,6 +101,8 @@ export interface PerformanceViewModel {
   progressOptions:  string[];
   selectedProgress: string;
   setProgress:      (v: string) => void;
+  /** 기준 시점(실제로 읽은 시트) — "1~N월" 표기·표 머리글용 */
+  period:           PerfPeriod;
 }
 
 const SEARCH_FIELD_OPTIONS = [
@@ -133,6 +136,7 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
   };
 
   const { data: summary,    isLoading: sumLoading } = usePerformanceSummary();
+  const period = usePerfPeriod();
   const { data: paged,      isLoading: projLoading, isFetching } = usePerformanceData({
     page: pagination.page, pageSize: pagination.pageSize, search: search.debouncedValue, field: searchField,
   }, selectedProgress);
@@ -212,14 +216,14 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
         trendUp: profitRaw >= 0,
       },
       {
-        kind: 'single', id: 'junActual', label: `매출/원가 누계 실적 (1~${PERF_MONTH})`,
+        kind: 'single', id: 'junActual', label: `매출/원가 누계 실적 (1~${period.month})`,
         value: `${animJun.toFixed(1)}억원`,
         sub: `원가 ${formatEok(total.jun_cost_actual)}원`,
         accent: junActualRaw >= planRaw ? 'profit' : 'warn',
         trendUp: junActualRaw >= 0,
       },
     ];
-  }, [total, animJun, animProfit, animRate, planRaw, junActualRaw, profitRaw]);
+  }, [total, animJun, animProfit, animRate, planRaw, junActualRaw, profitRaw, period.month]);
 
   const byPart = useMemo((): PerfPartRow[] => {
     if (!summary?.by_part) return [];
@@ -264,6 +268,7 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
     isEmpty: !isLoading && !total,
     kpiCards, byPart,
     projects,
+    period,
     parts: options?.parts ?? [], selectedParts, togglePart, resetFilters: reset,
 
     serverPagination: {

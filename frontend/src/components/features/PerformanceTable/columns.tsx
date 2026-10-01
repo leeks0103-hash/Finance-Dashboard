@@ -2,7 +2,7 @@ import { createColumnHelper } from '@tanstack/react-table';
 import { HighlightText, CopyText } from '@/components/ui';
 import type { HideableColumn } from '@/components/ui/DataTable';
 import type { PerfProject } from '@/types/performance.types';
-import { formatEokOrRaw, formatPctOrRaw, formatPercent, formatNum, PERF_MONTH, stripPartPrefix } from '@/utils';
+import { formatEokOrRaw, formatPctOrRaw, formatPercent, formatNum, stripPartPrefix } from '@/utils';
 import { countFinanceHistory } from '@/utils/projectCode';
 import styles from './columns.module.css';
 
@@ -42,7 +42,11 @@ const financeCount = (code: string, codes?: Record<string, number>) => {
   return countFinanceHistory(code, codes, _fcCache);
 };
 
-export const perfColumns = [
+/**
+ * 프로젝트 상세 컬럼 — month는 기준월 라벨("8월"). 실제로 읽은 시트 기준(usePerfPeriod)이라 함수로 받음 —
+ * 예전엔 "오늘 - 1개월" 상수라 10월 1일이 되자 아직 없는 9월로 머리글이 바뀌었음(2026-10-01)
+ */
+const buildColumns = (PERF_MONTH: string) => [
   // ── 기본 표시 (사용자 지정 32개) — 프로젝트코드는 sticky 첫 컬럼이라 맨 앞 유지 ──
   h.accessor('project_code', {
     header: '프로젝트코드', size: 164,
@@ -157,12 +161,27 @@ const _visibleSet = new Set(PERF_VISIBLE);
 
 const _colId = (c: unknown) => (c as { accessorKey: string }).accessorKey;
 
-/** DataTable initialColumnVisibility 용 — 기본 숨김 컬럼을 false로 */
-export const PERF_DEFAULT_HIDDEN: Record<string, boolean> = Object.fromEntries(
-  perfColumns.map(_colId).filter(id => !_visibleSet.has(id)).map(id => [id, false]),
-);
+export interface PerfColumnSet {
+  columns:       ReturnType<typeof buildColumns>;
+  /** DataTable initialColumnVisibility 용 — 기본 숨김 컬럼을 false로 */
+  defaultHidden: Record<string, boolean>;
+  /** 숨김/표시 토글 가능한 컬럼 — 컬럼 정의에서 자동 파생(프로젝트코드는 항상 표시) */
+  hideable:      HideableColumn[];
+}
 
-/** 숨김/표시 토글 가능한 컬럼 — perfColumns에서 자동 파생(프로젝트코드는 항상 표시) */
-export const PERF_HIDEABLE_COLS: HideableColumn[] = perfColumns
-  .map(c => ({ id: _colId(c), label: String((c as { header?: unknown }).header ?? '') }))
-  .filter(c => c.id !== 'project_code');
+// 기준월별로 한 번만 만듦 — 같은 달이면 같은 참조라 표가 컬럼을 다시 계산하지 않음
+const _cache = new Map<string, PerfColumnSet>();
+export const perfColumnSet = (month: string): PerfColumnSet => {
+  const hit = _cache.get(month);
+  if (hit) return hit;
+  const columns = buildColumns(month);
+  const set: PerfColumnSet = {
+    columns,
+    defaultHidden: Object.fromEntries(columns.map(_colId).filter(id => !_visibleSet.has(id)).map(id => [id, false])),
+    hideable: columns
+      .map(c => ({ id: _colId(c), label: String((c as { header?: unknown }).header ?? '') }))
+      .filter(c => c.id !== 'project_code'),
+  };
+  _cache.set(month, set);
+  return set;
+};

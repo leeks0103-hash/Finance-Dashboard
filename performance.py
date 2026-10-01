@@ -32,6 +32,7 @@ _perf_cached_df: pd.DataFrame = pd.DataFrame()
 _perf_last_loaded = None
 _perf_cached_mtime = None
 _perf_current_month = 0   # 자동 선택된 시트의 기준월 (전월대비 계산에 사용)
+_perf_current_year = 0    # 자동 선택된 시트의 연도 — 화면의 "1~N월" 표기 기준(summary base로 내려줌)
 _perf_cache_lock = threading.Lock()
 
 # ──────────────────────────────────────────────────────────────
@@ -242,7 +243,7 @@ def _resolve_perf_sheet(sheet_names):
 
 def load_perf_excel():
     """_perf_cache_lock 보유 상태에서만 호출."""
-    global _perf_cached_df, _perf_last_loaded, _perf_cached_mtime, _perf_current_month, PERF_EXCEL_PATH
+    global _perf_cached_df, _perf_last_loaded, _perf_cached_mtime, _perf_current_month, _perf_current_year, PERF_EXCEL_PATH
     # 새 ver 파일을 data/ 에 넣고 reload 만 해도 잡히도록 매 로드마다 재탐색
     PERF_EXCEL_PATH = resolve_perf_excel()
     if not os.path.exists(PERF_EXCEL_PATH):
@@ -344,6 +345,7 @@ def load_perf_excel():
     sheet_month_match = _PERF_SHEET_RE.match(resolved_sheet)
     current_month_num = int(sheet_month_match.group(2))
     _perf_current_month = current_month_num
+    _perf_current_year = int(sheet_month_match.group(1))
     elapsed_month_cols = [f"chk_m{m:02d}" for m in range(1, current_month_num + 1)]
     df["jun_actual"] = df[elapsed_month_cols].sum(axis=1)
     logger.info(
@@ -661,7 +663,12 @@ def api_perf_summary():
         total["mom_revenue"] = curr["revenue"] - prev["revenue"]
         total["mom_gross"]   = (curr["revenue"] - curr["cost"]) - (prev["revenue"] - prev["cost"])
 
-    return jsonify({"total": total, "by_part": by_part, "by_progress": by_progress, "monthly": monthly, "loaded_at": _perf_last_loaded})
+    # base — 실제로 읽은 시트의 기준 연·월(예: "2026년 (8월 집계)" → 2026, 8). 화면의 "1~N월 실적"·월별 차트의
+    # 실적/추정 경계를 이걸로 맞춤. 예전엔 프론트가 "오늘 - 1개월"로 짐작해서, 10월 1일이 되자 9월 시트가 아직 없는데도
+    # 9월을 실적으로 칠했음(2026-10-01)
+    base = {"year": _perf_current_year, "month": _perf_current_month} if _perf_current_month else None
+    return jsonify({"total": total, "by_part": by_part, "by_progress": by_progress, "monthly": monthly,
+                    "loaded_at": _perf_last_loaded, "base": base})
 
 
 @perf_bp.route("/api/performance/insights")

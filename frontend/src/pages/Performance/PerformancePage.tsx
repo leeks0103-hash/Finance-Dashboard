@@ -14,16 +14,15 @@ import PerformanceChartSection from '@/components/features/PerformanceChartSecti
 import PerformanceKpiSection from '@/components/features/PerformanceKpiSection/PerformanceKpiSection';
 import PerformanceInsightSection from '@/components/features/PerformanceInsightSection';
 import PartAchievementBars from '@/components/features/PartAchievementBars/PartAchievementBars';
-import { perfColumns, PERF_HIDEABLE_COLS, PERF_DEFAULT_HIDDEN } from '@/components/features/PerformanceTable/columns';
+import { perfColumnSet } from '@/components/features/PerformanceTable/columns';
 import FinanceCrossCheckPanel from '@/components/features/PerformanceTable/FinanceCrossCheckPanel';
 // FinanceSearchResults·INFO_FINANCE_SEARCH — 재무 검색 결과 섹션 비활성(아래 주석), 복구 시 함께 해제
 // import FinanceSearchResults from '@/components/features/PerformanceTable/FinanceSearchResults';
 import { useUiStore } from '@/store';
 import type { PerfProject } from '@/types/performance.types';
 // PERF_YEAR·stripPartPrefix·INFO_PART_TABLE — 파트별 실적 표 비활성으로 미사용, 복구 시 함께 해제
-import { PERF_MONTH } from '@/utils';
 import {
-  INFO_ACHIEVEMENT_BARS,
+  infoAchievementBars,
   INFO_INSIGHT,
   INFO_PROJECT_TABLE,
   // INFO_FINANCE_SEARCH,
@@ -75,6 +74,8 @@ import styles from './PerformancePage.module.css';
 
 const PerformancePage = () => {
   const vm = usePerformanceViewModel();
+  // 프로젝트 상세 컬럼 — 머리글의 "N월 실적"이 실제로 읽은 시트의 기준월을 따름
+  const perfCols = perfColumnSet(vm.period.month);
   const rawValues = useUiStore(s => s.showRawValues);
   // 재무 이력 보유 코드↔건수 — 프로젝트코드 셀의 배지용 (한 번 받아 캐시)
   const financeCodes = useFinanceCodes();
@@ -99,8 +100,8 @@ const PerformancePage = () => {
         <FadeInSection delay={150} tourId="perf-achievement">
           <PartAchievementBars
             rows={vm.byPart}
-            month={PERF_MONTH}
-            info={INFO_ACHIEVEMENT_BARS}
+            month={vm.period.month}
+            info={infoAchievementBars(vm.period.actualRange)}
             onPartClick={part => setAchieveBreakdown({ chart: 'partAchievement', series: 0, key: part })}
           />
         </FadeInSection>
@@ -149,7 +150,7 @@ const PerformancePage = () => {
       <FadeInSection delay={300} tourId="perf-projects">
           <DataTable<PerfProject>
             data={vm.projects}
-            columns={perfColumns as never}
+            columns={perfCols.columns as never}
             getRowId={(row) => String(row._row_num)}
             title="프로젝트 상세"
             info={INFO_PROJECT_TABLE}
@@ -161,8 +162,8 @@ const PerformancePage = () => {
                 : row.operating_profit < 0 ? 'loss'
                 : row.profit_rate < 5 ? 'warn' : ''
             }
-            hideableColumns={PERF_HIDEABLE_COLS}
-            initialColumnVisibility={PERF_DEFAULT_HIDDEN}
+            hideableColumns={perfCols.hideable}
+            initialColumnVisibility={perfCols.defaultHidden}
             // 병합 묶음·NO. 둘 다 백엔드 _group_no 기준 (프론트 재계산 없음)
             mergeRowsByKey={(row) => String(row._group_no)}
             getRowNumber={(row) => row._group_no}
