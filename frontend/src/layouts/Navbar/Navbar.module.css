@@ -2,8 +2,8 @@
 
 /* 바깥 래퍼 — 배경/보더/그림자는 화면 전체 폭(full-bleed) + sticky */
 .header {
-  background: var(--nav-bg);
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  background: var(--header-bg);
+  border-bottom: 1px solid var(--header-border);
   height: var(--navbar-height);
   position: sticky;
   top: 0;
@@ -14,7 +14,7 @@
 
 /* 전역 ::selection(연한 남색 배경 + 짙은 남색 글자)이 다크 헤더 위에선 안 보여서
    헤더 안에서는 흰 배경 + 남색 글자로 덮어쓴다 */
-.header ::selection {
+:global([data-theme="dark"]) .header ::selection {
   background: rgba(255,255,255,0.85);
   color: var(--nav-bg);
 }
@@ -52,7 +52,17 @@
   cursor: pointer;
 }
 
-/* Hyundai NGV 락업 SVG — HYUNDAI 워드마크 + NGV 세로 2단(currentColor). 다크 바 위 흰색 */
+/* 라이트 — 컬러 CI(배경 투명 PNG). 흰 네비바 위 */
+.logoImg {
+  height: 34px;
+  width: auto;
+  display: block;
+  flex-shrink: 0;
+}
+:global([data-theme="dark"]) .logoImg { display: none; }
+:global([data-theme="light"]) .logo { display: none; }
+
+/* 다크 — Hyundai NGV 락업 SVG — HYUNDAI 워드마크 + NGV 세로 2단(currentColor). 다크 바 위 흰색 */
 .logo {
   height: 32px;
   width: auto;
@@ -77,9 +87,9 @@
 .brand {
   margin: 0;
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 400;   /* 굵은 제목이 부담스럽다는 의견(2026-10-01) — 기본 굵기 */
   line-height: 1;
-  color: #FF9E1B;
+  color: var(--header-title);
   letter-spacing: -0.01em;
   white-space: nowrap;
 }
@@ -243,10 +253,10 @@
 .settings { position: relative; }
 
 .settingsBtn {
-  background: rgba(255,255,255,0.12);
-  border: 1px solid rgba(255,255,255,0.25);
+  background: var(--header-ctl-bg);
+  border: 1px solid var(--header-ctl-border);
   border-radius: var(--radius-btn);
-  color: rgba(255,255,255,0.85);
+  color: var(--header-ctl-fg);
   cursor: pointer;
   font-size: 0.95rem;
   width: 30px;
@@ -261,9 +271,9 @@
   line-height: 1;
 }
 .settingsBtn:hover {
-  background: rgba(255,255,255,0.22);
-  border-color: rgba(255,255,255,0.4);
-  color: #fff;
+  background: var(--header-ctl-bg-hover);
+  border-color: var(--header-ctl-border);
+  color: var(--header-ctl-fg);
 }
 
 .dropdown {
@@ -370,9 +380,9 @@
   gap: 6px;
   padding: 4px 10px;
   border-radius: var(--radius-btn);
-  background: rgba(255,255,255,0.12);
-  border: 1px solid rgba(255,255,255,0.25);
-  color: rgba(255,255,255,0.9);
+  background: var(--header-ctl-bg);
+  border: 1px solid var(--header-ctl-border);
+  color: var(--header-ctl-fg);
   font-size: 0.72rem;
   font-weight: 600;
   cursor: pointer;
@@ -381,7 +391,7 @@
   animation: dropIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 .extractRunningBadge:hover {
-  background: rgba(255,255,255,0.22);
+  background: var(--header-ctl-bg-hover);
 }
 
 .extractSpinner {

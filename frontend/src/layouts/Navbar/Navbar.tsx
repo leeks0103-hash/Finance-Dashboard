@@ -9,6 +9,7 @@ import PerformanceActionBar from '@/components/features/PerformanceActionBar';
 import FinanceDataModal from '@/components/features/FinanceDataModal';
 import { useProductTour } from '@/components/features/ProductTour';
 import NgvLogo from './NgvLogo';
+import ngvCiUrl from '@/assets/hyundai-ngv-ci.png';
 import AdminModal from './AdminModal';
 import { useTheme } from '@/hooks';
 import { useDataHealth } from '@/hooks/useDataHealth';
@@ -109,6 +110,8 @@ const Navbar = () => {
             aria-label="경영현황 통합 대시보드 — 첫 화면으로"
             onClick={() => window.scrollTo({ top: 0 })}
           >
+            {/* 라이트: 컬러 CI(흰 네비바) / 다크: 흰 선 SVG — CSS로 테마별 하나만 보임 */}
+            <img src={ngvCiUrl} alt="Hyundai NGV" className={styles.logoImg} />
             <NgvLogo className={styles.logo} />
             <h1 className={styles.brand}>경영현황 통합 대시보드</h1>
           </Link>

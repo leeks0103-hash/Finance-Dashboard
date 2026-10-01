@@ -14,7 +14,7 @@
   font-size: 14px;
   font-weight: 500;
   letter-spacing: 0.03em;
-  color: #E4DCD3;   /* Hyundai Sand */
+  color: var(--header-fg);   /* 라이트: Hyundai Blue 60% / 다크: Hyundai Sand */
   background: none;
   border: none;
   cursor: pointer;
@@ -23,14 +23,14 @@
 }
 
 .tab:hover {
-  color: #fff;
+  color: var(--header-fg-strong);
 }
 
 /* 선택된 탭 — 제목(Navbar .brand)과 같은 주황 #FF9E1B 글자로만 표시. 예전 흰 글자 + 파란 밑줄(--brand-mid)은
    남색 바 위에서 밑줄이 거의 안 보여 어느 탭인지 덜 드러났음. 밑줄 막대는 뺌(2026-09-30 요청) */
 .tab.active,
 .tab.active:hover {
-  color: #FF9E1B;
+  color: var(--header-fg-strong);   /* 라이트: Hyundai Blue / 다크: 주황 */
   font-weight: 600;
 }
 

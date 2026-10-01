@@ -62,8 +62,10 @@ const PerformanceFilterBar = () => {
 
   return (
     <div className={styles.panel}>
-      <div className={`${styles.group} ${styles.chipsOnly}`}>
+      {/* 라벨은 트랙 밖, 트랙 안엔 칩만 — 라벨이 칩과 섞여 구분이 안 됐음(2026-10-01) */}
+      <div className={`${styles.field} ${styles.chipsOnly}`}>
         <span className={styles.label}>팀</span>
+        <div className={styles.group}>
         <div className={styles.chips}>
           {ready && <>
             <FilterChip label="전체" checked={!selectedTeam} onChange={() => handleTeamChange('')} />
@@ -72,6 +74,7 @@ const PerformanceFilterBar = () => {
                 onChange={() => handleTeamChange(team)} />
             ))}
           </>}
+        </div>
         </div>
       </div>
       <div className={styles.dropdownOnly}>
@@ -89,8 +92,10 @@ const PerformanceFilterBar = () => {
           <span className={styles.teamArrow}>▾</span>
         </div>
       </div>
-      <div className={`${styles.group} ${styles.chipsOnly}`}>
+      {/* 라벨은 트랙 밖, 트랙 안엔 칩만 — 라벨이 칩과 섞여 구분이 안 됐음(2026-10-01) */}
+      <div className={`${styles.field} ${styles.chipsOnly}`}>
         <span className={styles.label}>파트</span>
+        <div className={styles.group}>
         <div className={styles.chips}>
           {ready && <>
             <FilterChip label="전체" checked={allPartsSelected} onChange={toggleAllParts} />
@@ -99,6 +104,7 @@ const PerformanceFilterBar = () => {
                 onChange={() => togglePart(p)} />
             ))}
           </>}
+        </div>
         </div>
       </div>
       <div className={styles.dropdownOnly}>

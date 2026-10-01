@@ -7,6 +7,16 @@
 :root,
 [data-theme="light"] {
   --nav-bg: #002C5F;   /* Hyundai Blue */
+  /* 네비바 — 라이트는 흰 바탕 + 글자는 Hyundai Blue(예전 바 색), 버튼 색은 그대로(2026-10-01) */
+  --header-bg:         #FFFFFF;
+  --header-border:     #D9CEC1;
+  --header-title:      #002C5F;
+  --header-fg:         rgba(0,44,95,0.6);   /* 안 고른 탭 */
+  --header-fg-strong:  #002C5F;             /* 탭 호버·선택 */
+  --header-ctl-bg:     rgba(0,44,95,0.06);
+  --header-ctl-bg-hover: rgba(0,44,95,0.12);
+  --header-ctl-border: rgba(0,44,95,0.22);
+  --header-ctl-fg:     #002C5F;
 
   --brand:        #002C5F;   /* Hyundai Blue PMS 654C */
   --brand-mid:    #001D3F;   /* Blue 파생 — 어둡게 (호버) */
@@ -60,6 +70,16 @@
 /* ─── Dark mode — Hyundai Blue 파생 (bg #001322 / text Sand / accent Active·Sky Blue) ─── */
 [data-theme="dark"] {
   --nav-bg: #00182F;   /* Blue 딥 */
+  /* 다크는 예전 그대로 — 남색 네비바 + 흰 선 로고 + 주황 제목·선택 탭 */
+  --header-bg:         #00182F;
+  --header-border:     rgba(255,255,255,0.06);
+  --header-title:      #FF9E1B;
+  --header-fg:         #E4DCD3;
+  --header-fg-strong:  #FF9E1B;
+  --header-ctl-bg:     rgba(255,255,255,0.12);
+  --header-ctl-bg-hover: rgba(255,255,255,0.22);
+  --header-ctl-border: rgba(255,255,255,0.25);
+  --header-ctl-fg:     rgba(255,255,255,0.85);
 
   --brand:        #00AAD2;   /* Active Blue — 다크 배경 가독성 */
   --brand-mid:    #4DB8D8;   /* Active Blue tint — 텍스트 강조 */
