@@ -14,7 +14,7 @@
 
 /* 전역 ::selection(연한 남색 배경 + 짙은 남색 글자)이 다크 헤더 위에선 안 보여서
    헤더 안에서는 흰 배경 + 남색 글자로 덮어쓴다 */
-:global([data-theme="dark"]) .header ::selection {
+.header ::selection {
   background: rgba(255,255,255,0.85);
   color: var(--nav-bg);
 }
@@ -52,19 +52,19 @@
   cursor: pointer;
 }
 
-/* Hyundai NGV CI SVG — HYUNDAI만 currentColor(라이트 CI 남색 / 다크 흰색), 원은 주황·글자는 흰색 고정(NgvLogo.tsx) */
+/* Hyundai NGV CI SVG — HYUNDAI만 currentColor, 원은 주황·글자는 흰색 고정(NgvLogo.tsx).
+   라이트·다크 모두 남색 바라 HYUNDAI는 흰색(다크용 로고를 라이트에도, 2026-10-01 요청) */
 .logo {
   height: 34px;
   width: auto;
   display: block;
   flex-shrink: 0;
-  color: #014282;   /* CI 원본 HYUNDAI 남색 */
+  color: #fff;
   /* sticky 헤더가 만드는 합성 레이어 안에서 SVG가 저해상도 래스터로 캐시돼 흐릿하게 보이고
      (다른 요소 hover 등으로) 페인트가 무효화될 때만 또렷해지던 문제 —
      자체 레이어로 승격해 항상 device 해상도로 렌더 */
   transform: translateZ(0);
 }
-:global([data-theme="dark"]) .logo { color: #fff; }
 
 /* 중앙 — 탭 네비게이션 */
 .center {

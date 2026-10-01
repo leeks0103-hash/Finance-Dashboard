@@ -227,6 +227,21 @@ def is_drm_file(path: str) -> bool:
         return False
 
 
+def local_copy_if_drm(path: str) -> "str | None":
+    """DRM(SCDSA) 파일이면 로컬 임시 폴더로 복사해 그 경로를 돌려줌(아니면 None) — 추출 스크립트용.
+    NAS 원본을 PowerPoint로 직접 열면 DRM이 원본을 제자리 재암호화했으므로(2026-09-23),
+    원본은 읽기(복사)만 하고 PowerPoint는 로컬 사본만 연다. 사본 삭제는 호출하는 쪽에서.
+    누군가 원본을 고쳤을 수도 있어 '실패 파일 다시 추출'에서 DRM 파일도 시도는 해본다(2026-10-01 요청)"""
+    if not is_drm_file(path):
+        return None
+    import shutil
+    import tempfile
+    fd, tmp = tempfile.mkstemp(suffix=os.path.splitext(path)[1] or ".pptx", prefix="drm_copy_")
+    os.close(fd)
+    shutil.copyfile(path, tmp)  # 내용만 복사 — 원본 메타데이터는 건드리지 않음
+    return tmp
+
+
 def open_source_file(path: "str | None", check_only: bool = False) -> "tuple[dict, int]":
     """원본 파일을 서버 PC에서 연다 — (응답 dict, HTTP 상태)를 돌려주고 jsonify는 라우트에서.
     한 대의 PC(호스트)를 여러 사람이 공유해서 보는 구조라, 누군가 이미 열어둔 파일은 막는다

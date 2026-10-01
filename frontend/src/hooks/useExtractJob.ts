@@ -15,7 +15,8 @@ import type { ExtractTarget, ExtractMode } from '@/types/extract.types';
  */
 export const useExtractJob = () => {
   const qc = useQueryClient();
-  const wasRunningRef = useRef(false);
+  // 마지막으로 본 '추출 완료 시각' — undefined = 아직 상태를 한 번도 못 받음
+  const lastFinishedRef = useRef<string | null | undefined>(undefined);
   const [isAuthed, setIsAuthed] = useState(() => !!getStoredExtractKey());
   const [authedName, setAuthedName] = useState(() => getStoredExtractName());
 
@@ -26,24 +27,27 @@ export const useExtractJob = () => {
   const statusQuery = useQuery({
     queryKey: ['extract-status'],
     queryFn:  getExtractStatus,
-    enabled:  isAuthed,
     staleTime: 0,
     // 계속 폴링해야 "책임님이 실행 중이면 나는 disabled" 가 실시간으로 반영됨 — running일 때만
     // 폴링하면, 남이 막 시작한 걸 이 브라우저가 마지막으로 확인한 뒤로는 영영 모르게 됨
-    // (2026-09-23, "권한 있는 사람의 경우 누군가 추출중이면 disabled처리해줘"). 인증된 사람만
-    // 도는 폴링이라(2명뿐) 3초 주기로 항상 돌려도 부담 없음
-    refetchInterval: 3000,
+    // (2026-09-23, "권한 있는 사람의 경우 누군가 추출중이면 disabled처리해줘"). 관리자(2명)는 3초.
+    // 일반 사용자도 30초마다 확인 — 안 하면 남이 추출을 끝내도 5분 캐시가 끝날 때까지 옛 데이터가 보였음(2026-10-01)
+    refetchInterval: isAuthed ? 3000 : 30_000,
   });
 
   const status = statusQuery.data;
 
-  // running true → false로 바뀌는 순간 = 방금 끝남 — 성공이면 전체 캐시 무효화해서
-  // 새로 뽑힌 재무/KPI 데이터가 화면에 바로 반영되게 함 (useExport.ts reloadMutation과 동일 원칙)
+  // 완료 시각(finished_at)이 바뀐 순간 = 방금 끝남 — 성공이면 전체 캐시 무효화해서
+  // 새로 뽑힌 재무/KPI 데이터가 화면에 바로 반영되게 함 (useExport.ts reloadMutation과 동일 원칙).
+  // 예전엔 running true → false 전환으로 판단해서, 폴링 사이에 시작·종료된 짧은 작업(실패 파일 재추출 등)이나
+  // 폴링을 안 하던 일반 사용자 화면은 새로고침 전까지 옛 데이터였음(2026-10-01). 첫 응답은 기준값으로만 기억
   useEffect(() => {
-    if (wasRunningRef.current && status && !status.running && status.ok) {
+    if (!status) return;
+    const prev = lastFinishedRef.current;
+    lastFinishedRef.current = status.finished_at;
+    if (prev !== undefined && status.finished_at !== prev && !status.running && status.ok) {
       qc.invalidateQueries();
     }
-    wasRunningRef.current = !!status?.running;
   }, [status, qc]);
 
   const authMutation = useMutation({

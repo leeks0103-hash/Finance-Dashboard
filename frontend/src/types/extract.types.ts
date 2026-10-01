@@ -1,7 +1,7 @@
 export type ExtractTarget = 'finance' | 'kpi';
 
 /** incremental=증분(기본, 바뀐 파일만) · force=초기화 없이 전체 재처리 · reset=출력 초기화 후 전체 재구축(파괴적) */
-/** failed = 추출 현황에서 '실패'인 파일만 다시(DRM 제외, 2026-10-01) */
+/** failed = 추출 현황에서 '실패'인 파일만 다시(DRM 파일은 로컬 사본으로 시도, 2026-10-01) */
 export type ExtractMode = 'incremental' | 'force' | 'reset' | 'failed';
 
 export interface ExtractStatus {

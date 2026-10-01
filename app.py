@@ -347,11 +347,11 @@ def _run_extract_script(name: str, mode: str, only_list: "str | None" = None) ->
 
 def _write_failed_list(target: str) -> "tuple[str | None, str]":
     """mode=failed — 추출 현황에서 '실패'인 파일 경로를 임시 목록 파일로. (목록 경로 또는 None, 안내 문구)
-    DRM 파일은 extract_coverage.failed_paths가 이미 뺌"""
+    DRM 파일도 포함 — 추출 스크립트가 원본 대신 로컬 사본을 열어 시도"""
     import tempfile
     from extract_coverage import failed_paths
-    paths_, skipped = failed_paths(target)
-    note = f"DRM 파일 {len(skipped)}개는 제외(열면 원본이 재암호화될 수 있음): {', '.join(skipped)}" if skipped else ""
+    paths_, drm = failed_paths(target)
+    note = f"DRM 파일 {len(drm)}개는 로컬 사본으로 시도: {', '.join(drm)}" if drm else ""
     if not paths_:
         return None, note
     fd, list_path = tempfile.mkstemp(suffix=".txt", prefix=f"extract_failed_{target}_")

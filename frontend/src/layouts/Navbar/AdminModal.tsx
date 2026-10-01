@@ -94,14 +94,14 @@ const AdminModal = ({ extractJob, onClose }: Props) => {
     );
     if (ok) extractJob.cancel();
   };
-  // 추출 현황 카드의 "실패 N개 다시 추출" — 실패한 파일만 다시 읽음(DRM 파일은 서버가 뺌, 2026-10-01 요청)
+  // 추출 현황 카드의 "실패 N개 다시 추출" — 실패한 파일만 다시 읽음(DRM 파일도 시도 — 원본 대신 로컬 사본을 엶)
   const handleRetryFailed = async (target: ExtractTarget) => {
     if (extractLocked) return;
     const ok = await confirmDialog(
       `${EXTRACT_TARGET_LABEL[target]} 추출에서 실패한 파일만 다시 추출합니다.
 
 `
-      + '다른 파일과 기존 데이터는 그대로 둡니다. DRM(문서보안) 암호화 파일은 열면 원본이 재암호화될 수 있어 제외합니다.',
+      + '다른 파일과 기존 데이터는 그대로 둡니다. DRM(문서보안) 암호화 파일도 시도하며, 원본은 건드리지 않고 복사본으로 엽니다.',
       { title: '실패 파일 다시 추출', confirmText: '다시 추출', cancelText: '취소' },
     );
     if (ok) extractJob.run({ targets: [target], mode: 'failed' });

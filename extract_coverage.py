@@ -216,23 +216,23 @@ def find_path(filename: str) -> str | None:
 
 
 def failed_paths(key: str) -> tuple[list[str], list[str]]:
-    """'실패 파일만 다시 추출'용 — (다시 추출할 전체경로, DRM이라 뺀 파일명).
+    """'실패 파일만 다시 추출'용 — (다시 추출할 전체경로, 그중 DRM 파일명).
     상태 판정은 추출 현황과 같은 기준(처리이력 최신 1건이 실패). 매번 새로 셈(30초 캐시 무시)
-    DRM(SCDSA) 파일은 제외 — 이 PC의 PowerPoint로 여는 순간 NAS 원본이 재암호화됐던 전례(2026-09-23)"""
+    DRM(SCDSA) 파일도 포함 — 누가 원본을 고쳤을 수 있어 시도는 해봄(2026-10-01 요청).
+    추출 스크립트가 NAS 원본 대신 로컬 사본을 열어(shared.local_copy_if_drm) 원본 재암호화는 막음"""
     data = coverage(force=True)
     if not data.get("ok") or key not in data:
         return [], []
     with _cache_lock:
         lookup = dict(_file_paths)
-    targets, skipped = [], []
+    targets, drm = [], []
     for it in data[key]["items"]:
         if it["status"] != "failed":
             continue
         path = lookup.get(it["file"])
         if not path:
             continue
+        targets.append(path)
         if is_drm_file(path):
-            skipped.append(it["file"])
-        else:
-            targets.append(path)
-    return targets, skipped
+            drm.append(it["file"])
+    return targets, drm

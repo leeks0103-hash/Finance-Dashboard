@@ -49,9 +49,6 @@ const ItemList = ({ items }: { items: CoverageItem[] }) => (
   </ul>
 );
 
-/** DRM 실패는 다시 돌려도 안 되고, 열면 NAS 원본이 재암호화될 수 있어 재추출 대상에서 뺌(서버도 똑같이 뺌) */
-const isDrmItem = (it: CoverageItem) => it.reason.includes('DRM');
-
 interface SourceCardProps {
   src: SourceCoverage;
   /** 실패 파일만 다시 추출 — 없으면 버튼 안 그림 */
@@ -61,7 +58,8 @@ interface SourceCardProps {
 
 const SourceCard = ({ src, onRetryFailed, retryDisabled }: SourceCardProps) => {
   const by = (s: CoverageStatus) => src.items.filter(it => it.status === s);
-  const retriable = by('failed').filter(it => !isDrmItem(it)).length;
+  // DRM 파일도 포함 — 누가 원본을 고쳤을 수 있어 시도는 해봄(추출 스크립트가 원본 대신 로컬 사본을 엶)
+  const retriable = by('failed').length;
   const c = src.counts;
   const total = src.folder_files || 1;
   const pct = Math.round((c.extracted / total) * 1000) / 10;
@@ -75,7 +73,7 @@ const SourceCard = ({ src, onRetryFailed, retryDisabled }: SourceCardProps) => {
         </span>
         {onRetryFailed && retriable > 0 && (
           <Button variant="primary" size="sm" className={styles.retryBtn} disabled={retryDisabled} onClick={onRetryFailed}
-            title="실패한 파일만 다시 추출합니다(DRM 암호화 파일은 제외)">
+            title="실패한 파일만 다시 추출합니다">
             실패 {retriable}개 다시 추출
           </Button>
         )}

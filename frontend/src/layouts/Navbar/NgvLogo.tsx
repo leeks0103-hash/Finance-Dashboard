@@ -2,7 +2,7 @@
  * Hyundai NGV CI — 원본 CI(HYUNDAI 워드마크 위 + 주황 원 3개 안 흰 N·G·V)와 같은 비율로 다시 짠 SVG.
  * 비율은 원본 이미지(515×227)에서 실측: 원 지름 ≈ 글자 높이 2배, 원 간격 = 지름 × 0.9(살짝 겹침),
  * HYUNDAI 폭 ≈ 원 지름 2.1배·왼쪽 끝은 첫 원보다 지름 절반만큼 앞, 원 위쪽과 워드마크 사이 지름 × 0.17.
- * HYUNDAI만 fill="currentColor"(상위 CSS color — 라이트 남색 / 다크 흰색), 원은 CI 주황, 글자는 흰색 고정.
+ * HYUNDAI만 fill="currentColor"(상위 CSS color — 남색 네비바 위 흰색), 원은 CI 주황, 글자는 흰색 고정.
  */
 const CI_ORANGE = '#FA9D1C';
 

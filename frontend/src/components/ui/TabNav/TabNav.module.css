@@ -14,7 +14,7 @@
   font-size: 14px;
   font-weight: 500;
   letter-spacing: 0.03em;
-  color: var(--header-fg);   /* 라이트: Hyundai Blue 60% / 다크: Hyundai Sand */
+  color: var(--header-fg);   /* Hyundai Sand */
   background: none;
   border: none;
   cursor: pointer;
@@ -30,7 +30,7 @@
    남색 바 위에서 밑줄이 거의 안 보여 어느 탭인지 덜 드러났음. 밑줄 막대는 뺌(2026-09-30 요청) */
 .tab.active,
 .tab.active:hover {
-  color: var(--header-fg-strong);   /* 라이트: Hyundai Blue / 다크: 주황 */
+  color: var(--header-fg-strong);   /* 주황 #FF9E1B */
   font-weight: 600;
 }
 

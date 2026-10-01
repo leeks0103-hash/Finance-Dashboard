@@ -13,7 +13,7 @@ from openpyxl import Workbook, load_workbook
 import sys as _sys_boot, os as _os_boot
 _sys_boot.path.insert(0, _os_boot.path.dirname(_os_boot.path.dirname(_os_boot.path.abspath(__file__))))
 import paths as _paths
-from shared import strip_stage_suffix as _shared_strip_stage_suffix
+from shared import strip_stage_suffix as _shared_strip_stage_suffix, local_copy_if_drm
 
 load_dotenv()  # .env 파일이 있으면 환경변수로 로드 (없으면 무시)
 
@@ -821,7 +821,7 @@ def is_aip_encrypted(ppt_path):
         return False
 
 
-def save_as_unprotected(ppt_app, ppt_path):
+def save_as_unprotected(ppt_app, ppt_path, record_path=None):
     """AIP 암호화 파일을 win32com으로 열어 보호 없는 임시 .pptx로 저장.
     SaveAs 실패 시 슬라이드 복붙 방식으로 fallback.
     임시 파일은 로컬 temp 폴더에 생성. 실패 시 None 반환."""
@@ -854,7 +854,7 @@ def save_as_unprotected(ppt_app, ppt_path):
             log(f"  [AIP] 복붙 방식도 실패: {e2}")
             # 실패 목록 기록 — --retry 로 재처리 가능
             with open(AIP_FAILED_FILE, "a", encoding="utf-8") as f:
-                f.write(ppt_path + "\n")
+                f.write((record_path or ppt_path) + "\n")
             log(f"  [AIP] 실패 목록에 기록됨: {AIP_FAILED_FILE}")
             return None
         finally:
@@ -864,7 +864,7 @@ def save_as_unprotected(ppt_app, ppt_path):
     except Exception as e:
         log(f"  [AIP] 파일 열기 실패: {e}")
         with open(AIP_FAILED_FILE, "a", encoding="utf-8") as f:
-            f.write(ppt_path + "\n")
+            f.write((record_path or ppt_path) + "\n")
         return None
     finally:
         if prs is not None:
@@ -894,18 +894,25 @@ def extract_financial_rows_from_ppt(ppt_app, ppt_path):
     rows_all = []
     presentation = None
     tmp_path = None
+    drm_copy = None
 
     try:
+        # DRM 파일은 NAS 원본을 직접 열지 않고 로컬 사본을 연다(원본 재암호화 방지) — 이하 처리는 사본 기준
+        drm_copy = local_copy_if_drm(ppt_path)
+        source_path = drm_copy or ppt_path
+        if drm_copy:
+            log(f"  [DRM] 보안 문서 감지 -> 로컬 사본으로 열기: {os.path.basename(ppt_path)}")
+
         # AIP 암호화 파일은 보호 없는 임시 파일로 변환 후 처리
-        if is_aip_encrypted(ppt_path):
+        if is_aip_encrypted(source_path):
             log(f"  [AIP] 암호화 감지 -> 임시 파일로 변환: {os.path.basename(ppt_path)}")
-            tmp_path = save_as_unprotected(ppt_app, ppt_path)
+            tmp_path = save_as_unprotected(ppt_app, source_path, record_path=ppt_path)
             if tmp_path is None:
                 log(f"  [AIP] 변환 실패 -> 건너뜀: {ppt_path}")
                 raise AipDecryptError(f"AIP 복호화 실패: {os.path.basename(ppt_path)}")
             actual_path = tmp_path
         else:
-            actual_path = ppt_path
+            actual_path = source_path
 
         presentation = open_presentation_with_retry(ppt_app, actual_path)
         src_mtime = file_mtime_str(ppt_path)  # 원본 파일 기준 mtime 유지
@@ -940,11 +947,12 @@ def extract_financial_rows_from_ppt(ppt_app, ppt_path):
                 presentation.Close()
             except Exception:
                 pass
-        if tmp_path and os.path.exists(tmp_path):
-            try:
-                os.remove(tmp_path)
-            except Exception:
-                pass
+        for p in (tmp_path, drm_copy):
+            if p and os.path.exists(p):
+                try:
+                    os.remove(p)
+                except Exception:
+                    pass
 
 
 # =========================

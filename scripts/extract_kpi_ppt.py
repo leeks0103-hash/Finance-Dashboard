@@ -30,7 +30,7 @@ import sys as _sys
 import sys as _sys_boot, os as _os_boot
 _sys_boot.path.insert(0, _os_boot.path.dirname(_os_boot.path.dirname(_os_boot.path.abspath(__file__))))
 import paths as _paths
-from shared import strip_stage_suffix as _shared_strip_stage_suffix
+from shared import strip_stage_suffix as _shared_strip_stage_suffix, local_copy_if_drm
 # EXTRACT_ONLY_LIST: 대시보드 "실패 파일만 다시 추출"이 넘기는 경로 목록 파일 — 그 파일만 처리(부분 실행, 2026-10-01)
 ONLY_LIST = _os_boot.environ.get("EXTRACT_ONLY_LIST", "").strip()
 RETRY_MODE = "--retry" in _sys.argv or bool(ONLY_LIST)
@@ -1127,6 +1127,18 @@ def extract_records_from_ppt_via_com(ppt_path: Path, file_meta: Dict[str, str]) 
 
 
 def extract_records_from_ppt(ppt_path: Path, file_meta: Dict[str, str]) -> List[List]:
+    """DRM 파일은 NAS 원본을 직접 열지 않고 로컬 사본을 연다(원본 재암호화 방지). 파일명·수정일은 file_meta(원본) 기준"""
+    drm_copy = local_copy_if_drm(str(ppt_path))
+    if not drm_copy:
+        return _extract_records_from_ppt(ppt_path, file_meta)
+    logger.info(f"[DRM] 보안 문서 감지 → 로컬 사본으로 열기: {ppt_path.name}")
+    try:
+        return _extract_records_from_ppt(Path(drm_copy), file_meta)
+    finally:
+        Path(drm_copy).unlink(missing_ok=True)
+
+
+def _extract_records_from_ppt(ppt_path: Path, file_meta: Dict[str, str]) -> List[List]:
     converted_tmp: Optional[Path] = None
     actual_path = ppt_path
 
