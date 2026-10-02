@@ -773,8 +773,12 @@ const DataTable = <T extends object>({
   // 페이지 넘김 — 새 페이지 행이 뚝 바뀌지 않고 살짝 올라오며 나타남(서버 모드는 새 데이터가 도착한 뒤)
   const pageSwapClass = usePageSwapClass(pagination.pageIndex, isFetching);
 
-  // 실제 보여지는 행 수 기준 — pageSize를 다 못 채워도(검색 결과 적음) 그만큼만 여백 확보
-  const dtRows = Math.max(minRows, Math.min(pagination.pageSize, rows.length));
+  // 실제 보여지는 행 수 기준 — pageSize를 다 못 채워도(검색 결과 적음) 그만큼만 여백 확보.
+  // 단 페이지가 여러 장이면 한 페이지 높이(pageSize행)를 유지 — 행이 적은 마지막 페이지로 넘기면 표가 뚝 줄었음
+  // (2026-10-02, 프로젝트 상세 676 → 100px). 결과가 한 페이지에 다 들어가는 경우(검색 1건 등)는 예전처럼 그만큼만
+  const dtRows = pagination.pageCount > 1
+    ? Math.max(minRows, pagination.pageSize)
+    : Math.max(minRows, Math.min(pagination.pageSize, rows.length));
 
   // ── 본문 높이 전환 ──
   // 검색으로 행 수가 확 줄거나(1건) 표 ↔ "결과 없음"이 바뀌면(다른 요소라 CSS 전환이 안 먹음)

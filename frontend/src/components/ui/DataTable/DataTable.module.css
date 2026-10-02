@@ -255,7 +255,8 @@
   flex: 1;
   overflow: auto;
   border-radius: 0 0 var(--radius-lg) var(--radius-lg);  /* 하단 모서리 클리핑 */
-  min-height: calc(var(--dt-rows, 5) * 33px);
+  /* 행 32px × 행 수 + 머리글 37px — 실측(2026-10-02). 예전 "× 33px"은 20행 기준 17px 모자라 마지막 페이지에서 표가 줄었음 */
+  min-height: calc(var(--dt-rows, 5) * 32px + 37px);
   /* 높이 전환은 DataTable.tsx bodyRef가 담당 — min-height까지 전환하면 새 높이를 못 잼 */
   transition: opacity 0.15s;
   border-right: none;

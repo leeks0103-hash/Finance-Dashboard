@@ -169,7 +169,7 @@ const PerformancePage = () => {
             getRowNumber={(row) => row._group_no}
             // 20자 넘는 셀은 클릭 시 전체 내용 팝업(오버레이)이 먼저 떠서 더블클릭이 td까지 도달하지 못함 —
             // 안내 문구도 실제 동작(짧은 셀만 펼침)에 맞춰 적어 둔다
-            hint="숫자 배지 = 재무 보고서 건수 · 프로젝트코드·담당자 더블클릭 → 보고서 이력 펼침"
+            hint="숫자 배지 = 재무 보고서 건수 · 프로젝트코드·담당자 더블클릭 → 해당 보고서 확인 가능"
             /* 프로젝트코드 셀이 재무 이력 건수 배지를 그릴 수 있도록 코드↔건수 맵 전달 */
             meta={{ financeCodes: financeCodes.data, rawValues }}
             serverPagination={vm.serverPagination}
@@ -192,7 +192,7 @@ const PerformancePage = () => {
             // 매출/원가 2행 → 1행으로 바꾸며 기본 컬럼·순서가 달라져 저장된 순서·폭·표시를 새로 시작(2026-10-02)
             storageKey="performance-project-v3"
             // 글씨 많은 컬럼(프로젝트명·사유·중복점검 등) 기본 폭을 넓히면서 저장된 폭 1회 무효화
-            sizeVersion={3}   // 3: 프로젝트코드 칸 164 → 200(2026-10-02)
+            sizeVersion={4}   // 4: 프로젝트코드 칸 164 → 230(2026-10-02)
             // 예전 세션에 저장된 컬럼 표시/숨김 값이 그 뒤 추가된 컬럼(월별 컬럼·계획 대비 추정
             // 실적 차이 금액 등)을 계속 기본 숨김 취급하게 만들던 문제 — 저장값 1회 무효화
             visibilityVersion={1}
