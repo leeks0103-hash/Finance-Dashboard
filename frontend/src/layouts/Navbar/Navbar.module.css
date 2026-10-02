@@ -323,7 +323,7 @@
   color: var(--text-muted);
 }
 
-/* 제목 옆 단축키 표시(G·W·F) — 설정 "단축키" 토글로 보이기/숨기기 */
+/* 제목 옆 단축키 표시(G·W·F) */
 .kbd {
   display: inline-block;
   margin-left: 6px;

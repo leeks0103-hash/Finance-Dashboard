@@ -37,7 +37,7 @@ const SunIcon = () => (
 
 const Navbar = () => {
   const { theme, toggle: toggleTheme } = useTheme();
-  const { showRawValues, toggleRawValues, showFinCompare, toggleFinCompare, showShortcutHints, toggleShortcutHints } = useUiStore();
+  const { showRawValues, toggleRawValues, showFinCompare, toggleFinCompare } = useUiStore();
   // 그래프 수치 — 켤 때/끌 때 페이드(끌 때는 투명해진 뒤 숨김)
   const chartLabels = useChartLabelToggle();
 
@@ -48,7 +48,8 @@ const Navbar = () => {
     KeyW: () => { toast(`표 금액 ${showRawValues ? '억/만 반올림' : '원 단위'} (W)`); toggleRawValues(); },
     KeyF: () => { toast(`재무 대조 ${showFinCompare ? '끔' : '켬'} (F)`); toggleFinCompare(); },
   });
-  const kbd = (key: string) => showShortcutHints ? <kbd className={styles.kbd}>{key}</kbd> : null;
+  // 설정 메뉴 제목 옆 단축키 표시(항상) — 표시 켜고 끄는 줄은 필요 없다는 의견으로 뺌(2026-10-02)
+  const kbd = (key: string) => <kbd className={styles.kbd}>{key}</kbd>;
   const [open, setOpen] = useState(false);
   const [financeModalOpen, setFinanceModalOpen] = useState(false);
   // 사용법 투어 — 첫 방문 1회 자동 실행(localStorage 기준), 이후엔 아래 설정 메뉴에서
@@ -353,17 +354,6 @@ const Navbar = () => {
                 <div className={styles.row}>
                   <span className={styles.rowText}>{showFinCompare ? '실적현황 ↔ 재무 이력' : '끔'}</span>
                   <Toggle checked={showFinCompare} onChange={toggleFinCompare} />
-                </div>
-              </div>
-
-              <div className={styles.divider} />
-
-              {/* 단축키 안내 — 위 세 제목 옆 키(G·W·F) 표시만 켜고 끔. 단축키 자체는 항상 동작 */}
-              <div className={styles.section}>
-                <span className={styles.sectionLabel}>단축키</span>
-                <div className={styles.row}>
-                  <span className={styles.rowText}>{showShortcutHints ? '제목 옆에 표시' : '숨김'}</span>
-                  <Toggle checked={showShortcutHints} onChange={toggleShortcutHints} />
                 </div>
               </div>
 
