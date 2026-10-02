@@ -60,7 +60,7 @@ const financeCount = (code: string, codes?: Record<string, number>) => {
 const buildColumns = (_PERF_MONTH: string, finCompare: boolean) => [
   // ── 기본 표시 (2026-10-02 지정 순서) — 프로젝트당 한 줄(매출행 + 원가행의 사업계획 원가). 합계·1~12월은 삭제 ──
   h.accessor('project_code', {
-    header: '프로젝트코드', size: 164,
+    header: '프로젝트코드', size: 200,   // 164 → 200(2026-10-02): 코드 16자 + 배지 + 호버 복사 아이콘 자리가 안 들어가 '…'·빈칸이 생겼음
     enableSorting: true,
     // 재무 PPT 이력이 있으면 건수 배지 — 더블클릭해야 2뎁스 유무를 알 수 있던 문제 해소
     cell: i => {
