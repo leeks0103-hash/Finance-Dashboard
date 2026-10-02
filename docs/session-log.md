@@ -86,6 +86,10 @@
   테스트 갱신(65개). 카드·차트 라벨(toFixed(1))은 그대로
 - **재무 이력·프로젝트 재무 상세 금액 툴팁에 쉼표 없음** — 두 표의 금액·이익율 칸에 툴팁 형식(formatTitle)이 없어 원본 숫자(173382100)가 그대로 떴음.
   `utils/format.wonTitle`("173,382,100원")·`pctTitle`("5%") 신설, 두 컬럼 정의(financeColumns·ProjectTable/columns) 7개 칸에 적용. 0이면 툴팁 없음(실적 표와 같음)
+- **설정 토글 단축키** — G 그래프 수치 / W 표 금액 원 단위 / F 재무 대조. `hooks/useKeyShortcuts`(KeyboardEvent.code 기준이라 한글 자판에서도 같은 자리):
+  Ctrl·Alt·Shift·Meta가 눌렸거나, 입력칸 포커스·한글 조합 중·키 반복이면 무시하고 기본 동작도 안 막음(Ctrl+F 등 브라우저 단축키 그대로).
+  누르면 토스트("재무 대조 켬 (F)"). 설정 메뉴 제목 옆에 키 표시(kbd), 새 "단축키" 줄 토글로 표시만 켜고 끔(`ui.store.showShortcutHints`, 기본 표시).
+  헤드리스: g/w/f로 세 설정 전환·검색창 타이핑은 무시·Ctrl+F/Shift+G는 미처리 확인
 - 금액 칸이 전부 빈 프로젝트 26건(대부분 진행 '드롭', 일부 미사용·인큐베이팅) 확인 — 숨길지 사용자 결정 대기
 - ⚠️ `shared.py`·`performance.py`·`finance.py`·`kpi.py` 변경 → 서버 재시작함
 

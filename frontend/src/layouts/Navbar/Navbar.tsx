@@ -13,6 +13,8 @@ import AdminModal from './AdminModal';
 import { useTheme } from '@/hooks';
 import { useDataHealth } from '@/hooks/useDataHealth';
 import { useChartLabelToggle } from '@/hooks/useChartLabelToggle';
+import { useKeyShortcuts } from '@/hooks/useKeyShortcuts';
+import { toast } from '@/utils/dialog';
 import { useExtractJob } from '@/hooks/useExtractJob';
 import { useOpenFile } from '@/hooks/useOpenFile';
 import { useUiStore } from '@/store';
@@ -35,9 +37,18 @@ const SunIcon = () => (
 
 const Navbar = () => {
   const { theme, toggle: toggleTheme } = useTheme();
-  const { showRawValues, toggleRawValues, showFinCompare, toggleFinCompare } = useUiStore();
+  const { showRawValues, toggleRawValues, showFinCompare, toggleFinCompare, showShortcutHints, toggleShortcutHints } = useUiStore();
   // 그래프 수치 — 켤 때/끌 때 페이드(끌 때는 투명해진 뒤 숨김)
   const chartLabels = useChartLabelToggle();
+
+  // 설정 토글 단축키(2026-10-02) — 보조키 없이 한 글자(G 그래프 수치 / W 원 단위 / F 재무 대조).
+  // 브라우저 단축키(Ctrl+F 등)·입력칸 타이핑은 건드리지 않음(useKeyShortcuts 참고). 메뉴가 닫혀 있어도 알 수 있게 짧은 토스트
+  useKeyShortcuts({
+    KeyG: () => { toast(`그래프 수치 ${chartLabels.checked ? '숨김' : '표시'} (G)`); chartLabels.toggle(); },
+    KeyW: () => { toast(`표 금액 ${showRawValues ? '억/만 반올림' : '원 단위'} (W)`); toggleRawValues(); },
+    KeyF: () => { toast(`재무 대조 ${showFinCompare ? '끔' : '켬'} (F)`); toggleFinCompare(); },
+  });
+  const kbd = (key: string) => showShortcutHints ? <kbd className={styles.kbd}>{key}</kbd> : null;
   const [open, setOpen] = useState(false);
   const [financeModalOpen, setFinanceModalOpen] = useState(false);
   // 사용법 투어 — 첫 방문 1회 자동 실행(localStorage 기준), 이후엔 아래 설정 메뉴에서
@@ -315,7 +326,7 @@ const Navbar = () => {
               <div className={styles.divider} />
 
               <div className={styles.section}>
-                <span className={styles.sectionLabel}>그래프 수치</span>
+                <span className={styles.sectionLabel}>그래프 수치{kbd('G')}</span>
                 <div className={styles.row}>
                   <span className={styles.rowText}>{chartLabels.checked ? '표시 중' : '숨김'}</span>
                   <Toggle checked={chartLabels.checked} onChange={chartLabels.toggle} />
@@ -327,7 +338,7 @@ const Navbar = () => {
               {/* 표 금액·비율 실제값 — 켜면 프로젝트 상세·재무 이력·재무 검색 결과·재무 데이터 모달 표가
                   억/만 축약·반올림 대신 원본 값(툴팁 값)을 표시. 표마다 두지 않고 전역 설정으로 */}
               <div className={styles.section}>
-                <span className={styles.sectionLabel}>표 실제값</span>
+                <span className={styles.sectionLabel}>표 실제값{kbd('W')}</span>
                 <div className={styles.row}>
                   <span className={styles.rowText}>{showRawValues ? '원 단위' : '억/만 반올림'}</span>
                   <Toggle checked={showRawValues} onChange={toggleRawValues} />
@@ -338,10 +349,21 @@ const Navbar = () => {
 
               {/* 완료 프로젝트 재무 대조 — 프로젝트 상세에 재무 이력(완료) 매출·직접원가 컬럼을 붙이고 비교 칸 테두리를 빛나게 */}
               <div className={styles.section}>
-                <span className={styles.sectionLabel}>재무 대조(완료 프로젝트)</span>
+                <span className={styles.sectionLabel}>재무 대조(완료 프로젝트){kbd('F')}</span>
                 <div className={styles.row}>
                   <span className={styles.rowText}>{showFinCompare ? '실적현황 ↔ 재무 이력' : '끔'}</span>
                   <Toggle checked={showFinCompare} onChange={toggleFinCompare} />
+                </div>
+              </div>
+
+              <div className={styles.divider} />
+
+              {/* 단축키 안내 — 위 세 제목 옆 키(G·W·F) 표시만 켜고 끔. 단축키 자체는 항상 동작 */}
+              <div className={styles.section}>
+                <span className={styles.sectionLabel}>단축키</span>
+                <div className={styles.row}>
+                  <span className={styles.rowText}>{showShortcutHints ? '제목 옆에 표시' : '숨김'}</span>
+                  <Toggle checked={showShortcutHints} onChange={toggleShortcutHints} />
                 </div>
               </div>
 

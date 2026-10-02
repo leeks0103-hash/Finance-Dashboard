@@ -13,6 +13,10 @@ interface UiStore {
   showFinCompare: boolean;
   toggleFinCompare: () => void;
 
+  /** 설정(⚙) 메뉴 제목 옆 단축키(G·W·F) 표시 — 설정의 "단축키" 줄에서 보이기/숨기기(2026-10-02) */
+  showShortcutHints: boolean;
+  toggleShortcutHints: () => void;
+
   lastLoaded: string | null;
   setLastLoaded: (v: string | null) => void;
 
@@ -55,6 +59,9 @@ export const useUiStore = create<UiStore>()(
       showFinCompare: false,
       toggleFinCompare: () => set(s => ({ showFinCompare: !s.showFinCompare })),
 
+      showShortcutHints: true,
+      toggleShortcutHints: () => set(s => ({ showShortcutHints: !s.showShortcutHints })),
+
       lastLoaded: null,
       setLastLoaded: (v) => set({ lastLoaded: v }),
 
@@ -77,7 +84,7 @@ export const useUiStore = create<UiStore>()(
       name: 'ui-store',
       // 그래프 수치·표 실제값·재무 대조·달성률·바로가기 공개 범위·투어 시청 여부만 로컬에 저장 — 나머지는 세션 한정
       partialize: (s) => ({
-        showChartLabels: s.showChartLabels, showRawValues: s.showRawValues, showFinCompare: s.showFinCompare, tourSeen: s.tourSeen,
+        showChartLabels: s.showChartLabels, showRawValues: s.showRawValues, showFinCompare: s.showFinCompare, showShortcutHints: s.showShortcutHints, tourSeen: s.tourSeen,
         showAchieveRate: s.showAchieveRate, fileOpenVisibility: s.fileOpenVisibility,
       }),
     },

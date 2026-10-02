@@ -323,6 +323,26 @@
   color: var(--text-muted);
 }
 
+/* 제목 옆 단축키 표시(G·W·F) — 설정 "단축키" 토글로 보이기/숨기기 */
+.kbd {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 5px;
+  min-width: 16px;
+  font-family: inherit;
+  font-size: 0.62rem;
+  font-weight: 600;
+  line-height: 15px;
+  letter-spacing: 0;
+  text-align: center;
+  color: var(--text-sub);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  vertical-align: 1px;
+}
+
 .row {
   display: flex;
   align-items: center;
