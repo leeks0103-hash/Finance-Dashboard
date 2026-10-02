@@ -118,3 +118,15 @@ export const toEokNum = (v: number | null | undefined) =>
 /** OS "움직임 줄이기" 설정 — 켜져 있으면 애니메이션 없이 즉시 전환 */
 export const prefersReducedMotion = () =>
   typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+/** 표 셀 툴팁(원 단위 금액) — 셀은 억/만 축약이라 마우스오버 시 정확한 값을 쉼표 붙여 보여줌. 0·빈 값이면 툴팁 없음 */
+export const wonTitle = (v: unknown): string | undefined => {
+  const n = Number(v);
+  return n && isFinite(n) ? `${KO.format(Math.round(n))}원` : undefined;
+};
+
+/** 표 셀 툴팁(% 비율) — 원본 소수 그대로(둘째 자리 이하까지) */
+export const pctTitle = (v: unknown): string | undefined => {
+  const n = Number(v);
+  return n && isFinite(n) ? `${KO.format(n)}%` : undefined;
+};

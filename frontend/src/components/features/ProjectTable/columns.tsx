@@ -1,6 +1,6 @@
 import { createColumnHelper } from '@tanstack/react-table';
 import type { Project } from '@/types';
-import { formatMoney, formatPercent, getNoteVariant } from '@/utils';
+import { formatMoney, formatPercent, getNoteVariant, wonTitle, pctTitle } from '@/utils';
 import { Badge, NegCell, CopyText, HighlightText } from '@/components/ui';
 import { openFinanceFileOrAlert } from '@/hooks/useOpenFile';
 
@@ -31,25 +31,25 @@ export const columns = [
   }),
   h.accessor('part',  { header: '파트', size: 88,  cell: i => <Badge label={i.getValue()} variant="part"  /> }),
   h.accessor('stage', { header: '단계', size: 92,  cell: i => <Badge label={i.getValue()} variant="stage" /> }),
-  h.accessor('revenue',      { header: '매출', size: 90,     cell: i => formatMoney(i.getValue(), i.table.options.meta?.rawValues) }),
+  h.accessor('revenue',      { header: '매출', size: 90, meta: { formatTitle: wonTitle },     cell: i => formatMoney(i.getValue(), i.table.options.meta?.rawValues) }),
   h.accessor('expenditure',  { header: '지출', size: 90,
-    meta: { cellMuted: row => isFinishedEmpty(row, 'expenditure') },
+    meta: { formatTitle: wonTitle, cellMuted: row => isFinishedEmpty(row, 'expenditure') },
     cell: i => isFinishedEmpty(i.row.original, 'expenditure') ? '' : formatMoney(i.getValue(), i.table.options.meta?.rawValues) }),
-  h.accessor('direct_cost',  { header: '직접원가', size: 90, cell: i => formatMoney(i.getValue(), i.table.options.meta?.rawValues) }),
+  h.accessor('direct_cost',  { header: '직접원가', size: 90, meta: { formatTitle: wonTitle }, cell: i => formatMoney(i.getValue(), i.table.options.meta?.rawValues) }),
   h.accessor('labor_cost',   { header: '인건비', size: 83,
-    meta: { cellMuted: row => isFinishedEmpty(row, 'labor_cost') },
+    meta: { formatTitle: wonTitle, cellMuted: row => isFinishedEmpty(row, 'labor_cost') },
     cell: i => isFinishedEmpty(i.row.original, 'labor_cost') ? '' : formatMoney(i.getValue(), i.table.options.meta?.rawValues) }),
   h.accessor('overhead',     { header: '공통원가', size: 90,
-    meta: { cellMuted: row => isFinishedEmpty(row, 'overhead') },
+    meta: { formatTitle: wonTitle, cellMuted: row => isFinishedEmpty(row, 'overhead') },
     cell: i => isFinishedEmpty(i.row.original, 'overhead') ? '' : formatMoney(i.getValue(), i.table.options.meta?.rawValues) }),
   h.accessor('operating_profit', {
     header: '경상이익', size: 83,
-    meta: { cellMuted: row => isFinishedEmpty(row, 'operating_profit') },
+    meta: { formatTitle: wonTitle, cellMuted: row => isFinishedEmpty(row, 'operating_profit') },
     cell: i => isFinishedEmpty(i.row.original, 'operating_profit') ? '' : <NegCell v={i.getValue()} text={formatMoney(i.getValue(), i.table.options.meta?.rawValues)} />,
   }),
   h.accessor('profit_rate', {
     header: '이익율(%)', size: 76,
-    meta: { cellMuted: row => isFinishedEmpty(row, 'profit_rate') },
+    meta: { formatTitle: pctTitle, cellMuted: row => isFinishedEmpty(row, 'profit_rate') },
     cell: i => isFinishedEmpty(i.row.original, 'profit_rate') ? '' : <NegCell v={i.getValue()} text={formatPercent(i.getValue(), i.table.options.meta?.rawValues)} />,
   }),
   h.accessor('note', {
