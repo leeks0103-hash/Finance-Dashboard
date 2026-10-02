@@ -43,6 +43,8 @@ export interface PerfSingleCardData {
   label:   string;
   value:   string;
   sub:     string;
+  /** 값 옆 보조 수치(KpiCard valueNote) */
+  valueNote?: string;
   accent:  PerfAccent;
   trendUp: boolean;
   trend?:  string;
@@ -69,6 +71,8 @@ export interface PerfPartRow {
   count:           number;
   isLoss:          boolean;
   planInitialNum:  number;
+  /** 연간 추정 매출(억) — 파트별 매출 진행 현황의 분모 */
+  junCheckTotalNum: number;
   junActualNum:    number;
   junCostNum:      number;
   profitRateNum:   number;
@@ -197,9 +201,9 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
     };
 
     const compareCards = [
-      mk('revenue',     '매출 (계획/추정)', 'brand',  total.plan_initial,   total.jun_check_total),
-      mk('cost',        '원가 (계획/추정)', 'purple', total.plan_cost,      total.jun_cost),
-      mk('grossProfit', '매출이익 (계획/추정)',
+      mk('revenue',     '당해 연도 매출 (계획/추정)', 'brand',  total.plan_initial,   total.jun_check_total),
+      mk('cost',        '당해 연도 원가 (계획/추정)', 'purple', total.plan_cost,      total.jun_cost),
+      mk('grossProfit', '당해 연도 매출이익 (계획/추정)',
          total.est_gross >= 0 ? 'profit' : 'loss',
          // 매출이익 = 매출 − 원가. 백엔드 계산값(performance.py plan_gross/est_gross) 그대로 사용
          total.plan_gross,
@@ -210,15 +214,26 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
       ...compareCards,
       // ↓ 언급 안 한 2개 카드는 그대로 유지 (경상손익 · 누계 실적)
       {
-        kind: 'single', id: 'profit', label: '경상손익(당해년도 추정)',
+        kind: 'single', id: 'profit', label: '당해 연도 추정 경상손익',
         value: `${animProfit.toFixed(1)}억원`, sub: `손익률 ${animRate.toFixed(1)}%`,
         accent: profitRaw >= 0 ? 'profit' : 'loss',
         trendUp: profitRaw >= 0,
       },
       {
-        kind: 'single', id: 'junActual', label: `매출/원가 누계 실적 (1~${period.month})`,
+        kind: 'single', id: 'junActual', label: `매출/원가 추정 누계 실적 (1~${period.month})`,
         value: `${animJun.toFixed(1)}억원`,
-        sub: `원가 ${formatEok(total.jun_cost_actual)}원`,
+        // 진행률 = 누계 매출 ÷ 연간 추정 매출 × 100(백엔드 est_progress_rate). Flask 재시작 전(필드 없음)만 같은 식으로 폴백
+        valueNote: (() => {
+          const r = total.est_progress_rate
+            ?? (total.jun_check_total > 0 ? Math.round(total.jun_actual / total.jun_check_total * 1000) / 10 : null);
+          return r == null ? undefined : `(진행률 ${r.toFixed(1)}%)`;
+        })(),
+        // 원가도 진행률 = 누계 원가 ÷ 연간 추정 원가 × 100(백엔드 est_cost_progress_rate, 재시작 전 폴백)
+        sub: (() => {
+          const r = total.est_cost_progress_rate
+            ?? (total.jun_cost > 0 ? Math.round(total.jun_cost_actual / total.jun_cost * 1000) / 10 : null);
+          return `원가 ${formatEok(total.jun_cost_actual)}원${r == null ? '' : ` (진행률 ${r.toFixed(1)}%)`}`;
+        })(),
         accent: junActualRaw >= planRaw ? 'profit' : 'warn',
         trendUp: junActualRaw >= 0,
       },
@@ -235,7 +250,10 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
         const junCostNum     = toEokNum(s.jun_cost);
         // 원가율·진행률은 백엔드 /api/performance/summary by_part 가 계산 (raw 기준)
         const costRate = s.cost_rate != null ? `${s.cost_rate.toFixed(1)}%` : '-';
-        const achieveRateNum = s.achieve_rate ?? 0;
+        // 파트별 매출 진행 현황 = 누계매출 ÷ 연간 추정매출(2026-10-02, 예전엔 ÷ 계획매출).
+        // 백엔드 est_progress_rate 우선, Flask 재시작 전(필드 없음)만 같은 식으로 폴백
+        const achieveRateNum = s.est_progress_rate
+          ?? (s.jun_check_total > 0 ? Math.round(s.jun_actual / s.jun_check_total * 1000) / 10 : 0);
         return {
           part,
           planInitial: formatEok(s.plan_initial), junActual: formatEok(s.jun_actual),
@@ -245,7 +263,7 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
           accProfitRate: `${(s.acc_profit_rate ?? 0).toFixed(1)}%`,
           isAccLoss: (s.acc_operating_profit ?? 0) < 0,
           count: s.count, isLoss: s.operating_profit < 0,
-          planInitialNum, junActualNum, junCostNum, profitRateNum: s.avg_profit_rate, costRateStr: costRate,
+          planInitialNum, junCheckTotalNum: toEokNum(s.jun_check_total), junActualNum, junCostNum, profitRateNum: s.avg_profit_rate, costRateStr: costRate,
           achieveRateNum,
         };
       });

@@ -29,7 +29,7 @@ import {
 } from '@/utils/infoTexts';
 import styles from './PerformancePage.module.css';
 
-// 프로젝트 병합 키는 백엔드 performance.py `_group_no` 가 계산해서 내려준다 (프론트 재구현 제거).
+// 프로젝트당 한 줄 + 일련번호(_group_no)는 백엔드 performance.py `_merge_rev_cost_rows`가 만들어 내려준다.
 
 // ── 파트별 실적 표 — 비활성(주석 처리, 담당자 지정) ──────────────────────
 // 사유: 한 표에 기준이 다른 값이 섞여 오독을 부름.
@@ -75,7 +75,8 @@ import styles from './PerformancePage.module.css';
 const PerformancePage = () => {
   const vm = usePerformanceViewModel();
   // 프로젝트 상세 컬럼 — 머리글의 "N월 실적"이 실제로 읽은 시트의 기준월을 따름
-  const perfCols = perfColumnSet(vm.period.month);
+  const finCompare = useUiStore(s => s.showFinCompare);
+  const perfCols = perfColumnSet(vm.period.month, finCompare);
   const rawValues = useUiStore(s => s.showRawValues);
   // 재무 이력 보유 코드↔건수 — 프로젝트코드 셀의 배지용 (한 번 받아 캐시)
   const financeCodes = useFinanceCodes();
@@ -164,12 +165,11 @@ const PerformancePage = () => {
             }
             hideableColumns={perfCols.hideable}
             initialColumnVisibility={perfCols.defaultHidden}
-            // 병합 묶음·NO. 둘 다 백엔드 _group_no 기준 (프론트 재계산 없음)
-            mergeRowsByKey={(row) => String(row._group_no)}
+            // 프로젝트당 한 줄(백엔드에서 매출+원가 합침) — NO.는 백엔드 _group_no(페이지 넘어가도 연속)
             getRowNumber={(row) => row._group_no}
             // 20자 넘는 셀은 클릭 시 전체 내용 팝업(오버레이)이 먼저 떠서 더블클릭이 td까지 도달하지 못함 —
             // 안내 문구도 실제 동작(짧은 셀만 펼침)에 맞춰 적어 둔다
-            hint="프로젝트코드 옆 숫자 배지 = 재무 이력 건수. 짧은 셀(프로젝트코드·담당자)을 더블클릭하면 아래에 펼쳐집니다. (프로젝트명·비고처럼 글이 긴 셀은 클릭하면 전체 내용 팝업이 열립니다)"
+            hint="프로젝트코드 옆 숫자 배지 = 재무 이력 건수. 짧은 셀(프로젝트코드·담당자)을 더블클릭하면 아래에 펼쳐집니다. (프로젝트명·변동 검토의견처럼 글이 긴 셀은 클릭하면 전체 내용 팝업이 열립니다)"
             /* 프로젝트코드 셀이 재무 이력 건수 배지를 그릴 수 있도록 코드↔건수 맵 전달 */
             meta={{ financeCodes: financeCodes.data, rawValues }}
             serverPagination={vm.serverPagination}
@@ -188,7 +188,8 @@ const PerformancePage = () => {
             emptyIcon="search"
             emptyTitle="검색 결과 없음"
             emptyDescription="다른 검색어나 필터 조건을 시도해보세요."
-            storageKey="performance-project"
+            // 매출/원가 2행 → 1행으로 바꾸며 기본 컬럼·순서가 달라져 저장된 순서·폭·표시를 새로 시작(2026-10-02)
+            storageKey="performance-project-v3"
             // 글씨 많은 컬럼(프로젝트명·사유·중복점검 등) 기본 폭을 넓히면서 저장된 폭 1회 무효화
             sizeVersion={2}
             // 예전 세션에 저장된 컬럼 표시/숨김 값이 그 뒤 추가된 컬럼(월별 컬럼·계획 대비 추정

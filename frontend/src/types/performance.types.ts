@@ -21,6 +21,19 @@ export interface PerfProject {
   // 재무
   actual_2025:       number;
   plan_initial:      number;
+  /** 사업계획 원가 — 원가행의 최초사업계획(V열). 백엔드가 매출행 줄에 붙여 줌(프로젝트당 한 줄) */
+  plan_cost?:        number | null;
+  /** 당월 추정 직접원가 = 원가행 BH (천원). 백엔드 계산 */
+  est_cost?:         number | null;
+  /** 매출 이익 = 매출행 BH − 원가행 BH (천원, 엑셀 AR17 − AR18). 백엔드 계산 */
+  est_gross?:        number | null;
+  /** 원가행 값 — 매출행과 값이 다른 필드만(백엔드 PERF_COST_SIDE_FIELDS). 표에서 "(원가)" 컬럼 */
+  [costField: `cost__${string}`]: unknown;
+  /** 진행 '완료' 줄에서 재무 이력(완료 단계)과 값이 다른 필드 — 'jun_check_total'(매출) / 'est_cost'(원가) */
+  fin_mismatch?:     string[];
+  /** 재무 이력 완료 단계 값(천원) — 툴팁용 */
+  fin_jun_check_total?: number | null;
+  fin_est_cost?:        number | null;
   plan_cost_rate:    number;
   course_count:      number;
   session_count:     number;
@@ -83,7 +96,7 @@ export interface PerfProject {
   note:              string;
   filename:          string;
   _row_num:          number;   // 고유 key 용 행 번호
-  _group_no:         number;   // 묶음(프로젝트) 일련번호 — 전체 기준, 페이지 넘어가도 연속
+  _group_no:         number;   // 프로젝트(줄) 일련번호 — 전체 기준, 페이지 넘어가도 연속
 }
 
 export interface PerfPartStats {
@@ -113,6 +126,8 @@ export interface PerfPartStats {
   cost_rate?:       number | null;
   /** 계획 대비 누계 진행률(%) = 누계매출 ÷ 계획매출 × 100. 백엔드 계산 */
   achieve_rate?:    number;
+  /** 추정 대비 누계 진행률(%) = 누계매출 ÷ 연간 추정매출 × 100. 백엔드 계산(파트별 매출 진행 현황) */
+  est_progress_rate?: number;
 }
 
 export interface PerfTotal {
@@ -138,6 +153,10 @@ export interface PerfTotal {
   est_gross:        number;
   /** 계획 대비 누계 진행률(%) = 누계매출 ÷ 계획매출 × 100. 계획 0 이하면 null */
   achieve_rate?:    number | null;
+  /** 추정 대비 누계 진행률(%) = 누계매출 ÷ 연간 추정매출 × 100. 추정 0 이하면 null */
+  est_progress_rate?: number | null;
+  /** 원가 진행률(%) = 누계원가 ÷ 연간 추정원가 × 100. 추정 0 이하면 null */
+  est_cost_progress_rate?: number | null;
   /** 전월대비 매출 diff (천원). 전월 데이터 없으면 null */
   mom_revenue?:     number | null;
   /** 전월대비 매출이익 diff (천원). 전월 데이터 없으면 null */

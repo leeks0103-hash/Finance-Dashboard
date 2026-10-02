@@ -10,6 +10,7 @@
   overflow: hidden;
   min-height: 140px;
   height: 100%;
+  container-type: inline-size;   /* 값 글자 크기를 카드 폭에 맞추는 기준(cqw) */
   box-sizing: border-box;
   transition: box-shadow 0.2s cubic-bezier(0.16,1,0.3,1);
 }
@@ -51,6 +52,7 @@
 }
 
 .body {
+  --cmp-value-fs: clamp(0.95rem, calc((100cqw - 86px) / 7.4), 2.1rem);
   display: flex;
   align-items: flex-start;
   /* 값(.values)은 왼쪽, 막대그래프(.bars)는 space-between으로 오른쪽 끝에 고정 */
@@ -64,21 +66,25 @@
      이중으로 벌어지지 않게(카드 높이를 perf-kpi-card 기준(140px)에 맞추려면 여백 절약 필요) */
 }
 
-/* 계획·추정 값 항상 위아래로 고정 */
+/* 계획 / 추정 값을 한 줄로(2026-10-02 요청 — 예전엔 위아래 두 줄). 대신 글자를 줄임 */
 .values {
   display: flex;
-  flex-direction: column;
+  align-items: baseline;
+  align-self: center;
   gap: 2px;
   min-width: 0;
+  white-space: nowrap;
 }
 
 /* 계획·추정 두 값은 같은 크기 — 구분은 색으로만 (계획 muted / 추정 accent) */
 .plan,
 .est {
   font-family: 'HyundaiHarmony', 'HyundaiSansHead', sans-serif;
-  font-size: 1.85rem;
+  /* 한 줄 배치(2026-10-02). 최대 2.1rem = 경상손익 카드(KpiCard .value)와 같은 크기, 카드가 좁으면 폭에 맞춰 줄어듦.
+     식: (카드 내용 폭 − 막대 그래프 칸 ≈86px) ÷ 7.4 — 값 한 줄 폭이 글자 크기의 약 7.2배(단위 축소 후 실측)라 막대와 안 겹침 */
+  font-size: var(--cmp-value-fs);
   font-weight: 700;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.06em;   /* -0.03 → -0.06em, 한 줄에 들어가게 좁힘(2026-10-02) */
   line-height: 1.15;
   white-space: nowrap;
   display: inline-flex;
@@ -86,26 +92,28 @@
   transition: opacity 0.18s ease;
 }
 
-/* 숫자 칸을 고정폭으로 — 계획/추정 자릿수가 달라도(0.0 vs 88.2) 칸 폭 자체가
-   안 바뀌니 "억원" 단위는 항상 같은 x 위치에서 시작함. 숫자 자체는 칸 왼쪽 끝에 맞춤 */
+/* 예전엔 위아래 두 줄의 "억원" 자리를 맞추려고 숫자 칸을 고정폭(4.4ch)으로 뒀음 — 한 줄 배치에선
+   자리 맞출 상대가 없고 짧은 숫자 뒤에 빈칸만 생겨서 고정폭 제거(2026-10-02) */
 .numPart {
-  min-width: 4.4ch;
   text-align: left;
   font-variant-numeric: tabular-nums;
 }
 .unitPart {
   flex-shrink: 0;
-  margin-left: 2px;
+  margin-left: 1px;
+  font-size: 0.58em;   /* "억원"은 작게 — 숫자를 경상손익 카드만큼 키우면서 한 줄에 들어가게(2026-10-02) */
+  font-weight: 600;
+  letter-spacing: 0;
 }
-/* 슬래시가 plan 줄 끝에 바로 붙도록 — plan+slash를 한 줄(row)로 묶음, est는 그 아래 줄 */
+/* plan+slash 묶음 — 호버 펄스(.planRow:hover) 대상이라 묶음 유지, est는 같은 줄 바로 뒤 */
 .planRow {
   display: flex;
   align-items: baseline;
-  gap: 3px;
+  gap: 2px;
   cursor: default;
 }
 .plan { color: var(--text-muted); }
-.slash { color: var(--border); font-size: 1.85rem; font-weight: 400; line-height: 1; }
+.slash { color: var(--border); font-size: var(--cmp-value-fs); font-weight: 400; line-height: 1; }
 .est  { color: var(--text-primary); cursor: default; }
 .brand  .est { color: var(--brand-mid); }
 .profit .est { color: var(--profit); }
@@ -226,6 +234,5 @@
 
 @media (max-width: 1024px) {
   .card { min-height: 108px; padding: 16px 18px 12px; }
-  .plan, .est { font-size: 1.5rem; }
   .bars { height: 44px; margin-top: 14px; }
 }

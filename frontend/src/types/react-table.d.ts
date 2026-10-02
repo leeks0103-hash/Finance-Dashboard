@@ -18,6 +18,8 @@ declare module '@tanstack/react-table' {
      * 변동 컬럼과 시각적으로 구분한다 (예: KPI 집계의 KPI 항목·26년 목표(사업계획))
      */
     staticCol?: boolean;
+    /** 핵심 지표 강조 음영(연한 바나나우유색, 셀만 — 헤더 제외) — 예: 프로젝트 상세의 경상손익·손익률 */
+    emphasisCol?: boolean;
     /**
      * 제공 시, 이 컬럼의 셀(20자 이상 자동 팝업)이 열릴 때 팝업에 "↗ 바로가기" 버튼이
      * 추가로 뜬다 — 파일명처럼 원본을 직접 열어야 하는 컬럼용 (예: 재무 PPT 파일명)
@@ -38,6 +40,12 @@ declare module '@tanstack/react-table' {
      * 다른 값이 보이던 문제 방지 — title은 반드시 <td> 하나에만 있어야 함
      */
     formatTitle?: (value: unknown) => string | undefined;
+    /** 이 행의 이 셀을 빨갛게 표시할지 — 문자열을 돌려주면 표시 + 그 문자열을 툴팁으로(예: 재무 이력과 값 불일치) */
+    cellFlag?: (row: TData) => string | undefined;
+    /** 셀 음영 — 'static'(고정값, 연한 샌드) / 'filled'(값 있음, 아주 연한 하늘색). 헤더는 안 칠함 */
+    cellTint?: (row: TData) => 'static' | 'filled' | undefined;
+    /** 셀 테두리를 은은하게 빛나게(맥박 애니메이션) — 예: 재무 대조 모드의 비교 칸 */
+    cellGlow?: (row: TData) => boolean;
     /**
      * 제공 시, 행 데이터를 받아 true면 그 <td>에 회색 음영(cellMuted)을 입힌다 —
      * "값 없음/해당 없음이 정상"임을 대시(-) 텍스트보다 더 눈에 띄게 표시하고 싶을 때

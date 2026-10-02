@@ -6,7 +6,8 @@
 // 필요해지면 usePerformanceSummary + fmtTs 되살려서 버튼 옆에 다시 붙일 것.
 import { useDownloadFiles } from '@/hooks/useDownloadFiles';
 import { DownloadMenu } from '@/components/ui';
-import AiInsightWidget from '@/components/features/AiInsightWidget';
+// AI 인사이트 — 우선 숨김(2026-10-02 요청). 복구하려면 아래 import와 <AiInsightWidget> 한 줄을 함께 되살릴 것.
+// import AiInsightWidget from '@/components/features/AiInsightWidget';
 import styles from './PerformanceActionBar.module.css';
 
 const PerformanceActionBar = () => {
@@ -14,7 +15,7 @@ const PerformanceActionBar = () => {
 
   return (
     <div className={styles.bar} data-tour="actions">
-      <AiInsightWidget aiTab="finance" />
+      {/* <AiInsightWidget aiTab="finance" /> */}
       <DownloadMenu
         items={files ?? []}
         isLoading={isLoading}

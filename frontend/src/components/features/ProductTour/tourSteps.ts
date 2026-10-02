@@ -92,9 +92,11 @@ export const TOUR_STEPS: TourStepDef[] = [
   {
     tab: 'performance',
     anchor: 'actions',
-    title: 'AI 인사이트 · 원본 다운로드',
+    // AI 인사이트 숨김 중(2026-10-02) — 복구 시 제목·설명도 되살릴 것
+    // title: 'AI 인사이트 · 원본 다운로드',
+    // '<b>AI 인사이트</b>: 현재 데이터를 AI가 요약·분석<br>' +
+    title: '원본 다운로드',
     description:
-      '<b>AI 인사이트</b>: 현재 데이터를 AI가 요약·분석<br>' +
       '<b>↓ Raw Data 다운로드</b>: 대시보드가 읽는 원본 엑셀 파일 받기',
     side: 'bottom',
     align: 'end',

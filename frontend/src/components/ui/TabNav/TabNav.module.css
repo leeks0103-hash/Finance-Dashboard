@@ -5,40 +5,52 @@
   background: transparent;
 }
 
-/* 탭 — 제목(굵고 좁은 자간)과 대비되게 + 넓은 자간. 활성 탭도 600까지만 올려 제목 800과 구분.
-   예전 13px·400·흰색 55%는 남색 바탕에서 잘 안 보인다는 피드백(2026-09-29) → 14px·500.
-   색은 반투명 흰색(rgba) 대신 불투명 Hyundai Sand — 반투명은 남색과 섞여 탁한 회색이 돼 흐려 보였음 */
+/* 탭 — 14px·500 흰 글자, 선택된 탭만 600 + 밑줄(2026-10-01 요청).
+   예전엔 선택 탭을 글자색(주황)으로만 표시하고 밑줄을 뺐었음(2026-09-30) — 글자를 전부 흰색으로 통일하면서 밑줄로 되돌림 */
 .tab {
   position: relative;
   padding: 14px 18px;
   font-size: 14px;
   font-weight: 500;
   letter-spacing: 0.03em;
-  color: var(--header-fg);   /* Hyundai Sand */
+  color: #fff;   /* 탭 글자는 전부 흰색 — 선택은 밑줄로 표시(2026-10-01 요청) */
   background: none;
   border: none;
   cursor: pointer;
-  transition: color 0.15s;
   white-space: nowrap;
 }
 
-.tab:hover {
-  color: var(--header-fg-strong);
+/* 밑줄 하이라이트 — 글자와 같은 흰색. 가운데서 양옆으로 펼쳐짐 */
+.tab::after {
+  content: '';
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 6px;
+  height: 2px;
+  border-radius: 1px;
+  background: #fff;
+  transform: scaleX(0);
+  opacity: 0;
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.22s ease;
 }
+.tab:hover::after { transform: scaleX(1); opacity: 0.45; }
 
-/* 선택된 탭 — 제목(Navbar .brand)과 같은 주황 #FF9E1B 글자로만 표시. 예전 흰 글자 + 파란 밑줄(--brand-mid)은
-   남색 바 위에서 밑줄이 거의 안 보여 어느 탭인지 덜 드러났음. 밑줄 막대는 뺌(2026-09-30 요청) */
-.tab.active,
-.tab.active:hover {
-  color: var(--header-fg-strong);   /* 라이트 주황 #FF9E1B / 다크 청록 #00AAD2 */
-  font-weight: 600;
+.tab.active { font-weight: 600; }
+.tab.active::after,
+.tab.active:hover::after { transform: scaleX(1); opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tab::after { transition: none; }
 }
 
 /* ─ 태블릿 단계(2026-09-29 통일): 1280 / 1024 / 768. 768 미만(모바일)은 대상 아님 ─ */
 @media (max-width: 1024px) {
   .nav { padding: 0 8px; }
   .tab { padding: 14px 12px; }
+  .tab::after { left: 12px; right: 12px; }
 }
 @media (max-width: 768px) {
   .tab { padding: 14px 8px; font-size: 13px; letter-spacing: 0; }
+  .tab::after { left: 8px; right: 8px; }
 }

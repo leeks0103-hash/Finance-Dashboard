@@ -91,6 +91,17 @@
 .warn   .value { color: var(--warn); }
 .purple .value { color: var(--purple); }
 
+/* 값 옆 보조 수치(valueNote) — 값과 같은 줄 기준선, 작고 옅게 */
+.valueNote {
+  margin-left: 8px;
+  font-family: inherit;
+  font-size: 0.42em;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--text-sub);
+  white-space: nowrap;
+}
+
 /* ── 보조 텍스트 ── */
 .sub {
   font-size: 0.72rem;

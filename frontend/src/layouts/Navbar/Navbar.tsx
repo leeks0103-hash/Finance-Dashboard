@@ -35,7 +35,7 @@ const SunIcon = () => (
 
 const Navbar = () => {
   const { theme, toggle: toggleTheme } = useTheme();
-  const { showRawValues, toggleRawValues } = useUiStore();
+  const { showRawValues, toggleRawValues, showFinCompare, toggleFinCompare } = useUiStore();
   // 그래프 수치 — 켤 때/끌 때 페이드(끌 때는 투명해진 뒤 숨김)
   const chartLabels = useChartLabelToggle();
   const [open, setOpen] = useState(false);
@@ -331,6 +331,17 @@ const Navbar = () => {
                 <div className={styles.row}>
                   <span className={styles.rowText}>{showRawValues ? '원 단위' : '억/만 반올림'}</span>
                   <Toggle checked={showRawValues} onChange={toggleRawValues} />
+                </div>
+              </div>
+
+              <div className={styles.divider} />
+
+              {/* 완료 프로젝트 재무 대조 — 프로젝트 상세에 재무 이력(완료) 매출·직접원가 컬럼을 붙이고 비교 칸 테두리를 빛나게 */}
+              <div className={styles.section}>
+                <span className={styles.sectionLabel}>재무 대조(완료 프로젝트)</span>
+                <div className={styles.row}>
+                  <span className={styles.rowText}>{showFinCompare ? '실적현황 ↔ 재무 이력' : '끔'}</span>
+                  <Toggle checked={showFinCompare} onChange={toggleFinCompare} />
                 </div>
               </div>
 

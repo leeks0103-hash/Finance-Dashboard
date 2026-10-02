@@ -11,8 +11,6 @@
   --header-bg:         #002C5F;
   --header-border:     rgba(255,255,255,0.06);
   --header-title:      #FF9E1B;
-  --header-fg:         #E4DCD3;   /* 안 고른 탭 — Hyundai Sand */
-  --header-fg-strong:  #FF9E1B;   /* 탭 호버·선택 */
   --header-ctl-bg:     rgba(255,255,255,0.12);
   --header-ctl-bg-hover: rgba(255,255,255,0.22);
   --header-ctl-border: rgba(255,255,255,0.25);
@@ -46,6 +44,8 @@
   --bg:           #FFFFFF;   /* White — 페이지 배경 */
   --bg-subtle:    #EDE8E4;   /* Light Sand↔Sand 파생 — 행 호버·칩·합계행 */
   --bg-subtle-soft: rgba(237,232,228,0.5);   /* bg-subtle 절반 알파 — 고정값 컬럼처럼 은은하게만 표시할 때 */
+  --emphasis-col-bg: #FFF7DC;   /* 강조 컬럼 — 연한 바나나우유색(9색 밖, 2026-10-02 사용자 지정) */
+  --filled-cell-bg: rgba(170,202,230,0.22);   /* 값이 채워진 칸 — 아주 연한 Sky Blue(KPI 취합 목표·실적, 2026-10-02) */
   --bg-header:    #F6F3F2;   /* Hyundai Light Sand (PMS Warm Gray 1C 30%) — 테이블 헤더 */
   --border:       #D9CEC1;   /* Sand 파생 — 어둡게 */
   --border-table: #E0D7CC;   /* Sand 파생 */
@@ -74,8 +74,6 @@
   --header-bg:         #00182F;
   --header-border:     rgba(255,255,255,0.06);
   --header-title:      #FF9E1B;
-  --header-fg:         #E4DCD3;
-  --header-fg-strong:  #00AAD2;   /* 탭 호버·선택 — 다크 주력색 Active Blue(청록). 제목은 로고와 맞춰 주황 유지(2026-10-01) */
   --header-ctl-bg:     rgba(255,255,255,0.12);
   --header-ctl-bg-hover: rgba(255,255,255,0.22);
   --header-ctl-border: rgba(255,255,255,0.25);
@@ -109,6 +107,8 @@
   --bg:           #001322;   /* Blue 딥 */
   --bg-subtle:    #14304D;   /* Blue mid-dark */
   --bg-subtle-soft: rgba(20,48,77,0.5);   /* bg-subtle 절반 알파 — 고정값 컬럼처럼 은은하게만 표시할 때 */
+  --emphasis-col-bg: rgba(255,214,120,0.10);   /* 강조 컬럼 — 남색 위에 옅은 노랑 */
+  --filled-cell-bg: rgba(170,202,230,0.10);   /* 값이 채워진 칸 — 남색 위 옅은 Sky Blue */
   --border:       #22405F;   /* 블루그레이 */
   --border-table: #22405F;
   --border-focus: #00AAD2;

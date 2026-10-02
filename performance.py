@@ -493,13 +493,118 @@ def api_perf_options():
     return jsonify({"parts": parts, "teams": teams, "team_parts": team_parts, "progress": progress})
 
 
+# 매출행·원가행 값이 서로 다른(원가행에도 값이 있는) 필드 — 한 줄로 합칠 때 원가행 값을 `cost__<필드>`로 따로 싣는다.
+# 프론트는 이 필드들을 "(매출)/(원가)" 두 컬럼으로 나눠 보여줌(2026-10-02 요청).
+# 2026-10-02 실데이터 298쌍 전수 확인 기준. 원가행이 항상 0/빈 값인 필드(손익·원가 구성·원가율 등)는 매출행 전용이라 제외.
+# 과정·차수·인원(계획·점검)·계획 대비 차이 금액(AX)은 원가행에도 값이 있지만 무조건 매출행 기준(2026-10-02 요청)이라 제외
+PERF_COST_SIDE_FIELDS = [
+    "plan_initial", "jun_check_total", "actual_2025", "budget_code", "biz_type2",
+    "jun_est", "jun_actual", "est_vs_actual", "cost_rate_reason",
+    "plan_diff_rate", "plan_diff_reason",
+    "change_note",
+    "balance_amount", "balance_rate", "dup_check", "ref_code",
+    "sa_direct_total", "sa_instructor", "sa_sub_instructor", "sa_venue", "sa_practice", "sa_textbook",
+    "sa_other_direct", "sa_overhead_total", "sa_refreshment", "sa_edu_venue", "sa_parking",
+    "sa_sw_practice", "sa_intern", "sa_labor_total", "sa_regular", "sa_overhead_cost", "note",
+]
+# 매출행·원가행이 항상 같은 식별 필드 — 원가행만 있는 줄에서도 이건 채운다
+_PERF_SHARED_FIELDS = [
+    "tech_category", "team", "part", "use_yn", "biz_division", "biz_type", "customer_type", "biz_plan",
+    "progress", "edu_type", "project_code", "project_name", "manager", "filename", "_row_num",
+]
+
+
+def _merge_rev_cost_rows(rows: pd.DataFrame, group_no: pd.Series) -> pd.DataFrame:
+    """매출행 + 바로 뒤 원가행을 한 줄로 — 프로젝트 상세 표용.
+
+    한 묶음(group_no) 안에서 매출행이 나올 때마다 새 줄을 시작하고, 이어지는 원가행 하나를 그 줄에 붙인다.
+    대부분은 매출+원가 1쌍이지만 실데이터엔 한 묶음에 쌍이 둘(K뉴딜 아카데미), 매출만 둘(전기오류 일괄 인식),
+    원가만 있는 묶음(매출·원가행 프로젝트명 오타)도 있어 쌍 단위로 자른다.
+    - 기본 필드는 매출행 값, 원가행 값은 PERF_COST_SIDE_FIELDS에 한해 `cost__<필드>`로
+    - plan_cost = 원가행 사업계획(V열)
+    - est_cost  = 당월 추정 직접원가 = 원가행 BH, est_gross = 매출 이익 = 매출행 BH − 원가행 BH(엑셀 AR17 − AR18과 같은 식).
+      2026-10-02 사용자 정의대로 원가행에서 직접 읽음 — 매출행 BB(cost_direct)·BA(profit_gross)와 298쌍 전부 같은 값이었지만
+      한쪽만 손으로 고치면 어긋날 수 있어서. 짝이 없으면(매출행만) 둘 다 비움
+    - 원가행만 있는 줄: 식별 필드 + cost__*·est_cost 만 채우고 매출 쪽 값은 비움
+    - _group_no = 줄 일련번호(페이지를 자르기 전 전체 기준 — 2페이지에서도 NO.가 이어짐)
+    """
+    if rows.empty:
+        return rows.assign(plan_cost=[], _group_no=[])
+    cat = rows["category"]
+    new_pair = (group_no != group_no.shift()) | (cat == "매출") | (cat.shift() == "원가")
+    pair_id = new_pair.cumsum()
+    side_fields = [f for f in PERF_COST_SIDE_FIELDS if f in rows.columns]
+
+    out = []
+    for pid, sub in rows.groupby(pair_id, sort=True):
+        rev  = sub[sub["category"] == "매출"]
+        cost = sub[sub["category"] == "원가"]
+        c = cost.iloc[0] if len(cost) else None
+        if len(rev):
+            rec = rev.iloc[0].to_dict()
+        else:
+            rec = {f: (c[f] if f in _PERF_SHARED_FIELDS else None) for f in rows.columns}
+            rec["category"] = "원가"
+        for f in side_fields:
+            rec[f"cost__{f}"] = c[f] if c is not None else None
+        rec["plan_cost"] = rec["cost__plan_initial"]
+        rec["est_cost"]  = c["jun_check_total"] if c is not None else None
+        rev_bh = rec.get("jun_check_total")
+        rec["est_gross"] = (float(rev_bh) - float(c["jun_check_total"])
+                            if c is not None and pd.notna(rev_bh) and pd.notna(c["jun_check_total"]) else None)
+        rec["_group_no"] = int(pid)
+        out.append(rec)
+    return pd.DataFrame(out)
+
+
+# 완료 프로젝트 — 실적현황 vs 재무 이력(PPT 추출, 완료 단계) 매출·원가 대조(2026-10-02 요청).
+# 매출 = 당월 추정 매출(매출행 BH, jun_check_total) ↔ 재무 revenue / 원가 = 당월 추정 직접원가(원가행 BH, est_cost) ↔ 재무 direct_cost.
+# 실적현황은 천원, 재무는 원 단위. 차이 1,000원 미만은 PPT 표의 천원 반올림이라 같은 값으로 봄
+# (실측: -277·443·-167·208·-186원 같은 차이가 그 경우). 재무 완료 이력이 없으면 비교 안 함
+_FIN_COMPARE_TOLERANCE_WON = 1000
+_FIN_COMPARE_FIELDS = (("jun_check_total", "revenue"), ("est_cost", "direct_cost"))
+
+
+def _attach_finance_mismatch(rows: pd.DataFrame) -> pd.DataFrame:
+    """진행 '완료' 줄에 재무 완료 단계 값(fin_<필드>, 천원)과 다른 필드 목록(fin_mismatch)을 붙인다."""
+    rows = rows.copy()
+    rows["fin_mismatch"] = [[] for _ in range(len(rows))]
+    if rows.empty:
+        return rows
+    try:
+        import finance
+        fdf = finance.get_df()
+    except Exception:
+        logger.warning("재무 이력 대조 실패 — 재무 데이터를 읽지 못함", exc_info=True)
+        return rows
+    if fdf.empty:
+        return rows
+    fin_done = fdf[fdf["stage"] == "완료"].drop_duplicates("project_code", keep="last").set_index("project_code")
+    done_mask = rows["progress"] == "완료"
+    for idx in rows.index[done_mask]:
+        code = str(rows.at[idx, "project_code"]).strip()
+        if code not in fin_done.index:
+            continue
+        f = fin_done.loc[code]
+        diff = []
+        for perf_f, fin_f in _FIN_COMPARE_FIELDS:
+            pv, fv = rows.at[idx, perf_f], f[fin_f]
+            if pd.isna(pv) or pd.isna(fv):
+                continue
+            rows.at[idx, f"fin_{perf_f}"] = float(fv) / 1000
+            if abs(float(pv) * 1000 - float(fv)) >= _FIN_COMPARE_TOLERANCE_WON:
+                diff.append(perf_f)
+        rows.at[idx, "fin_mismatch"] = diff
+    return rows
+
+
 @perf_bp.route("/api/performance/data")
 def api_perf_data():
     df = apply_perf_filters(get_perf_df())
     if df.empty:
         return jsonify({"data": [], "total": 0})
-    # 매출 행 + 원가 행 둘 다 반환 (프로젝트코드당 2행) — 프론트에서 '구분' 컬럼으로 구분하고
-    # 값이 같은 컬럼은 세로 병합해서 보여준다. 집계(summary)는 계속 rev/cost를 분리해 사용.
+    # 프로젝트당 한 줄 — 엑셀은 매출행+원가행 2행이지만 표에선 매출행에 원가행의 사업계획 원가(plan_cost)를
+    # 붙여 한 줄로 내려준다(2026-10-02 요청, 예전엔 2행 + 프론트 세로 병합). 집계(summary)는 계속 rev/cost 분리.
     rows = df.copy()
     rows["_row_num"] = rows.index
 
@@ -523,8 +628,6 @@ def api_perf_data():
                     mask |= rows[col].astype(str).str.lower().str.contains(s, regex=False, na=False)
         rows = rows[mask]
 
-    total = len(rows)
-
     # 묶음(프로젝트) 일련번호 — 매출/원가 2행이 한 묶음이라 행 번호로는 NO.가 어긋난다.
     # 페이지를 자르기 **전에** 전체 기준으로 매겨야 2페이지에서도 번호가 이어짐.
     # project_code 단독 비교는 "생성예정"/"드롭"/"미생성" 같은 placeholder 코드가 서로
@@ -540,7 +643,11 @@ def api_perf_data():
         code = rows["project_code"].astype(str).str.strip()
         is_real_code = code.str.fullmatch(r"[A-Za-z]\d{10,}").fillna(False)
         group_key = code.where(is_real_code, code + "␟" + rows["project_name"].astype(str))
-        rows["_group_no"] = (group_key != group_key.shift()).cumsum()
+        group_no = (group_key != group_key.shift()).cumsum()
+        rows = _merge_rev_cost_rows(rows, group_no)
+        rows = _attach_finance_mismatch(rows)
+
+    total = len(rows)
 
     try:
         page      = max(1, int(request.args.get("page", 1)))
@@ -549,7 +656,11 @@ def api_perf_data():
         page, page_size = 1, 30
 
     start = (page - 1) * page_size
-    return jsonify({"data": rows.iloc[start:start + page_size].to_dict(orient="records"), "total": total})
+    # 빈 칸(원가 짝 없음·재무 대조 대상 아님 등)은 NaN으로 남는데, NaN은 JSON이 아니라 브라우저가 응답 전체를 못 읽음
+    # (2026-10-02 표가 "0건"으로 보였던 원인) → None(null)으로 바꿔 보냄
+    page_df = rows.iloc[start:start + page_size]
+    page_df = page_df.astype(object).where(pd.notna(page_df), None)
+    return jsonify({"data": page_df.to_dict(orient="records"), "total": total})
 
 
 @perf_bp.route("/api/performance/summary")
@@ -593,6 +704,10 @@ def api_perf_summary():
         "est_gross":        _est_rev - _est_cost,
         # 계획 대비 누계 진행률 = 누계매출 ÷ 계획매출 × 100
         "achieve_rate":     _ratio(_acc_rev, _plan_rev),
+        # 추정 대비 누계 진행률 = 누계매출 ÷ 연간 추정매출 × 100 — 누계 실적 카드 옆 표시(2026-10-02)
+        "est_progress_rate": _ratio(_acc_rev, _est_rev),
+        # 원가도 같은 방식 — 누계원가(원가행 1~기준월) ÷ 연간 추정원가(원가행 BH) × 100
+        "est_cost_progress_rate": _ratio(float(cost["jun_actual"].sum()), _est_cost),
         # 전월대비 diff(천원) — monthly 계산 후 아래에서 채움
         "mom_revenue":      None,
         "mom_gross":        None,
@@ -620,6 +735,8 @@ def api_perf_summary():
             # 파생값(프론트 계산 이전) — 누계 원가율 · 계획 대비 진행률
             "cost_rate":     _ratio(float(cost_grp["jun_actual"].sum()), float(rev_grp["jun_actual"].sum())),
             "achieve_rate":  _ratio(float(rev_grp["jun_actual"].sum()), float(rev_grp["plan_initial"].sum())) or 0.0,
+            # 추정 대비 누계 진행률 — 파트별 매출 진행 현황 막대(2026-10-02: 분모를 계획 → 연간 추정으로)
+            "est_progress_rate": _ratio(float(rev_grp["jun_actual"].sum()), float(rev_grp["jun_check_total"].sum())) or 0.0,
             # 원가 구성 (도넛 차트용)
             "cost_direct":   float(rev_grp["cost_direct"].sum()),
             "cost_labor":    float(rev_grp["cost_labor"].sum()),
@@ -802,13 +919,14 @@ _PERF_BREAKDOWN = {
     },
     "partAchievement": {
         "dim": "part",
-        "agg_desc": "선택 파트의 프로젝트별 누계 실적(1~기준월)을 더한 값입니다. 달성률 = 이 합계 ÷ 연간 계획 합계 × 100.",
+        "agg_desc": "선택 파트의 프로젝트별 누계 실적(1~기준월)을 더한 값입니다. 진행률 = 이 합계 ÷ 연간 추정 합계 × 100.",
         "pair": True,
         "series": [
             {"label": "누계 실적", "role": "actual", "category": "매출", "field": "jun_actual",
              "field_desc": "매출행의 경과월 누계 실적 (chk_m01~기준월 재합산값)"},
-            {"label": "연간 계획", "role": "plan", "category": "매출", "field": "plan_initial",
-             "field_desc": "매출행의 최초 사업계획 (엑셀 V열)"},
+            # 분모를 연간 계획 → 연간 추정으로(2026-10-02). role "plan"은 비교표의 분모 칸이라는 뜻
+            {"label": "연간 추정", "role": "plan", "category": "매출", "field": "jun_check_total",
+             "field_desc": "매출행의 연간 추정 합계 (1~12월, 미래월 추정 포함)"},
         ],
     },
     "costBreakdown": {

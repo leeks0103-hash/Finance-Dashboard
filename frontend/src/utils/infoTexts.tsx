@@ -120,13 +120,13 @@ export const INFO_PROGRESS = (
 export const infoAchievementBars = (actualRange: string) => (
   <InfoTable rows={[
     ['출처',   '실적현황 엑셀'],
-    ['계산',   `${actualRange} ÷ ${PERF_COL.planInitial}열(매출 계획) × 100`],
+    ['계산',   `${actualRange} ÷ ${PERF_COL.checkTotal}열(연간 추정 매출) × 100`],
     ['기준선', <>
-      분자는 <b>N개월 누계</b>인데 분모는 <b>연간 계획</b>이라, 경과 시점(예: 8월 = 66.7%)까지는
+      분자는 <b>N개월 누계</b>인데 분모는 <b>연간 추정</b>(1~12월)이라, 경과 시점(예: 8월 = 66.7%)까지는
       100%에 못 미치는 게 정상입니다. 트랙 위 세로선이 그 <b>정상 페이스 위치</b> —
       막대가 이 선을 넘으면 계획보다 앞선 것입니다.
     </>],
-    ['색상',   '100% 이상 Hyundai Blue / 70~100% Sky Blue / 70% 미만 Hyundai Gold'],
+    ['색상',   '진행률 30% · 60% · 100% 구간별 4색 — 차트 오른쪽 위 범례 참고'],
     ['필터',   '파트 · 팀 필터 적용'],
   ]} />
 );
@@ -167,14 +167,15 @@ export const INFO_INSIGHT = (
 export const INFO_PROJECT_TABLE = (
   <InfoTable rows={[
     ['출처',    '실적현황 엑셀'],
-    ['대상',    '카테고리 = 매출 행 (1행 = 1프로젝트)'],
-    ['좌측 선', <>
-      <span style={{ color: 'var(--loss)', fontWeight: 700 }}>빨강</span>: 손익 {'<'} 0
+    ['대상',    '1행 = 1프로젝트 — 엑셀의 매출 행에 원가 행의 사업계획 원가를 붙여 한 줄로'],
+    ['컬럼', <>
+      사업계획 매출·원가 = {PERF_COL.planInitial}열(매출 행 / 원가 행)
       <br />
-      <span style={{ color: 'var(--warn)', fontWeight: 700 }}>노랑</span>: 이익율 {'<'} 5%
+      당월 추정 매출 = {PERF_COL.checkTotal}열 · 당월 추정 직접원가 = 직접원가 열
       <br />
-      <span style={{ fontSize: '0.82em', color: 'var(--text-muted)' }}>(호버 시 배경 강조)</span>
+      매출 이익 = 당월 추정 매출 − 당월 추정 직접원가
     </>],
+    ['강조',    '경상손익 · 손익률 컬럼은 연한 노랑 음영'],
     ['더블클릭','재무 PPT 이력 팝업 표시'],
     ['필터',    '파트 · 팀 필터 + 검색어 적용'],
   ]} />

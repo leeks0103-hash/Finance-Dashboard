@@ -1027,11 +1027,14 @@ const DataTable = <T extends object>({
                           const formatTitle = cell.column.columnDef.meta?.formatTitle;
                           const cellTitle = formatTitle ? formatTitle(raw) : (text || undefined);
                           const isMuted = !!cell.column.columnDef.meta?.cellMuted?.(row.original);
+                          const flag = cell.column.columnDef.meta?.cellFlag?.(row.original);
+                          const tint = cell.column.columnDef.meta?.cellTint?.(row.original);
+                          const glow = !!cell.column.columnDef.meta?.cellGlow?.(row.original);
                           return (
                             <td
                               key={cell.id}
                               rowSpan={isMerged ? group.length : undefined}
-                              title={cellTitle}
+                              title={flag ?? cellTitle}
                               onClick={isLong ? () => {
                                 const onOpenFile = cell.column.columnDef.meta?.onOpenFile;
                                 // 팝업 제목 = 클릭한 컬럼 이름(파일명·비고…) — 예전엔 전부 "셀 내용"
@@ -1052,8 +1055,12 @@ const DataTable = <T extends object>({
                                 (canExpand || searchOnDblClick?.includes(cell.column.id)) ? styles.dblClickable : '',
                                 cell.column.id === '__index' ? styles.indexCell : '',
                                 cell.column.columnDef.meta?.staticCol ? styles.staticCol : '',
+                                cell.column.columnDef.meta?.emphasisCol ? styles.emphasisCol : '',
                                 highlightedCol === cell.column.id ? styles.tdHighlighted : '',
                                 isMuted ? styles.cellMuted : '',
+                                flag ? styles.cellFlagged : '',
+                                tint === 'static' ? styles.tintStatic : tint === 'filled' ? styles.tintFilled : '',
+                                glow ? styles.cellGlow : '',
                               ].join(' ') || undefined}
                             >
                               {flexRender(cell.column.columnDef.cell, cell.getContext())}

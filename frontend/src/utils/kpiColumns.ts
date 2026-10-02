@@ -61,17 +61,41 @@ export const kpiRawColSize = (col: string): number => {
   return Math.max(90, Math.ceil((headerTextWidth(kpiColLabel(col)) + 40) / 10) * 10);
 };
 
+/** 미입력으로 보는 표기 — 공란·하이픈류(-, －, ‐, –, —) */
+const EMPTY_MARKS = new Set(['', '-', '－', '‐', '–', '—']);
+
 /**
- * KPI 취합 셀 값 정규화 — 미입력/0은 "-", 명시적 해당없음(N/n)은 "N".
+ * KPI 취합 셀 값 정규화 — 미입력(공란·하이픈·0)과 해당없음(N/n)은 전부 "N"(2026-10-02 요청).
  * 숫자는 자릿수 맞춤 없이 값 그대로, 소수점은 둘째 자리까지(2026-10-01 — 예전 적절성 "4.0" 고정 폐기)
  */
 export const cellVal = (v: unknown): string => {
-  if (v === null || v === undefined || v === '' || v === 0 || v === '0') return '-';
+  if (v === null || v === undefined || v === 0) return 'N';
   const s = String(v).trim();
-  if (s === 'N' || s === 'n') return 'N';
+  if (EMPTY_MARKS.has(s) || s === '0' || s === 'n') return 'N';
   if (typeof v === 'number' && Number.isFinite(v)) return String(Math.round(v * 100) / 100);
   return s;
 };
+
+/**
+ * KPI 취합 칸 음영(2026-10-02 요청) — 'static' = 26년 목표(사업계획): 값이 안 바뀌는 고정값이라 KPI 집계 고정 컬럼과 같은 색,
+ * 'filled' = 26년 목표(프로젝트)·26년 실적(프로젝트)·25년 실적(유사) 중 값이 있는(N이 아닌) 칸 — 아주 연한 하늘색.
+ * kind는 사업계획 / PJ목표 / PJ실적 / PJ유사 (flat 컬럼명 끝, KPI 상세 뷰는 컬럼 id로 변환해 넘김)
+ */
+export type KpiCellTint = 'static' | 'filled' | undefined;
+export const kpiCellTint = (kind: string, value: unknown): KpiCellTint => {
+  if (kind === '사업계획') return 'static';
+  if (kind === 'PJ목표' || kind === 'PJ실적' || kind === 'PJ유사') return cellVal(value) !== 'N' ? 'filled' : undefined;
+  return undefined;
+};
+/** flat 컬럼명("NPS_PJ목표")에서 kind("PJ목표") — 지표 컬럼이 아니면 '' */
+export const kpiColKind = (col: string): string => {
+  const m = col.match(/_(사업계획|PJ목표|PJ실적|PJ유사)$/);
+  return m ? m[1] : '';
+};
+
+/** KPI 지표 값 컬럼인지 — 식별자(코드·연도·파트·단계)·파일명·일시를 뺀 나머지(비고는 목록에서 이미 제외) */
+export const isKpiMetricCol = (col: string): boolean =>
+  !FRONT.includes(col) && !TAIL.includes(col);
 
 const IMPLAUSIBLE_SCORE_THRESHOLD = 10;
 
@@ -97,8 +121,5 @@ const COMPLETE_STAGE = '완료';
 export const isPrematureActualRow = (row: Record<string, unknown>, metricKey: string): boolean => {
   const stage = String(row['보고단계'] ?? '').trim();
   if (!stage || stage === COMPLETE_STAGE) return false;
-  const v = row[`${metricKey}_PJ실적`];
-  if (v === null || v === undefined || v === '' || v === 0 || v === '0') return false;
-  const s = String(v).trim();
-  return s !== 'N' && s !== 'n';
+  return cellVal(row[`${metricKey}_PJ실적`]) !== 'N';   // 하이픈 등 미입력 표기는 채워진 걸로 안 봄
 };

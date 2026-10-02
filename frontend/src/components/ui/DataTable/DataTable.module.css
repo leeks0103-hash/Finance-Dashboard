@@ -418,6 +418,38 @@
 .table tbody tr:hover td.staticCol,
 .table td.staticCol.tdHighlighted { background: var(--brand-bg); }
 
+/* 핵심 지표 강조 컬럼 (ColumnMeta.emphasisCol) — 연한 바나나우유색(2026-10-02 요청, 경상손익·손익률).
+   현대 9색 밖의 색이지만 사용자가 직접 지정. 셀에만(헤더 th는 칠하지 않음 — 요청). 호버·컬럼 하이라이트는 staticCol처럼 덮어씀 */
+.table td.emphasisCol { background: var(--emphasis-col-bg); }
+.table tbody tr:hover td.emphasisCol,
+.table td.emphasisCol.tdHighlighted { background: var(--brand-bg); }
+
+/* 값 불일치 등 문제 셀 (ColumnMeta.cellFlag) — 그 칸만 빨간 배경 + 빨간 글자. 행 호버보다 우선 */
+.table td.cellFlagged,
+.table tbody tr:hover td.cellFlagged { background: var(--danger-bg); color: var(--danger); font-weight: 600; }
+
+/* 빛나는 테두리 (ColumnMeta.cellGlow) — 안쪽 테두리 + 안쪽 번짐이 1.6초 주기로 밝아졌다 어두워짐.
+   box-shadow라 칸 폭·표 레이아웃은 안 바뀜. 색은 Active Blue(--accent). 움직임 줄이기 설정이면 정지 */
+@keyframes cellGlowPulse {
+  0%, 100% { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 50%, transparent),
+                         inset 0 0 6px color-mix(in srgb, var(--accent) 10%, transparent); }
+  50%      { box-shadow: inset 0 0 0 2px var(--accent),
+                         inset 0 0 14px color-mix(in srgb, var(--accent) 35%, transparent); }
+}
+.table td.cellGlow { animation: cellGlowPulse 1.6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .table td.cellGlow { animation: none; box-shadow: inset 0 0 0 2px var(--accent); }
+}
+
+/* 셀 음영 (ColumnMeta.cellTint) — 셀만(헤더 제외). static = 고정값(KPI 집계 고정 컬럼 soft와 같은 색), filled = 값 있음.
+   행 호버·컬럼 하이라이트가 덮어씀 */
+.table td.tintStatic { background: var(--bg-subtle-soft); }
+.table td.tintFilled { background: var(--filled-cell-bg); }
+.table tbody tr:hover td.tintStatic,
+.table tbody tr:hover td.tintFilled,
+.table td.tintStatic.tdHighlighted,
+.table td.tintFilled.tdHighlighted { background: var(--brand-bg); }
+
 /* staticColShade="soft" 테이블 전용 — 기본 음영이 너무 진하다는 피드백으로 절반 알파 버전 (KPI 집계) */
 .table.staticColSoft th.staticCol,
 .table.staticColSoft td.staticCol { background: var(--bg-subtle-soft); }

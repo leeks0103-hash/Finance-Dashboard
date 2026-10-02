@@ -58,7 +58,7 @@ const PartAchievementBars = ({ rows, month, info, onPartClick }: Props) => {
               ))}
             </div>
             <span />
-            <span className={styles.valsHeaderLabel}>누계매출 / 계획매출</span>
+            <span className={styles.valsHeaderLabel}>누계매출 / 추정매출</span>
           </div>
 
           {sorted.map(row => {
@@ -87,7 +87,7 @@ const PartAchievementBars = ({ rows, month, info, onPartClick }: Props) => {
                 </span>
 
                 <span className={styles.vals}>
-                  {row.junActualNum.toFixed(1)}억 <span className={styles.slash}>/</span> {row.planInitialNum.toFixed(1)}억
+                  {row.junActualNum.toFixed(1)}억 <span className={styles.slash}>/</span> {row.junCheckTotalNum.toFixed(1)}억
                 </span>
               </>
             );

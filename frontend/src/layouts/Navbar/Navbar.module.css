@@ -78,10 +78,10 @@
 .brand {
   margin: 0;
   font-size: 16px;
-  font-weight: 500;   /* 탭 글자(TabNav .tab 500)와 같은 굵기 — 700은 부담스럽다는 의견(2026-10-01) */
+  font-weight: 600;   /* 선택된 탭(TabNav .tab.active)과 같은 굵기·자간(2026-10-01 요청). 색은 로고와 맞춘 주황 */
   line-height: 1;
   color: var(--header-title);
-  letter-spacing: -0.01em;
+  letter-spacing: 0.03em;
   white-space: nowrap;
 }
 

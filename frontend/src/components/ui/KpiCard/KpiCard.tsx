@@ -7,6 +7,8 @@ interface Props {
   value:    string;
   accent:   KpiAccent;
   sub?:     string;
+  /** 값 바로 옆에 작게 붙는 보조 수치 — 예: "진행률 39.6%" */
+  valueNote?: string;
   trend?:   string | null;
   trendUp?: boolean;
   /** 추가 클래스 — 다른 카드와 나란히 놓일 때 그 화면 쪽에서만 크기 등을 보정하려는 용도.
@@ -44,7 +46,7 @@ const BgIcon = ({ up }: { up: boolean }) => (
   </svg>
 );
 
-const KpiCard = ({ label, value, accent, sub, trend, trendUp = false, className }: Props) => {
+const KpiCard = ({ label, value, accent, sub, valueNote, trend, trendUp = false, className }: Props) => {
   return (
     <div className={`${styles.card} ${styles[accent]}${className ? ` ${className}` : ''}`}>
       {/* 배경 아이콘 (은은하게) */}
@@ -58,7 +60,10 @@ const KpiCard = ({ label, value, accent, sub, trend, trendUp = false, className 
           </span>
         )}
       </div>
-      <div className={styles.value}>{value}</div>
+      <div className={styles.value}>
+        {value}
+        {valueNote && <span className={styles.valueNote}>{valueNote}</span>}
+      </div>
       {sub && <div className={styles.sub}>{sub}</div>}
       {/* 스파크라인 — flat 카드에서 은은한 배경 그래프 */}
       <div className={styles.sparkWrap}>

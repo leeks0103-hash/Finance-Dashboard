@@ -11,7 +11,7 @@ import {
   useColumnHighlight, useClipboardPopup, useTableEscapePriority, useTableDndSensors,
   SortableHeaderCell, CellPopup, TableTitleBar,
 } from '@/components/ui';
-import { cellVal, isImplausibleScoreRow, isPrematureActualRow } from '@/utils/kpiColumns';
+import { cellVal, isImplausibleScoreRow, isPrematureActualRow, kpiCellTint } from '@/utils/kpiColumns';
 import { openKpiFileOrAlert } from '@/hooks/useOpenFile';
 import { usePageSwapClass } from '@/components/ui/useAnimatedClose';
 import styles from './KpiRawTable.module.css';
@@ -56,6 +56,9 @@ const COLS: ColDef[] = [
   { id: 'modifiedAt',  header: '최종수정일시',         rowspan: true,  defaultWidth: 150, getValue: r => String(r['최종수정일시'] ?? '') },
   { id: 'filename',    header: '파일명',               rowspan: true,  defaultWidth: 200, getValue: r => String(r['파일명'] ?? '') },
 ];
+
+// 컬럼 id → 칸 음영 종류(kpiCellTint) — 목록 뷰의 컬럼명 끝(_사업계획 등)과 같은 규칙
+const TINT_KIND: Record<string, string> = { plan: '사업계획', target: 'PJ목표', actual: 'PJ실적', similar: 'PJ유사' };
 
 const LS_ORDER = 'kpi-raw-col-order';
 const LS_SIZES = 'kpi-raw-col-sizes';
@@ -272,6 +275,7 @@ const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, searchE
                       // rowspan 컬럼은 첫 번째 KPI 행에만 출력
                       if (col.rowspan && mi > 0) return null;
                       const val = col.getValue(row, m.key);
+                      const tint = TINT_KIND[col.id] ? kpiCellTint(TINT_KIND[col.id], val) : undefined;
                       return (
                         <td
                           key={col.id}
@@ -281,6 +285,7 @@ const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, searchE
                             col.id === 'label' ? styles.labelCell : col.rowspan ? styles.metaCell : styles.numCell,
                             col.id === 'filename' && val ? styles.clickable : '',
                             highlightedCol === col.id ? styles.tdHighlighted : '',
+                            tint === 'static' ? styles.tintStatic : tint === 'filled' ? styles.tintFilled : '',
                           ].join(' ')}
                           title={val}
                           onClick={col.id === 'filename' && val ? () => openPopup(val, true, () => handleOpenFile(val)) : undefined}

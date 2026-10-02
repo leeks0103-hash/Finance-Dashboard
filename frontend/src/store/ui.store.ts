@@ -8,6 +8,11 @@ interface UiStore {
   showRawValues: boolean;
   toggleRawValues: () => void;
 
+  /** 완료 프로젝트 재무 대조 모드 — 켜면 프로젝트 상세에 재무 이력(완료) 매출·직접원가 컬럼이 실적현황 값 옆에 붙고
+   *  비교 대상 칸 테두리가 빛남(2026-10-02). Navbar 설정에서 토글 */
+  showFinCompare: boolean;
+  toggleFinCompare: () => void;
+
   lastLoaded: string | null;
   setLastLoaded: (v: string | null) => void;
 
@@ -47,6 +52,9 @@ export const useUiStore = create<UiStore>()(
       showRawValues: false,
       toggleRawValues: () => set(s => ({ showRawValues: !s.showRawValues })),
 
+      showFinCompare: false,
+      toggleFinCompare: () => set(s => ({ showFinCompare: !s.showFinCompare })),
+
       lastLoaded: null,
       setLastLoaded: (v) => set({ lastLoaded: v }),
 
@@ -67,9 +75,9 @@ export const useUiStore = create<UiStore>()(
     }),
     {
       name: 'ui-store',
-      // 그래프 수치·표 실제값·달성률·바로가기 공개 범위·투어 시청 여부만 로컬에 저장 — 나머지는 세션 한정
+      // 그래프 수치·표 실제값·재무 대조·달성률·바로가기 공개 범위·투어 시청 여부만 로컬에 저장 — 나머지는 세션 한정
       partialize: (s) => ({
-        showChartLabels: s.showChartLabels, showRawValues: s.showRawValues, tourSeen: s.tourSeen,
+        showChartLabels: s.showChartLabels, showRawValues: s.showRawValues, showFinCompare: s.showFinCompare, tourSeen: s.tourSeen,
         showAchieveRate: s.showAchieveRate, fileOpenVisibility: s.fileOpenVisibility,
       }),
     },

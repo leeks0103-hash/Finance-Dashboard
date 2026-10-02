@@ -10,7 +10,7 @@ import { useSwapView } from '@/components/ui/useAnimatedClose';
 import KpiRawTable from '@/components/features/KpiRawTable/KpiRawTable';
 import KpiBreakdownModal from '@/components/features/KpiBreakdownModal/KpiBreakdownModal';
 import KpiExcludeIndicator from '@/components/features/KpiExcludeIndicator/KpiExcludeIndicator';
-import { kpiColLabel, kpiRawColSize } from '@/utils/kpiColumns';
+import { cellVal, isKpiMetricCol, kpiCellTint, kpiColKind, kpiColLabel, kpiRawColSize } from '@/utils/kpiColumns';
 import type { KpiRawRow } from '@/types/kpi.types';
 import type { KpiSummaryRow } from '@/hooks/viewmodels/useKpiPageViewModel';
 import styles from './KpiPage.module.css';
@@ -107,13 +107,18 @@ const KpiPage = () => {
         size: kpiRawColSize(col),
         cell: i => {
           const v = i.getValue();
-          if (v === null || v === undefined || v === 0 || v === '') return '-';
           const query = i.table.options.meta?.searchQuery;
+          // 지표 값은 미입력(공란·하이픈·0)을 전부 N으로 — KPI 상세 뷰와 같은 cellVal
+          if (isKpiMetricCol(col)) return <HighlightText text={cellVal(v)} query={query} />;
+          if (v === null || v === undefined || v === 0 || v === '') return '-';
           if (col === '프로젝트코드' && typeof v === 'string' && v.trim())
             return <CopyText text={v} highlight={query} />;
           return <HighlightText text={String(v)} query={query} />;
         },
-        meta: col === '파일명' ? { onOpenFile: openFile, cellPopup: true } : undefined,
+        meta: col === '파일명' ? { onOpenFile: openFile, cellPopup: true }
+          // 목표·실적 칸 음영 — 사업계획은 고정값 색, 나머지는 값 있는 칸만 연한 하늘색(KPI 상세 뷰와 같은 규칙)
+          : kpiColKind(col) ? { cellTint: (r: KpiRawRow) => kpiCellTint(kpiColKind(col), r[col]) }
+          : undefined,
       })
     ),
     [vm.rawCols],

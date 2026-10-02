@@ -162,6 +162,11 @@
   background: rgba(255,255,255,0.03);
 }
 
+/* 목표·실적 칸 음영(2026-10-02) — 사업계획은 고정값 색, 나머지는 값 있는(N 아닌) 칸만 아주 연한 하늘색.
+   짝수 행 줄무늬보다 우선(특이도 ↑), 아래 오입력 의심(!important)보다는 아래 */
+.table tr td.tintStatic { background: var(--bg-subtle-soft); }
+.table tr td.tintFilled { background: var(--filled-cell-bg); }
+
 /* 원본 오입력 의심 경고 — (1) 적절성 지표인데 값이 비정상적으로 큼 (2) 완료 전 단계인데 실적 조기입력 */
 .suspicious td:not(.spanCell) {
   background: rgba(230,51,18,0.14) !important;

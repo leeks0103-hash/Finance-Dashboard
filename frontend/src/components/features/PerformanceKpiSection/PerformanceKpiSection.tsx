@@ -88,6 +88,7 @@ const PerformanceKpiSection = ({ cards }: Props) => {
                   value={card.value}
                   accent={card.accent}
                   sub={card.sub}
+                  valueNote={card.valueNote}
                   trendUp={card.trendUp}
                   trend={card.trend}
                   className="perf-kpi-card"
