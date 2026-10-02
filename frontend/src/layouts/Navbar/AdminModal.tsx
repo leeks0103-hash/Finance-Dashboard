@@ -115,7 +115,7 @@ const AdminModal = ({ extractJob, onClose }: Props) => {
     <Modal title="관리자용 기능" sub={sub} width={560} onClose={onClose}>
       {!extractJob.isAuthed ? (
         <div className={styles.auth}>
-          <Button variant="primary" size="sm" onClick={handleExtractAuth} disabled={extractJob.isAuthing}>
+          <Button variant="primary" className={styles.authBtn} onClick={handleExtractAuth} disabled={extractJob.isAuthing}>
             관리자 인증
           </Button>
           {extractAuthError && <span className={styles.error}>{extractAuthError}</span>}

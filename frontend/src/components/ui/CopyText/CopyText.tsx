@@ -16,6 +16,8 @@ interface Props {
    *  2026-09-15 주석 처리했다가 2026-09-29 복구. 관리자 설정(FileOpenVisibleContext)이 숨김이면 안 보임.
    *  Promise를 돌려주면 끝날 때까지 버튼에 스피너("파일 여는 중") 표시 */
   onOpen?: (text: string) => void | Promise<unknown>;
+  /** 가운데 정렬 칸용 — 오른쪽에 숨겨 둔 호버 복사 아이콘 자리만큼 왼쪽에도 여백을 줘서 글자가 칸 정중앙에 오게 */
+  centered?: boolean;
 }
 
 // 파일 열기 스피너 최소 표시 시간 — 서버가 바로 응답해도 깜빡 지나가지 않게
@@ -32,7 +34,7 @@ const OpenIcon = () => (
 // 복사 완료 표시 길이 — CopyText.module.css .check/.copied 애니메이션(1.5s)과 맞출 것
 const COPIED_MS = 1500;
 
-const CopyText = ({ text, className, highlight, onSearch, onOpen, truncate }: Props) => {
+const CopyText = ({ text, className, highlight, onSearch, onOpen, truncate, centered }: Props) => {
   const [copied, setCopied] = useState(false);
   const [opening, setOpening] = useState(false);
   const canOpen = useContext(FileOpenVisibleContext);
@@ -89,7 +91,7 @@ const CopyText = ({ text, className, highlight, onSearch, onOpen, truncate }: Pr
   return (
     <span className={`${styles.wrap} ${truncate ? styles.truncWrap : ''}`}>
       <span
-        className={`${styles.root} ${truncate ? styles.truncWrap : ''} ${copied ? styles.copied : ''} ${className ?? ''}`}
+        className={`${styles.root} ${truncate ? styles.truncWrap : ''} ${copied ? styles.copied : ''} ${centered && !showOpen ? styles.centered : ''} ${className ?? ''}`}
         onClick={handleClick}
         onDoubleClick={handleDblClick}
         title={title}

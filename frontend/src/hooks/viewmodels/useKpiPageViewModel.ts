@@ -9,7 +9,8 @@ import { makeBarOptions } from '@/utils/chartOptions';
 import { getChartPalette, getChartTheme } from '@/utils/chartColors';
 import { sortKpiRawCols } from '@/utils/kpiColumns';
 import type { KpiRawRow, KpiAnomaly } from '@/types/kpi.types';
-import type { ServerPagination, ServerSearch } from '@/components/ui/DataTable';
+import type { ServerPagination, ServerSearch, ServerSorting } from '@/components/ui/DataTable';
+import { useServerSort } from '@/hooks/useServerSort';
 import type { ChartOptions } from 'chart.js';
 
 export interface KpiChartDataset {
@@ -63,6 +64,8 @@ export interface KpiPageViewModel {
   rawRows:          KpiRawRow[];
   rawCols:          string[];
   serverPagination: ServerPagination;
+  /** 전체 기준 정렬(서버) */
+  serverSorting:    ServerSorting;
   serverSearch:     ServerSearch;
   /** 보고단계 완료 전인데 실적 조기입력된 행 수 — 0이면 배너 미노출 */
   anomalyCount:     number;
@@ -88,6 +91,7 @@ const SEARCH_FIELD_OPTIONS = [
  */
 export const useKpiPageViewModel = (summaryPart = '', anomalyOnly = false): KpiPageViewModel => {
   const pagination = useReactPagination(20);   // KPI 취합 — 30행은 너무 길어서 20행 기본
+  const sort = useServerSort(pagination.resetToFirstPage);
   const [searchField, setSearchField] = useState('');
   const search = useDebouncedSearch(350);
   const years  = useKpiFilterStore(s => s.years);
@@ -100,7 +104,8 @@ export const useKpiPageViewModel = (summaryPart = '', anomalyOnly = false): KpiP
     isLoading: dataLoading,
     isFetching,
   } = useKpiDataPaged(
-    { page: pagination.page, pageSize: pagination.pageSize, search: search.debouncedValue, field: searchField },
+    { page: pagination.page, pageSize: pagination.pageSize, search: search.debouncedValue, field: searchField,
+      sortBy: sort.sortBy ?? undefined, sortDir: sort.sortDir },
     { years, parts, stages },
     anomalyOnly,
   );
@@ -188,6 +193,8 @@ export const useKpiPageViewModel = (summaryPart = '', anomalyOnly = false): KpiP
     rawCols,
     anomalyCount: summary?.anomaly_count ?? 0,
     anomalies:    summary?.anomalies ?? [],
+
+    serverSorting: sort,
 
     serverPagination: {
       page:             pagination.page,

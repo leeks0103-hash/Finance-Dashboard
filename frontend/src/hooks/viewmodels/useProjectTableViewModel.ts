@@ -10,7 +10,8 @@ import { formatBillion, formatRate } from '@/utils';
 import { sortStages } from '@/utils/stageOrder';
 import { sortParts, sortTeams, partRank, PART_ORDER } from '@/utils/partOrder';
 import type { Project } from '@/types';
-import type { ServerPagination, ServerSearch } from '@/components/ui/DataTable';
+import type { ServerPagination, ServerSearch, ServerSorting } from '@/components/ui/DataTable';
+import { useServerSort } from '@/hooks/useServerSort';
 
 export interface TableSummary {
   revenue:         string;
@@ -31,6 +32,8 @@ export interface ProjectTableViewModel {
   summary:          TableSummary;
   getRowVariant:    (row: Project) => 'loss' | 'warn' | '';
   serverPagination: ServerPagination;
+  /** 전체 기준 정렬(서버) */
+  serverSorting:    ServerSorting;
   serverSearch:     ServerSearch;
   /** 표 자체의 셀렉트 필터 — ''면 전체(전역 필터 그대로). 파트 옵션은 팀을 고르면 그 팀 소속으로 좁혀짐 */
   teamFilter:       SelectFilter;
@@ -64,6 +67,7 @@ const SEARCH_FIELD_OPTIONS = [
 
 export const useProjectTableViewModel = (): ProjectTableViewModel => {
   const pagination = useReactPagination(30);
+  const sort = useServerSort(pagination.resetToFirstPage);
   const [searchField, setSearchField] = useState('');
   const search = useDebouncedSearch(350);
   const [stage, setStage] = useState('');
@@ -105,6 +109,8 @@ export const useProjectTableViewModel = (): ProjectTableViewModel => {
     field:    searchField,
     stage,
     parts:    queryParts,
+    sortBy:   sort.sortBy ?? undefined,
+    sortDir:  sort.sortDir,
   });
 
   // 합계는 /api/summary (전체 필터 기준) — 페이지네이션 여부와 무관한 전체 집계값
@@ -133,6 +139,8 @@ export const useProjectTableViewModel = (): ProjectTableViewModel => {
       if (row.profit_rate >= 0 && row.profit_rate < 5) return 'warn';
       return '';
     }, []),
+
+    serverSorting: sort,
 
     serverPagination: {
       total:            paged?.total ?? 0,

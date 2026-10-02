@@ -38,6 +38,7 @@ const ProjectTable = ({ toolbarExtra, fillHeight }: Props) => {
       // footer={vm.rows.length ? footer : undefined}  // 서버사이드 페이지네이션으로 전체 합계와 불일치 — 상단 KPI 카드로 대체
       getRowVariant={vm.getRowVariant}
       serverPagination={vm.serverPagination}
+      serverSorting={vm.serverSorting}
       serverSearch={vm.serverSearch}
       searchExtra={
         <>

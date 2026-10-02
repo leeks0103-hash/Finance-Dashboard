@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from dotenv import load_dotenv
 from flask import Blueprint, jsonify, request
-from shared import new_excel_app, safe_mtime, find_source_path, open_source_file
+from shared import new_excel_app, safe_mtime, find_source_path, open_source_file, sort_frame
 import paths
 
 load_dotenv()
@@ -640,6 +640,10 @@ def api_kpi_data():
     except (ValueError, TypeError):
         page, page_size = 1, 30
 
+    # 전체 기준 정렬(표 머리글 클릭) — 페이지를 자르기 전에
+    # 지표 칸의 미입력 표기(화면엔 "N")는 빈 값으로 보고 맨 뒤로 — utils/kpiColumns.cellVal과 같은 표기
+    df = sort_frame(df, request.args.get("sort_by", ""), request.args.get("sort_dir", "asc"),
+                    empty_values=("N", "n", "-", "－", "‐", "–", "—", "0", "0.0"))
     start = (page - 1) * page_size
     paged = df.iloc[start:start + page_size].copy().replace({float("nan"): None})
     paged["_row_num"] = range(start, start + len(paged))

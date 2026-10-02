@@ -4,10 +4,12 @@
 .auth {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: stretch;   /* 관리자 인증 버튼을 모달 폭 가득(2026-10-02 요청) */
   gap: 8px;
   padding: 6px 0 4px;
 }
+
+.authBtn { width: 100%; justify-content: center; }
 
 .groups {
   display: flex;

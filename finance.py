@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 from flask import Blueprint, jsonify, request, make_response
 from markupsafe import escape as html_escape
 
-from shared import is_ranked_valid_code, read_excel_via_com, safe_mtime, find_source_path, open_source_file
+from shared import is_ranked_valid_code, read_excel_via_com, safe_mtime, find_source_path, open_source_file, sort_frame
 import paths
 
 load_dotenv()
@@ -283,6 +283,8 @@ def api_data():
         df = df[mask]
 
     df = _order_by_stage(df)
+    # 전체 기준 정렬(표 머리글 클릭) — 지정이 없으면 위 보고단계 순서 그대로
+    df = sort_frame(df, request.args.get("sort_by", ""), request.args.get("sort_dir", "asc"))
     total = len(df)
     try:
         page      = max(1, int(request.args.get("page", 1)))

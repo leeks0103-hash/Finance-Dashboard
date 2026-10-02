@@ -265,3 +265,27 @@ def open_source_file(path: "str | None", check_only: bool = False) -> "tuple[dic
         logger.error("파일 열기 실패(%s): %s", path, e)
         return {"ok": False, "message": f"파일 실행 실패: {e}"}, 500
     return {"ok": True}, 200
+
+
+def sort_frame(df, sort_by: str, sort_dir: str, empty_values=()):
+    """서버 페이지네이션 표의 정렬 — 페이지를 자르기 **전에** 전체 행 기준으로 정렬(2026-10-02).
+
+    예전엔 받아 온 한 페이지 안에서만 정렬돼 "전체 기준 정렬"이 안 됐음. sort_by가 없거나 모르는 컬럼이면 그대로.
+    - 값 대부분이 숫자로 읽히면 숫자로 정렬(KPI처럼 "62"·"N"이 섞인 칸도 숫자 순), 아니면 문자열(대소문자 무시)
+    - 빈 값(NaN·빈 문자열·숫자 칸의 비숫자)은 방향과 상관없이 항상 맨 뒤, 같은 값끼리는 원래 순서 유지(안정 정렬)
+    - empty_values: 빈 값으로 볼 표기 추가(KPI는 화면에 "N"으로 보이는 미입력 표기)
+    """
+    import pandas as pd
+    if not sort_by or sort_by not in df.columns or df.empty:
+        return df
+    asc = str(sort_dir).lower() != "desc"
+    col = df[sort_by]
+    text = col.astype(str).str.strip()
+    present = col.notna() & (text != "") & ~text.isin(list(empty_values))
+    num = pd.to_numeric(col.where(present), errors="coerce")
+    if present.any() and num.notna().sum() >= present.sum() / 2:
+        key = num
+    else:
+        key = text.str.lower().where(present, None)
+    order = key.sort_values(ascending=asc, na_position="last", kind="mergesort").index
+    return df.loc[order]

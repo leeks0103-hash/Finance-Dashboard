@@ -112,7 +112,7 @@ const KpiPage = () => {
           if (isKpiMetricCol(col)) return <HighlightText text={cellVal(v)} query={query} />;
           if (v === null || v === undefined || v === 0 || v === '') return '-';
           if (col === '프로젝트코드' && typeof v === 'string' && v.trim())
-            return <CopyText text={v} highlight={query} />;
+            return <CopyText text={v} highlight={query} centered />;
           return <HighlightText text={String(v)} query={query} />;
         },
         meta: col === '파일명' ? { onOpenFile: openFile, cellPopup: true }
@@ -293,6 +293,7 @@ const KpiPage = () => {
                 isLoading={vm.isLoading}
                 isFetching={vm.isFetching}
                 serverPagination={vm.serverPagination}
+                serverSorting={vm.serverSorting}
                 serverSearch={vm.serverSearch}
                 searchPlaceholder="프로젝트코드·파트명 검색…"
                 hideableColumns={rawHideableCols}

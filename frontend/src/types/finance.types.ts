@@ -119,4 +119,7 @@ export interface PageParams {
   stage?:   string;
   /** 표 자체의 팀·파트 필터(셀렉트) — 값이 있으면 전역 필터의 parts 대신 이 파트들만 조회 */
   parts?:   string[];
+  /** 전체 기준 정렬 — 서버가 페이지를 자르기 전에 정렬(머리글 클릭, 2026-10-02) */
+  sortBy?:  string;
+  sortDir?: 'asc' | 'desc';
 }

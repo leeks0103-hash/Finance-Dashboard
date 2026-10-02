@@ -15,4 +15,8 @@ export const appendPageParams = (params: URLSearchParams, page: PageParams): voi
   params.set('page_size', String(page.pageSize));
   if (page.search) params.set('search', page.search);
   if (page.field)  params.set('field',  page.field);
+  if (page.sortBy) {
+    params.set('sort_by',  page.sortBy);
+    params.set('sort_dir', page.sortDir ?? 'asc');
+  }
 };

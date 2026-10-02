@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from flask import Blueprint, jsonify, request
 from markupsafe import escape as html_escape
 
-from shared import is_ranked_valid_code, safe_mtime, PART_PREFIX_RE
+from shared import is_ranked_valid_code, safe_mtime, sort_frame, PART_PREFIX_RE
 
 load_dotenv()
 
@@ -648,6 +648,8 @@ def api_perf_data():
         rows = _attach_finance_mismatch(rows)
 
     total = len(rows)
+    # 전체 기준 정렬(표 머리글 클릭) — 페이지를 자르기 전에
+    rows = sort_frame(rows, request.args.get("sort_by", ""), request.args.get("sort_dir", "asc"))
 
     try:
         page      = max(1, int(request.args.get("page", 1)))

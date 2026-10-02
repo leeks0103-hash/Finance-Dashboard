@@ -16,7 +16,8 @@ import { getProjects } from '@/api/finance.api';
 import { STALE_5MIN, GC_10MIN } from '@/hooks/queryClient';
 import type { PerfProject } from '@/types/performance.types';
 import type { Project, Filters } from '@/types/finance.types';
-import type { ServerPagination, ServerSearch } from '@/components/ui/DataTable';
+import type { ServerPagination, ServerSearch, ServerSorting } from '@/components/ui/DataTable';
+import { useServerSort } from '@/hooks/useServerSort';
 
 const FINANCE_EMPTY_FILTERS: Filters = { years: [], parts: [], stages: [] };
 
@@ -92,6 +93,8 @@ export interface PerformanceViewModel {
   togglePart:    (part: string) => void;
   resetFilters:  () => void;
   serverPagination: ServerPagination;
+  /** 전체 기준 정렬(서버) */
+  serverSorting:    ServerSorting;
   serverSearch:     ServerSearch;
   /** 검색 중 재무 이력이 있는 첫 프로젝트 행의 키 — 그 행의 재무 이력(2뎁스)을 자동으로 펼침. 검색 안 하면 null */
   autoExpandKey:     string | null;
@@ -120,6 +123,7 @@ const SEARCH_FIELD_OPTIONS = [
 
 export const usePerformanceViewModel = (): PerformanceViewModel => {
   const pagination = useReactPagination(20);
+  const sort = useServerSort(pagination.resetToFirstPage);
   const [searchField, setSearchField] = useState('');
   const [selectedProgress, setSelectedProgress] = useState('');
   const search = useDebouncedSearch(350);
@@ -143,6 +147,7 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
   const period = usePerfPeriod();
   const { data: paged,      isLoading: projLoading, isFetching } = usePerformanceData({
     page: pagination.page, pageSize: pagination.pageSize, search: search.debouncedValue, field: searchField,
+    sortBy: sort.sortBy ?? undefined, sortDir: sort.sortDir,
   }, selectedProgress);
   const { data: options } = usePerformanceOptions();
 
@@ -288,6 +293,8 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
     projects,
     period,
     parts: options?.parts ?? [], selectedParts, togglePart, resetFilters: reset,
+
+    serverSorting: sort,
 
     serverPagination: {
       total:            paged?.total ?? 0,

@@ -180,6 +180,13 @@ export interface ServerPagination {
   onPageSizeChange: (size: number) => void;
 }
 
+/** 서버사이드 정렬 — 제공 시 머리글 클릭이 화면 정렬 대신 이 콜백을 부르고, 서버가 전체 기준으로 정렬해 줌 */
+export interface ServerSorting {
+  sortBy:   string | null;
+  sortDir:  'asc' | 'desc';
+  onChange: (sortBy: string | null, sortDir: 'asc' | 'desc') => void;
+}
+
 /** 서버사이드 검색 — 디바운스는 ViewModel에서 처리 */
 export interface ServerSearch {
   value:    string;
@@ -249,6 +256,8 @@ interface Props<T> {
   serverPagination?:  ServerPagination;
   /** 서버사이드 검색 — 제공 시 내부 검색 상태 비활성화 */
   serverSearch?:      ServerSearch;
+  /** 서버사이드 정렬 — 서버 페이지네이션 표에서 전체 기준 정렬(없으면 받아 온 페이지 안에서만 정렬됨) */
+  serverSorting?:     ServerSorting;
   /** 무한 로드 모드 — serverPagination 대신 사용 (useInfiniteQuery 연동) */
   infiniteLoadMore?:  InfiniteLoadMore;
   /** 초기 컬럼 표시 여부 (기본 숨김 컬럼 지정용) */
@@ -334,6 +343,7 @@ const DataTable = <T extends object>({
   searchDebounceMs  = 300,
   serverPagination,
   serverSearch,
+  serverSorting,
   infiniteLoadMore,
   initialColumnVisibility = {},
   storageKey,
@@ -595,13 +605,22 @@ const DataTable = <T extends object>({
     columns: columnsWithIndex,
     meta: { searchQuery, ...extraMeta },
     state: {
-      sorting,
+      // 서버 정렬이면 상태도 서버 정렬 값을 그대로 보여줌(머리글 화살표)
+      sorting: serverSorting
+        ? (serverSorting.sortBy ? [{ id: serverSorting.sortBy, desc: serverSorting.sortDir === 'desc' }] : [])
+        : sorting,
       globalFilter: isServerMode ? undefined : globalFilter,
       columnVisibility,
       columnSizing: colSizingNoIndex,
       ...(storageKey && colOrder.length ? { columnOrder: colOrder } : {}),
     },
     onSortingChange: (updater) => {
+      if (serverSorting) {
+        const cur = serverSorting.sortBy ? [{ id: serverSorting.sortBy, desc: serverSorting.sortDir === 'desc' }] : [];
+        const next = typeof updater === 'function' ? updater(cur) : updater;
+        serverSorting.onChange(next[0]?.id ?? null, next[0]?.desc ? 'desc' : 'asc');
+        return;
+      }
       const next = typeof updater === 'function' ? updater(sorting) : updater;
       setSorting(next);
       onSortChange?.(next.length > 0 ? next[0].id : null);
@@ -642,6 +661,8 @@ const DataTable = <T extends object>({
       manualPagination: true,
       rowCount: serverPagination!.total,
     }),
+    // 서버 정렬 — 받은 순서 그대로 보여줌(화면에서 다시 정렬하지 않음)
+    ...(serverSorting && { manualSorting: true }),
   });
 
   // compact 테이블(KPI 집계, 파트별 실적 등) — 고정형 소형 테이블이라 가로 스크롤이 없어야 함.

@@ -169,10 +169,11 @@ const PerformancePage = () => {
             getRowNumber={(row) => row._group_no}
             // 20자 넘는 셀은 클릭 시 전체 내용 팝업(오버레이)이 먼저 떠서 더블클릭이 td까지 도달하지 못함 —
             // 안내 문구도 실제 동작(짧은 셀만 펼침)에 맞춰 적어 둔다
-            hint="프로젝트코드 옆 숫자 배지 = 재무 이력 건수. 짧은 셀(프로젝트코드·담당자)을 더블클릭하면 아래에 펼쳐집니다. (프로젝트명·변동 검토의견처럼 글이 긴 셀은 클릭하면 전체 내용 팝업이 열립니다)"
+            hint="숫자 배지 = 재무 보고서 건수 · 프로젝트코드·담당자 더블클릭 → 보고서 이력 펼침"
             /* 프로젝트코드 셀이 재무 이력 건수 배지를 그릴 수 있도록 코드↔건수 맵 전달 */
             meta={{ financeCodes: financeCodes.data, rawValues }}
             serverPagination={vm.serverPagination}
+            serverSorting={vm.serverSorting}
             serverSearch={vm.serverSearch}
             searchPlaceholder="프로젝트코드·이름·담당자 검색…"
             // 진행단계 — 값 종류가 적고 고정적(제안/착수/완료/드롭 등)이라 검색 필드 옵션 대신

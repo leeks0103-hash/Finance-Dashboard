@@ -13,11 +13,17 @@
   cursor: pointer;
   border-radius: 3px;
   padding: 1px 4px;
+  /* 위아래 1px 여백은 호버 배경용 — 행 높이는 늘리지 않게 같은 만큼 바깥으로 상쇄(2026-10-02: 재무 이력 없는 코드 행만
+     1px 높아져 "한글 코드 행이 더 크다"로 보였음 — 배지 있는 코드 칸은 17px, 이 칸은 19px였음) */
+  margin-block: -1px;
   transition: background 0.14s ease, color 0.14s ease;
   user-select: none;
   font-family: inherit;
   font-size: 1em;
 }
+
+/* centered — 오른쪽 복사 아이콘(12px)+간격(4px) 자리만큼 왼쪽 여백을 더해 글자를 칸 정중앙에(2026-10-02, KPI 취합 프로젝트코드) */
+.centered { padding-left: 20px; }
 
 /* "↗ 바로가기" — 파일명 셀 등 onOpen 제공 시에만 노출되는 작은 아이콘 버튼.
    Button unstyled라 브라우저 기본 <button> 크롬(테두리·배경·패딩·폰트)을 여기서 전부 리셋해야 함 —
