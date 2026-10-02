@@ -52,7 +52,7 @@ export const useSwapView = <V,>(view: V) => {
  * index.css .pageInA / .pageInB 를 번갈아 돌려줌(같은 애니메이션, 이름만 달라 클래스가 바뀔 때마다 다시 재생).
  * tbody에 붙이면 됨 — key로 다시 마운트하지 않으니 행 상태(펼침 등)는 그대로. 첫 렌더엔 안 붙음.
  */
-export const usePageSwapClass = (page: number, isFetching = false) => {
+export const usePageSwapClass = (page: number | string, isFetching = false) => {
   const [n, setN] = useState(0);
   const prev = useRef(page);
   const pending = useRef(false);

@@ -33,10 +33,13 @@ import { TableTitleBar } from './TableTitleBar';
 import styles from './DataTable.module.css';
 
 // 펼침 패널 슬라이드 길이 — DataTable.module.css .expandSlide/.expandClosing 애니메이션과 맞출 것
-const EXPAND_OPEN_MS = 320;
-const EXPAND_CLOSE_MS = 220;
+// 펼침·접힘·본문 높이 전환은 모두 천천히 시작해 천천히 멈추는 같은 곡선(DataTable.module.css --dt-ease)을 씀(2026-10-02).
+// 예전 곡선은 처음 몇 ms에 대부분 움직여 "뚝" 바뀌는 느낌이었음(검색 20행 → 5행에서 첫 프레임에 814 → 495px)
+const EXPAND_OPEN_MS = 380;
+const EXPAND_CLOSE_MS = 280;
 // 검색 결과가 바뀔 때 본문 높이 전환 길이 — 0.32 → 0.4초(2026-10-01 요청, 1건으로 확 줄 때 너무 빨랐음)
-const BODY_RESIZE_MS = 400;
+const BODY_RESIZE_MS = 460;
+const BODY_RESIZE_EASE = 'cubic-bezier(0.45, 0, 0.2, 1)';
 
 // 정렬 상태 → 화살표 문자 (중첩 삼항 대신 순차 조건으로 — 어떤 상태가 어떤 기호인지 한눈에 보이게)
 function sortArrow(sorted: false | 'asc' | 'desc'): string {
@@ -315,7 +318,7 @@ const INDEX_COL_W = 52;
 // 검색·필터로 행이 줄어도 최소 이 정도 높이는 유지 — 결과 1건일 때도 빈 상태처럼 휑해 보이지 않게
 const MIN_TABLE_ROWS = 5;
 /** 자동 펼침 지연 — 본문 높이 전환(BODY_RESIZE_MS)이 끝난 뒤 + 약간의 여유 */
-const AUTO_EXPAND_DELAY_MS = 500;   // 본문 높이 전환(BODY_RESIZE_MS)이 끝난 뒤에 펼치도록 — 높이 전환보다 길게
+const AUTO_EXPAND_DELAY_MS = 560;   // 본문 높이 전환(BODY_RESIZE_MS)이 끝난 뒤에 펼치도록 — 높이 전환보다 길게
 
 const DataTable = <T extends object>({
   data,
@@ -771,7 +774,9 @@ const DataTable = <T extends object>({
   }, [isServerMode, serverPagination, table, isInfiniteMode, infiniteLoadMore, globalFilter, filtered, data.length, rows.length]);
 
   // 페이지 넘김 — 새 페이지 행이 뚝 바뀌지 않고 살짝 올라오며 나타남(서버 모드는 새 데이터가 도착한 뒤)
-  const pageSwapClass = usePageSwapClass(pagination.pageIndex, isFetching);
+  // 검색·정렬로 행이 바뀔 때도 같은 등장 효과 — 페이지 번호만 보면 검색 결과가 바뀔 땐 행이 뚝 갈렸음(2026-10-02).
+  // 키는 실제로 받은 행(개수·첫 행) 기준이라 타이핑 중(디바운스 대기)에는 안 걸리고 새 결과가 온 순간에만 걸림
+  const pageSwapClass = usePageSwapClass(`${pagination.pageIndex}|${rows.length}|${rows[0]?.id ?? ''}`, isFetching);
 
   // 실제 보여지는 행 수 기준 — pageSize를 다 못 채워도(검색 결과 적음) 그만큼만 여백 확보.
   // 단 페이지가 여러 장이면 한 페이지 높이(pageSize행)를 유지 — 행이 적은 마지막 페이지로 넘기면 표가 뚝 줄었음
@@ -812,7 +817,7 @@ const DataTable = <T extends object>({
     // 그만큼 한 번에 잘라 먹음 → 표가 줄기도 전에 화면 전체가 수백 px 튀었음(2026-10-01). 시작 높이를 다시 걸었으니
     // 원래 위치로 되돌리고, 줄어드는 동안 프레임마다 조금씩 따라 올라가게 둠
     if (Math.abs(window.scrollY - lastScrollY.current) > 1) window.scrollTo({ top: lastScrollY.current, behavior: 'instant' });
-    el.style.transition = `height ${BODY_RESIZE_MS}ms cubic-bezier(0.22, 1, 0.36, 1)`;
+    el.style.transition = `height ${BODY_RESIZE_MS}ms ${BODY_RESIZE_EASE}`;
     el.style.height = `${to}px`;
     const clear = () => { el.style.height = ''; el.style.overflow = ''; el.style.transition = ''; };
     let done = false;

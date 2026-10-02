@@ -19,13 +19,24 @@ export const formatRaw = (v: number): string =>
  * "0만원"으로 뭉개져서 사실상 0처럼 보임 — 1000만원 이상 억 / 1만원 이상 만 / 그 미만 원 그대로.
  * (정확히 0은 예외적으로 "0.0억원" 유지 — 값이 없다는 뜻이 아니라 실제 0원인 경우가 있어서)
  */
+/**
+ * 소수 digits자리까지 남기고 나머지는 버림(반올림 안 함, 2026-10-02 요청). 0 쪽으로 버림 — 음수에 Math.floor를 쓰면
+ * -0.123 → -0.13처럼 절댓값이 커져서. 0.29×100 = 28.999… 같은 부동소수점 오차는 아주 작은 값을 더해 바로잡음
+ */
+const truncTo = (v: number, digits: number): string => {
+  const f = 10 ** digits;
+  const t = Math.trunc(v * f + Math.sign(v) * 1e-9) / f;
+  return t.toFixed(digits);
+};
+
 export const formatBillion = (v: number): string => {
   if (v == null || !isFinite(v)) return '-';
-  if (v === 0) return '0.0억원';
+  if (v === 0) return '0.00억원';
   const abs = Math.abs(v);
-  if (abs >= 1e7) return (v / 1e8).toFixed(1) + '억원';
-  if (abs >= 1e4) return Math.round(v / 1e4).toLocaleString() + '만원';
-  return Math.round(v).toLocaleString() + '원';
+  // 억은 소수 둘째 자리까지 버림(예: 1,234만원 → 0.12억원), 만·원도 반올림 대신 버림(2026-10-02)
+  if (abs >= 1e7) return truncTo(v / 1e8, 2) + '억원';
+  if (abs >= 1e4) return Math.trunc(v / 1e4).toLocaleString() + '만원';
+  return Math.trunc(v).toLocaleString() + '원';
 };
 
 export const formatRate = (v: number): string => {
@@ -57,9 +68,10 @@ export const formatEok = (v: number): string => {
   if (!v || !isFinite(v)) return '-';
   const won = v * 1000;
   const abs = Math.abs(won);
-  if (abs >= 1e7) return (won / 1e8).toFixed(1) + '억';
-  if (abs >= 1e4) return Math.round(won / 1e4).toLocaleString() + '만';
-  return Math.round(won).toLocaleString() + '원';
+  // 억은 소수 둘째 자리까지 버림, 만·원도 반올림 대신 버림(2026-10-02) — formatBillion과 같은 규칙
+  if (abs >= 1e7) return truncTo(won / 1e8, 2) + '억';
+  if (abs >= 1e4) return Math.trunc(won / 1e4).toLocaleString() + '만';
+  return Math.trunc(won).toLocaleString() + '원';
 };
 
 /** 소수 비율 → % 표시. 0이면 '-' */

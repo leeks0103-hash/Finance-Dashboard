@@ -297,8 +297,9 @@ h1, h2, h3, h4, h5, h6 {
    클래스가 바뀌어야 애니메이션이 다시 재생되므로 이름만 둘 */
 @keyframes pageInA { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
 @keyframes pageInB { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
-.pageInA { animation: pageInA 0.3s cubic-bezier(0.22, 1, 0.36, 1) backwards; }
-.pageInB { animation: pageInB 0.3s cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+/* 페이지 넘김·검색 결과 교체 때 새 행 등장 — 표 높이 전환(0.46s)과 함께 보이게 조금 길게(0.3 → 0.4s, 2026-10-02) */
+.pageInA { animation: pageInA 0.4s ease-out backwards; }
+.pageInB { animation: pageInB 0.4s ease-out backwards; }
 /* 접이식(<details>) 펼칠 때 내용이 뚝 튀어나오지 않게 — 계산식 용어·데이터 이상 상세 등 전부 */
 details[open] > :not(summary) { animation: swapIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both; }
 @media (prefers-reduced-motion: reduce) {

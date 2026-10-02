@@ -9,7 +9,15 @@ describe('formatWon', () => {
 
 describe('formatBillion', () => {
   it('formats large values in 억원', () => {
-    expect(formatBillion(1_230_000_000)).toBe('12.3억원');
+    expect(formatBillion(1_230_000_000)).toBe('12.30억원');
+  });
+
+  it('keeps 2 decimals in 억원 and truncates instead of rounding (toward zero)', () => {
+    expect(formatBillion(19_999_999)).toBe('0.19억원');      // 반올림이면 0.20
+    expect(formatBillion(10_000_000)).toBe('0.10억원');      // 천만원
+    expect(formatBillion(29_000_000)).toBe('0.29억원');      // 부동소수점 오차(28.999…)에도 0.28이 되지 않음
+    expect(formatBillion(-12_345_678)).toBe('-0.12억원');    // 음수도 0 쪽으로 버림(-0.13 아님)
+    expect(formatBillion(5_999_999)).toBe('599만원');        // 만원도 버림
   });
 
   it('formats sub-0.1억 values in 만원', () => {
@@ -21,8 +29,8 @@ describe('formatBillion', () => {
     expect(formatBillion(50)).toBe('50원');
   });
 
-  it('formats exact zero as 0.0억원, not 만원', () => {
-    expect(formatBillion(0)).toBe('0.0억원');
+  it('formats exact zero as 0.00억원, not 만원', () => {
+    expect(formatBillion(0)).toBe('0.00억원');
   });
 
   it('returns - for non-finite input', () => {
@@ -52,8 +60,11 @@ describe('formatCount', () => {
 });
 
 describe('formatEok (천원 단위 입력)', () => {
-  it('converts 천원 to 억 with 1 decimal', () => {
-    expect(formatEok(150_000)).toBe('1.5억');
+  it('converts 천원 to 억 with 2 decimals, truncated', () => {
+    expect(formatEok(150_000)).toBe('1.50억');
+    expect(formatEok(10_000)).toBe('0.10억');     // 천만원
+    expect(formatEok(19_999.9)).toBe('0.19억');   // 반올림이면 0.20
+    expect(formatEok(-12_345.678)).toBe('-0.12억');
   });
 
   it('formats sub-0.1억(백만원대) values in 만 — not rounded to 0.0억', () => {

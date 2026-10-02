@@ -625,9 +625,10 @@
   grid-template-columns: minmax(0, 1fr);   /* 클립 해제(.expandSettled) 뒤에도 내용 폭에 끌려 넓어지지 않게 */
   /* 높이는 빠르게 펼치고, 투명도는 따로 천천히(선형에 가깝게) — 같은 ease-out을 쓰면 처음 몇 ms에
      거의 다 불투명해져 "갑자기 생긴" 느낌이었음(2026-09-30) */
+  /* 천천히 시작해 천천히 멈추는 곡선(2026-10-02) — 예전 ease-out(0.16,1,0.3,1)은 첫 몇 ms에 거의 다 펼쳐져 덜컥거렸음 */
   animation:
-    expandOpen 320ms cubic-bezier(0.16, 1, 0.3, 1) both,
-    expandFadeIn 380ms ease-out both;
+    expandOpen 380ms cubic-bezier(0.45, 0, 0.2, 1) both,
+    expandFadeIn 420ms ease-out both;
 }
 .expandInner {
   min-height: 0;
@@ -637,7 +638,7 @@
 /* 다 펼쳐진 뒤엔 클립 해제 — 패널 안 표의 컬럼 메뉴·드롭다운이 잘리지 않게 */
 .expandSettled > .expandInner { overflow: visible; }
 .expandClosing {
-  animation: expandClose 220ms cubic-bezier(0.4, 0, 1, 1) both;
+  animation: expandClose 280ms cubic-bezier(0.45, 0, 0.2, 1) both;
 }
 
 @keyframes expandOpen {
