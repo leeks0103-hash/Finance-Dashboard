@@ -68,7 +68,7 @@ const buildColumns = (_PERF_MONTH: string, finCompare: boolean) => [
       const n = financeCount(code, i.table.options.meta?.financeCodes);
       // 재무 이력이 없으면 더블클릭해도 볼 게 없으니 클릭 한 번에 코드 복사(2026-09-30)
       if (n === 0 && code) {
-        return <CopyText text={code} highlight={i.table.options.meta?.searchQuery} />;
+        return <CopyText text={code} highlight={i.table.options.meta?.searchQuery} centered />;
       }
       return (
         <span className={styles.codeCell}>

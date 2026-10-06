@@ -1,5 +1,58 @@
 # 세션 진행 기록
 
+## [2026-10-06] 공개 범위(달성률·파일 바로가기)를 서버 저장으로 — 모든 화면에 적용
+
+- **문제**: ⚙ > 관리자용 기능의 "파일 바로가기(↗) 전체/관리자/숨김"·"달성률" 설정이 브라우저 localStorage에 저장돼
+  관리자가 바꿔도 **자기 화면에만** 적용, 다른 사람은 늘 기본값이었음
+- DB 없이 `data/visibility.json`(gitignore) 하나로: `GET /api/settings/visibility`(누구나) / `PUT`(관리자 키 `X-Extract-Key`,
+  임시 파일 → `os.replace`, 잠금). 기본값 fileOpen=admin · achieveRate=none. **노출만 관리** — API 접근 자체는 안 막음(요청)
+  - 달성률은 관리자/숨김 2단계만(서버도 'all' 거부) — 저조 팀 노출 방지 원칙(09-29)
+- 프론트: `hooks/useVisibility`(`useVisibilitySettings` 1분 폴링 + `useVisible(key)` = 전체 or 관리자만+인증) —
+  `useFileOpenVisible` 삭제, 달성률 VM 2곳 교체. `ui.store`의 `showAchieveRate`·`fileOpenVisibility` 제거.
+  관리자 모달은 두 항목 모두 세그먼트 + "모든 사람에게 적용" 안내
+- ⚠️ 달성률을 켜 두던 관리자도 처음엔 숨김으로 보임 — 모달에서 '관리자' 한 번 눌러야 함. Flask 재시작 필요
+- tsc·build·vitest 65/65, 백엔드 test_client로 GET/PUT/403/400 확인
+- **KPI 취합 프로젝트코드가 칸에 들어가는데도 말줄임**(176px 칸, 20행 중 17행) — `CopyText centered`가 글자 가운데 맞춤용으로
+  아이콘 자리만큼 왼쪽 여백 20px을 더해, 안 보이는 복사 아이콘 자리를 양쪽에 두 번 먹음(내용 186 > 칸 175px) →
+  centered일 땐 아이콘을 흐름 밖(글자 바로 오른쪽 absolute)으로. 헤드리스 실측: 말줄임 0행, 글자 칸 정중앙(오차 0), 호버 아이콘 칸 안
+- 프로젝트 상세(실적) 프로젝트코드: 재무 이력 배지 있는 행·없는 행의 코드 시작 위치가 달라 지그재그(배지 폭·숨은 복사 아이콘 자리만큼) →
+  배지도 흐름 밖(글자 오른쪽 absolute), 배지 없는 행은 `CopyText centered`. 실측: 12행 모두 시작 53px·폭 125px로 동일(칸 230 정중앙)
+- 데이터 이상 배지: 같은 코드를 쓰지만 파트·매출이 일관된 건(`likely_same_project`, 매치업 E040…/E069… 사례)을 접어서 보여주던
+  '확인' 묶음 제거(문제 없는 파일이라 안 보이게, 요청). 서버도 응답 `conflicts`·`count`에서 뺌. 실측: 코드충돌 0건, 남은 배지 1건(완료보고 이상)
+- **관리자 로그인 = 사번·비밀번호**(예전 "이름/키" 공용 키 프롬프트 대체) — 계정은 `.env` `ADMIN_ACCOUNTS="사번:비밀번호:이름,…"`(이름 생략 가능).
+  `auth.py` 신설: `/api/auth/login` → 토큰 `사번.HMAC(비밀, 사번:비밀번호)`(비밀 = `ADMIN_TOKEN_SECRET` 또는 `EXTRACT_ADMIN_KEY`),
+  `/api/auth/me`로 저장 토큰 확인. 헤더는 예전 그대로 `X-Extract-Key`, localStorage에 저장(한 번 로그인하면 유지, 로그아웃 버튼).
+  비밀번호를 바꾸거나 계정을 지우면 기존 로그인 무효. 예전 공용 키로 저장된 브라우저는 처음 열 때 자동 로그아웃. 추출 실행자 이름도 계정 기준
+  - 프론트: client 인터셉터가 모든 요청에 토큰, 관리자 모달은 사번·비밀번호 입력 폼(Enter 제출) + 로그아웃
+- **관리자만 보는 섹션 4개**(요청) — 전체 평균 원가 비율·미수주 프로젝트·프로젝트 상세·KPI 취합. 화면 숨김 + API 403:
+  `/api/performance/data`·`/api/kpi/data`·`/api/finance/missed-bid`(신설, 예전엔 /api/data 500행을 받아 프론트가 거름)·
+  `summary/breakdown?chart=costBreakdown`, `/api/performance/summary`는 비관리자 응답에서 원가 구성 4항목(cost_direct·labor·overhead·mgmt) 제거.
+  해당 조회는 로그인 전 `enabled:false`, 로그아웃 시 캐시 제거(무효화하면 숨기기 전에 토큰 없이 재요청해 403 났음). 원가 카드가 빠지면 나머지 두 카드는 반씩(`.spanHalf`).
+  투어 3단계는 optional. 헤드리스(임시 서버 5091/5199): 로그인 전 4개 없음 → 틀린 비번 안내 → 로그인 후 4개 표시·새로고침 유지 → 로그아웃 후 숨김, 4xx 0건
+  - ⚠️ 남은 경로: `/api/data`(재무 원본)는 필터 옵션·재무 탭이 써서 공개 — 비고의 [미수주] 행은 여기로 여전히 받아짐. Raw Data 다운로드(원본 엑셀)도 공개
+  - ⚠️ `.env`에 `ADMIN_ACCOUNTS` 실제 계정을 넣고 Flask 재시작해야 로그인 가능(지금은 주석 예시만)
+- **로그인 서명 키 자동 생성** — `ADMIN_TOKEN_SECRET`·`EXTRACT_ADMIN_KEY` 둘 다 없으면 비밀번호가 맞아도 로그인이 항상 실패했음
+  (`.env`에서 공용 키 줄을 계정 줄로 바꾸며 사라짐) → 둘 다 없으면 `ADMIN_ACCOUNTS`에서 만듦. `.env`엔 계정 한 줄만 있으면 됨
+- **"조직장 이상" 버튼**(헤더, Raw Data 다운로드 왼쪽, ⚙와 같은 흰 반투명) — 누르면 로그인 창 → 성공 시 창 닫고 토스트
+  "관리자 기능을 사용할 수 있습니다". 로그인 후엔 잠김(로그아웃은 ⚙ > 관리자 기능). "관리자용 기능(열기)" 문구 → "관리자 기능"
+  - 로그인 버튼은 사번·비밀번호 둘 다 채워야 활성, 요청 중 입력칸 잠금. 토스트 위치 오른쪽 위 → 아래(전체 토스트 공통)
+- **표 컬럼 끌어 옮기기가 안 되던 것** — 순서를 한 번 저장한 표에서 나중에 켠 컬럼(숨김 해제·재무 대조 F)은 저장 목록에 없어
+  끌면 indexOf -1로 무시됐고, 맨 뒤에 붙었음 → `DataTable` `mergeColumnOrder`: 저장 순서에 없는 컬럼은 정의상 바로 앞 컬럼 뒤에 끼움.
+  F로 켠 재무 이력 컬럼이 다시 당월 추정 매출·직접원가 옆으로, 옮긴 자리는 기억. 헤드리스로 저장→F→끌기→F 껐다 켜기 확인
+- **관리자 기능 > 완료 프로젝트 재무 불일치**(목록 + CSV) — 프로젝트 상세의 빨간 칸과 같은 기준(완료, 1,000원 이상 차이).
+  `GET /api/performance/fin-mismatch`(관리자, 필터 무관 전체, 원 단위, 차이 큰 순). 그룹핑을 `_project_rows`로 분리해 상세 표와 공용,
+  `_attach_finance_mismatch`가 재무 PPT 파일명(`fin_filename`)도 붙임. 프론트 `hooks/useFinMismatch`·`layouts/Navbar/FinMismatch`.
+  현재 8건(원가 7·매출 2, 겹침 1). Flask 재시작함
+  - 제목 옆 ⤢ → 넓은 창(`FinMismatchTableModal`, 관리자 기능 창 위에 한 겹)에 DataTable — 금액 3칸(당월 추정·재무 이력·차이) × 매출/직접원가,
+    다른 값은 `cellFlag` 빨간 칸(프로젝트 상세와 같은 모양), 정렬·검색·컬럼 조절·CSV. ESC는 표 창만 닫힘
+- **폴더 바로가기** — ↗ 옆 폴더 아이콘(CopyText·셀 팝업 전부): 서버 PC 탐색기로 파일이 든 폴더를 열고 그 파일을 선택(`explorer /select,`).
+  파일은 안 열어서 확인창·DRM·열람 중 검사 없음. 백엔드는 기존 open-file 3곳(재무·KPI·추출 현황)에 `folder` 옵션(`shared.open_source_file`).
+  프론트는 열기 함수에 `openFolder` 짝을 붙여(`hooks/useOpenFile` `opener`, 타입 `types/fileOpen.types.FileOpener`) 호출부 수정 없이 전부 적용.
+  확인: 불일치 목록에서 요청 `folder:true` 전송, 서버 check 응답 정상. 셀 팝업 쪽은 화면 테스트 못 함(타입 연결만)
+  - 서버가 띄운 창(파일·폴더)이 앞으로 안 나오고 작업표시줄에서만 깜빡였음(Windows 포커스 보호) → `shared._bring_new_window_to_front`:
+    열기 전 창 목록과 비교해 새로 생긴 창을 백그라운드에서 몇 초(파일 15초·폴더 8초) 찾아 Alt 키 한 번 + SetForegroundWindow. 실제로 앞에 뜨는지는 사용자 확인 대기
+  - 폴더 버튼 누름 반응: 응답 올 때까지 스피너(최소 0.6초) → 열리면 ✓ 1.5초(복사 ✓와 같은 색) → 폴더 아이콘. CopyText·셀 팝업 둘 다. 헤드리스로 스피너→✓→복귀 확인
+
 ## [2026-10-02] AI 인사이트 숨김 + KPI 미입력 값 "N" 통일 + 네비 탭 흰 글자·밑줄
 
 - **AI 인사이트 버튼 숨김**(요청) — 재무·KPI 액션바의 `<AiInsightWidget>`과 import를 주석 처리(삭제 아님, 복구 방법 주석).

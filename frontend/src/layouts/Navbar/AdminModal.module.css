@@ -11,13 +11,27 @@
 
 .authBtn { width: 100%; justify-content: center; }
 
+/* 사번·비밀번호 입력칸 — 표 검색창과 같은 톤 */
+.authInput {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 4px);
+}
+.authInput:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-bg); }
+
+.logoutBtn { align-self: flex-end; }
+
 .groups {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-/* 달성률 · 파일 바로가기 — 짧은 설정 두 개는 한 줄에 */
+/* 달성률 · 파일 바로가기 공개 범위 — 짧은 설정 두 개는 한 줄에 */
 .twoCol {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -38,18 +52,6 @@
   font-size: 0.78rem;
   font-weight: 700;
   color: var(--text-sub);
-}
-
-.row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.rowText {
-  font-size: 0.8rem;
-  color: var(--text-sub);
-  flex: 1;
 }
 
 /* 대상/방식 — 왼쪽 작은 라벨 + 오른쪽 세그먼트 */
@@ -135,3 +137,6 @@
 @media (max-width: 600px) {
   .twoCol { grid-template-columns: 1fr; }
 }
+
+/* 로그인 요청 중 입력칸 잠금 */
+.authInput:disabled { opacity: 0.55; cursor: not-allowed; }

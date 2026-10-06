@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useUiStore } from '@/store';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  runExtract, getExtractStatus, cancelExtract, authExtract,
-  getStoredExtractKey, getStoredExtractName, setStoredExtractAuth,
+  runExtract, getExtractStatus, cancelExtract, loginAdmin, verifyAdmin,
+  getStoredExtractKey, getStoredExtractName, setStoredExtractAuth, clearStoredExtractAuth,
 } from '@/api/extract.api';
 import type { ExtractTarget, ExtractMode } from '@/types/extract.types';
 
@@ -13,6 +13,9 @@ import type { ExtractTarget, ExtractMode } from '@/types/extract.types';
  * PPT 데이터 추출이 보일 수 있도록"). 실행은 서버 백그라운드 스레드로 돌고(최대 30분) 즉시
  * 응답이 오므로, 진행 상태는 짧은 주기로 폴링해서 반영한다.
  */
+/** 관리자 로그인해야 받을 수 있는 조회 — 로그아웃 때 캐시에서 지움 */
+const ADMIN_ONLY_KEYS = [['perf-data'], ['kpi-data-paged'], ['finance-missed-bid'], ['extract-coverage']];
+
 export const useExtractJob = () => {
   const qc = useQueryClient();
   // 마지막으로 본 '추출 완료 시각' — undefined = 아직 상태를 한 번도 못 받음
@@ -20,9 +23,28 @@ export const useExtractJob = () => {
   const [isAuthed, setIsAuthed] = useState(() => !!getStoredExtractKey());
   const [authedName, setAuthedName] = useState(() => getStoredExtractName());
 
-  // 인증 여부를 store에도 — 바로가기(↗) 공개 범위 '관리자만' 판단용(useFileOpenVisible)
+  // 인증 여부를 store에도 — 공개 범위 '관리자만' 판단용(useVisible)
   const setAdminAuthed = useUiStore(s => s.setAdminAuthed);
   useEffect(() => { setAdminAuthed(isAuthed); }, [isAuthed, setAdminAuthed]);
+
+  const logout = () => {
+    clearStoredExtractAuth();
+    setIsAuthed(false);
+    setAuthedName('');
+    setAdminAuthed(false);
+    // 관리자 전용 데이터는 캐시에서 지움 — 무효화(재요청)하면 화면이 숨기기 전에 토큰 없이 다시 불러 403이 났음.
+    // 나머지(실적 요약 등)는 원가 구성 값이 빠진 응답으로 다시 받음
+    ADMIN_ONLY_KEYS.forEach(key => qc.removeQueries({ queryKey: key }));
+    qc.invalidateQueries({ predicate: q => !ADMIN_ONLY_KEYS.some(k => q.queryKey[0] === k[0]) });
+  };
+
+  // 저장된 토큰이 아직 유효한지 처음 한 번 확인 — 예전 공용 키가 남아 있거나, .env에서 계정이 빠졌거나
+  // 비밀번호가 바뀌었으면 로그아웃 상태로(2026-10-06 사번 로그인 전환). 서버에 못 닿으면(null) 그대로 둠
+  useEffect(() => {
+    if (!getStoredExtractKey()) return;
+    verifyAdmin().then(ok => { if (ok === false) logout(); });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const statusQuery = useQuery({
     queryKey: ['extract-status'],
@@ -51,10 +73,18 @@ export const useExtractJob = () => {
   }, [status, qc]);
 
   const authMutation = useMutation({
-    mutationFn: ({ key, name }: { key: string; name: string }) =>
-      authExtract(key).then(ok => { if (ok) setStoredExtractAuth(key, name); return ok; }),
-    onSuccess: (ok, { name }) => {
-      if (ok) { setIsAuthed(true); setAuthedName(name); }
+    mutationFn: ({ empNo, password }: { empNo: string; password: string }) =>
+      loginAdmin(empNo, password).then(r => {
+        if (r.ok && r.token) setStoredExtractAuth(r.token, r.name ?? empNo);
+        return r;
+      }),
+    onSuccess: r => {
+      if (!r.ok) return;
+      setIsAuthed(true);
+      setAuthedName(r.name ?? '');
+      setAdminAuthed(true);
+      // 관리자 전용 데이터(원가 구성 등)가 빠진 채 캐시돼 있으니 전부 다시 받음
+      qc.invalidateQueries();
     },
   });
 
@@ -72,7 +102,8 @@ export const useExtractJob = () => {
   return {
     isAuthed,
     authedName,
-    authenticate:  authMutation.mutateAsync,
+    authenticate:  (v: { empNo: string; password: string }) => authMutation.mutateAsync(v).then(r => r.ok),
+    logout,
     isAuthing:     authMutation.isPending,
     status,
     isRunning:     !!status?.running,

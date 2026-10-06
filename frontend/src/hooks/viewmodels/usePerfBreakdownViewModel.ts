@@ -2,8 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getPerfBreakdown } from '@/api/performance.api';
 import type { PerfBreakdownChart, PerfBreakdownRow, PerfCalcTerm, PerfBreakdownCompare } from '@/api/performance.api';
 import { usePerfStore } from '@/store/perf.store';
-import { useUiStore } from '@/store';
-import { getStoredExtractKey } from '@/api/extract.api';
+import { useVisible } from '@/hooks/useVisibility';
 import { STALE_5MIN, GC_10MIN } from '@/hooks/queryClient';
 
 export interface PerfBreakdownTarget {
@@ -75,8 +74,8 @@ export const usePerfBreakdownViewModel = (
     gcTime:    GC_10MIN,
   });
 
-  // 토글이 켜져 있어도 관리자 키가 없으면(로그아웃 등) 숨김 — 일반 사용자는 켤 방법 자체가 없음
-  const showRate = useUiStore(s => s.showAchieveRate) && !!getStoredExtractKey();
+  // 공개 범위(관리자용 기능, 서버 저장) — 관리자만이면 관리자 인증한 브라우저에만
+  const showRate = useVisible('achieveRate');
 
   const rows  = data?.rows ?? [];
   const total = data?.total ?? 0;

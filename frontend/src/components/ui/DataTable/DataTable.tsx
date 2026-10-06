@@ -313,6 +313,28 @@ interface Props<T> {
 }
 
 const DEFAULT_PAGE_SIZES = [10, 20, 30, 50, 100];
+/** 저장된 컬럼 순서에 지금 컬럼 목록을 맞춤 — 없어진 컬럼은 빼고, 새 컬럼은 정의 순서상 바로 앞 컬럼 뒤에 */
+function mergeColumnOrder(saved: string[], all: string[]): string[] {
+  if (!saved.length) return all;
+  const out = saved.filter(id => all.includes(id));
+  all.forEach((id, i) => {
+    if (out.includes(id)) return;
+    let at = 0;
+    for (let k = i - 1; k >= 0; k--) {
+      const p = out.indexOf(all[k]);
+      if (p >= 0) { at = p + 1; break; }
+    }
+    out.splice(at, 0, id);
+  });
+  return out;
+}
+
+/** 컬럼 정의의 id(없으면 accessorKey) — 제네릭 ColumnDef<T>를 직접 건드리면 호출부 타입 추론이 깨져서 object로 받음 */
+const colIdOf = (c: object): string => {
+  const d = c as { id?: string; accessorKey?: string };
+  return d.id ?? d.accessorKey ?? '';
+};
+
 /** NO. 칸 고정 폭 */
 const INDEX_COL_W = 52;
 // 검색·필터로 행이 줄어도 최소 이 정도 높이는 유지 — 결과 1건일 때도 빈 상태처럼 휑해 보이지 않게
@@ -444,18 +466,30 @@ const DataTable = <T extends object>({
     [indexCol, columns],
   );
 
+  // 저장된 순서 + 거기 없는 컬럼(나중에 생긴/켠 것 — 재무 대조 F 등). 예전엔 TanStack 기본대로 맨 뒤에 붙어
+  // F로 켠 "재무 이력 매출(완료)"이 당월 추정 매출 옆이 아니라 끝에 갔고, 끌어도 indexOf -1이라 안 옮겨졌음(2026-10-06)
+  // → 정의 순서에서 바로 앞 컬럼 뒤에 끼워 넣음(앞 컬럼도 없으면 맨 앞쪽)
+  const allColIds = useMemo(
+    () => (columnsWithIndex as object[]).map(colIdOf),
+    [columnsWithIndex],
+  );
+  const effectiveOrder = useMemo(() => mergeColumnOrder(colOrder, allColIds), [colOrder, allColIds]);
+
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
     setColOrder(prev => {
-      const ids = prev.length ? prev : table.getAllLeafColumns().map(c => c.id);
-      const next = arrayMove(ids, ids.indexOf(String(active.id)), ids.indexOf(String(over.id)));
+      const ids = mergeColumnOrder(prev, allColIds);
+      const from = ids.indexOf(String(active.id));
+      const to   = ids.indexOf(String(over.id));
+      if (from < 0 || to < 0) return prev;
+      const next = arrayMove(ids, from, to);
       // __index는 항상 첫 번째 고정
       const fixed = ['__index', ...next.filter(c => c !== '__index')];
       if (lsKey) localStorage.setItem(lsKey, JSON.stringify(fixed));
       return fixed;
     });
-  }, [lsKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [lsKey, allColIds]);
 
   // 정렬 상태 (controlled — onSortChange 콜백 연동)
   const [sorting, setSorting] = useState<import('@tanstack/react-table').SortingState>([]);
@@ -615,7 +649,7 @@ const DataTable = <T extends object>({
       globalFilter: isServerMode ? undefined : globalFilter,
       columnVisibility,
       columnSizing: colSizingNoIndex,
-      ...(storageKey && colOrder.length ? { columnOrder: colOrder } : {}),
+      ...(storageKey && colOrder.length ? { columnOrder: effectiveOrder } : {}),
     },
     onSortingChange: (updater) => {
       if (serverSorting) {
@@ -1069,8 +1103,10 @@ const DataTable = <T extends object>({
                                 const onOpenFile = cell.column.columnDef.meta?.onOpenFile;
                                 // 팝업 제목 = 클릭한 컬럼 이름(파일명·비고…) — 예전엔 전부 "셀 내용"
                                 const header = cell.column.columnDef.header;
+                                const openFolder = onOpenFile?.openFolder;
                                 openPopup(text, true, onOpenFile ? () => onOpenFile(text) : undefined,
-                                  typeof header === 'string' ? header : cell.column.id);
+                                  typeof header === 'string' ? header : cell.column.id,
+                                  openFolder ? () => openFolder(text) : undefined);
                               } : undefined}
                               onDoubleClick={
                                 canExpand

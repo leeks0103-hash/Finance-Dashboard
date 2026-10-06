@@ -75,6 +75,7 @@ export const TOUR_STEPS: TourStepDef[] = [
   {
     tab: 'performance',
     anchor: 'perf-missed',
+    optional: true,   // 관리자 로그인했을 때만 보이는 섹션(2026-10-06)
     title: '미수주 프로젝트',
     description: '제안했지만 수주하지 못한 프로젝트와 미수 사유를 모아 봅니다.',
     side: 'top',
@@ -82,6 +83,7 @@ export const TOUR_STEPS: TourStepDef[] = [
   {
     tab: 'performance',
     anchor: 'perf-projects',
+    optional: true,   // 관리자 로그인했을 때만 보이는 섹션(2026-10-06)
     title: '프로젝트 상세',
     description:
       '검색하면 실적과 함께 <b>재무 데이터(PPT 보고서) 검색 결과</b>도 아래에 나옵니다.<br>' +
@@ -121,6 +123,7 @@ export const TOUR_STEPS: TourStepDef[] = [
   {
     tab: 'kpi',
     anchor: 'kpi-raw',
+    optional: true,   // 관리자 로그인했을 때만 보이는 섹션(2026-10-06)
     title: 'KPI 취합',
     description:
       'PPT에서 뽑은 원본 행 전체입니다. <b>목록 / KPI 상세</b> 전환으로 PPT 표 모양 그대로 볼 수도 있어요.<br>' +

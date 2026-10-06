@@ -1,0 +1,72 @@
+/* 관리자 기능 > 완료 프로젝트 재무 불일치 — 추출 현황(.wrap)과 같은 바탕 칸 */
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px 14px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.top { display: flex; align-items: center; gap: 8px; }
+.titleBox { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.title { font-size: 0.78rem; font-weight: 700; color: var(--text-sub); }
+.sub { font-size: 0.7rem; color: var(--text-muted); }
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 420px;
+  overflow-y: auto;
+}
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.head { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.code { flex-shrink: 0; font-size: 0.76rem; font-weight: 600; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.name { font-size: 0.76rem; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.meta { font-size: 0.7rem; color: var(--text-muted); }
+
+.line {
+  display: grid;
+  grid-template-columns: 52px 1fr auto 1fr auto;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.lineLabel { color: var(--text-sub); }
+.num { text-align: right; }
+.vs { font-size: 0.66rem; }
+.diff { min-width: 110px; text-align: right; }
+/* 다른 값 — 프로젝트 상세 빨간 칸과 같은 강조 */
+.bad { color: var(--danger); font-weight: 700; }
+.bad .lineLabel { color: var(--danger); }
+
+.file { font-size: 0.7rem; color: var(--text-sub); min-width: 0; overflow: hidden; }
+
+/* 제목 옆 ⤢ — 차트 카드 확대 버튼과 같은 모양 */
+.title { display: inline-flex; align-items: center; gap: 4px; }
+.expandBtn {
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1;
+}
+.expandBtn:hover:not(:disabled) { background: var(--brand-bg); color: var(--brand-mid); }
+.expandBtn:disabled { opacity: 0.35; cursor: default; }

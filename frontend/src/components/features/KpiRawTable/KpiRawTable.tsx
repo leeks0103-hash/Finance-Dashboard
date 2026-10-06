@@ -288,7 +288,7 @@ const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, searchE
                             tint === 'static' ? styles.tintStatic : tint === 'filled' ? styles.tintFilled : '',
                           ].join(' ')}
                           title={val}
-                          onClick={col.id === 'filename' && val ? () => openPopup(val, true, () => handleOpenFile(val)) : undefined}
+                          onClick={col.id === 'filename' && val ? () => openPopup(val, true, () => handleOpenFile(val), undefined, () => void openKpiFileOrAlert.openFolder?.(val)) : undefined}
                         >
                           {col.id === 'code'
                             ? <CopyText text={val} highlight={serverSearch?.value} />

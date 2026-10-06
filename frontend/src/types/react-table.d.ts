@@ -24,7 +24,8 @@ declare module '@tanstack/react-table' {
      * 제공 시, 이 컬럼의 셀(20자 이상 자동 팝업)이 열릴 때 팝업에 "↗ 바로가기" 버튼이
      * 추가로 뜬다 — 파일명처럼 원본을 직접 열어야 하는 컬럼용 (예: 재무 PPT 파일명)
      */
-    onOpenFile?: (value: string) => void;
+    /** openFolder가 붙어 있으면 셀 팝업에 폴더 버튼도 */
+    onOpenFile?: import('@/types/fileOpen.types').FileOpener;
     /**
      * true여야 이 컬럼의 셀(20자 이상)이 클릭 시 전체 내용 팝업을 띄운다 — opt-in 방식
      * (2026-09-22, 이전엔 글자 수만 넘으면 자동으로 켜지는 opt-out 방식이었는데, 컬럼

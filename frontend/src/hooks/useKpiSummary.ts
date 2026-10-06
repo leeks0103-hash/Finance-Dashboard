@@ -1,6 +1,7 @@
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { getKpiSummary, getKpiData } from '@/api/kpi.api';
 import { useKpiExcludeStore } from '@/store/kpiExclude.store';
+import { useUiStore } from '@/store';
 import type { PageParams, Filters } from '@/types/finance.types';
 import { STALE_5MIN, GC_10MIN } from './queryClient';
 
@@ -23,8 +24,10 @@ export const useKpiSummary = (part = '') => {
   });
 };
 
-export const useKpiDataPaged = (page: PageParams, filters: Filters = EMPTY_FILTERS, anomalyOnly = false) =>
-  useQuery({
+// KPI 취합은 관리자만(서버도 403) — 로그인 전엔 요청 자체를 안 보냄
+export const useKpiDataPaged = (page: PageParams, filters: Filters = EMPTY_FILTERS, anomalyOnly = false) => {
+  const adminAuthed = useUiStore(s => s.adminAuthed);
+  return useQuery({
     queryKey:          ['kpi-data-paged', page, filters, anomalyOnly],
     queryFn:           () => getKpiData(filters, page, anomalyOnly),
     select:            (raw) => ({ rows: raw.data, total: raw.total }),
@@ -33,5 +36,7 @@ export const useKpiDataPaged = (page: PageParams, filters: Filters = EMPTY_FILTE
     staleTime:         STALE_5MIN,
     gcTime:            GC_10MIN,
     retry:             2,
+    enabled:           adminAuthed,
     meta: { queryType: 'kpi-data-paged' },
   });
+};

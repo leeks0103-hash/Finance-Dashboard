@@ -2,11 +2,11 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { Navbar } from '@/layouts';
 import { TabLayout } from '@/layouts';
 import { FileOpenVisibleContext } from '@/components/ui';
-import { useFileOpenVisible } from '@/hooks/useFileOpenVisible';
+import { useVisible } from '@/hooks/useVisibility';
 import styles from './App.module.css';
 
 const App = () => {
-  const fileOpenVisible = useFileOpenVisible();
+  const fileOpenVisible = useVisible('fileOpen');
   return (
     <FileOpenVisibleContext.Provider value={fileOpenVisible}>
       <div className={styles.root}>

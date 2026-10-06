@@ -471,7 +471,8 @@ function ChartStateGrid({ variant, icon, message, ids }: ChartStateGridProps) {
     <>
       {ids.map(id => {
         const full = id === FULL_ROW_ID;
-        const spanClassName = full ? '' : (styles[SPAN_BY_ID[id] ?? 'spanMid'] ?? '');
+        // 원가 비율 카드가 빠진 목록(비관리자)이면 나머지 두 카드는 반씩 — 실제 카드 배치와 같게
+        const spanClassName = full ? '' : (styles[ids.includes('costBreakdown') ? (SPAN_BY_ID[id] ?? 'spanMid') : 'spanHalf'] ?? '');
         const className = [full ? styles.fullRow : '', spanClassName].filter(Boolean).join(' ');
         return variant === 'skeleton' ? (
           <div key={id} className={`${styles.skeleton} ${className}`} />
@@ -951,7 +952,8 @@ const PerformanceChartSection = () => {
         </ChartCard>
       );
     },
-    costBreakdown: () => (
+    // 전체 평균 원가 비율 — 관리자 로그인한 사람만(2026-10-06, 서버도 원가 구성 값을 안 줌)
+    costBreakdown: () => !vm.showCostBreakdown ? null : (
       <ChartCard
         modalContent={
           <CostBreakdownModal
@@ -1021,21 +1023,23 @@ const PerformanceChartSection = () => {
     // ) : null,
   };
 
+  const shownOrder = vm.showCostBreakdown ? chartOrder : chartOrder.filter(id => id !== 'costBreakdown');
   const visibleCharts = chartOrder
     .map(id => ({ id, node: chartRenderers[id]?.() ?? null }))
     .filter(c => c.node !== null);
 
   const chartState = vm.isLoading ? 'loading' : vm.isError ? 'error' : vm.isEmpty ? 'empty' : 'ready';
 
-  const content = chartState === 'loading' ? <ChartStateGrid variant="skeleton" ids={chartOrder} />
-    : chartState === 'error' ? <ChartStateGrid variant="error" icon="⚠" message="데이터를 불러올 수 없습니다" ids={chartOrder} />
-    : chartState === 'empty' ? <ChartStateGrid variant="empty" icon={<LineIcon kind="chart" />} message="데이터 없음" ids={chartOrder} />
+  const content = chartState === 'loading' ? <ChartStateGrid variant="skeleton" ids={shownOrder} />
+    : chartState === 'error' ? <ChartStateGrid variant="error" icon="⚠" message="데이터를 불러올 수 없습니다" ids={shownOrder} />
+    : chartState === 'empty' ? <ChartStateGrid variant="empty" icon={<LineIcon kind="chart" />} message="데이터 없음" ids={shownOrder} />
     : visibleCharts.map(c => (
         <SortableChart
           key={c.id}
           id={c.id}
           fullRow={c.id === FULL_ROW_ID}
-          spanClassName={c.id === FULL_ROW_ID ? undefined : styles[SPAN_BY_ID[c.id] ?? 'spanMid']}
+          // 원가 비율 카드가 빠지면(비관리자) 남은 두 카드가 반씩 — 줄 끝이 비지 않게
+          spanClassName={c.id === FULL_ROW_ID ? undefined : styles[vm.showCostBreakdown ? (SPAN_BY_ID[c.id] ?? 'spanMid') : 'spanHalf']}
         >
           {c.node}
         </SortableChart>

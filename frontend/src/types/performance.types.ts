@@ -227,3 +227,22 @@ export interface PerfInsights {
   risk:     PerfRiskRow[];
   comments: PerfComment[];
 }
+
+/** 완료 프로젝트 재무 대조 불일치 — 관리자 기능 목록(/api/performance/fin-mismatch). 금액은 원 */
+export interface FinMismatchRow {
+  project_code: string;
+  project_name: string;
+  team: string;
+  part: string;
+  manager: string;
+  /** 재무 이력(완료 보고) PPT 파일명 */
+  fin_filename: string;
+  perf_revenue: number | null;
+  fin_revenue: number | null;
+  revenue_diff: number | null;
+  revenue_mismatch: boolean;
+  perf_cost: number | null;
+  fin_cost: number | null;
+  cost_diff: number | null;
+  cost_mismatch: boolean;
+}

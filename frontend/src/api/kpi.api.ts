@@ -46,8 +46,8 @@ interface KpiOpenFileResult {
 /** 파일명으로 원본 PPT 위치를 찾아 서버(로컬 PC)에서 직접 실행.
  *  실패(404 못 찾음 · 409 이미 열려있음)도 axios가 던지는 예외가 아니라
  *  { ok:false, message } 형태로 정상 resolve — 호출부가 항상 .then(r => r.ok)만 보면 되게 */
-export const openKpiFile = (filename: string, check = false): Promise<KpiOpenFileResult> =>
-  client.post<KpiOpenFileResult>('/kpi/open-file', { filename, check })
+export const openKpiFile = (filename: string, check = false, folder = false): Promise<KpiOpenFileResult> =>
+  client.post<KpiOpenFileResult>('/kpi/open-file', { filename, check, folder })
     .then(r => r.data)
     .catch((err): KpiOpenFileResult => err?.response?.data ?? { ok: false, message: '파일을 열 수 없습니다.' });
 

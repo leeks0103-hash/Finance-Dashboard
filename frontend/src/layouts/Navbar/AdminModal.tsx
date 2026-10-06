@@ -1,10 +1,11 @@
-import { useState } from 'react';
-import { Toggle, Button, Modal, ModalBadge, confirmDialog, promptDialog } from '@/components/ui';
+import { useState, type FormEvent } from 'react';
+import { Button, Modal, ModalBadge, confirmDialog } from '@/components/ui';
 import type { useExtractJob } from '@/hooks/useExtractJob';
-import { useUiStore } from '@/store';
-import type { FileOpenVisibility } from '@/store/ui.store';
+import { useVisibilitySettings } from '@/hooks/useVisibility';
+import type { Visibility, VisibilitySettings } from '@/types/settings.types';
 import type { ExtractTarget, ExtractMode } from '@/types/extract.types';
 import ExtractCoverage from './ExtractCoverage';
+import FinMismatch from './FinMismatch';
 import styles from './AdminModal.module.css';
 
 const EXTRACT_TARGET_LABEL: Record<ExtractTarget, string> = { finance: '재무', kpi: 'KPI' };
@@ -26,10 +27,27 @@ const EXTRACT_MODE_INFO: Record<PickMode, { label: string; desc: string }> = {
   },
 };
 
-const FILE_OPEN_OPTIONS: { value: FileOpenVisibility; label: string; title: string }[] = [
-  { value: 'all',   label: '전체',     title: '모든 사람에게 ↗ 버튼 표시' },
-  { value: 'admin', label: '관리자',   title: '관리자 인증한 브라우저에만 표시' },
-  { value: 'none',  label: '숨김',     title: '아무에게도 표시 안 함' },
+type VisibilityOption = { value: Visibility; label: string; title: string };
+
+/** 공개 범위 설정 — 서버(data/visibility.json)에 저장돼 모든 사람 화면에 같이 적용(2026-10-06) */
+const VISIBILITY_ITEMS: { key: keyof VisibilitySettings; label: string; options: VisibilityOption[] }[] = [
+  {
+    // 파트별 계획 vs 실적 드릴다운의 달성률(행별·합계·CSV). 저조한 팀이 한눈에 드러나지 않게
+    // '전체'는 없음(2026-09-29) — 서버도 받지 않음
+    key: 'achieveRate', label: '달성률',
+    options: [
+      { value: 'admin', label: '관리자', title: '관리자 인증한 브라우저에만 표시' },
+      { value: 'none',  label: '숨김',   title: '아무에게도 표시 안 함' },
+    ],
+  },
+  {
+    key: 'fileOpen', label: '파일 바로가기(↗)',
+    options: [
+      { value: 'all',   label: '전체',   title: '모든 사람에게 ↗ 버튼 표시' },
+      { value: 'admin', label: '관리자', title: '관리자 인증한 브라우저에만 표시' },
+      { value: 'none',  label: '숨김',   title: '아무에게도 표시 안 함' },
+    ],
+  },
 ];
 
 interface Props {
@@ -37,6 +55,8 @@ interface Props {
    *  모달에서 인증해도 Navbar(추출 중 배지 등)는 모름 */
   extractJob: ReturnType<typeof useExtractJob>;
   onClose: () => void;
+  /** 로그인 성공 시 — '조직장 이상' 버튼으로 연 경우 창을 닫고 토스트(Navbar) */
+  onLoggedIn?: () => void;
 }
 
 /**
@@ -44,10 +64,8 @@ interface Props {
  * 예전엔 280px 드롭다운 안에 다 들어 있어 비좁았고, 확인창 버튼을 누르면 "바깥 클릭"으로 드롭다운이
  * 닫히는 문제도 있어 모달로 분리(2026-09-30 요청). 권한(EXTRACT_ADMIN_KEY) 없으면 인증 버튼만 보임.
  */
-const AdminModal = ({ extractJob, onClose }: Props) => {
-  const {
-    showAchieveRate, toggleAchieveRate, fileOpenVisibility, setFileOpenVisibility,
-  } = useUiStore();
+const AdminModal = ({ extractJob, onClose, onLoggedIn }: Props) => {
+  const visibility = useVisibilitySettings();
 
   // 추출이 이미 돌고 있으면 그 작업의 대상·방식으로 시작 — 모달을 다시 열어도 실제 작업과 어긋나지 않게
   const running = extractJob.isRunning ? extractJob.status : undefined;
@@ -63,16 +81,15 @@ const AdminModal = ({ extractJob, onClose }: Props) => {
   const toggleExtractTarget = (t: ExtractTarget) => {
     setExtractTargets(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]);
   };
-  // prompt 2번(키/이름) + 틀렸을 때 alert 1번 → prompt 1번 + 인라인 에러텍스트로 축소
-  // (2026-09-23, "알럿창 컨펌창 토스트창 감당 안 되네" 피드백)
-  const handleExtractAuth = async () => {
-    const input = await promptDialog('이름/키를 입력하세요', { placeholder: '홍길동/발급받은 키' });
-    if (!input) return;
-    const slash = input.indexOf('/');
-    const name = (slash === -1 ? '' : input.slice(0, slash)).trim();
-    const key = (slash === -1 ? input : input.slice(slash + 1)).trim();
-    const ok = await extractJob.authenticate({ key, name });
-    setExtractAuthError(ok ? '' : '이름 또는 키가 올바르지 않습니다 (예: 홍길동/발급받은 키)');
+  // 사번·비밀번호 로그인(2026-10-06 — 예전엔 "이름/키" 한 칸 프롬프트). 틀리면 인라인 에러텍스트
+  const [empNo, setEmpNo] = useState('');
+  const [password, setPassword] = useState('');
+  const handleLogin = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!empNo.trim() || !password) { setExtractAuthError('사번과 비밀번호를 입력하세요'); return; }
+    const ok = await extractJob.authenticate({ empNo: empNo.trim(), password });
+    setExtractAuthError(ok ? '' : '사번 또는 비밀번호가 올바르지 않습니다');
+    if (ok) { setPassword(''); onLoggedIn?.(); }
   };
   const handleExtractRun = async () => {
     if (extractTargets.length === 0 || extractLocked) return;
@@ -109,45 +126,49 @@ const AdminModal = ({ extractJob, onClose }: Props) => {
 
   const sub = extractJob.isAuthed
     ? <><ModalBadge>인증됨</ModalBadge>{extractJob.authedName || '관리자'}</>
-    : '관리자 키가 있는 사람만 사용할 수 있습니다';
+    : '관리자로 등록된 사번만 로그인할 수 있습니다';
 
   return (
-    <Modal title="관리자용 기능" sub={sub} width={560} onClose={onClose}>
+    <Modal title="관리자 기능" sub={sub} width={560} onClose={onClose}>
       {!extractJob.isAuthed ? (
-        <div className={styles.auth}>
-          <Button variant="primary" className={styles.authBtn} onClick={handleExtractAuth} disabled={extractJob.isAuthing}>
-            관리자 인증
+        <form className={styles.auth} onSubmit={handleLogin}>
+          <input className={styles.authInput} placeholder="사번" autoComplete="username" autoFocus
+            value={empNo} onChange={e => setEmpNo(e.target.value)} disabled={extractJob.isAuthing} />
+          <input className={styles.authInput} placeholder="비밀번호" type="password" autoComplete="current-password"
+            value={password} onChange={e => setPassword(e.target.value)} disabled={extractJob.isAuthing} />
+          {/* 로그인 중엔 입력칸·버튼 잠금, 사번·비밀번호 둘 다 채워야 버튼 활성(2026-10-06 요청) */}
+          <Button type="submit" variant="primary" className={styles.authBtn} loading={extractJob.isAuthing}
+            disabled={!empNo.trim() || !password}>
+            로그인
           </Button>
           {extractAuthError && <span className={styles.error}>{extractAuthError}</span>}
-        </div>
+          <span className={styles.hint}>한 번 로그인하면 이 브라우저에선 로그아웃 전까지 유지됩니다</span>
+        </form>
       ) : (
         <div className={styles.groups}>
-          {/* 표시 설정 두 개는 한 줄에 — 둘 다 짧은 스위치/세그먼트라 */}
+          {/* 공개 범위 두 개는 한 줄에 — 둘 다 짧은 세그먼트라. 바꾸면 모든 사람 화면에 적용 */}
           <div className={styles.twoCol}>
-            {/* 달성률 표시 — 파트별 계획 vs 실적 드릴다운의 달성률(행별·합계·CSV). 기본 꺼짐.
-                저조한 팀이 한눈에 드러나지 않게 관리자만 켤 수 있게 둠(2026-09-29) */}
-            <section className={styles.group}>
-              <span className={styles.label}>달성률</span>
-              <div className={styles.row}>
-                <span className={styles.rowText}>{showAchieveRate ? '표시 중' : '숨김'}</span>
-                <Toggle checked={showAchieveRate} onChange={toggleAchieveRate} />
-              </div>
-            </section>
-
-            {/* 파일 바로가기(↗) 공개 범위 — 기본 관리자만(2026-09-30) */}
-            <section className={styles.group}>
-              <span className={styles.label}>파일 바로가기(↗)</span>
-              <div className={styles.segment}>
-                {FILE_OPEN_OPTIONS.map(o => (
-                  <Button key={o.value} variant="ghost" size="sm"
-                    className={`${styles.segBtn} ${fileOpenVisibility === o.value ? styles.segActive : ''}`}
-                    onClick={() => setFileOpenVisibility(o.value)}
-                    title={o.title}
-                  >{o.label}</Button>
-                ))}
-              </div>
-            </section>
+            {VISIBILITY_ITEMS.map(item => (
+              <section key={item.key} className={styles.group}>
+                <span className={styles.label}>{item.label}</span>
+                <div className={styles.segment}>
+                  {item.options.map(o => (
+                    <Button key={o.value} variant="ghost" size="sm"
+                      className={`${styles.segBtn} ${visibility.settings[item.key] === o.value ? styles.segActive : ''}`}
+                      onClick={() => visibility.update({ [item.key]: o.value })}
+                      disabled={visibility.isSaving}
+                      title={o.title}
+                    >{o.label}</Button>
+                  ))}
+                </div>
+              </section>
+            ))}
           </div>
+          <span className={styles.hint}>
+            {visibility.isError
+              ? <span className={styles.error}>공개 범위를 저장하지 못했습니다 — 다시 눌러 주세요</span>
+              : '공개 범위는 이 화면뿐 아니라 접속한 모든 사람에게 적용됩니다(다른 화면엔 1분 안에 반영)'}
+          </span>
 
           <section className={styles.group}>
             <span className={styles.label}>PPT 데이터 추출(파싱)</span>
@@ -236,6 +257,13 @@ const AdminModal = ({ extractJob, onClose }: Props) => {
           {/* 추출 현황 — 폴더 파일 수 vs 실제로 들어간 파일, 안 된 파일과 이유(2026-10-01) */}
           <ExtractCoverage finishedAt={extractJob.status?.finished_at}
             onRetryFailed={handleRetryFailed} retryDisabled={extractLocked} />
+
+          {/* 완료 프로젝트 재무 불일치 — 목록·CSV(2026-10-06) */}
+          <FinMismatch />
+
+          <Button variant="ghost" size="sm" className={styles.logoutBtn} onClick={extractJob.logout}>
+            로그아웃
+          </Button>
         </div>
       )}
     </Modal>

@@ -5,6 +5,8 @@ interface PopupState {
   copyable:  boolean;
   /** 제공 시 팝업에 "↗ 바로가기" 버튼 노출 (예: 파일명 → 원본 PPT 열기) */
   onOpen?:   () => void;
+  /** 제공 시 "폴더 열기" 버튼도 — 파일이 든 폴더(2026-10-06) */
+  onOpenFolder?: () => unknown;
   /** 팝업 제목 — 클릭한 셀의 컬럼 이름(파일명·비고 등). 없으면 CellPopup의 title prop */
   title?:    string;
 }
@@ -14,8 +16,8 @@ export const useClipboardPopup = () => {
   const [popup,  setPopup]  = useState<PopupState | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const openPopup = useCallback((text: string, copyable = false, onOpen?: () => void, title?: string) => {
-    setPopup({ text, copyable, onOpen, title });
+  const openPopup = useCallback((text: string, copyable = false, onOpen?: () => void, title?: string, onOpenFolder?: () => unknown) => {
+    setPopup({ text, copyable, onOpen, title, onOpenFolder });
     setCopied(false);
   }, []);
 

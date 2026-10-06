@@ -24,6 +24,10 @@ export const getPdfUrl = (filters: Filters): string =>
   `/api/export/pdf?${buildFilterParams(filters).toString()}`;
 
 /** 재무 PPT 이력이 있는 프로젝트코드 → 건수. 실적현황 표의 2뎁스 보유 배지용 */
+/** 미수주 프로젝트(비고 [미수주] 태그) — 관리자 전용, 필터 무관 전체 */
+export const getMissedBidProjects = (): Promise<Project[]> =>
+  client.get<{ data: Project[] }>('/finance/missed-bid').then(r => r.data.data);
+
 export const getFinanceCodes = (): Promise<Record<string, number>> =>
   client.get<{ codes: Record<string, number> }>('/finance/codes').then(r => r.data.codes);
 
@@ -41,8 +45,8 @@ export interface OpenFileResult {
 /** 파일명으로 원본 PPT 위치를 찾아 서버(로컬 PC)에서 직접 실행.
  *  실패(404 못 찾음 · 409 이미 열려있음)도 axios가 던지는 예외가 아니라
  *  { ok:false, message } 형태로 정상 resolve — 호출부가 항상 .then(r => r.ok)만 보면 되게 */
-export const openFinanceFile = (filename: string, check = false): Promise<OpenFileResult> =>
-  client.post<OpenFileResult>('/finance/open-file', { filename, check })
+export const openFinanceFile = (filename: string, check = false, folder = false): Promise<OpenFileResult> =>
+  client.post<OpenFileResult>('/finance/open-file', { filename, check, folder })
     .then(r => r.data)
     .catch((err): OpenFileResult => err?.response?.data ?? { ok: false, message: '파일을 열 수 없습니다.' });
 

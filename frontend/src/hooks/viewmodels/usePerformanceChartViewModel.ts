@@ -3,7 +3,7 @@ import { usePerformanceSummary } from '@/hooks/usePerformanceSummary';
 import { usePerformanceSummaryAll } from '@/hooks/usePerformanceSummaryAll';
 import { usePerformanceOptions } from '@/hooks/usePerformanceData';
 import { useUiStore } from '@/store';
-import { getStoredExtractKey } from '@/api/extract.api';
+import { useVisible } from '@/hooks/useVisibility';
 import { useTheme } from '@/hooks/useTheme';
 import { makeBarOptions } from '@/utils/chartOptions';
 import { getChartTheme } from '@/utils/chartColors';
@@ -80,6 +80,8 @@ export interface PerformanceChartViewModel {
     planCost:    number[];
     options:  ChartOptions<'bar'>;
   };
+  /** '전체 평균 원가 비율' 카드를 보여줄지 — 관리자 로그인한 사람만(2026-10-06, 서버도 원가 구성 값을 안 줌) */
+  showCostBreakdown: boolean;
   costBreakdown: {
     labels: string[];
     values: number[];
@@ -118,7 +120,8 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
   const period = usePerfPeriod();
   const { data: options } = usePerformanceOptions();
   const showLabels = useUiStore(s => s.showChartLabels);
-  const showRate   = useUiStore(s => s.showAchieveRate) && !!getStoredExtractKey();
+  const showCostBreakdown = useUiStore(s => s.adminAuthed);
+  const showRate   = useVisible('achieveRate');
   const { theme } = useTheme();
   const { labelColor } = getChartTheme(theme === 'dark');
 
@@ -324,7 +327,7 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
 
   if (!chartData || isLoading) {
     return {
-      isLoading, isError, isEmpty: false, showLabels, labelColor,
+      isLoading, isError, isEmpty: false, showLabels, labelColor, showCostBreakdown,
       monthly:          { labels: [], revenues: [], costs: [], isFuture: [], rows: [], options: monthlyOptions },
       planVsActual:     { labels: [], planInitial: [], junCheckTotal: [], rows: [], totalFor: () => ({ part: '합계', plan: 0, actual: 0, diff: 0, rate: null }), showRate, options: planVsActualOptions },
       profitRate:       { labels: [], rates: [], profits: [], isProfit: [], revenues: [], costs: [], planRevenue: [], planCost: [], options: profitRateOptions },
@@ -338,7 +341,7 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
   }
 
   return {
-    isLoading, isError, isEmpty: chartData.isEmpty, showLabels, labelColor,
+    isLoading, isError, isEmpty: chartData.isEmpty, showLabels, labelColor, showCostBreakdown,
     monthly:          { ...chartData.monthly,      options: monthlyOptions },
     planVsActual:     { ...chartData.planVsActual, showRate, options: planVsActualOptions },
     profitRate:       { ...chartData.profitRate,   options: profitRateOptions },

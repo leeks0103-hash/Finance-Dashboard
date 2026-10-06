@@ -15,6 +15,7 @@ import type { KpiRawRow } from '@/types/kpi.types';
 import type { KpiSummaryRow } from '@/hooks/viewmodels/useKpiPageViewModel';
 import styles from './KpiPage.module.css';
 import { openKpiFileOrAlert } from '@/hooks/useOpenFile';
+import { useUiStore } from '@/store';
 
 const openFile = openKpiFileOrAlert;
 
@@ -42,6 +43,7 @@ const KpiPage = () => {
   const [summaryPart, setSummaryPart] = useState('');
   // 조기입력 의심 배너 "한눈에 보기" → KPI 상세 뷰로 전환 + 문제 행만 서버측 필터링
   const [anomalyOnly, setAnomalyOnly] = useState(false);
+  const adminAuthed = useUiStore(s => s.adminAuthed);
   const vm = useKpiPageViewModel(summaryPart, anomalyOnly);
   const [rawView, setRawView] = useState<'flat' | 'rowspan'>('flat');
   // 목록 ↔ KPI 상세 전환 — 기존 표가 페이드아웃된 뒤 새 표가 페이드인(버튼 활성 표시는 rawView로 즉시)
@@ -237,7 +239,8 @@ const KpiPage = () => {
           />
       </FadeInSection>
 
-      {/* KPI 취합 — flat / rowspan 토글 (툴바에 통합) */}
+      {/* KPI 취합 — flat / rowspan 토글 (툴바에 통합). 관리자 로그인한 사람만(2026-10-06, 서버도 403) */}
+      {adminAuthed && (
       <FadeInSection delay={200} tourId="kpi-raw">
           {vm.anomalyCount > 0 && (
             <div className={styles.anomalyBanner}>
@@ -323,6 +326,7 @@ const KpiPage = () => {
             )}</div>;
           })()}
       </FadeInSection>
+      )}
 
       {breakdown && (
         <KpiBreakdownModal

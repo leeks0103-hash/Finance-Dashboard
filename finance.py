@@ -15,6 +15,7 @@ from markupsafe import escape as html_escape
 
 from shared import is_ranked_valid_code, read_excel_via_com, safe_mtime, find_source_path, open_source_file, sort_frame
 import paths
+from auth import admin_required
 
 load_dotenv()
 
@@ -297,6 +298,17 @@ def api_data():
     paged["_row_num"] = range(start, start + len(paged))
     records = json.loads(paged.to_json(orient="records", force_ascii=False))
     return jsonify({"data": records, "total": total})
+
+
+@finance_bp.route("/api/finance/missed-bid")
+@admin_required
+def api_finance_missed_bid():
+    """미수주 프로젝트(비고에 [미수주] 태그) — 관리자만(2026-10-06). 예전엔 프론트가 /api/data 500행을 받아 걸렀음.
+    필터 무관 전체 기준(미수주 섹션은 원래 전역 필터를 안 탐)."""
+    df = get_df()
+    df = df[df["note"].str.contains("[미수주]", regex=False, na=False)]
+    df = _order_by_stage(df)
+    return jsonify({"data": json.loads(df.to_json(orient="records", force_ascii=False))})
 
 
 @finance_bp.route("/api/finance/codes")
@@ -583,7 +595,7 @@ def api_finance_open_file():
     # 처리이력 시트의 전체경로로 서버 PC에서 직접 실행 (AIP 암호화돼도 COM 우회 — read_sheet_cached)
     path = find_source_path(EXCEL_PATH, "처리이력", filename)
     logger.info("[파일 열기/재무] filename=%s -> path=%s", filename, path)
-    body, status = open_source_file(path, check_only=bool(data.get("check")))
+    body, status = open_source_file(path, check_only=bool(data.get("check")), folder=bool(data.get("folder")))
     return jsonify(body), status
 
 

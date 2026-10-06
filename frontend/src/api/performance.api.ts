@@ -1,6 +1,6 @@
 import client from './client';
 import { appendPageParams } from './queryParams';
-import type { PerfSummary, PerfProject, PerfOptions, PerfInsights } from '@/types/performance.types';
+import type { PerfSummary, PerfProject, PerfOptions, PerfInsights, FinMismatchRow } from '@/types/performance.types';
 import type { PagedResponse, PageParams } from '@/types/finance.types';
 
 const toParams = (parts: string[], team = ''): URLSearchParams => {
@@ -109,3 +109,7 @@ export const getPerfBreakdown = (
   params.set('key', key);
   return client.get<PerfBreakdown>('/performance/summary/breakdown', { params }).then(r => r.data);
 };
+
+/** 완료 프로젝트 재무 불일치 목록 — 관리자 전용, 필터 무관 전체 */
+export const getPerfFinMismatch = (): Promise<{ data: FinMismatchRow[]; total: number }> =>
+  client.get<{ data: FinMismatchRow[]; total: number }>('/performance/fin-mismatch').then(r => r.data);

@@ -78,6 +78,7 @@ const PerformancePage = () => {
   const finCompare = useUiStore(s => s.showFinCompare);
   const perfCols = perfColumnSet(vm.period.month, finCompare);
   const rawValues = useUiStore(s => s.showRawValues);
+  const adminAuthed = useUiStore(s => s.adminAuthed);
   // 재무 이력 보유 코드↔건수 — 프로젝트코드 셀의 배지용 (한 번 받아 캐시)
   const financeCodes = useFinanceCodes();
   // 파트별 매출 달성 현황 행 클릭 → 드릴다운 모달 (누계 실적 기준)
@@ -136,6 +137,8 @@ const PerformancePage = () => {
       </div>
       ──────────────────────────────────────────────────────────────────── */}
 
+      {/* 미수주 프로젝트·프로젝트 상세 — 관리자 로그인한 사람만(2026-10-06, 서버도 403) */}
+      {adminAuthed && <>
       {/* 미수주 프로젝트 */}
       <FadeInSection delay={250} tourId="perf-missed">
         <div className={styles.sectionGroup}>
@@ -205,6 +208,7 @@ const PerformancePage = () => {
             }}
           />
       </FadeInSection>
+      </>}
 
       {/* 2depth: 재무 데이터 검색 결과 */}
       {/* 2depth: 재무 데이터 검색 결과 — 비활성(2026-09-30). 검색하면 표가 하나 더 생겨 "왜 2개지?" 헷갈려서,

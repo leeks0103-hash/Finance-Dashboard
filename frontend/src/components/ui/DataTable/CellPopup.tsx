@@ -1,4 +1,4 @@
-import { useContext, type ReactNode } from 'react';
+import { useContext, useEffect, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/Button';
 import { useAnimatedClose } from '@/components/ui/useAnimatedClose';
@@ -10,6 +10,7 @@ interface PopupState {
   text:     string;
   copyable: boolean;
   onOpen?:  () => void;
+  onOpenFolder?: () => unknown;
   /** 클릭한 셀의 컬럼 이름 — 있으면 title prop보다 우선 */
   title?:   string;
 }
@@ -30,8 +31,12 @@ export const CellPopup = ({ title, popup, copied, onClose, onCopy }: Props) => {
   // (등록 안 하면 모달 쪽 ESC가 같이 먹어 팝업과 모달이 한꺼번에 닫혔음, 2026-09-30)
   useEscToClose(close, !!popup);
   const canOpen = useContext(FileOpenVisibleContext);
+  // 폴더 열기 반응 — 누르면 스피너, 열리면 ✓ 잠깐(복사 버튼처럼, 2026-10-06). 팝업 내용이 바뀌면 초기화
+  const [folderState, setFolderState] = useState<'idle' | 'busy' | 'done'>('idle');
+  useEffect(() => { setFolderState('idle'); }, [popup?.text]);
   if (!popup) return null;
   const onOpen = canOpen ? popup.onOpen : undefined;
+  const onOpenFolder = canOpen ? popup.onOpenFolder : undefined;
 
   return createPortal(
     <div className={`${styles.popupOverlay} ${closing ? 'closingOverlay' : ''}`} onClick={close}>
@@ -64,6 +69,24 @@ export const CellPopup = ({ title, popup, copied, onClose, onCopy }: Props) => {
               {onOpen && (
                 <Button unstyled className={styles.iconBtn} onClick={onOpen} title="원본 파일 열기(바로가기)" aria-label="바로가기">
                   <svg viewBox="0 0 16 16" aria-hidden><path d="M9 2.5h4.5V7" /><path d="M13.5 2.5 7 9" /><path d="M11.5 9.5v3a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1h3" /></svg>
+                </Button>
+              )}
+              {/* 파일이 든 폴더 열기(2026-10-06) — 탐색기에서 그 파일이 선택된 채로 */}
+              {onOpenFolder && (
+                <Button unstyled
+                  className={`${styles.iconBtn} ${folderState === 'done' ? styles.iconBtnDone : ''}`}
+                  onClick={async () => {
+                    if (folderState === 'busy') return;
+                    setFolderState('busy');
+                    const r = await onOpenFolder() as { ok?: boolean } | undefined;
+                    setFolderState(r?.ok ? 'done' : 'idle');
+                    if (r?.ok) setTimeout(() => setFolderState('idle'), 1500);
+                  }}
+                  title={folderState === 'busy' ? '폴더 여는 중…' : folderState === 'done' ? '폴더를 열었습니다' : '파일이 있는 폴더 열기'}
+                  aria-label={folderState === 'done' ? '폴더 열림' : '폴더 열기'} aria-busy={folderState === 'busy'}>
+                  {folderState === 'busy' ? <span className={styles.spinner} aria-hidden />
+                    : folderState === 'done' ? <svg viewBox="0 0 16 16" aria-hidden><path d="M3 8.5l3 3 7-7" /></svg>
+                    : <svg viewBox="0 0 16 16" aria-hidden><path d="M2 4.2v7.6a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1H8L6.6 3.2H3a1 1 0 0 0-1 1Z" /></svg>}
                 </Button>
               )}
             </span>

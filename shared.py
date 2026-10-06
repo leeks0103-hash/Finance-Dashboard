@@ -242,7 +242,49 @@ def local_copy_if_drm(path: str) -> "str | None":
     return tmp
 
 
-def open_source_file(path: "str | None", check_only: bool = False) -> "tuple[dict, int]":
+def _visible_windows() -> set:
+    """지금 화면에 보이는 최상위 창 핸들(제목 있는 것만)."""
+    import win32gui
+    out = set()
+    def cb(h, _):
+        if win32gui.IsWindowVisible(h) and win32gui.GetWindowText(h):
+            out.add(h)
+    win32gui.EnumWindows(cb, None)
+    return out
+
+
+def _bring_new_window_to_front(before: set, timeout: float = 15.0) -> None:
+    """서버가 연 파일·폴더 창을 앞으로(2026-10-06). 서버는 사용자가 보고 있는 프로그램이 아니라 Windows가 새 창을
+    앞에 못 띄우게 막아 작업표시줄에서만 깜빡였음 → 열기 전 창 목록과 비교해 새로 생긴 창을 찾아 앞으로.
+    Alt 키를 한 번 눌렀다 떼는 건 Windows의 '앞으로 가져오기' 제한을 푸는 흔한 방법. 백그라운드 스레드에서 몇 초만 지켜봄"""
+    import threading
+    import time
+
+    def run():
+        try:
+            import win32api
+            import win32con
+            import win32gui
+            end = time.time() + timeout
+            while time.time() < end:
+                new = [h for h in _visible_windows() - before if win32gui.IsWindow(h)]
+                if new:
+                    time.sleep(0.3)  # 창이 다 그려질 틈
+                    h = new[-1]
+                    if win32gui.IsIconic(h):
+                        win32gui.ShowWindow(h, win32con.SW_RESTORE)
+                    win32api.keybd_event(win32con.VK_MENU, 0, 0, 0)
+                    win32api.keybd_event(win32con.VK_MENU, 0, win32con.KEYEVENTF_KEYUP, 0)
+                    win32gui.SetForegroundWindow(h)
+                    return
+                time.sleep(0.25)
+        except Exception as e:  # 앞으로 못 가져와도 창은 열려 있음 — 기능엔 영향 없음
+            logger.info("새 창 앞으로 가져오기 실패: %s", e)
+
+    threading.Thread(target=run, daemon=True).start()
+
+
+def open_source_file(path: "str | None", check_only: bool = False, folder: bool = False) -> "tuple[dict, int]":
     """원본 파일을 서버 PC에서 연다 — (응답 dict, HTTP 상태)를 돌려주고 jsonify는 라우트에서.
     한 대의 PC(호스트)를 여러 사람이 공유해서 보는 구조라, 누군가 이미 열어둔 파일은 막는다
     (닫혔는지는 잠금파일이 사라졌는지로 자동 판단 — is_file_locked 참고).
@@ -251,6 +293,20 @@ def open_source_file(path: "str | None", check_only: bool = False) -> "tuple[dic
     DRM 파일은 check 단계부터 거절(blocked=True) — 확인창 없이 바로 "열 수 없는 파일" 안내."""
     if not path or not os.path.exists(path):
         return {"ok": False, "message": "원본 위치를 찾을 수 없습니다 — 폴더가 이동했거나 재추출이 필요할 수 있습니다."}, 404
+    if folder:
+        # 폴더 바로가기(2026-10-06) — 탐색기로 그 파일이 든 폴더를 열고 파일을 선택해 둠. 파일 자체는 안 열어서
+        # DRM·열람 중 검사도 필요 없음(NAS 원본을 건드리지 않음). explorer.exe는 성공해도 종료코드 1이라 결과는 안 봄
+        if check_only:
+            return {"ok": True, "checked": True}, 200
+        try:
+            import subprocess
+            before = _visible_windows()
+            subprocess.Popen(["explorer", "/select,", os.path.normpath(path)])
+            _bring_new_window_to_front(before, timeout=8.0)
+        except Exception as e:
+            logger.error("폴더 열기 실패(%s): %s", path, e)
+            return {"ok": False, "message": f"폴더 열기 실패: {e}"}, 500
+        return {"ok": True}, 200
     if is_drm_file(path):
         logger.warning("DRM 파일 열기 차단: %s", path)
         return {"ok": False, "blocked": True,
@@ -260,7 +316,9 @@ def open_source_file(path: "str | None", check_only: bool = False) -> "tuple[dic
     if check_only:
         return {"ok": True, "checked": True}, 200
     try:
+        before = _visible_windows()
         os.startfile(path)
+        _bring_new_window_to_front(before)
     except Exception as e:
         logger.error("파일 열기 실패(%s): %s", path, e)
         return {"ok": False, "message": f"파일 실행 실패: {e}"}, 500

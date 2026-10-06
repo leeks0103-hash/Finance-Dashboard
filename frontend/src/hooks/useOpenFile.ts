@@ -1,9 +1,10 @@
 import { openFinanceFile, openKpiFile } from '@/api';
 import { openCoverageFile } from '@/api/extract.api';
 import { alertDialog, confirmDialog } from '@/utils/dialog';
+import type { FileOpener } from '@/types/fileOpen.types';
 
 interface OpenResult { ok: boolean; message?: string; locked?: boolean; blocked?: boolean; checked?: boolean }
-type OpenApi = (filename: string, check?: boolean) => Promise<OpenResult>;
+type OpenApi = (filename: string, check?: boolean, folder?: boolean) => Promise<OpenResult>;
 
 /** 실패 안내 — 누가 열람 중이면 오류가 아니라 안내(ⓘ), DRM 파일은 열기 차단, 그 외(위치 없음·실행 실패)는 오류 */
 const alertFailure = (r: OpenResult) => {
@@ -45,12 +46,33 @@ const confirmAndOpen = async (filename: string, apis: OpenApi[]): Promise<OpenRe
   return r;
 };
 
+/**
+ * 폴더 바로가기(2026-10-06) — 서버 PC 탐색기로 그 파일이 든 폴더를 열고 파일을 선택해 둠. 파일은 안 열어서
+ * 확인창 없이 바로(열람 중·DRM이어도 됨). apis를 순서대로 찾아 원본 위치가 있는 첫 곳에서
+ */
+const openFolderVia = async (filename: string, apis: OpenApi[]): Promise<OpenResult> => {
+  let last: OpenResult = { ok: false };
+  for (const api of apis) {
+    last = await api(filename, false, true);
+    if (last.ok) return last;
+  }
+  alertFailure(last);
+  return last;
+};
+
+/** 열기 함수에 폴더 바로가기 짝을 붙임 — CopyText·셀 팝업이 openFolder가 있으면 폴더 버튼을 그림 */
+const opener = (apis: OpenApi[]): FileOpener =>
+  Object.assign((filename: string) => confirmAndOpen(filename, apis), {
+    openFolder: (filename: string) => openFolderVia(filename, apis),
+  });
+
 /** 재무 처리이력 기준으로 원본 PPT 열기(확인창 포함). 표 컬럼 정의처럼 훅을 못 쓰는 곳용 */
-export const openFinanceFileOrAlert = (filename: string) => confirmAndOpen(filename, [openFinanceFile]);
+export const openFinanceFileOrAlert = opener([openFinanceFile]);
 /** KPI 처리이력 기준으로 원본 PPT 열기(확인창 포함) */
-export const openKpiFileOrAlert = (filename: string) => confirmAndOpen(filename, [openKpiFile]);
+export const openKpiFileOrAlert = opener([openKpiFile]);
 /** 추출 현황 목록 기준(폴더에서 찾은 경로)으로 열기 — 처리이력에 없는 미처리·실패 파일도 열림 */
-export const openCoverageFileOrAlert = (filename: string) => confirmAndOpen(filename, [openCoverageFile]);
+export const openCoverageFileOrAlert = opener([openCoverageFile]);
+const openAnyFile = opener([openFinanceFile, openKpiFile]);
 
 /**
  * 파일명으로 원본 PPT를 서버(로컬 PC)에서 직접 연다(확인창 포함).
@@ -58,6 +80,5 @@ export const openCoverageFileOrAlert = (filename: string) => confirmAndOpen(file
  * 각자 독립적으로 기록해서 어느 한쪽에만 이력이 남는 경우가 있음).
  */
 export const useOpenFile = () => {
-  const openFile = (filename: string) => confirmAndOpen(filename, [openFinanceFile, openKpiFile]);
-  return { openFile };
+  return { openFile: openAnyFile };
 };

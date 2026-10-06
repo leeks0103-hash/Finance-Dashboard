@@ -58,6 +58,13 @@ const Navbar = () => {
   // 모달에 넘김 — 추출 중 배지도 같은 인증·진행 상태를 봐야 해서
   const extractJob = useExtractJob();
   const [adminOpen, setAdminOpen] = useState(false);
+  // '조직장 이상' 버튼으로 연 로그인 창 — 로그인되면 바로 닫고 토스트
+  const [loginOnly, setLoginOnly] = useState(false);
+  const notifyAdmin = () => toast('관리자 기능을 사용할 수 있습니다');
+  const handleOrgLogin = () => {
+    setLoginOnly(true);
+    setAdminOpen(true);
+  };
   const ref = useRef<HTMLDivElement>(null);
   const { pathname } = useLocation();
   const navigate = useNavigate();
@@ -70,11 +77,9 @@ const Navbar = () => {
   // 코드 충돌(서로 다른 PPT가 같은 키를 공유해 한쪽이 덮어써진 경우) — 덮어써진 파일은
   // healthRows(파일명 기준 비교)로는 안 잡히므로 별도로 노출.
   // verdict로 한 번 더 걸러서, "한 파일에 여러 프로젝트 + 배치 보고서 제목만 단계마다 바뀐"
-  // 오탐(likely_same_project)은 배지 건수·경고 목록에서 빼고 참고용으로만 접어서 보여줌
-  // (2026-09-21 — 매치업 사례 실측 후 반영, app.py _classify_conflict 참고)
-  const allConflicts = health?.conflicts ?? [];
-  const healthConflicts = allConflicts.filter(c => c.verdict !== 'likely_same_project');
-  const likelyOkConflicts = allConflicts.filter(c => c.verdict === 'likely_same_project');
+  // 오탐(likely_same_project)은 배지 건수·경고 목록에서 뺌(2026-09-21 매치업 사례, app.py _classify_conflict).
+  // 접어서 '확인'으로 보여주던 것도 없앰 — 문제 없는 파일이라 굳이 보일 필요 없음(2026-10-06)
+  const healthConflicts = (health?.conflicts ?? []).filter(c => c.verdict !== 'likely_same_project');
   // "완료" 단계인데 매출·직접원가 외 값이 채워진 파일 — PPT 양식 정책상 있으면 안 되는 값
   // (2026-09-22 요청, app.py _read_finished_report_anomalies)
   const finishedAnomalies = health?.finished_anomalies ?? [];
@@ -254,35 +259,21 @@ const Navbar = () => {
                     </section>
                   )}
 
-                  {likelyOkConflicts.length > 0 && (
-                    <details className={styles.healthDetails}>
-                      <summary className={styles.healthHeaderMuted}>
-                        확인 · {likelyOkConflicts.length}건
-                      </summary>
-                      <ul className={styles.healthList}>
-                        {likelyOkConflicts.map(c => (
-                          <li key={`${c.source}-${c.code}`} className={styles.healthItem}>
-                            <div className={styles.healthFileRow}>
-                              <CopyText text={c.code} className={styles.healthFile} />
-                            </div>
-                            <div className={styles.healthCodes}>
-                              <span>{c.source} · {c.files.length}개 파일이 같은 코드 사용</span>
-                              {c.files.map(f => (
-                                <span key={f}>· <CopyText text={f} onOpen={openFile} /></span>
-                              ))}
-                            </div>
-                            {c.reason && <div className={styles.healthReason}>{c.reason}</div>}
-                          </li>
-                        ))}
-                      </ul>
-                    </details>
-                  )}
                 </div>
               )}
           </div>
 
+          {/* 관리자 로그인 바로가기 — Raw Data 다운로드 왼쪽(2026-10-06 요청). 로그인 창 → 성공 시 창을 닫고 토스트.
+              로그인한 뒤엔 잠김 — 로그아웃·관리자 설정은 ⚙ > 관리자 기능 */}
+          <Button variant="ghost" size="sm" className={styles.orgBtn} onClick={handleOrgLogin}
+            disabled={extractJob.isAuthed}
+            title={extractJob.isAuthed ? '로그인됨 — 로그아웃은 ⚙ > 관리자 기능' : undefined}>
+            조직장 이상
+          </Button>
+
           {activeTab === 'kpi' && <KpiActionBar />}
           {activeTab === 'performance' && <PerformanceActionBar />}
+
 
           {/* ⚙ 드롭다운을 닫아도 진행 상황을 놓치지 않도록 — 설정창 밖에 항상 보이는 작은 배지.
               권한 없는 사람에겐 이 기능 자체가 안 보여야 해서 isAuthed일 때만(2026-09-23 요청,
@@ -396,16 +387,16 @@ const Navbar = () => {
                   280px 드롭다운엔 비좁았고, 확인창 버튼을 누르면 바깥 클릭으로 드롭다운이 닫히던 문제도 있어
                   분리(2026-09-30). 권한 없는 사람은 모달 안에서 인증 버튼만 보임 */}
               <div className={styles.section}>
-                <span className={styles.sectionLabel}>관리자용 기능</span>
+                <span className={styles.sectionLabel}>관리자 기능</span>
                 <Button
                   variant="ghost"
                   size="sm"
                   className={styles.financeBtn}
                   icon={extractJob.isRunning ? <span className={styles.adminBusySpinner} aria-hidden /> : undefined}
                   aria-busy={extractJob.isRunning}
-                  onClick={() => { setOpen(false); setAdminOpen(true); }}
+                  onClick={() => { setOpen(false); setLoginOnly(false); setAdminOpen(true); }}
                 >
-                  {extractJob.isRunning ? '관리자용 기능 (추출 중…)' : '관리자용 기능 열기'}
+                  {extractJob.isRunning ? '관리자 기능 (추출 중…)' : '관리자 기능'}
                 </Button>
               </div>
             </div>
@@ -415,7 +406,13 @@ const Navbar = () => {
       </div>
 
       {financeModalOpen && <FinanceDataModal onClose={() => setFinanceModalOpen(false)} />}
-      {adminOpen && <AdminModal extractJob={extractJob} onClose={() => setAdminOpen(false)} />}
+      {adminOpen && (
+        <AdminModal
+          extractJob={extractJob}
+          onClose={() => { setAdminOpen(false); setLoginOnly(false); }}
+          onLoggedIn={loginOnly ? () => { setAdminOpen(false); setLoginOnly(false); notifyAdmin(); } : undefined}
+        />
+      )}
     </header>
   );
 };

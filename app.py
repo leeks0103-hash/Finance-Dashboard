@@ -17,6 +17,7 @@ from performance import perf_bp
 from kpi import kpi_bp, get_kpi_df, _real_code, KPI_EXCEL_PATH, load_kpi_excel, _kpi_cache_lock
 from downloads import download_bp
 from ai_insight import ai_bp
+from auth import is_admin, current_admin, login as admin_login
 
 load_dotenv()
 
@@ -86,6 +87,8 @@ def api_data_health():
         })
 
     conflicts, read_failures = _read_code_conflicts()
+    # 같은 프로젝트가 단계별로 재보고된 것으로 판정된 건(likely_same_project)은 문제 아님 — 응답에서 뺌(2026-10-06)
+    conflicts = [c for c in conflicts if c["verdict"] != "likely_same_project"]
     finished_anomalies = _read_finished_report_anomalies(fin_df)
     return jsonify({
         "count": len(rows) + len(conflicts) + len(finished_anomalies) + len(read_failures),
@@ -291,8 +294,8 @@ _extract_cancel_requested = False
 
 
 def _extract_key_valid(req) -> bool:
-    """키는 보안 경계라기보단 '아무나 못 누르게' 하는 접근 제한 — 비어있으면(설정 안 함) 항상 거부."""
-    return bool(EXTRACT_ADMIN_KEY) and req.headers.get("X-Extract-Key", "") == EXTRACT_ADMIN_KEY
+    """관리자 로그인 토큰 확인(auth.py) — 예전 공용 키(EXTRACT_ADMIN_KEY)는 이제 토큰 서명에만 씀(2026-10-06)."""
+    return is_admin(req)
 
 
 def _run_extract_script(name: str, mode: str, only_list: "str | None" = None) -> tuple[bool, str]:
@@ -417,14 +420,22 @@ def _extract_job(targets: list, mode: str):
         })
 
 
-@app.route("/api/extract/auth", methods=["POST"])
-def api_extract_auth():
-    """키 확인만 — 통과하면 프론트가 localStorage에 저장해두고 이후 run/cancel에 헤더로 실어보냄."""
+@app.route("/api/auth/login", methods=["POST"])
+def api_auth_login():
+    """사번·비밀번호 확인 — 통과하면 토큰을 내려주고 프론트가 localStorage에 저장해 이후 요청 헤더로 실어보냄."""
     body = request.get_json(silent=True) or {}
-    key = str(body.get("key", ""))
-    if not EXTRACT_ADMIN_KEY or key != EXTRACT_ADMIN_KEY:
+    result = admin_login(str(body.get("emp_no", "")).strip(), str(body.get("password", "")))
+    if not result:
         return jsonify({"ok": False}), 401
-    return jsonify({"ok": True})
+    logger.info("[관리자 로그인] %s(%s)", result["name"], result["emp_no"])
+    return jsonify({"ok": True, **result})
+
+
+@app.route("/api/auth/me")
+def api_auth_me():
+    """저장된 토큰이 아직 유효한지 — 계정이 지워졌거나 비밀번호가 바뀌었으면 ok:false(프론트가 로그아웃 처리)."""
+    admin = current_admin(request)
+    return jsonify({"ok": True, **admin} if admin else {"ok": False})
 
 
 @app.route("/api/extract/run", methods=["POST"])
@@ -435,7 +446,8 @@ def api_extract_run():
     body = request.get_json(silent=True) or {}
     targets = [t for t in body.get("targets", []) if t in _EXTRACT_SCRIPTS]
     mode = body.get("mode", "incremental")
-    started_by = str(body.get("started_by", "")).strip()[:40] or "알 수 없음"
+    # 실행자 이름은 로그인한 계정 기준(예전엔 브라우저가 보낸 이름)
+    started_by = (current_admin(request) or {}).get("name") or "알 수 없음"
     if not targets:
         return jsonify({"ok": False, "error": "targets가 비어있습니다"}), 400
     if mode not in _EXTRACT_MODES:
@@ -500,6 +512,60 @@ def api_extract_coverage():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+# ── 화면 공개 범위(관리자용 기능 모달) ─────────────────────────────────────
+# 예전엔 브라우저마다 localStorage에 저장돼 관리자가 바꿔도 자기 화면에만 적용됐음 →
+# 서버 파일 하나에 두고 모든 화면이 같은 값을 읽음(2026-10-06). 노출만 관리 — API 접근 자체는 막지 않음.
+# all 전체 / admin 관리자 인증한 브라우저만 / none 아무도
+_VISIBILITY_PATH = Path(__file__).parent / "data" / "visibility.json"
+_VISIBILITY_DEFAULTS = {"fileOpen": "admin", "achieveRate": "none"}
+# 달성률은 '전체' 없음 — 저조한 팀이 모두에게 드러나지 않게(2026-09-29 원칙)
+_VISIBILITY_CHOICES = {"fileOpen": {"all", "admin", "none"}, "achieveRate": {"admin", "none"}}
+_visibility_lock = threading.Lock()
+
+
+def _read_visibility() -> dict:
+    import json
+    out = dict(_VISIBILITY_DEFAULTS)
+    try:
+        saved = json.loads(_VISIBILITY_PATH.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return out
+    except Exception:
+        logger.warning("공개 범위 설정 파일을 못 읽음 — 기본값 사용: %s", _VISIBILITY_PATH)
+        return out
+    for k, choices in _VISIBILITY_CHOICES.items():
+        if saved.get(k) in choices:
+            out[k] = saved[k]
+    return out
+
+
+@app.route("/api/settings/visibility")
+def api_get_visibility():
+    with _visibility_lock:
+        return jsonify(_read_visibility())
+
+
+@app.route("/api/settings/visibility", methods=["PUT"])
+def api_put_visibility():
+    if not _extract_key_valid(request):
+        return jsonify({"ok": False, "error": "권한이 없습니다"}), 403
+    import json
+    body = request.get_json(silent=True) or {}
+    with _visibility_lock:
+        cur = _read_visibility()
+        for k, v in body.items():
+            if k not in _VISIBILITY_CHOICES or v not in _VISIBILITY_CHOICES[k]:
+                return jsonify({"ok": False, "error": f"잘못된 값: {k}={v}"}), 400
+            cur[k] = v
+        # 임시 파일에 쓰고 바꿔치기 — 쓰다 끊겨도 파일이 반쯤 깨진 채 남지 않게
+        _VISIBILITY_PATH.parent.mkdir(exist_ok=True)
+        tmp = _VISIBILITY_PATH.with_suffix(".json.tmp")
+        tmp.write_text(json.dumps(cur, ensure_ascii=False, indent=2), encoding="utf-8")
+        os.replace(tmp, _VISIBILITY_PATH)
+    logger.info("[공개 범위] 변경 %s -> %s", body, cur)
+    return jsonify(cur)
+
+
 @app.route("/api/extract/open-file", methods=["POST"])
 def api_extract_open_file():
     """추출 현황 목록의 원본 PPT 열기(↗). 미처리·실패 파일은 처리이력에 경로가 없어 재무/KPI 열기 API로는
@@ -514,7 +580,7 @@ def api_extract_open_file():
         return jsonify({"ok": False, "message": "파일명이 없습니다."}), 400
     path = extract_coverage.find_path(filename)
     logger.info("[파일 열기/추출 현황] filename=%s -> path=%s", filename, path)
-    body, status = open_source_file(path, check_only=bool(data.get("check")))
+    body, status = open_source_file(path, check_only=bool(data.get("check")), folder=bool(data.get("folder")))
     return jsonify(body), status
 
 

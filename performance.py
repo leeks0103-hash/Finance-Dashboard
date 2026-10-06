@@ -11,6 +11,7 @@ from flask import Blueprint, jsonify, request
 from markupsafe import escape as html_escape
 
 from shared import is_ranked_valid_code, safe_mtime, sort_frame, PART_PREFIX_RE
+from auth import admin_required, is_admin
 
 load_dotenv()
 
@@ -595,10 +596,36 @@ def _attach_finance_mismatch(rows: pd.DataFrame) -> pd.DataFrame:
             if abs(float(pv) * 1000 - float(fv)) >= _FIN_COMPARE_TOLERANCE_WON:
                 diff.append(perf_f)
         rows.at[idx, "fin_mismatch"] = diff
+        if diff:
+            rows.at[idx, "fin_filename"] = str(f.get("filename", "") or "")
     return rows
 
 
+def _project_rows(rows: pd.DataFrame) -> pd.DataFrame:
+    """매출행+원가행 → 프로젝트당 1행 + 완료 프로젝트 재무 대조. 프로젝트 상세 표·불일치 목록 공용."""
+    if rows.empty:
+        return rows
+    # 묶음(프로젝트) 일련번호 — 매출/원가 2행이 한 묶음이라 행 번호로는 NO.가 어긋난다.
+    # 페이지를 자르기 **전에** 전체 기준으로 매겨야 2페이지에서도 번호가 이어짐.
+    # project_code 단독 비교는 "생성예정"/"드롭"/"미생성" 같은 placeholder 코드가 서로
+    # 다른 프로젝트끼리 같은 텍스트를 공유해서(같은 파트 안에 연달아 있으면 특히) 엉뚱하게
+    # 한 묶음으로 잡히는 문제가 있음 — 그래서 placeholder 코드만 project_name까지 같이 본다.
+    #
+    # 반대로 정식 코드(영문 1자 + 숫자 10자 이상)에 project_name까지 묶으면, 원본 엑셀에서
+    # 매출행/원가행 프로젝트명이 한 글자라도 다르게 입력된 경우(예: H093600126020002 —
+    # "…홍보 자료 개발" vs "…안내 자료 개발") 같은 프로젝트가 두 묶음으로 쪼개진다.
+    # 정식 코드를 공유하는 서로 다른 프로젝트(E078600126010001 등 4건)는 시트에서 멀리
+    # 떨어져 있고, 묶음은 **연속된 행**끼리만 만들어지므로 코드만으로 묶어도 섞이지 않는다.
+    code = rows["project_code"].astype(str).str.strip()
+    is_real_code = code.str.fullmatch(r"[A-Za-z]\d{10,}").fillna(False)
+    group_key = code.where(is_real_code, code + "␟" + rows["project_name"].astype(str))
+    group_no = (group_key != group_key.shift()).cumsum()
+    rows = _merge_rev_cost_rows(rows, group_no)
+    return _attach_finance_mismatch(rows)
+
+
 @perf_bp.route("/api/performance/data")
+@admin_required  # 프로젝트 상세 — 관리자만(2026-10-06)
 def api_perf_data():
     df = apply_perf_filters(get_perf_df())
     if df.empty:
@@ -628,24 +655,7 @@ def api_perf_data():
                     mask |= rows[col].astype(str).str.lower().str.contains(s, regex=False, na=False)
         rows = rows[mask]
 
-    # 묶음(프로젝트) 일련번호 — 매출/원가 2행이 한 묶음이라 행 번호로는 NO.가 어긋난다.
-    # 페이지를 자르기 **전에** 전체 기준으로 매겨야 2페이지에서도 번호가 이어짐.
-    # project_code 단독 비교는 "생성예정"/"드롭"/"미생성" 같은 placeholder 코드가 서로
-    # 다른 프로젝트끼리 같은 텍스트를 공유해서(같은 파트 안에 연달아 있으면 특히) 엉뚱하게
-    # 한 묶음으로 잡히는 문제가 있음 — 그래서 placeholder 코드만 project_name까지 같이 본다.
-    #
-    # 반대로 정식 코드(영문 1자 + 숫자 10자 이상)에 project_name까지 묶으면, 원본 엑셀에서
-    # 매출행/원가행 프로젝트명이 한 글자라도 다르게 입력된 경우(예: H093600126020002 —
-    # "…홍보 자료 개발" vs "…안내 자료 개발") 같은 프로젝트가 두 묶음으로 쪼개진다.
-    # 정식 코드를 공유하는 서로 다른 프로젝트(E078600126010001 등 4건)는 시트에서 멀리
-    # 떨어져 있고, 묶음은 **연속된 행**끼리만 만들어지므로 코드만으로 묶어도 섞이지 않는다.
-    if len(rows):
-        code = rows["project_code"].astype(str).str.strip()
-        is_real_code = code.str.fullmatch(r"[A-Za-z]\d{10,}").fillna(False)
-        group_key = code.where(is_real_code, code + "␟" + rows["project_name"].astype(str))
-        group_no = (group_key != group_key.shift()).cumsum()
-        rows = _merge_rev_cost_rows(rows, group_no)
-        rows = _attach_finance_mismatch(rows)
+    rows = _project_rows(rows)
 
     total = len(rows)
     # 전체 기준 정렬(표 머리글 클릭) — 페이지를 자르기 전에
@@ -663,6 +673,40 @@ def api_perf_data():
     page_df = rows.iloc[start:start + page_size]
     page_df = page_df.astype(object).where(pd.notna(page_df), None)
     return jsonify({"data": page_df.to_dict(orient="records"), "total": total})
+
+
+@perf_bp.route("/api/performance/fin-mismatch")
+@admin_required
+def api_perf_fin_mismatch():
+    """완료 프로젝트 중 실적현황 ↔ 재무 이력(완료 보고) 매출·직접원가가 다른 것 — 관리자 기능 목록·CSV(2026-10-06).
+    프로젝트 상세 표에서 빨간 칸으로 보이는 것과 같은 판정. 필터와 무관하게 전체, 금액은 원 단위."""
+    df = get_perf_df()
+    if df.empty:
+        return jsonify({"data": [], "total": 0})
+    rows = _project_rows(df.copy())
+    rows = rows[rows["fin_mismatch"].map(bool)]
+
+    def won(v):
+        return None if v is None or pd.isna(v) else round(float(v) * 1000)
+
+    out = []
+    for _, r in rows.iterrows():
+        rec = {k: ("" if pd.isna(r.get(k)) else str(r.get(k)))
+               for k in ("project_code", "project_name", "team", "part", "manager", "fin_filename")}
+        for key, perf_f in (("revenue", "jun_check_total"), ("cost", "est_cost")):
+            pv, fv = won(r.get(perf_f)), won(r.get(f"fin_{perf_f}"))
+            rec[f"perf_{key}"] = pv
+            rec[f"fin_{key}"]  = fv
+            rec[f"{key}_diff"] = (pv - fv) if pv is not None and fv is not None else None
+            rec[f"{key}_mismatch"] = perf_f in r["fin_mismatch"]
+        out.append(rec)
+    # 차이 큰 순(매출·원가 중 큰 쪽 절댓값)
+    out.sort(key=lambda x: -max(abs(x["revenue_diff"] or 0) if x["revenue_mismatch"] else 0,
+                                 abs(x["cost_diff"] or 0) if x["cost_mismatch"] else 0))
+    return jsonify({"data": out, "total": len(out)})
+
+
+_COST_BREAKDOWN_KEYS = ("cost_direct", "cost_labor", "cost_overhead", "cost_mgmt")
 
 
 @perf_bp.route("/api/performance/summary")
@@ -786,6 +830,11 @@ def api_perf_summary():
     # 실적/추정 경계를 이걸로 맞춤. 예전엔 프론트가 "오늘 - 1개월"로 짐작해서, 10월 1일이 되자 9월 시트가 아직 없는데도
     # 9월을 실적으로 칠했음(2026-10-01)
     base = {"year": _perf_current_year, "month": _perf_current_month} if _perf_current_month else None
+    # 원가 구성 4항목은 '전체 평균 원가 비율' 카드 전용 — 관리자 아니면 응답에서 뺌(2026-10-06)
+    if not is_admin():
+        for d in [total, *by_part.values()]:
+            for k in _COST_BREAKDOWN_KEYS:
+                d.pop(k, None)
     return jsonify({"total": total, "by_part": by_part, "by_progress": by_progress, "monthly": monthly,
                     "loaded_at": _perf_last_loaded, "base": base})
 
@@ -1075,6 +1124,8 @@ def api_perf_summary_breakdown():
 
     chart = request.args.get("chart", "").strip()
     key   = request.args.get("key", "").strip()
+    if chart == "costBreakdown" and not is_admin():
+        return jsonify({"ok": False, "error": "관리자만 볼 수 있습니다"}), 403
     try:
         series_idx = int(request.args.get("series", 0))
     except (ValueError, TypeError):
