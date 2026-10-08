@@ -11,7 +11,7 @@ from flask import Blueprint, jsonify, request
 from markupsafe import escape as html_escape
 
 from shared import is_ranked_valid_code, safe_mtime, sort_frame, PART_PREFIX_RE
-from auth import admin_required, is_admin
+from auth import admin_required
 
 load_dotenv()
 
@@ -706,9 +706,6 @@ def api_perf_fin_mismatch():
     return jsonify({"data": out, "total": len(out)})
 
 
-_COST_BREAKDOWN_KEYS = ("cost_direct", "cost_labor", "cost_overhead", "cost_mgmt")
-
-
 @perf_bp.route("/api/performance/summary")
 def api_perf_summary():
     df = apply_perf_filters(get_perf_df())
@@ -830,11 +827,6 @@ def api_perf_summary():
     # 실적/추정 경계를 이걸로 맞춤. 예전엔 프론트가 "오늘 - 1개월"로 짐작해서, 10월 1일이 되자 9월 시트가 아직 없는데도
     # 9월을 실적으로 칠했음(2026-10-01)
     base = {"year": _perf_current_year, "month": _perf_current_month} if _perf_current_month else None
-    # 원가 구성 4항목은 '전체 평균 원가 비율' 카드 전용 — 관리자 아니면 응답에서 뺌(2026-10-06)
-    if not is_admin():
-        for d in [total, *by_part.values()]:
-            for k in _COST_BREAKDOWN_KEYS:
-                d.pop(k, None)
     return jsonify({"total": total, "by_part": by_part, "by_progress": by_progress, "monthly": monthly,
                     "loaded_at": _perf_last_loaded, "base": base})
 
@@ -1124,8 +1116,6 @@ def api_perf_summary_breakdown():
 
     chart = request.args.get("chart", "").strip()
     key   = request.args.get("key", "").strip()
-    if chart == "costBreakdown" and not is_admin():
-        return jsonify({"ok": False, "error": "관리자만 볼 수 있습니다"}), 403
     try:
         series_idx = int(request.args.get("series", 0))
     except (ValueError, TypeError):

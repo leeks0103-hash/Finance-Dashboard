@@ -171,7 +171,13 @@ const AdminModal = ({ extractJob, onClose, onLoggedIn }: Props) => {
           </span>
 
           <section className={styles.group}>
-            <span className={styles.label}>PPT 데이터 추출(파싱)</span>
+            {/* 제목 오른쪽 끝에 마지막 추출 시각(2026-10-06 요청) */}
+            <div className={styles.labelRow}>
+              <span className={styles.label}>PPT 데이터 추출(파싱)</span>
+              <span className={styles.lastRun} title="마지막으로 추출이 끝난 시각">
+                마지막 추출 {extractJob.status?.last_extracted_at ?? extractJob.status?.finished_at?.slice(0, 16) ?? '-'}
+              </span>
+            </div>
 
             {/* 추출 진행 중엔 대상/방식을 바꿀 수 없게 잠금(2026-09-23 요청) */}
             <div className={styles.field}>

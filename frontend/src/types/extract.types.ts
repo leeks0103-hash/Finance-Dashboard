@@ -14,6 +14,8 @@ export interface ExtractStatus {
   ok:          boolean | null;
   message:     string;
   cancelled:   boolean;
+  /** 결과 엑셀(재무·KPI)이 마지막으로 저장된 시각 "YYYY-MM-DD HH:MM" — 서버 재시작 뒤에도 남음 */
+  last_extracted_at?: string | null;
 }
 
 /** 추출 현황(관리자용 기능 모달) — 원본 폴더의 파일 하나하나가 어떻게 처리됐는지.

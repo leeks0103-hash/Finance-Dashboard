@@ -123,7 +123,7 @@ const SEARCH_FIELD_OPTIONS = [
 
 export const usePerformanceViewModel = (): PerformanceViewModel => {
   const pagination = useReactPagination(20);
-  const sort = useServerSort(pagination.resetToFirstPage);
+  const sort = useServerSort(pagination.resetToFirstPage, 'performance-project');
   const [searchField, setSearchField] = useState('');
   const [selectedProgress, setSelectedProgress] = useState('');
   const search = useDebouncedSearch(350);

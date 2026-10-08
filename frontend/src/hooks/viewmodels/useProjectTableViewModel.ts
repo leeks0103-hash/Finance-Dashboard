@@ -67,7 +67,7 @@ const SEARCH_FIELD_OPTIONS = [
 
 export const useProjectTableViewModel = (): ProjectTableViewModel => {
   const pagination = useReactPagination(30);
-  const sort = useServerSort(pagination.resetToFirstPage);
+  const sort = useServerSort(pagination.resetToFirstPage, 'finance-project');
   const [searchField, setSearchField] = useState('');
   const search = useDebouncedSearch(350);
   const [stage, setStage] = useState('');

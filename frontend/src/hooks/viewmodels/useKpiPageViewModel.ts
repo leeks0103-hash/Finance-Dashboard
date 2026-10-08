@@ -91,7 +91,7 @@ const SEARCH_FIELD_OPTIONS = [
  */
 export const useKpiPageViewModel = (summaryPart = '', anomalyOnly = false): KpiPageViewModel => {
   const pagination = useReactPagination(20);   // KPI 취합 — 30행은 너무 길어서 20행 기본
-  const sort = useServerSort(pagination.resetToFirstPage);
+  const sort = useServerSort(pagination.resetToFirstPage, 'kpi-raw');
   const [searchField, setSearchField] = useState('');
   const search = useDebouncedSearch(350);
   const years  = useKpiFilterStore(s => s.years);

@@ -140,3 +140,17 @@
 
 /* 로그인 요청 중 입력칸 잠금 */
 .authInput:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* PPT 데이터 추출 제목줄 — 왼쪽 제목 / 오른쪽 마지막 추출 시각 */
+.labelRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.lastRun {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}

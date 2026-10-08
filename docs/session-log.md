@@ -1,5 +1,12 @@
 # 세션 진행 기록
 
+## [2026-10-08] 서버 정렬 표 — 정렬 상태 새로고침 뒤에도 유지
+
+- `hooks/useServerSort(resetPage, storageKey?)` — storageKey를 주면 정렬 기준·방향을 localStorage `sort-<key>`에 저장, 처음 열 때 복원.
+  해제하면 키 삭제. 저장된 컬럼이 없어져도 서버 `sort_frame`이 모르는 컬럼은 무시해 안전
+- 적용: 프로젝트 상세(`performance-project`)·프로젝트 재무 상세(`finance-project`)·KPI 취합(`kpi-raw`, 목록/KPI 상세 두 보기 공용)
+- tsc·build·vitest 65/65 통과. 브라우저 확인은 아직
+
 ## [2026-10-06] 공개 범위(달성률·파일 바로가기)를 서버 저장으로 — 모든 화면에 적용
 
 - **문제**: ⚙ > 관리자용 기능의 "파일 바로가기(↗) 전체/관리자/숨김"·"달성률" 설정이 브라우저 localStorage에 저장돼
@@ -52,6 +59,11 @@
   - 서버가 띄운 창(파일·폴더)이 앞으로 안 나오고 작업표시줄에서만 깜빡였음(Windows 포커스 보호) → `shared._bring_new_window_to_front`:
     열기 전 창 목록과 비교해 새로 생긴 창을 백그라운드에서 몇 초(파일 15초·폴더 8초) 찾아 Alt 키 한 번 + SetForegroundWindow. 실제로 앞에 뜨는지는 사용자 확인 대기
   - 폴더 버튼 누름 반응: 응답 올 때까지 스피너(최소 0.6초) → 열리면 ✓ 1.5초(복사 ✓와 같은 색) → 폴더 아이콘. CopyText·셀 팝업 둘 다. 헤드리스로 스피너→✓→복귀 확인
+- **전체 평균 원가 비율 다시 모두에게**(요청) — 관리자 전용 4개 중 이것만 원복: 화면 숨김(`showCostBreakdown`)·반폭 배치(`.spanHalf`) 제거,
+  서버도 `/api/performance/summary` 원가 구성 4항목 빼던 것·`breakdown?chart=costBreakdown` 403 제거. 나머지 3개(미수주·프로젝트 상세·KPI 취합)는 그대로 관리자 전용
+- 실적 탭 필터바 오른쪽 "업데이트 MM-DD HH:MM"(`PerformanceLastUpdated`) 삭제
+- 관리자 기능 "PPT 데이터 추출(파싱)" 제목 오른쪽 끝에 "마지막 추출 YYYY-MM-DD HH:MM" — `/api/extract/status`의 `last_extracted_at`
+  (결과 엑셀 재무·KPI 중 늦은 저장 시각, 서버 재시작 뒤에도 남음. finished_at은 메모리라 재시작하면 비었음)
 
 ## [2026-10-02] AI 인사이트 숨김 + KPI 미입력 값 "N" 통일 + 네비 탭 흰 글자·밑줄
 

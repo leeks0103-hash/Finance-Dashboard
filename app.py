@@ -495,7 +495,13 @@ def api_extract_cancel():
 @app.route("/api/extract/status")
 def api_extract_status():
     with _extract_lock:
-        return jsonify(dict(_extract_status))
+        body = dict(_extract_status)
+    # 마지막 추출 시각 — finished_at은 서버 메모리라 재시작하면 비어서, 결과 엑셀(재무·KPI)이 마지막으로 저장된 시각을
+    # 따로 줌(관리자 기능 "PPT 데이터 추출" 제목 오른쪽, 2026-10-06)
+    from shared import safe_mtime
+    mt = max((safe_mtime(p) or 0) for p in (EXCEL_PATH, KPI_EXCEL_PATH))
+    body["last_extracted_at"] = datetime.fromtimestamp(mt).strftime("%Y-%m-%d %H:%M") if mt else None
+    return jsonify(body)
 
 
 @app.route("/api/extract/coverage")

@@ -6,7 +6,6 @@ import { useBackgroundPrefetch } from '@/hooks/useBackgroundPrefetch';
 import FilterPanel  from '@/components/features/FilterPanel';
 import ActionBar    from '@/components/features/ActionBar';
 import PerfFilter   from '@/layouts/PerformanceFilterBar/PerformanceFilterBar';
-import PerformanceLastUpdated from '@/components/features/PerformanceLastUpdated';
 import styles from './TabLayout.module.css';
 
 import type { TabId } from '@/components/ui/TabNav/TabNav';
@@ -48,7 +47,7 @@ const TabLayout = () => {
       {!isKpi && (
         <div className={styles.filterGroup} data-tour="filter">
           {isFinance && <><FilterPanel /><ActionBar /></>}
-          {isPerformance && <><PerfFilter /><PerformanceLastUpdated /></>}
+          {isPerformance && <PerfFilter />}
         </div>
       )}
 
