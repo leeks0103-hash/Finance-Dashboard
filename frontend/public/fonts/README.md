@@ -1,3 +1,5 @@
+> ⚠️ 2026-10-12부터 대시보드는 Pretendard(npm `pretendard`, `src/index.css`)를 씁니다 — 이 폴더의 현대 글꼴은 더 이상 참조하지 않습니다.
+
 # 현대 브랜드 폰트 배치
 
 `frontend/src/index.css` 의 `@font-face` 가 이 폴더의 `.ttf` 파일을 **아래 파일명 그대로** 참조합니다.

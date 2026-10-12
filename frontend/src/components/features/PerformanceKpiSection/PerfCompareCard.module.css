@@ -79,7 +79,7 @@
 /* 계획·추정 두 값은 같은 크기 — 구분은 색으로만 (계획 muted / 추정 accent) */
 .plan,
 .est {
-  font-family: 'HyundaiHarmony', 'HyundaiSansHead', sans-serif;
+  font-family: 'Pretendard', sans-serif;
   /* 한 줄 배치(2026-10-02). 최대 2.1rem = 경상손익 카드(KpiCard .value)와 같은 크기, 카드가 좁으면 폭에 맞춰 줄어듦.
      식: (카드 내용 폭 − 막대 그래프 칸 ≈86px) ÷ 7.4 — 값 한 줄 폭이 글자 크기의 약 7.2배(단위 축소 후 실측)라 막대와 안 겹침 */
   font-size: var(--cmp-value-fs);

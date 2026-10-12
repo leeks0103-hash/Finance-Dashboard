@@ -10,7 +10,8 @@ import { useChartViewModel } from '@/hooks/viewmodels';
 import { useTheme, useFilterOptions } from '@/hooks';
 import { useFilterStore } from '@/store';
 import { makeBarOptions } from '@/utils/chartOptions';
-import { getChartPalette, getChartTheme } from '@/utils/chartColors';
+import { getChartTheme } from '@/utils/chartColors';
+import { useChartPalette } from '@/hooks/useChartPalette';
 import { isAllSelected } from '@/utils/array';
 import { ChartCard, BarChart, DoughnutChart, Toggle, useTableDndSensors, LineIcon } from '@/components/ui';
 import FinanceBreakdownModal from '@/components/features/FinanceBreakdownModal/FinanceBreakdownModal';
@@ -114,7 +115,7 @@ const ChartSection = () => {
   }, []);
 
   // 재무·KPI·실적현황 3탭 공통 팔레트 — 매출=인디고, 지출/원가=레드, 이익=그린, 이익율=퍼플(KpiCard "평균 이익율"와 동일 계열)
-  const palette = useMemo(() => getChartPalette(dark), [dark]);
+  const palette = useChartPalette();
 
   // 이익율 바: 흑자=퍼플(비율 지표 고유색), 적자=레드
   const profitColors = useMemo(() => vm.profitRate.isProfit.map(ok =>

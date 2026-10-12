@@ -144,68 +144,16 @@
   --transition: 0.18s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-/* ─── 현대 HyundaiSans Text (본문) ───────────── */
+/* ─── Pretendard (본문·제목·수치 전부) ─────────
+   npm 패키지 파일을 우리 서버가 직접 줌 — jsdelivr CDN은 사내망에서 막혀 있음(2026-10-12 실측).
+   변수 굵기 파일 하나라 100~900 전부 이 파일. optional = 첫 진입 리플로우 방지(0956929),
+   대신 index.html에서 같은 주소로 preload해야 대체 글꼴로 굳지 않음(주소 바꾸면 둘 다) */
 @font-face {
-  font-family: 'HyundaiSans';
-  font-weight: 400;
+  font-family: 'Pretendard';
+  font-weight: 45 920;
+  font-style: normal;
   font-display: optional;
-  src: url('/fonts/HyundaiSansTextKRRegular.ttf') format('truetype');
-}
-@font-face {
-  font-family: 'HyundaiSans';
-  font-weight: 500;
-  font-display: optional;
-  src: url('/fonts/HyundaiSansTextKRMedium.ttf') format('truetype');
-}
-@font-face {
-  font-family: 'HyundaiSans';
-  font-weight: 700;
-  font-display: optional;
-  src: url('/fonts/HyundaiSansTextKRBold.ttf') format('truetype');
-}
-/* ─── 현대 HyundaiSans Head (제목) ───────────── */
-@font-face {
-  font-family: 'HyundaiSansHead';
-  font-weight: 300;
-  font-display: optional;
-  src: url('/fonts/HyundaiSansHeadKRLight.ttf') format('truetype');
-}
-@font-face {
-  font-family: 'HyundaiSansHead';
-  font-weight: 400;
-  font-display: optional;
-  src: url('/fonts/HyundaiSansHeadKRRegular.ttf') format('truetype');
-}
-@font-face {
-  font-family: 'HyundaiSansHead';
-  font-weight: 500;
-  font-display: optional;
-  src: url('/fonts/HyundaiSansHeadKRMedium.ttf') format('truetype');
-}
-@font-face {
-  font-family: 'HyundaiSansHead';
-  font-weight: 700;
-  font-display: optional;
-  src: url('/fonts/HyundaiSansHeadKRBold.ttf') format('truetype');
-}
-/* ─── 현대하모니 (KPI 대형 수치·강조) ─────────── */
-@font-face {
-  font-family: 'HyundaiHarmony';
-  font-weight: 300;
-  font-display: optional;
-  src: url('/fonts/HyundaiHarmony-Light.ttf') format('truetype');
-}
-@font-face {
-  font-family: 'HyundaiHarmony';
-  font-weight: 500;
-  font-display: optional;
-  src: url('/fonts/HyundaiHarmony-Medium.ttf') format('truetype');
-}
-@font-face {
-  font-family: 'HyundaiHarmony';
-  font-weight: 700;
-  font-display: optional;
-  src: url('/fonts/HyundaiHarmony-Bold.ttf') format('truetype');
+  src: url('../node_modules/pretendard/dist/web/variable/woff2/PretendardVariable.woff2') format('woff2-variations');
 }
 
 /* ─── Reset ──────────────────────────────────── */
@@ -218,7 +166,7 @@ html { scrollbar-gutter: stable; }
 
 body {
   background: var(--bg);
-  font-family: 'HyundaiSans', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+  font-family: 'Pretendard', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
   color: var(--text-primary);
   font-size: 15px;
   transition: background 0.2s ease, color 0.2s ease;
@@ -226,11 +174,11 @@ body {
 }
 
 /* 입력·버튼류는 브라우저 기본값이 글꼴을 물려받지 않음(Arial → 한글은 시스템 글꼴) — 필터 칩·탭·검색창만
-   현대 서체가 아니었던 원인(2026-09-30 실측). 한 곳에서 물려받게 해서 전부 본문 서체로 통일 */
+   본문 서체가 아니었던 원인(2026-09-30 실측). 한 곳에서 물려받게 해서 전부 본문 서체로 통일 */
 button, input, select, textarea { font-family: inherit; }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: 'HyundaiSansHead', 'HyundaiSans', 'Malgun Gothic', sans-serif;
+  font-family: 'Pretendard', 'Malgun Gothic', sans-serif;
 }
 
 [data-theme="dark"] body {

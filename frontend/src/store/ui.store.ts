@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { sanitizeChartColors, type ChartColorOverrides, type ChartColorValue, type ColorRole } from '@/utils/chartColors';
 
 interface UiStore {
   showChartLabels: boolean;
@@ -31,6 +32,11 @@ interface UiStore {
    *  달성률·바로가기(↗) 공개 범위 자체는 서버 저장(useVisibility) — 예전엔 여기(브라우저별)라 남의 화면엔 안 먹었음 */
   adminAuthed: boolean;
   setAdminAuthed: (v: boolean) => void;
+
+  /** 차트 역할별 사용자 지정 색(⚙ 설정 > 차트 색상, 2026-10-08) — 이 브라우저에만. 기본값과 같은 견본은 저장 안 함 */
+  chartColors: ChartColorOverrides;
+  setChartColor: (role: ColorRole, value: ChartColorValue, isDefault: boolean) => void;
+  resetChartColors: () => void;
 }
 
 export const useUiStore = create<UiStore>()(
@@ -55,13 +61,27 @@ export const useUiStore = create<UiStore>()(
 
       adminAuthed: false,
       setAdminAuthed: (v) => set({ adminAuthed: v }),
+
+      chartColors: {},
+      setChartColor: (role, value, isDefault) => set(s => {
+        const next = { ...s.chartColors };
+        if (isDefault) delete next[role]; else next[role] = value;
+        return { chartColors: sanitizeChartColors(next) };
+      }),
+      resetChartColors: () => set({ chartColors: {} }),
     }),
     {
       name: 'ui-store',
-      // 그래프 수치·표 실제값·재무 대조·투어 시청 여부만 로컬에 저장 — 나머지는 세션 한정
+      // 그래프 수치·표 실제값·재무 대조·투어 시청 여부·차트 색만 로컬에 저장 — 나머지는 세션 한정
       partialize: (s) => ({
         showChartLabels: s.showChartLabels, showRawValues: s.showRawValues, showFinCompare: s.showFinCompare, tourSeen: s.tourSeen,
+        chartColors: s.chartColors,
       }),
+      // 저장된 차트 색이 깨졌거나(직접 고친 localStorage·옛 형식) 모르는 값이면 버림
+      merge: (persisted, current) => {
+        const p = (persisted ?? {}) as Partial<UiStore>;
+        return { ...current, ...p, chartColors: sanitizeChartColors(p.chartColors) };
+      },
     },
   ),
 );

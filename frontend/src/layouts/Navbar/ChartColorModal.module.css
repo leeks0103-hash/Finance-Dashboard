@@ -1,0 +1,134 @@
+/* 피커를 펼치면 본문이 길어져 스크롤바가 생기며 폭이 줄던 것 — 스크롤바 자리를 항상 비워 둠 */
+.modal { --modal-body-gutter: stable; }
+
+.group + .group { margin-top: 18px; }
+.groupTitle {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-sub);
+  margin-bottom: 6px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 9px 0;
+  border-top: 1px solid var(--border);
+}
+
+.roleText { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.roleLabel { font-size: 0.85rem; font-weight: 600; color: var(--text-primary); }
+.roleDesc  { font-size: 0.7rem; color: var(--text-muted); }
+.clash     { font-size: 0.7rem; color: var(--danger); }
+
+.swatches { display: flex; flex-wrap: wrap; gap: 14px 6px; padding-bottom: 8px; flex-shrink: 0; }
+
+.swatch {
+  position: relative;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.swatch:hover { transform: scale(1.12); }
+.swatch:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* 선택 — 카드 배경색 링 + 글자색 링 두 겹(어떤 견본 위에서도 보이게) */
+.selected {
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--text-primary);
+}
+/* 기본값 견본 표시 — 아래쪽 작은 점(선택 링 4px 바깥으로 떨어뜨려 하이라이트 때도 보이게) */
+.defaultDot {
+  position: absolute;
+  left: 50%;
+  bottom: -10px;
+  width: 4px;
+  height: 4px;
+  margin-left: -2px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+.footer { display: flex; justify-content: flex-end; }
+
+@media (max-width: 640px) {
+  .row { flex-direction: column; align-items: flex-start; gap: 8px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .swatch { transition: none; }
+  .swatch:hover { transform: none; }
+}
+
+/* ── 직접 고르기(2026-10-08) ── */
+.rowWrap { border-top: 1px solid var(--border); }
+.rowWrap .row { border-top: none; }
+.note { font-size: 0.7rem; color: var(--text-sub); }
+
+.customSwatch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: conic-gradient(#e63312, #fa9d1c, #f2d14b, #43b05c, #00aad2, #002c5f, #8b5cc4, #e63312);
+}
+.plus {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.6);
+}
+
+.picker {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 4px 0 14px;
+  animation: pickerIn 0.18s ease-out;
+}
+.picker :global(.react-colorful) { width: 180px; height: 150px; flex-shrink: 0; }
+.pickerSide { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.hexLabel { display: flex; flex-direction: column; gap: 4px; font-size: 0.72rem; color: var(--text-sub); }
+.hexField {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  width: 120px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.82rem;
+}
+.hexField input {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  text-transform: lowercase;
+}
+.hexField:focus-within { border-color: var(--accent); }
+.hexInvalid, .hexInvalid:focus-within { border-color: var(--danger); }
+.hexError { font-size: 0.7rem; color: var(--danger); }
+.pickerHint { font-size: 0.7rem; color: var(--text-muted); }
+
+@keyframes pickerIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (max-width: 640px) {
+  .picker { flex-direction: column; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .picker { animation: none; }
+}

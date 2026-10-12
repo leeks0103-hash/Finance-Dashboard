@@ -10,6 +10,7 @@ import FinanceDataModal from '@/components/features/FinanceDataModal';
 import { useProductTour } from '@/components/features/ProductTour';
 import NgvLogo from './NgvLogo';
 import AdminModal from './AdminModal';
+import ChartColorModal from './ChartColorModal';
 import { useTheme } from '@/hooks';
 import { useDataHealth } from '@/hooks/useDataHealth';
 import { useChartLabelToggle } from '@/hooks/useChartLabelToggle';
@@ -58,6 +59,7 @@ const Navbar = () => {
   // 모달에 넘김 — 추출 중 배지도 같은 인증·진행 상태를 봐야 해서
   const extractJob = useExtractJob();
   const [adminOpen, setAdminOpen] = useState(false);
+  const [colorOpen, setColorOpen] = useState(false);
   // '조직장 이상' 버튼으로 연 로그인 창 — 로그인되면 바로 닫고 토스트
   const [loginOnly, setLoginOnly] = useState(false);
   const notifyAdmin = () => toast('관리자 기능을 사용할 수 있습니다');
@@ -383,6 +385,21 @@ const Navbar = () => {
 
               <div className={styles.divider} />
 
+              {/* 차트 색상 — 역할(매출·원가·계획…)별 색을 사용자가 고름(2026-10-08). 이 브라우저에만 저장 */}
+              <div className={styles.section}>
+                <span className={styles.sectionLabel}>차트 색상</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={styles.financeBtn}
+                  onClick={() => { setOpen(false); setColorOpen(true); }}
+                >
+                  색상 바꾸기
+                </Button>
+              </div>
+
+              <div className={styles.divider} />
+
               {/* 관리자용 기능 — 달성률 / 파일 바로가기 공개 범위 / PPT 데이터 추출(인증 포함)은 모달에서.
                   280px 드롭다운엔 비좁았고, 확인창 버튼을 누르면 바깥 클릭으로 드롭다운이 닫히던 문제도 있어
                   분리(2026-09-30). 권한 없는 사람은 모달 안에서 인증 버튼만 보임 */}
@@ -405,6 +422,7 @@ const Navbar = () => {
         </div>
       </div>
 
+      {colorOpen && <ChartColorModal onClose={() => setColorOpen(false)} />}
       {financeModalOpen && <FinanceDataModal onClose={() => setFinanceModalOpen(false)} />}
       {adminOpen && (
         <AdminModal

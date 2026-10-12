@@ -10,7 +10,8 @@ import { usePerformanceChartViewModel } from '@/hooks/viewmodels';
 import type { MonthlyTableRow, PlanVsActualRow } from '@/hooks/viewmodels/usePerformanceChartViewModel';
 import { useTheme } from '@/hooks';
 import { makeBarOptions, legendRadioClick } from '@/utils/chartOptions';
-import { getChartPalette, getChartTheme } from '@/utils/chartColors';
+import { getChartTheme } from '@/utils/chartColors';
+import { useChartPalette } from '@/hooks/useChartPalette';
 // Toggle — 파트별 경상이익 토글 비활성화로 미사용(주석 처리). 복구 시 함께 import
 import { createColumnHelper } from '@tanstack/react-table';
 import { ChartCard, BarChart, DoughnutChart, DataTable, useTableDndSensors, InfoButton, Button, LineIcon } from '@/components/ui';
@@ -215,7 +216,7 @@ interface PlanPt { x: number; y: number; v: number | null }
 interface PlanDrawn { pts: (PlanPt | null)[]; color: string; clipX: number }
 interface Rect { l: number; r: number; t: number; b: number }
 const planDrawn = new WeakMap<object, PlanDrawn[]>();
-const PLAN_FONT = "bold 12px 'HyundaiSans', 'Malgun Gothic', sans-serif";
+const PLAN_FONT = "bold 12px 'Pretendard', 'Malgun Gothic', sans-serif";
 const LABEL_H = 16;       // 12px 글자 + 위아래 여백 — 막대 수치(datalabels padding)와 같은 높이
 const LABEL_PAD_X = 3;
 // 파트별 추정 매출/원가(메인 카드) — 원가 수치만 오른쪽으로 미는 양(px, 소수 가능). 막대는 그대로.
@@ -223,7 +224,7 @@ const LABEL_PAD_X = 3;
 // (boundingRects: text.x = -w/2 고정) 안 움직임 — 대신 align을 '막대 위(-90°)'에서 아주 조금 기울여
 // 가로 이동량이 정확히 COST_LABEL_SHIFT가 되게 각도를 계산(가로 이동 ≈ (박스폭/2 + offset)·tanθ)
 const COST_LABEL_SHIFT = 1.1;
-const REV_COST_LABEL_FONT = "bold 12px 'HyundaiSans', 'Malgun Gothic', sans-serif";
+const REV_COST_LABEL_FONT = "bold 12px 'Pretendard', 'Malgun Gothic', sans-serif";
 const REV_COST_LABEL_OFFSET = 2;
 const costLabelAlign = (ctx: { chart: Chart; datasetIndex: number; dataIndex: number; dataset: { data: unknown[] } }) => {
   if (ctx.datasetIndex !== 1 || !COST_LABEL_SHIFT) return 'end' as const;
@@ -545,7 +546,7 @@ const PerformanceChartSection = () => {
     });
   }, []);
 
-  const palette = useMemo(() => getChartPalette(dark), [dark]);
+  const palette = useChartPalette();
 
   // "계획" 막대 — 중립색(실적/원가 계열과 겹치지 않게). KPI "26년 목표" 막대와 같은 값
   const planColor = palette.plan;
@@ -642,7 +643,7 @@ const PerformanceChartSection = () => {
           // 원가 수치만 오른쪽으로 COST_LABEL_SHIFT px(위 costLabelAlign) — 메인 카드만, 확대 모달은 'end'로 되돌림
           align: costLabelAlign,
           offset: REV_COST_LABEL_OFFSET,
-          font: { size: 12, weight: 'bold', family: "'HyundaiSans', 'Malgun Gothic', sans-serif" },
+          font: { size: 12, weight: 'bold', family: "'Pretendard', 'Malgun Gothic', sans-serif" },
           formatter: (v: number) => `${v}억`,
           // padding은 planLinePlugin의 LABEL_H/LABEL_PAD_X(목표선 수치 겹침 판정용 크기)와 맞춰둘 것.
           // 배경 박스(backgroundColor)는 넣지 말 것 — 옆 막대를 파먹음(planLinePlugin 주석 참고)

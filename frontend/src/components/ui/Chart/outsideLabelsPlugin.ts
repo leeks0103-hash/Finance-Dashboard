@@ -71,7 +71,7 @@ export const computeOutsideLabelPadding = (
 ): number => {
   if (!showValue) return size === 'lg' ? 68 : 24;
   const preset = SIZE_PRESET[size];
-  const font = `700 ${preset.font}px 'HyundaiSans', sans-serif`;
+  const font = `700 ${preset.font}px 'Pretendard', sans-serif`;
   // 최소 "000.0억" / "(00.0%)" 폭 — 값이 이보다 짧아도 같은 여백 → 나란히 놓인 도넛끼리 링 크기가 같아짐
   // (전사평균 237.5억 vs 파트 37.0억처럼 자릿수만 달라도 링 크기가 달라 보였음, 2026-09-29)
   const widest = (lines: string[]) => Math.max(...lines.map(l => measureTextWidth(l, font)));
@@ -181,7 +181,7 @@ export const outsideLabelsPlugin: Plugin<'doughnut'> = {
 
     ctx.save();
     ctx.globalAlpha = getDatalabelAlpha();   // "그래프 수치" 토글 페이드를 다른 차트 라벨과 같이 탐
-    ctx.font = `700 ${preset.font}px 'HyundaiSans', sans-serif`;
+    ctx.font = `700 ${preset.font}px 'Pretendard', sans-serif`;
     ctx.textBaseline = 'middle';
     ctx.lineWidth = 1;
 

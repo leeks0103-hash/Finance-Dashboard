@@ -14,7 +14,7 @@
 }
 .explainLead b { color: var(--brand-mid); }
 .explainLead code {
-  font-family: 'HyundaiSans', 'Malgun Gothic', monospace;
+  font-family: 'Pretendard', 'Malgun Gothic', monospace;
   font-size: 0.76rem;
   background: var(--bg-subtle);
   padding: 0 4px;

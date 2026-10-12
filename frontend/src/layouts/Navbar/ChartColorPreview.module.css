@@ -1,0 +1,48 @@
+/* 모달 본문을 스크롤해도 미리보기는 위에 붙어 있게 */
+.root {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 1.6fr 1fr 1fr;
+  gap: 8px;
+  padding-bottom: 12px;
+  margin-bottom: 6px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.card {
+  margin: 0;
+  padding: 8px 8px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.card figcaption {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.svg { width: 100%; height: 96px; display: block; }
+.svg rect, .svg path { transition: fill 0.2s ease; }
+
+.num  { font-size: 8px; text-anchor: middle; font-weight: 600; }
+.axis { font-size: 8px; text-anchor: middle; fill: var(--text-sub); }
+.base { stroke: var(--border); stroke-width: 1; }
+
+@media (max-width: 640px) {
+  .root { grid-template-columns: 1fr 1fr; }
+  .root > :first-child { grid-column: 1 / -1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .svg rect, .svg path { transition: none; }
+}

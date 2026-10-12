@@ -6,7 +6,8 @@ import { useKpiFilterStore } from '@/store/kpiFilter.store';
 import { useUiStore } from '@/store';
 import { useTheme } from '@/hooks/useTheme';
 import { makeBarOptions } from '@/utils/chartOptions';
-import { getChartPalette, getChartTheme } from '@/utils/chartColors';
+import { getChartTheme } from '@/utils/chartColors';
+import { useChartPalette } from '@/hooks/useChartPalette';
 import { sortKpiRawCols } from '@/utils/kpiColumns';
 import type { KpiRawRow, KpiAnomaly } from '@/types/kpi.types';
 import type { ServerPagination, ServerSearch, ServerSorting } from '@/components/ui/DataTable';
@@ -118,7 +119,7 @@ export const useKpiPageViewModel = (summaryPart = '', anomalyOnly = false): KpiP
   const dark = theme === 'dark';
   const showLabels = useUiStore(s => s.showChartLabels);
   const { labelColor } = getChartTheme(dark);
-  const palette = useMemo(() => getChartPalette(dark), [dark]);
+  const palette = useChartPalette();
 
   const chartOptions = useMemo(() => makeBarOptions(showLabels, labelColor, {
     plugins: {

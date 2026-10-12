@@ -3,7 +3,8 @@
  * 모달별로 다른 값은 클래스로 덮어쓰지 말고 아래 --modal-* 변수만 지정한다
  * (여기선 변수를 정의하지 않고 기본값만 쓰므로 CSS 로드 순서·우선순위와 무관하게 적용됨).
  *   overlayClassName: --modal-z, --modal-dim
- *   className(패널):  --modal-w, --modal-max-w, --modal-h, --modal-max-h, --modal-radius, --modal-pad, --modal-body-pad
+ *   className(패널):  --modal-w, --modal-max-w, --modal-h, --modal-max-h, --modal-radius, --modal-pad, --modal-body-pad,
+ *                     --modal-body-gutter(본문 높이가 열고 닫혀 스크롤바가 생겼다 없어지는 모달은 stable — 폭 출렁임 방지)
  */
 .overlay {
   position: fixed;
@@ -85,6 +86,7 @@
 .body {
   padding: var(--modal-body-pad, 14px 20px 18px);
   overflow-y: auto;
+  scrollbar-gutter: var(--modal-body-gutter, auto);
 }
 
 .footer {

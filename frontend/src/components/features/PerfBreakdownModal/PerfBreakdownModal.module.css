@@ -35,7 +35,7 @@
   gap: 2px;
 }
 .term code {
-  font-family: 'HyundaiSans', 'Malgun Gothic', monospace;
+  font-family: 'Pretendard', 'Malgun Gothic', monospace;
   font-size: 0.74rem;
   color: var(--text-sub);
 }

@@ -2,7 +2,7 @@
    driver.js가 popoverClass로 이 클래스를 .driver-popover에 붙이므로 클래스 2개로 우선순위 확보.
    다음/이전 버튼은 driver.js가 직접 만드는 DOM이라 <Button> 컴포넌트를 쓸 수 없음 — 모양만 맞춤 */
 .popover:global(.driver-popover) {
-  font-family: 'HyundaiSans', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+  font-family: 'Pretendard', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
   background: var(--surface);
   color: var(--text-primary);
   border: 1px solid var(--border);

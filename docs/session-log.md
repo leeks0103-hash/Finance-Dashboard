@@ -1,11 +1,43 @@
 # 세션 진행 기록
 
+## [2026-10-12] 잠금·시간 경과 후 글꼴이 바뀌던 것 + 글꼴 Pretendard로 교체
+
+- **원인**: @font-face가 `font-display: optional`(첫 진입 리플로우 막으려고 0956929에서 바꾼 것) — 0.1초 안에 못 받으면 그 페이지 내내 대체 글꼴.
+  폰트가 한글 TTF 약 3MB씩 + Vite dev 서버 `Cache-Control: no-cache`라 새로고침마다 재검증. 잠금·절전 뒤 Vite 웹소켓이 다시 붙으며
+  페이지를 통째로 새로고침하는 순간 늦으면 맑은 고딕으로 굳음("시간 지나면"의 정체)
+- `index.html`에 첫 화면 글꼴 5개 `<link rel="preload" as="font" crossorigin>` — HyundaiSans 400·500·700, HyundaiSansHead 700, HyundaiHarmony 700.
+  optional은 유지(swap으로 되돌리면 리플로우 재발)
+- 헤드리스 Edge, 지연 150ms로 4회 새로고침: 프리로드 없음 → 매번 Malgun Gothic·Arial / 있음 → 매번 Hyundai Sans Text·Head·HDharmony
+- **이어서 글꼴 자체를 Pretendard로 교체**(요청 — "현대 글꼴 안 먹은 쪽이 더 예뻤다"). 그 화면은 실측상 맑은 고딕+Arial 혼합이었음
+  - `index.html`의 Pretendard(jsdelivr)·Geist(Google Fonts) CDN 링크는 사내망에서 연결 자체가 안 돼(curl 000) 한 번도 적용된 적 없었음 → 삭제
+  - npm `pretendard` 1.3.9 설치, 변수 굵기 woff2 하나(2MB)를 `index.css` @font-face(`optional`)로 자체 제공 + `index.html` preload(같은 상대 경로라 build에서도 같은 해시 파일)
+  - HyundaiSans·HyundaiSansHead·HyundaiHarmony 지정 전부 → Pretendard(CSS 10곳·차트 캔버스 글꼴 4곳). 현대 @font-face 10개 삭제(`public/fonts` ttf는 안 씀)
+  - 헤드리스: 지연 150ms 4회 새로고침 모두 Pretendard Variable만, 1600px 가로 넘침 0. vitest·build 통과
+  - ⚠️ Vite가 python으로 고친 `index.css`를 못 알아채 옛 CSS를 계속 줬음 — `touch`로 해결. 화면이 안 바뀌면 개발 서버 재시작
+
 ## [2026-10-08] 서버 정렬 표 — 정렬 상태 새로고침 뒤에도 유지
 
 - `hooks/useServerSort(resetPage, storageKey?)` — storageKey를 주면 정렬 기준·방향을 localStorage `sort-<key>`에 저장, 처음 열 때 복원.
   해제하면 키 삭제. 저장된 컬럼이 없어져도 서버 `sort_frame`이 모르는 컬럼은 무시해 안전
 - 적용: 프로젝트 상세(`performance-project`)·프로젝트 재무 상세(`finance-project`)·KPI 취합(`kpi-raw`, 목록/KPI 상세 두 보기 공용)
 - tsc·build·vitest 65/65 통과. 브라우저 확인은 아직
+- **차트 색상 사용자 지정**(⚙ 설정 > 차트 색상 > 색상 바꾸기, `layouts/Navbar/ChartColorModal`) — 역할별(매출·원가·계획·이익·손실 +
+  도넛 직접원가·인건비·공통원가·관리비)로 현대 9색·파생 톤 견본 8개 중에서 고름(자유 피커는 안 보이는 색 위험으로 안 함).
+  `chartColors.getChartPalette(dark, overrides)` — 안 고른 역할은 기본값 그대로, 고른 색에서 다크 톤·계획선(밝기 반전)·계획 수치 글자색 자동 계산.
+  `ui.store.chartColors`(localStorage, 이 브라우저만) → `hooks/useChartPalette`가 3탭 차트 전부에 공급.
+  같은 차트에 함께 나오는 역할끼리 같은 색이면 경고(막지는 않음), 기본값 견본엔 점 표시, "기본값으로 되돌리기".
+  모달 위쪽에 미리보기(`ChartColorPreview`, SVG — 계획·매출·원가·손실·계획선·이익율·도넛) 고정, 고르는 즉시 반영.
+  헤드리스 확인: 매출 빨강·원가 Active Blue로 바꾸면 미리보기·실적 탭 차트 즉시 변경, 저장·새로고침 유지, 콘솔 오류 0
+  - **직접 고르기 추가**(요청 — 견본 밖 색도): 견본 줄 끝 무지개 원 → `react-colorful` 피커 + hex 입력(0.12초 멈추면 저장).
+    저장값은 견본 ID 또는 `#rrggbb`. 예외처리(`chartColors`): 깨진 localStorage·모르는 역할/견본·틀린 hex는 버림(`sanitizeChartColors`, persist `merge`),
+    흰 배경과 거의 같은 색(대비 < 1.6)은 그릴 때만 보이게 보정, 야간엔 배경 대비 3:1까지 자동 밝힘, 주간 대비 3:1 미만은 안내,
+    같은 차트 역할끼리 색이 거의 같으면(가중 RGB 거리) 경고. 틀린 hex는 입력칸 빨강 + 안내, 칸을 벗어나면 마지막 올바른 색으로
+  - 메뉴 위치: ⚙ 설정에서 도움말 아래·관리자 기능 위로
+  - 피커를 펼칠 때 모달 본문에 스크롤바가 생기며 폭이 줄던 것 → Modal `--modal-body-gutter`(기본 auto) 신설, 이 모달만 stable. 헤드리스: 펼치기 전후 본문 폭 588 고정
+  - vitest 75/75(chartColors 테스트 10개 추가)·build 통과
+  - 안 따라가는 것: KPI 카드의 계획/추정 작은 막대·파트별 달성 막대(CSS 토큰), 추정 누계 카드 색
+- **NAS 원본 폴더 접근 불가**(추출 현황 "원본 폴더에 접근할 수 없습니다") — 네트워크·445 포트는 정상, Windows가 "사용자 이름 또는 암호가 올바르지 않습니다"로 거부.
+  `net use` 연결 0개 → 이 PC의 NAS 로그인 정보가 만료/변경됨. 탐색기에서 `\\10.206.32.3\기술교육팀` 다시 로그인(자격 증명 저장) 필요, 코드 문제 아님
 
 ## [2026-10-06] 공개 범위(달성률·파일 바로가기)를 서버 저장으로 — 모든 화면에 적용
 
