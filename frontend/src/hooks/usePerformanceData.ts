@@ -2,7 +2,6 @@ import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-quer
 import { useEffect } from 'react';
 import { getPerfData, getPerfOptions } from '@/api/performance.api';
 import { usePerfStore } from '@/store/perf.store';
-import { useUiStore } from '@/store';
 import type { PageParams, PagedResponse } from '@/types/finance.types';
 import type { PerfProject } from '@/types/performance.types';
 import { STALE_5MIN, GC_10MIN } from './queryClient';
@@ -18,8 +17,6 @@ export const usePerformanceData = (page: PageParams, progress = '') => {
   const selectedParts = usePerfStore(s => s.selectedParts);
   const selectedTeam  = usePerfStore(s => s.selectedTeam);
   const qc = useQueryClient();
-  // 프로젝트 상세는 관리자만(서버도 403) — 로그인 전엔 요청 자체를 안 보냄
-  const adminAuthed = useUiStore(s => s.adminAuthed);
 
   const query = useQuery({
     queryKey:          ['perf-data', selectedParts, selectedTeam, progress, page],
@@ -30,14 +27,13 @@ export const usePerformanceData = (page: PageParams, progress = '') => {
     staleTime:         STALE_5MIN,
     gcTime:            GC_10MIN,
     retry:             2,
-    enabled:           adminAuthed,
     meta: { queryType: 'perf-data' },
   });
 
   // 다음 페이지 prefetch — useEffect로 렌더 밖에서 실행
   const { data } = query;
   useEffect(() => {
-    if (adminAuthed && data && page.page < Math.ceil(data.total / page.pageSize)) {
+    if (data && page.page < Math.ceil(data.total / page.pageSize)) {
       const nextPage = { ...page, page: page.page + 1 };
       qc.prefetchQuery({
         queryKey: ['perf-data', selectedParts, selectedTeam, progress, nextPage],
@@ -45,7 +41,7 @@ export const usePerformanceData = (page: PageParams, progress = '') => {
         staleTime: STALE_5MIN,
       });
     }
-  }, [adminAuthed, data, page, selectedParts, selectedTeam, progress, qc]);
+  }, [data, page, selectedParts, selectedTeam, progress, qc]);
 
   return query;
 };

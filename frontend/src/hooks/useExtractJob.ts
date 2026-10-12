@@ -14,7 +14,7 @@ import type { ExtractTarget, ExtractMode } from '@/types/extract.types';
  * 응답이 오므로, 진행 상태는 짧은 주기로 폴링해서 반영한다.
  */
 /** 관리자 로그인해야 받을 수 있는 조회 — 로그아웃 때 캐시에서 지움 */
-const ADMIN_ONLY_KEYS = [['perf-data'], ['kpi-data-paged'], ['finance-missed-bid'], ['extract-coverage']];
+const ADMIN_ONLY_KEYS = [['extract-coverage']];
 
 export const useExtractJob = () => {
   const qc = useQueryClient();

@@ -15,7 +15,6 @@ from markupsafe import escape as html_escape
 
 from shared import is_ranked_valid_code, read_excel_via_com, safe_mtime, find_source_path, open_source_file, sort_frame
 import paths
-from auth import admin_required
 
 load_dotenv()
 
@@ -301,13 +300,13 @@ def api_data():
 
 
 @finance_bp.route("/api/finance/missed-bid")
-@admin_required
 def api_finance_missed_bid():
-    """미수주 프로젝트(비고에 [미수주] 태그) — 관리자만(2026-10-06). 예전엔 프론트가 /api/data 500행을 받아 걸렀음.
+    """미수주 프로젝트(비고에 [미수주] 태그) — 누구나(2026-10-12, 10-06엔 관리자만이었음). 예전엔 프론트가 /api/data 500행을 받아 걸렀음.
     필터 무관 전체 기준(미수주 섹션은 원래 전역 필터를 안 탐)."""
     df = get_df()
     df = df[df["note"].str.contains("[미수주]", regex=False, na=False)]
-    df = _order_by_stage(df)
+    df = _order_by_stage(df).copy()
+    df["_row_num"] = range(1, len(df) + 1)  # 화면 행 key(getRowId) — 없으면 전부 "undefined"로 겹침
     return jsonify({"data": json.loads(df.to_json(orient="records", force_ascii=False))})
 
 

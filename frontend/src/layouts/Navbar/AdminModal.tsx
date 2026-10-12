@@ -55,8 +55,6 @@ interface Props {
    *  모달에서 인증해도 Navbar(추출 중 배지 등)는 모름 */
   extractJob: ReturnType<typeof useExtractJob>;
   onClose: () => void;
-  /** 로그인 성공 시 — '조직장 이상' 버튼으로 연 경우 창을 닫고 토스트(Navbar) */
-  onLoggedIn?: () => void;
 }
 
 /**
@@ -64,7 +62,7 @@ interface Props {
  * 예전엔 280px 드롭다운 안에 다 들어 있어 비좁았고, 확인창 버튼을 누르면 "바깥 클릭"으로 드롭다운이
  * 닫히는 문제도 있어 모달로 분리(2026-09-30 요청). 권한(EXTRACT_ADMIN_KEY) 없으면 인증 버튼만 보임.
  */
-const AdminModal = ({ extractJob, onClose, onLoggedIn }: Props) => {
+const AdminModal = ({ extractJob, onClose }: Props) => {
   const visibility = useVisibilitySettings();
 
   // 추출이 이미 돌고 있으면 그 작업의 대상·방식으로 시작 — 모달을 다시 열어도 실제 작업과 어긋나지 않게
@@ -89,7 +87,7 @@ const AdminModal = ({ extractJob, onClose, onLoggedIn }: Props) => {
     if (!empNo.trim() || !password) { setExtractAuthError('사번과 비밀번호를 입력하세요'); return; }
     const ok = await extractJob.authenticate({ empNo: empNo.trim(), password });
     setExtractAuthError(ok ? '' : '사번 또는 비밀번호가 올바르지 않습니다');
-    if (ok) { setPassword(''); onLoggedIn?.(); }
+    if (ok) setPassword('');
   };
   const handleExtractRun = async () => {
     if (extractTargets.length === 0 || extractLocked) return;

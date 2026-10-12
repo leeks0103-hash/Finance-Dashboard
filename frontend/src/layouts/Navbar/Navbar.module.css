@@ -448,12 +448,3 @@
   .themeIcon { animation: none; }
 }
 
-/* '조직장 이상' — 남색 헤더 위에서 보이게 ⚙와 같은 흰 반투명 */
-.orgBtn,
-.orgBtn:hover:not(:disabled) {
-  background: var(--header-ctl-bg);
-  border: 1px solid var(--header-ctl-border);
-  color: var(--header-ctl-fg);
-}
-.orgBtn:hover:not(:disabled) { background: var(--header-ctl-bg-hover); }
-.orgBtn:disabled { opacity: 0.45; cursor: default; }

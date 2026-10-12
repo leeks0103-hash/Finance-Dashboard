@@ -625,7 +625,6 @@ def _project_rows(rows: pd.DataFrame) -> pd.DataFrame:
 
 
 @perf_bp.route("/api/performance/data")
-@admin_required  # 프로젝트 상세 — 관리자만(2026-10-06)
 def api_perf_data():
     df = apply_perf_filters(get_perf_df())
     if df.empty:

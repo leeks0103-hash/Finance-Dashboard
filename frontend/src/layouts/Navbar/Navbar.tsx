@@ -60,13 +60,6 @@ const Navbar = () => {
   const extractJob = useExtractJob();
   const [adminOpen, setAdminOpen] = useState(false);
   const [colorOpen, setColorOpen] = useState(false);
-  // '조직장 이상' 버튼으로 연 로그인 창 — 로그인되면 바로 닫고 토스트
-  const [loginOnly, setLoginOnly] = useState(false);
-  const notifyAdmin = () => toast('관리자 기능을 사용할 수 있습니다');
-  const handleOrgLogin = () => {
-    setLoginOnly(true);
-    setAdminOpen(true);
-  };
   const ref = useRef<HTMLDivElement>(null);
   const { pathname } = useLocation();
   const navigate = useNavigate();
@@ -265,14 +258,6 @@ const Navbar = () => {
               )}
           </div>
 
-          {/* 관리자 로그인 바로가기 — Raw Data 다운로드 왼쪽(2026-10-06 요청). 로그인 창 → 성공 시 창을 닫고 토스트.
-              로그인한 뒤엔 잠김 — 로그아웃·관리자 설정은 ⚙ > 관리자 기능 */}
-          <Button variant="ghost" size="sm" className={styles.orgBtn} onClick={handleOrgLogin}
-            disabled={extractJob.isAuthed}
-            title={extractJob.isAuthed ? '로그인됨 — 로그아웃은 ⚙ > 관리자 기능' : undefined}>
-            조직장 이상
-          </Button>
-
           {activeTab === 'kpi' && <KpiActionBar />}
           {activeTab === 'performance' && <PerformanceActionBar />}
 
@@ -411,7 +396,7 @@ const Navbar = () => {
                   className={styles.financeBtn}
                   icon={extractJob.isRunning ? <span className={styles.adminBusySpinner} aria-hidden /> : undefined}
                   aria-busy={extractJob.isRunning}
-                  onClick={() => { setOpen(false); setLoginOnly(false); setAdminOpen(true); }}
+                  onClick={() => { setOpen(false); setAdminOpen(true); }}
                 >
                   {extractJob.isRunning ? '관리자 기능 (추출 중…)' : '관리자 기능'}
                 </Button>
@@ -427,8 +412,7 @@ const Navbar = () => {
       {adminOpen && (
         <AdminModal
           extractJob={extractJob}
-          onClose={() => { setAdminOpen(false); setLoginOnly(false); }}
-          onLoggedIn={loginOnly ? () => { setAdminOpen(false); setLoginOnly(false); notifyAdmin(); } : undefined}
+          onClose={() => setAdminOpen(false)}
         />
       )}
     </header>

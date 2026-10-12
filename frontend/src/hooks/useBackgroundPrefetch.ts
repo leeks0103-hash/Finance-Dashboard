@@ -4,7 +4,6 @@ import { getSummary, getProjects, getInsights } from '@/api/finance.api';
 import { getKpiSummary, getKpiData } from '@/api/kpi.api';
 import type { Filters } from '@/types/finance.types';
 import { STALE_5MIN } from './queryClient';
-import { useUiStore } from '@/store';
 
 const DEFAULT_PAGE = { page: 1, pageSize: 30, search: '' };
 const EMPTY_FILTERS: Filters = { years: [], parts: [], stages: [] };
@@ -43,8 +42,7 @@ export const useBackgroundPrefetch = () => {
         queryFn:  () => getKpiSummary(),
         staleTime: STALE_5MIN,
       });
-      // KPI 취합 원본은 관리자만 — 로그인 안 했으면 받아봐야 403
-      if (useUiStore.getState().adminAuthed) qc.prefetchInfiniteQuery({
+      qc.prefetchInfiniteQuery({
         queryKey:         ['kpi-data', { search: '', pageSize: 30 }, EMPTY_FILTERS],
         queryFn:          ({ pageParam }) =>
           getKpiData(EMPTY_FILTERS, { page: pageParam as number, pageSize: 30, search: '' }),

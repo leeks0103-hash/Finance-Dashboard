@@ -1,5 +1,19 @@
 # 세션 진행 기록
 
+## [2026-10-12] 관리자 전용 섹션 원복 — 경영실적/재무데이터·KPI 탭은 누구나 같은 화면
+
+- 10-06에 관리자 전용으로 돌렸던 섹션 3개를 다시 모두에게(요청): **미수주 프로젝트·프로젝트 상세**(실적 탭), **KPI 취합**(KPI 탭)
+  - 서버: `/api/finance/missed-bid`·`/api/performance/data`·`/api/kpi/data`의 `@admin_required` 제거 — 로그인 없이 200
+  - 프론트: 페이지의 `adminAuthed &&` 감싸기, 조회 훅 `enabled: adminAuthed`, KPI 취합 프리패치 조건 제거.
+    로그아웃 시 캐시 제거 목록은 `extract-coverage`만. 투어 3단계 `optional` 해제
+- **관리자 기능은 그대로**: ⚙ > 관리자 기능 모달(PPT 추출·추출 현황·완료 프로젝트 재무 불일치 `/fin-mismatch` 403 유지)·공개 범위 설정(달성률·파일 바로가기)
+- **"조직장 이상" 버튼 삭제** — 볼 화면이 같아져 필요 없음. 버튼·전용 로그인 흐름(로그인 후 창 닫고 토스트, `AdminModal onLoggedIn`)·`.orgBtn` CSS 제거.
+  관리자 로그인은 ⚙ > 관리자 기능 창에서만
+- **"조직장 이상" 버튼 지운 뒤 ⚙ > 관리자 기능이 안 열리던 것** — 코드는 맞았는데 Vite가 python으로 두 번 고친 `Navbar.tsx` 중 두 번째 수정을 못 알아채
+  옛 `onLoggedIn={loginOnly…}`를 계속 줘서 `loginOnly is not defined`로 화면이 깨짐 → `touch`로 해결(10-12 index.css와 같은 현상). 헤드리스로 창 열림 확인
+- 미수주 표 key 중복 경고 — `/api/finance/missed-bid`(10-06 신설)가 `_row_num`을 안 내려 getRowId가 전부 "undefined" → 응답에 `_row_num` 추가. 경고 0건
+- test_client: 3개 API 200 / fin-mismatch 403. tsc·build·vitest 75/75. ⚠️ Flask 재시작 필요(재시작 전엔 세 섹션이 403으로 빈 표)
+
 ## [2026-10-12] 잠금·시간 경과 후 글꼴이 바뀌던 것 + 글꼴 Pretendard로 교체
 
 - **원인**: @font-face가 `font-display: optional`(첫 진입 리플로우 막으려고 0956929에서 바꾼 것) — 0.1초 안에 못 받으면 그 페이지 내내 대체 글꼴.
