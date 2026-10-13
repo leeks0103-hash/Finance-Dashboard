@@ -1,5 +1,43 @@
 # 세션 진행 기록
 
+## [2026-10-13] 들어가자마자 로그인 — 로그인 화면(모자이크 배경) + 서버 전체 API 잠금
+
+- **서버**: `auth.login_required_for_api`를 `app.before_request`로 — 로그인 안 하면 `/api/*` 전부 401.
+  예외(`auth.PUBLIC_API`): 로그인·토큰 확인, 캐시 다시 읽기 3개(`/api/reload`·`/api/kpi/reload`·`/api/performance/reload` — 데이터를 안 내보내고 추출 스크립트·dashboard_update가 토큰 없이 부름).
+  다운로드 링크(`<a href>`)는 헤더를 못 실어 `?token=`도 받음(`hooks/useDownloadFiles.downloadHref`), PDF fetch에도 헤더
+- 계정은 그대로 `.env` `ADMIN_ACCOUNTS="사번:비밀번호[:이름],사번:비밀번호…"` — 추가는 쉼표로, Flask 재시작해야 반영
+- **프론트**: `App`이 `hooks/useAuthSession`(checking/out/in) 기준으로 로그인 전엔 대시보드를 아예 안 그림(조회 0건 확인).
+  저장된 토큰은 처음 `/auth/me`로 확인, 401이 오면(`client.setUnauthorizedHandler`) 토큰 지우고 로그인 화면, 로그아웃하면 쿼리 캐시 비움
+- **로그인 화면** `components/features/LoginScreen` — 흰 화면(다크는 남색)에 NGV 로고·제목·사번·비밀번호 카드 + 은은한 입자 배경
+  (tsParticles `@tsparticles/react`·`slim` 4.4 — 현대 남색·주황·Active Blue 점 46개가 천천히 떠다니며 가까우면 옅은 선, 마우스 근처는 선이 따라옴).
+  움직임 줄이기 설정이면 입자 없이 흰 화면만. 로그인하면 0.5초 걷히며 실제 대시보드. 카드는 정중앙보다 조금 위(`margin-bottom: 16vh`)
+  - 처음엔 대시보드를 모자이크·블러로 깔고 입력할수록 풀리게 했다가(숫자 섞은 가짜 캡처 배경) "요란하다"로 통째로 걷어냄
+  - ⚠️ tsParticles v4는 점 색이 `particles.paint.fill.color` — 예전 `particles.color`는 무시되고 흰색으로 그려져 라이트 모드에서 안 보였음
+- ⚙ 메뉴 맨 아래 "계정" — 이름(없으면 사번) + 로그아웃. 로고 `NgvLogo`는 `components/ui`로 이동(로그인 화면도 씀)
+- 브라우저 탭: 아이콘 Vite 기본 → NGV 주황 원 3개(`public/favicon.svg`), 제목 "프로젝트 재무 대시보드" → "경영현황 통합 대시보드", `lang="ko"`
+- 첫 방문 투어 자동 시작 0.9 → 1.0초(로그인 화면이 걷힌 뒤)
+- 백엔드 테스트 `client` 픽스처는 로그인된 것으로(`auth.is_admin` 대체) — 64 통과/14 실패(기존과 동일)
+- 헤드리스: 로그인 전 API 0건 → 틀린 비번 안내 → 로그인 → 실제 대시보드, 새로고침 유지, ⚙ 로그아웃 → 로그인 화면·토큰 삭제. tsc·build·vitest 75/75
+- **일반 회원 분리** — `.env` `USER_ACCOUNTS="사번:비밀번호[:이름],…"`(조회만) 신설, `ADMIN_ACCOUNTS`는 관리자(조회 + 관리자 기능). 같은 사번이 둘 다 있으면 관리자.
+  `auth.current_user`(역할 포함)·`is_logged_in`(데이터 API) / `current_admin`·`is_admin`(추출·재무 불일치·공개 범위 PUT 등 기존 관리자 API 그대로 403).
+  `/api/auth/login`·`/me`가 `role` 내려줌, 프론트는 `ui.store.authRole`(adminAuthed = role==='admin') 하나로 로그인 화면·관리자 기능 판단.
+  일반 회원은 ⚙ 메뉴에 "관리자 기능" 칸 자체가 없음. 관리자 기능 창 로그인은 관리자 계정만 통과. 역할은 처음 열 때 `/me`로 다시 받음(.env에서 바뀌었을 수 있어서)
+  - 임시 서버(5091/5199, USER_ACCOUNTS 테스트 계정)로 일반 회원: 조회 200·관리자 API 403·⚙에 관리자 기능 없음 / 관리자: 있음, 4xx 0건
+
+## [2026-10-13] 차트 색상 모달 — 저장 버튼·오른쪽 피커 칸·경고 고정 칸
+
+- 경고 문구(색이 겹침·흰 배경 대비 등)가 역할 줄 아래에 붙어 줄 높이가 바뀌며 모달이 출렁이던 것 → 줄엔 ⚠/ⓘ 아이콘만(마우스 올리면 문구),
+  문구는 푸터 왼쪽 한 줄 고정 칸에 모음(첫 경고 + "외 N건", 전체는 마우스 올리면). 칸은 높이 고정 + `contain: strict`로 문구가 바뀌어도 그 칸만 다시 그림
+  (푸터가 내용 폭만큼만 잡혀 size 격리된 칸 폭이 0이 됐던 것 → 푸터 width 100%)
+- 모달 600 → 980px, 왼쪽 역할 목록 · 오른쪽 "직접 고르기" 칸(sticky) — 피커(react-colorful)가 줄 아래로 펼쳐져 목록을 밀던 것. 1000px↓는 위아래
+- **저장 버튼** — 고르는 동안은 모달 안(미리보기·견본)에만, 저장 → 확인창("차트 색상을 저장하시겠습니까?") → 3탭 차트 적용·브라우저 저장, 저장해도 모달 유지.
+  `ui.store.saveChartColors`(예전 setChartColor·resetChartColors 대체), `useChartPalette(draft?)`·`ChartColorPreview overrides`로 미리보기는 저장 전 값.
+  저장 안 하고 ×/ESC로 닫으면 버려짐. 바깥 클릭으론 안 닫힘(`ModalShell closeOnBackdrop` 신설, 기본 true)
+- "기본값으로 되돌리기" → 회전 화살표 아이콘 버튼(누르면 한 바퀴, 호버 시 살짝 기움) — 되돌린 것도 저장해야 적용
+- 피커를 열기만 해도 그 역할이 직접 고른 색으로 저장되던 것(StrictMode에서 effect 두 번 → '첫 실행' 표시가 무력화) → 처음 값과 같으면 반영 안 함
+- 견본 22 → 24px, 미리보기 높이 96 → 120px
+- 헤드리스: 색 겹치게 골라도·피커 열어도 줄 이동 0px, 저장 전 localStorage 그대로 → 확인창 취소/ESC면 미저장 → 저장 시 반영·모달 유지
+
 ## [2026-10-12] 관리자 전용 섹션 원복 — 경영실적/재무데이터·KPI 탭은 누구나 같은 화면
 
 - 10-06에 관리자 전용으로 돌렸던 섹션 3개를 다시 모두에게(요청): **미수주 프로젝트·프로젝트 상세**(실적 탭), **KPI 취합**(KPI 탭)

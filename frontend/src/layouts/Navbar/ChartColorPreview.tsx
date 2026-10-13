@@ -1,4 +1,5 @@
 import { useChartPalette } from '@/hooks/useChartPalette';
+import type { ChartColorOverrides } from '@/utils/chartColors';
 import styles from './ChartColorPreview.module.css';
 
 /** 차트 색상 모달 위쪽 미리보기 — 고른 색을 실제 차트 모양(막대·계획선·손실·도넛)으로 바로 보여 줌.
@@ -24,8 +25,9 @@ const arc = (start: number, end: number, r: number, R: number) => {
   return `M ${p(start, R)} A ${R} ${R} 0 ${large} 1 ${p(end, R)} L ${p(end, r)} A ${r} ${r} 0 ${large} 0 ${p(start, r)} Z`;
 };
 
-const ChartColorPreview = () => {
-  const c = useChartPalette();
+/** overrides — 저장 전 선택(모달 draft). 미리보기는 저장 안 해도 바로 바뀜 */
+const ChartColorPreview = ({ overrides }: { overrides?: ChartColorOverrides }) => {
+  const c = useChartPalette(overrides);
   const donutColors = [c.costDirect, c.costLabor, c.costOverhead, c.costMgmt];
   let acc = 0;
 

@@ -448,3 +448,7 @@
   .themeIcon { animation: none; }
 }
 
+
+/* ⚙ > 계정 — 이름 + 로그아웃(2026-10-13) */
+.accountRow { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.accountName { font-size: 0.82rem; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

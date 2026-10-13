@@ -4,7 +4,7 @@
 // import { CsvExportBar } from '@/components/ui';
 // "업데이트 N일 N시" 뱃지 — Navbar로 옮기면서(2026-09-17, KpiActionBar와 동일 처리) 제거.
 // 필요해지면 usePerformanceSummary + fmtTs 되살려서 버튼 옆에 다시 붙일 것.
-import { useDownloadFiles } from '@/hooks/useDownloadFiles';
+import { useDownloadFiles, downloadHref } from '@/hooks/useDownloadFiles';
 import { DownloadMenu } from '@/components/ui';
 // AI 인사이트 — 우선 숨김(2026-10-02 요청). 복구하려면 아래 import와 <AiInsightWidget> 한 줄을 함께 되살릴 것.
 // import AiInsightWidget from '@/components/features/AiInsightWidget';
@@ -19,7 +19,7 @@ const PerformanceActionBar = () => {
       <DownloadMenu
         items={files ?? []}
         isLoading={isLoading}
-        hrefOf={key => `/api/download/${key}`}
+        hrefOf={downloadHref}
         buttonLabel="↓ Raw Data 다운로드"
       />
     </div>

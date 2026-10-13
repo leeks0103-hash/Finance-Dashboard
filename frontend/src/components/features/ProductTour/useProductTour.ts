@@ -11,7 +11,7 @@ import styles from './ProductTour.module.css';
 /** 탭 전환 직후 lazy 페이지·데이터 로딩을 기다리는 최대 시간 — 넘기면 그 단계는 건너뜀 */
 const WAIT_MS = 3000;
 /** 첫 방문 자동 실행 지연 — 첫 화면 fadeUp 애니메이션이 끝난 뒤 시작 */
-const AUTO_START_DELAY_MS = 900;
+const AUTO_START_DELAY_MS = 1000;   // 로그인 화면이 걷히는 시간(0.5초) 뒤에 시작(2026-10-13)
 
 const selectorOf = (def: TourStepDef) => (def.anchor ? `[data-tour="${def.anchor}"]` : undefined);
 

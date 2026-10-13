@@ -4,28 +4,39 @@ import type { ExtractTarget, ExtractMode, ExtractStatus, ExtractCoverage } from 
 // 사번·비밀번호로 로그인하면 서버가 준 토큰만 저장 — 이 브라우저(=이 PC)에서만 유효, 한 번 로그인하면
 // 다음부턴 다시 안 물어봄(로그아웃 전까지). 이름은 서버가 .env 계정 목록에서 알려준 값(화면 표시용)
 const NAME_STORAGE = 'extract-admin-name';
+const ROLE_STORAGE = 'auth-role';   // 'admin' | 'user' — 화면 표시용(권한 판단은 서버가 토큰으로)
+
+export type AuthRole = 'admin' | 'user';
 
 export const getStoredExtractKey  = (): string => localStorage.getItem(ADMIN_TOKEN_STORAGE) ?? '';
 export const getStoredExtractName = (): string => localStorage.getItem(NAME_STORAGE) ?? '';
-export const setStoredExtractAuth = (token: string, name: string): void => {
+export const getStoredRole = (): AuthRole | null => {
+  const r = localStorage.getItem(ROLE_STORAGE);
+  return r === 'admin' || r === 'user' ? r : null;
+};
+export const setStoredExtractAuth = (token: string, name: string, role: AuthRole): void => {
   localStorage.setItem(ADMIN_TOKEN_STORAGE, token);
   localStorage.setItem(NAME_STORAGE, name);
+  localStorage.setItem(ROLE_STORAGE, role);
 };
 export const clearStoredExtractAuth = (): void => {
   localStorage.removeItem(ADMIN_TOKEN_STORAGE);
   localStorage.removeItem(NAME_STORAGE);
+  localStorage.removeItem(ROLE_STORAGE);
 };
 
-interface LoginResult { ok: boolean; token?: string; name?: string; emp_no?: string }
+interface LoginResult { ok: boolean; token?: string; name?: string; emp_no?: string; role?: AuthRole }
 
 export const loginAdmin = (empNo: string, password: string): Promise<LoginResult> =>
   client.post<LoginResult>('/auth/login', { emp_no: empNo, password })
     .then(r => r.data)
     .catch((): LoginResult => ({ ok: false }));
 
-/** 저장된 토큰이 아직 유효한지 — 계정 삭제·비밀번호 변경·예전 공용 키면 false. 서버에 못 닿으면 null(판단 보류) */
-export const verifyAdmin = (): Promise<boolean | null> =>
-  client.get<{ ok: boolean }>('/auth/me').then(r => r.data.ok).catch(() => null);
+/** 저장된 토큰이 아직 유효한지 + 역할 — 계정 삭제·비밀번호 변경이면 false. 서버에 못 닿으면 null(판단 보류) */
+export const verifySession = (): Promise<{ role: AuthRole; name: string } | false | null> =>
+  client.get<{ ok: boolean; role?: AuthRole; name?: string }>('/auth/me')
+    .then(r => (r.data.ok && r.data.role ? { role: r.data.role, name: r.data.name ?? '' } : false))
+    .catch(() => null);
 
 export const authHeaders = () => {
   const key = getStoredExtractKey();

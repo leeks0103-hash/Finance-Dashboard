@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { sanitizeChartColors, type ChartColorOverrides, type ChartColorValue, type ColorRole } from '@/utils/chartColors';
+import { sanitizeChartColors, type ChartColorOverrides } from '@/utils/chartColors';
 
 interface UiStore {
   showChartLabels: boolean;
@@ -30,13 +30,15 @@ interface UiStore {
 
   /** 이 브라우저가 관리자 인증됐는지 — useExtractJob이 동기화(키 자체는 extract.api가 localStorage에 보관).
    *  달성률·바로가기(↗) 공개 범위 자체는 서버 저장(useVisibility) — 예전엔 여기(브라우저별)라 남의 화면엔 안 먹었음 */
-  adminAuthed: boolean;
-  setAdminAuthed: (v: boolean) => void;
+  /** 로그인 역할 — null이면 로그인 화면. 관리자 기능은 'admin'만(2026-10-13 일반 회원 분리) */
+  authRole: 'admin' | 'user' | null;
+  adminAuthed: boolean;   // authRole === 'admin' — 기존 사용처 호환
+  setAuthRole: (role: 'admin' | 'user' | null) => void;
 
   /** 차트 역할별 사용자 지정 색(⚙ 설정 > 차트 색상, 2026-10-08) — 이 브라우저에만. 기본값과 같은 견본은 저장 안 함 */
   chartColors: ChartColorOverrides;
-  setChartColor: (role: ColorRole, value: ChartColorValue, isDefault: boolean) => void;
-  resetChartColors: () => void;
+  /** 차트 색상 모달의 저장 버튼 — 고른 것 전체를 한 번에(2026-10-13, 예전엔 누를 때마다 바로 저장) */
+  saveChartColors: (next: ChartColorOverrides) => void;
 }
 
 export const useUiStore = create<UiStore>()(
@@ -59,16 +61,12 @@ export const useUiStore = create<UiStore>()(
       tourSeen: false,
       markTourSeen: () => set({ tourSeen: true }),
 
+      authRole: null,
       adminAuthed: false,
-      setAdminAuthed: (v) => set({ adminAuthed: v }),
+      setAuthRole: (role) => set({ authRole: role, adminAuthed: role === 'admin' }),
 
       chartColors: {},
-      setChartColor: (role, value, isDefault) => set(s => {
-        const next = { ...s.chartColors };
-        if (isDefault) delete next[role]; else next[role] = value;
-        return { chartColors: sanitizeChartColors(next) };
-      }),
-      resetChartColors: () => set({ chartColors: {} }),
+      saveChartColors: (next) => set({ chartColors: sanitizeChartColors(next) }),
     }),
     {
       name: 'ui-store',

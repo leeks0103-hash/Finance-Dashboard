@@ -13,6 +13,8 @@ interface ShellProps {
   /** 패널 클래스 — 모달별 차이는 여기서 --modal-* 변수로만 (Modal.module.css 머리말 참고) */
   className?: string;
   overlayClassName?: string;
+  /** false면 바깥(어두운 배경) 클릭으로 안 닫힘 — 고치던 내용을 실수로 잃지 않게(×·ESC로만, 기본 true) */
+  closeOnBackdrop?: boolean;
   /** 닫기(퇴장 애니메이션 포함)가 필요한 내용이면 함수로 받기 */
   children: ReactNode | ((close: () => void) => ReactNode);
 }
@@ -21,7 +23,7 @@ interface ShellProps {
  * 모달 뼈대 — 포털 · 배경 클릭 닫기 · 스크롤 잠금 · ESC · 퇴장 애니메이션.
  * 헤더 모양이 표준(제목+닫기)과 다를 때만 직접 쓰고, 보통은 Modal을 쓴다.
  */
-export const ModalShell = ({ onClose, width, className, overlayClassName, children }: ShellProps) => {
+export const ModalShell = ({ onClose, width, className, overlayClassName, closeOnBackdrop = true, children }: ShellProps) => {
   useScrollLock();
   const { closing, close } = useAnimatedClose(onClose);
   useEscToClose(close);
@@ -29,7 +31,7 @@ export const ModalShell = ({ onClose, width, className, overlayClassName, childr
   return createPortal(
     <div
       className={`${styles.overlay} ${overlayClassName ?? ''} ${closing ? 'closingOverlay' : ''}`}
-      onClick={close}
+      onClick={closeOnBackdrop ? close : undefined}
       role="presentation"
     >
       <div

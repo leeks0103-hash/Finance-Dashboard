@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import client from '@/api/client';
+import { getStoredExtractKey } from '@/api/extract.api';
 import { STALE_5MIN, GC_10MIN } from './queryClient';
 
 export interface DownloadFile {
@@ -18,6 +19,10 @@ export interface DownloadFile {
  * 실제 파일은 /api/download/<key> 를 열면 서버가 그 시점의 디스크 파일을 그대로 내보낸다
  * (사본을 캐시하지 않으므로 추출 스크립트가 덮어쓰면 다음 다운로드부터 최신본).
  */
+/** 파일 받기 주소 — <a href>는 헤더를 못 실어서 로그인 토큰을 주소에 붙임(서버가 로그인 확인, 2026-10-13) */
+export const downloadHref = (key: string): string =>
+  `/api/download/${key}?token=${encodeURIComponent(getStoredExtractKey())}`;
+
 export const useDownloadFiles = () =>
   useQuery({
     queryKey:  ['download-files'],

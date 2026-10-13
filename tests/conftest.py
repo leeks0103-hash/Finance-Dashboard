@@ -1,12 +1,16 @@
 import pandas as pd
 import pytest
 
+import auth
 import finance
 from app import app as flask_app
 
 
 @pytest.fixture
-def client():
+def client(monkeypatch):
+    # 데이터 API는 로그인해야 열림(2026-10-13) — 테스트는 로그인된 것으로
+    monkeypatch.setattr(auth, "is_logged_in", lambda req=None: True)
+    monkeypatch.setattr(auth, "is_admin", lambda req=None: True)
     flask_app.testing = True
     with flask_app.test_client() as c:
         yield c

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Toggle, Button, CopyText } from '@/components/ui';
+import { Toggle, Button, CopyText, NgvLogo } from '@/components/ui';
 import { usePresence } from '@/components/ui/useAnimatedClose';
 import TabNav from '@/components/ui/TabNav/TabNav';
 import type { TabId } from '@/components/ui/TabNav/TabNav';
@@ -8,7 +8,6 @@ import KpiActionBar from '@/components/features/KpiActionBar';
 import PerformanceActionBar from '@/components/features/PerformanceActionBar';
 import FinanceDataModal from '@/components/features/FinanceDataModal';
 import { useProductTour } from '@/components/features/ProductTour';
-import NgvLogo from './NgvLogo';
 import AdminModal from './AdminModal';
 import ChartColorModal from './ChartColorModal';
 import { useTheme } from '@/hooks';
@@ -383,6 +382,8 @@ const Navbar = () => {
                 </Button>
               </div>
 
+              {/* 관리자 기능 — 관리자 계정으로 로그인했을 때만(일반 회원에겐 칸 자체가 안 보임, 2026-10-13) */}
+              {extractJob.isAuthed && <>
               <div className={styles.divider} />
 
               {/* 관리자용 기능 — 달성률 / 파일 바로가기 공개 범위 / PPT 데이터 추출(인증 포함)은 모달에서.
@@ -401,6 +402,19 @@ const Navbar = () => {
                   {extractJob.isRunning ? '관리자 기능 (추출 중…)' : '관리자 기능'}
                 </Button>
               </div>
+              </>}
+
+              {/* 계정 — 들어가자마자 로그인(2026-10-13). 로그아웃하면 로그인 화면으로 */}
+              <div className={styles.divider} />
+              <div className={styles.section}>
+                <span className={styles.sectionLabel}>계정</span>
+                <div className={styles.accountRow}>
+                  <span className={styles.accountName}>{extractJob.authedName || '로그인됨'}</span>
+                  <Button variant="ghost" size="sm" onClick={() => { setOpen(false); extractJob.logout(); }}>
+                    로그아웃
+                  </Button>
+                </div>
+              </div>
             </div>
           )}
           </div>
@@ -409,7 +423,7 @@ const Navbar = () => {
 
       {colorOpen && <ChartColorModal onClose={() => setColorOpen(false)} />}
       {financeModalOpen && <FinanceDataModal onClose={() => setFinanceModalOpen(false)} />}
-      {adminOpen && (
+      {adminOpen && extractJob.isAuthed && (
         <AdminModal
           extractJob={extractJob}
           onClose={() => setAdminOpen(false)}

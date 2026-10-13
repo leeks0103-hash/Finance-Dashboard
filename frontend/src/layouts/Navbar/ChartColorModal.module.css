@@ -21,14 +21,16 @@
 .roleText { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .roleLabel { font-size: 0.85rem; font-weight: 600; color: var(--text-primary); }
 .roleDesc  { font-size: 0.7rem; color: var(--text-muted); }
-.clash     { font-size: 0.7rem; color: var(--danger); }
+.flagClash, .flagNote { margin-left: 6px; font-size: 0.78rem; font-weight: 400; line-height: 1; cursor: help; }
+.flagClash { color: var(--danger); }
+.flagNote  { color: var(--text-muted); }
 
 .swatches { display: flex; flex-wrap: wrap; gap: 14px 6px; padding-bottom: 8px; flex-shrink: 0; }
 
 .swatch {
   position: relative;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   padding: 0;
   border-radius: 50%;
   border: 1px solid rgba(0, 0, 0, 0.12);
@@ -53,21 +55,99 @@
   background: var(--text-muted);
 }
 
-.footer { display: flex; justify-content: flex-end; }
+.footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; }
+/* 경고 모음 칸 — 한 줄 고정(넘치면 말줄임, 전체는 마우스 올리면) */
+.status {
+  flex: 1;
+  min-width: 0;
+  /* 문구가 바뀌어도 이 칸만 다시 그림 — 높이 고정 + 바깥 레이아웃·페인트와 격리 */
+  height: 20px;
+  line-height: 20px;
+  contain: strict;
+  font-size: 0.75rem;
+  color: var(--text-sub);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.statusClash { color: var(--danger); }
+.statusMore { font-weight: 600; cursor: help; }
+
+.actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+/* 기본값으로 되돌리기 — 회전 화살표 아이콘만(2026-10-13) */
+.resetBtn {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text-sub);
+  cursor: pointer;
+}
+.resetBtn:hover:not(:disabled) { color: var(--text-primary); background: var(--bg-subtle); }
+.resetBtn:hover:not(:disabled) svg { transform: rotate(-40deg); }
+.resetBtn svg { transition: transform 0.25s ease; }
+.resetBtn:disabled { opacity: 0.4; cursor: default; }
+.spinOnce { animation: spinOnce 0.55s cubic-bezier(0.4, 0, 0.2, 1); }
+@keyframes spinOnce { from { transform: rotate(0deg); } to { transform: rotate(-360deg); } }
 
 @media (max-width: 640px) {
   .row { flex-direction: column; align-items: flex-start; gap: 8px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .spinOnce { animation: none; }
   .swatch { transition: none; }
   .swatch:hover { transform: none; }
+}
+
+/* ── 목록 | 직접 고르기 칸(2026-10-13) ── */
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 24px;
+  align-items: start;
+}
+.list { min-width: 0; }
+/* 오른쪽 칸 — 목록을 스크롤해도 미리보기 바로 아래에 붙어 있음 */
+.side {
+  position: sticky;
+  top: 172px;
+  min-height: 300px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-header);
+}
+.sideHead { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+.sideTitle { font-size: 0.82rem; font-weight: 600; color: var(--text-primary); }
+.sideEmpty {
+  margin: 0;
+  padding-top: 110px;
+  text-align: center;
+  font-size: 0.78rem;
+  line-height: 1.7;
+  color: var(--text-muted);
+}
+.sideRainbow {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  vertical-align: -2px;
+  border-radius: 50%;
+  background: conic-gradient(#e63312, #fa9d1c, #f2d14b, #43b05c, #00aad2, #002c5f, #8b5cc4, #e63312);
+}
+@media (max-width: 1000px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  .side { position: static; min-height: 0; }
+  .sideEmpty { padding-top: 0; }
 }
 
 /* ── 직접 고르기(2026-10-08) ── */
 .rowWrap { border-top: 1px solid var(--border); }
 .rowWrap .row { border-top: none; }
-.note { font-size: 0.7rem; color: var(--text-sub); }
 
 .customSwatch {
   display: inline-flex;
@@ -85,20 +165,19 @@
 
 .picker {
   display: flex;
-  gap: 16px;
-  align-items: flex-start;
-  padding: 4px 0 14px;
+  flex-direction: column;
+  gap: 14px;
   animation: pickerIn 0.18s ease-out;
 }
-.picker :global(.react-colorful) { width: 180px; height: 150px; flex-shrink: 0; }
+.picker :global(.react-colorful) { width: 100%; height: 190px; }
 .pickerSide { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .hexLabel { display: flex; flex-direction: column; gap: 4px; font-size: 0.72rem; color: var(--text-sub); }
 .hexField {
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  width: 120px;
-  padding: 4px 8px;
+  width: 100%;
+  padding: 6px 8px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm, 6px);
   background: var(--surface);

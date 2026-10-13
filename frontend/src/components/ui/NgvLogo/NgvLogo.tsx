@@ -37,3 +37,4 @@ const NgvLogo = ({ className }: { className?: string }) => (
 );
 
 export default NgvLogo;
+export { NgvLogo };

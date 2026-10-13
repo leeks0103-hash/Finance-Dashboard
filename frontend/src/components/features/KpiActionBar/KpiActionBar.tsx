@@ -2,7 +2,7 @@
 // 복구하려면 아래 import와 <CsvExportBar> 한 줄을 함께 되살릴 것.
 // import { useKpiExport } from '@/hooks/useKpiExport';
 // import { CsvExportBar } from '@/components/ui';
-import { useDownloadFiles } from '@/hooks/useDownloadFiles';
+import { useDownloadFiles, downloadHref } from '@/hooks/useDownloadFiles';
 import { DownloadMenu } from '@/components/ui';
 // AI 인사이트 — 우선 숨김(2026-10-02 요청). 복구하려면 아래 import와 <AiInsightWidget> 한 줄을 함께 되살릴 것.
 // import AiInsightWidget from '@/components/features/AiInsightWidget';
@@ -16,7 +16,7 @@ const KpiActionBar = () => {
       <DownloadMenu
         items={files ?? []}
         isLoading={isLoading}
-        hrefOf={key => `/api/download/${key}`}
+        hrefOf={downloadHref}
         buttonLabel="↓ Raw Data 다운로드"
       />
     </div>

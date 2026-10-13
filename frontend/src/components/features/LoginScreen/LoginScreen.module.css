@@ -1,0 +1,90 @@
+/* 로그인 화면(2026-10-13) — 흰 화면 + 로그인 창 + 은은한 입자 배경 */
+.root {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: var(--bg);
+  transition: opacity 0.5s ease;
+}
+.leaving { opacity: 0; pointer-events: none; }
+
+.particles {
+  position: absolute;
+  inset: 0;
+}
+.particles canvas { display: block; }
+
+.card {
+  position: relative;
+  width: min(380px, calc(100vw - 32px));
+  margin-bottom: 16vh;   /* 정중앙보다 조금 위 — 아래 여백만큼 위로 올라감(2026-10-13 요청) */
+  padding: 32px 28px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  animation: cardIn 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.logo {
+  height: 52px;
+  width: auto;
+  align-self: center;
+  margin-bottom: 6px;
+  color: var(--brand);   /* HYUNDAI 워드마크 */
+}
+.title {
+  margin: 0;
+  text-align: center;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.sub {
+  margin: 0 0 8px;
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.input {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-bg); }
+.input:disabled { opacity: 0.7; }
+
+.submit { width: 100%; justify-content: center; margin-top: 4px; }
+
+.error {
+  margin: 0;
+  min-height: 1.1em;   /* 오류 문구가 생겨도 카드 높이 그대로 */
+  font-size: 0.78rem;
+  color: var(--danger);
+  text-align: center;
+}
+.hint {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .root, .card { transition: none; animation: none; }
+}

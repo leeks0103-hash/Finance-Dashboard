@@ -17,7 +17,7 @@ from performance import perf_bp
 from kpi import kpi_bp, get_kpi_df, _real_code, KPI_EXCEL_PATH, load_kpi_excel, _kpi_cache_lock
 from downloads import download_bp
 from ai_insight import ai_bp
-from auth import is_admin, current_admin, login as admin_login
+from auth import is_admin, current_admin, current_user, login as admin_login, login_required_for_api
 
 load_dotenv()
 
@@ -39,6 +39,7 @@ class NumpyJSONProvider(DefaultJSONProvider):
 app = Flask(__name__)
 app.json = NumpyJSONProvider(app)
 
+app.before_request(login_required_for_api)
 app.register_blueprint(finance_bp)
 app.register_blueprint(perf_bp)
 app.register_blueprint(kpi_bp)
@@ -427,15 +428,15 @@ def api_auth_login():
     result = admin_login(str(body.get("emp_no", "")).strip(), str(body.get("password", "")))
     if not result:
         return jsonify({"ok": False}), 401
-    logger.info("[관리자 로그인] %s(%s)", result["name"], result["emp_no"])
+    logger.info("[로그인] %s(%s) %s", result["name"], result["emp_no"], result["role"])
     return jsonify({"ok": True, **result})
 
 
 @app.route("/api/auth/me")
 def api_auth_me():
-    """저장된 토큰이 아직 유효한지 — 계정이 지워졌거나 비밀번호가 바뀌었으면 ok:false(프론트가 로그아웃 처리)."""
-    admin = current_admin(request)
-    return jsonify({"ok": True, **admin} if admin else {"ok": False})
+    """저장된 토큰이 아직 유효한지 + 역할(admin/user) — 계정이 지워졌거나 비밀번호가 바뀌었으면 ok:false(프론트가 로그아웃 처리)."""
+    user = current_user(request)
+    return jsonify({"ok": True, **user} if user else {"ok": False})
 
 
 @app.route("/api/extract/run", methods=["POST"])

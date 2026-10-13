@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { reloadData, getPdfUrl, getProjects } from '@/api';
 import { reloadKpiData } from '@/api/kpi.api';
+import { authHeaders } from '@/api/extract.api';
 import { reloadPerfData } from '@/api/performance.api';
 import { useFilters } from './useFilters';
 import { useUiStore } from '@/store';
@@ -89,7 +90,7 @@ export const useExport = () => {
     const timer = setTimeout(() => setShowModal(true), PDF_MODAL_DELAY_MS);
 
     try {
-      const res = await fetch(getPdfUrl(filters));
+      const res = await fetch(getPdfUrl(filters), { headers: authHeaders() as Record<string, string> });   // 로그인 토큰(2026-10-13)
       if (!res.ok) throw new Error(`서버 오류: ${res.status}`);
 
       // content-type 검증 — PDF가 아니면 에러
