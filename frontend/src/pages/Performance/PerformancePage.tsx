@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import { usePerformanceViewModel } from '@/hooks/viewmodels/usePerformanceViewModel';
 import { useFinanceCodes } from '@/hooks/useFinanceCodes';
-import { DataTable, InfoButton, FilterSelect } from '@/components/ui';
+import { DataTable, InfoButton, FilterSelect, HrefDownloadButton } from '@/components/ui';
 // ErrorBoundary — 재무 검색 결과 섹션 비활성으로 미사용, 복구 시 함께 해제
 // import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { FadeInSection } from '@/components/FadeInSection';
@@ -155,6 +155,18 @@ const PerformancePage = () => {
             getRowId={(row) => String(row._row_num)}
             title="프로젝트 상세"
             info={INFO_PROJECT_TABLE}
+            badgeLegend={[
+              { tone: 'danger', label: '상이', desc: '완료 보고 대비 당월 매출/원가가 다른 경우' },
+              { tone: 'info',   label: '착수↑', desc: '착수 보고 대비 당월 원가가 크거나 같은 경우' },
+            ]}
+            // 엑셀 — 지금 표의 필터·검색·열 필터·정렬 그대로 전체(페이지 무관), 1뎁스만. 배지는 숫자 옆 글자·칸 색·메모(2026-10-14)
+            toolbarExtra={
+              <HrefDownloadButton
+                href={vm.exportHref}
+                confirmText="지금 표의 필터·검색·정렬 그대로 전체 프로젝트를 받습니다."
+                title="프로젝트 상세 엑셀 — 상이·착수↑ 배지 포함"
+              />
+            }
             isLoading={vm.isLoading}
             isFetching={vm.isFetching}
             getRowVariant={(row) =>
@@ -171,9 +183,11 @@ const PerformancePage = () => {
             // 안내 문구도 실제 동작(짧은 셀만 펼침)에 맞춰 적어 둔다
             hint="숫자 배지 = 재무 보고서 건수 · 프로젝트코드·담당자 더블클릭 → 해당 보고서 확인 가능"
             /* 프로젝트코드 셀이 재무 이력 건수 배지를 그릴 수 있도록 코드↔건수 맵 전달 */
-            meta={{ financeCodes: financeCodes.data, rawValues }}
+            meta={{ financeCodes: financeCodes.data, rawValues, filterOptions: vm.filterOptions }}
             serverPagination={vm.serverPagination}
             serverSorting={vm.serverSorting}
+            // 머리글 깔때기 — 열마다 글자·고르기·금액 이상/이하 필터(2026-10-14), 엑셀에도 같이 걸림
+            serverColumnFilters={vm.serverColumnFilters}
             serverSearch={vm.serverSearch}
             searchPlaceholder="프로젝트코드·이름·담당자 검색…"
             // 진행단계 — 값 종류가 적고 고정적(제안/착수/완료/드롭 등)이라 검색 필드 옵션 대신
@@ -192,7 +206,7 @@ const PerformancePage = () => {
             // 매출/원가 2행 → 1행으로 바꾸며 기본 컬럼·순서가 달라져 저장된 순서·폭·표시를 새로 시작(2026-10-02)
             storageKey="performance-project-v3"
             // 글씨 많은 컬럼(프로젝트명·사유·중복점검 등) 기본 폭을 넓히면서 저장된 폭 1회 무효화
-            sizeVersion={4}   // 4: 프로젝트코드 칸 164 → 230(2026-10-02)
+            sizeVersion={5}   // 4: 프로젝트코드 칸 164 → 230(2026-10-02) / 5: 머리글 끝 필터 깔때기 자리만큼 금액 열 넓힘(2026-10-14)
             // 예전 세션에 저장된 컬럼 표시/숨김 값이 그 뒤 추가된 컬럼(월별 컬럼·계획 대비 추정
             // 실적 차이 금액 등)을 계속 기본 숨김 취급하게 만들던 문제 — 저장값 1회 무효화
             visibilityVersion={1}

@@ -1,7 +1,9 @@
 import client from './client';
 import { appendPageParams } from './queryParams';
+import { getStoredExtractKey } from './extract.api';
 import type { PerfSummary, PerfProject, PerfOptions, PerfInsights, FinMismatchRow } from '@/types/performance.types';
 import type { PagedResponse, PageParams } from '@/types/finance.types';
+import type { ColumnFilterValue } from '@/types/columnFilter.types';
 
 const toParams = (parts: string[], team = ''): URLSearchParams => {
   const p = new URLSearchParams();
@@ -21,11 +23,27 @@ export const getPerfData = (
   page: PageParams,
   team = '',
   progress = '',
+  columnFilters: ColumnFilterValue[] = [],
 ): Promise<PagedResponse<PerfProject>> => {
   const params = toParams(parts, team);
   if (progress) params.set('progress', progress);
+  if (columnFilters.length) params.set('cf', JSON.stringify(columnFilters));
   appendPageParams(params, page);
   return client.get<PagedResponse<PerfProject>>('/performance/data', { params }).then(r => r.data);
+};
+
+/** 프로젝트 상세 엑셀 다운로드 주소 — 표와 같은 필터·검색·정렬(페이지는 무시, 전체). <a href>라 토큰은 ?token= */
+export const perfExportHref = (
+  parts: string[], page: PageParams, team = '', progress = '', columnFilters: ColumnFilterValue[] = [],
+): string => {
+  const params = toParams(parts, team);
+  if (progress) params.set('progress', progress);
+  if (columnFilters.length) params.set('cf', JSON.stringify(columnFilters));
+  appendPageParams(params, page);
+  params.delete('page'); params.delete('page_size');
+  const token = getStoredExtractKey();
+  if (token) params.set('token', token);
+  return `/api/performance/data/export?${params.toString()}`;
 };
 
 export const getPerfOptions = (): Promise<PerfOptions> =>

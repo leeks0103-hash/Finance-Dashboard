@@ -9,14 +9,16 @@ import { usePerfStore } from '@/store/perf.store';
 import { useQuickSearchStore } from '@/store/quickSearch.store';
 import { useFinanceCodes } from '@/hooks/useFinanceCodes';
 import { countFinanceHistory } from '@/utils/projectCode';
-import { formatEok, toEokNum } from '@/utils';
+import { formatEok, toEokNum, stripPartPrefix } from '@/utils';
 import { usePerfPeriod, type PerfPeriod } from '@/hooks/usePerfPeriod';
-import { partRank } from '@/utils/partOrder';
+import { partRank, sortParts, sortTeams } from '@/utils/partOrder';
 import { getProjects } from '@/api/finance.api';
+import { perfExportHref } from '@/api/performance.api';
 import { STALE_5MIN, GC_10MIN } from '@/hooks/queryClient';
 import type { PerfProject } from '@/types/performance.types';
 import type { Project, Filters } from '@/types/finance.types';
-import type { ServerPagination, ServerSearch, ServerSorting } from '@/components/ui/DataTable';
+import type { ServerPagination, ServerSearch, ServerSorting, ServerColumnFilters } from '@/components/ui/DataTable';
+import type { ColumnFilterValue } from '@/types/columnFilter.types';
 import { useServerSort } from '@/hooks/useServerSort';
 
 const FINANCE_EMPTY_FILTERS: Filters = { years: [], parts: [], stages: [] };
@@ -110,6 +112,12 @@ export interface PerformanceViewModel {
   setProgress:      (v: string) => void;
   /** 기준 시점(실제로 읽은 시트) — "1~N월" 표기·표 머리글용 */
   period:           PerfPeriod;
+  /** 프로젝트 상세 엑셀(1뎁스 + 배지) 다운로드 주소 — 지금 표와 같은 필터·검색·정렬 */
+  exportHref:       string;
+  /** 머리글 깔때기 열 필터 — 서버가 거름(엑셀 다운로드에도 같이 걸림) */
+  serverColumnFilters: ServerColumnFilters;
+  /** 열 필터 고르기 목록 — 열 id → 값들(진행·팀·파트·담당자) */
+  filterOptions:    Record<string, string[]>;
 }
 
 const SEARCH_FIELD_OPTIONS = [
@@ -126,6 +134,7 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
   const sort = useServerSort(pagination.resetToFirstPage, 'performance-project');
   const [searchField, setSearchField] = useState('');
   const [selectedProgress, setSelectedProgress] = useState('');
+  const [columnFilters, setColumnFilters] = useState<ColumnFilterValue[]>([]);
   const search = useDebouncedSearch(350);
 
   // 실적 인사이트 코드 클릭 → 검색창 자동 채우기
@@ -148,8 +157,15 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
   const { data: paged,      isLoading: projLoading, isFetching } = usePerformanceData({
     page: pagination.page, pageSize: pagination.pageSize, search: search.debouncedValue, field: searchField,
     sortBy: sort.sortBy ?? undefined, sortDir: sort.sortDir,
-  }, selectedProgress);
+  }, selectedProgress, columnFilters);
   const { data: options } = usePerformanceOptions();
+  // 열 필터 고르기 목록 — 파트는 원문자(①~) 뗀 이름으로(서버가 양쪽 다 맞춰 줌), 화면 정렬 순서대로
+  const filterOptions = useMemo<Record<string, string[]>>(() => ({
+    progress: options?.progress ?? [],
+    team:     sortTeams(options?.teams ?? []),
+    part:     sortParts((options?.parts ?? []).map(stripPartPrefix)),
+    manager:  options?.managers ?? [],
+  }), [options]);
 
   // 2depth: 실적 검색과 동일한 debounced 값으로 재무 API 병렬 조회
   // ── 비활성(2026-09-30) — 검색하면 프로젝트 상세 아래에 "재무 데이터 검색 결과" 표가 따로 생겨
@@ -172,6 +188,7 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
   });
   const financeResults: Project[] = financeData ?? [];
   const selectedParts = usePerfStore(s => s.selectedParts);
+  const selectedTeam  = usePerfStore(s => s.selectedTeam);
   const togglePart    = usePerfStore(s => s.togglePart);
   const reset         = usePerfStore(s => s.reset);
 
@@ -323,5 +340,16 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
     progressOptions:  options?.progress ?? [],
     selectedProgress,
     setProgress,
+
+    exportHref: perfExportHref(selectedParts, {
+      page: 1, pageSize: 1, search: search.debouncedValue, field: searchField,
+      sortBy: sort.sortBy ?? undefined, sortDir: sort.sortDir,
+    }, selectedTeam, selectedProgress, columnFilters),
+
+    serverColumnFilters: {
+      value: columnFilters,
+      onChange: next => { setColumnFilters(next); pagination.resetToFirstPage(); },
+    },
+    filterOptions,
   };
 };

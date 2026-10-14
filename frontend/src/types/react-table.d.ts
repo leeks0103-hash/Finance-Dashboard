@@ -1,4 +1,5 @@
 import '@tanstack/react-table';
+import type { ColumnFilterSpec } from '@/types/columnFilter.types';
 
 declare module '@tanstack/react-table' {
   /** ColumnMeta.cellBadges 한 개 — 값 옆 작은 배지 */
@@ -17,6 +18,8 @@ declare module '@tanstack/react-table' {
     financeCodes?: Record<string, number>;
     /** true면 금액·비율 셀을 반올림(억/만 축약) 대신 원본 실제값으로 표시 — 설정 > 표 실제값 토글(ui.store) */
     rawValues?: boolean;
+    /** 열 필터(select)의 고를 값 목록 — 열 id → 값들 */
+    filterOptions?: Record<string, string[]>;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -54,6 +57,8 @@ declare module '@tanstack/react-table' {
     /** 값 옆 작은 배지 — danger(빨강)/info(파랑). title은 셀 툴팁으로 합쳐짐(배지가 있으면 formatTitle 대신).
      *  예: 프로젝트 상세 재무 이력 상이 / 착수 직접원가 이상(2026-10-14, 예전 cellFlag 빨간 칸 대체) */
     cellBadges?: (row: TData) => CellBadge[] | undefined;
+    /** 머리글 깔때기 필터 — DataTable에 serverColumnFilters가 있을 때만 보임(2026-10-14) */
+    filter?: ColumnFilterSpec;
     /** 셀 음영 — 'static'(고정값, 연한 샌드) / 'filled'(값 있음, 아주 연한 하늘색). 헤더는 안 칠함 */
     cellTint?: (row: TData) => 'static' | 'filled' | undefined;
     /** 셀 테두리를 은은하게 빛나게(맥박 애니메이션) — 예: 재무 대조 모드의 비교 칸 */

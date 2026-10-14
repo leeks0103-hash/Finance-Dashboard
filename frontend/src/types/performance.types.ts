@@ -198,6 +198,8 @@ export interface PerfOptions {
   /** 진행단계 — 값 종류가 적고 고정적(제안/착수/완료/드롭 등)이라 프로젝트 상세 표에서
    *  자유 검색 대신 셀렉트박스로 필터링할 때 씀 */
   progress: string[];
+  /** 담당자 목록 — 프로젝트 상세 열 필터(2026-10-14). 옛 서버는 없음 */
+  managers?: string[];
 }
 
 export interface PerfWorstRow {

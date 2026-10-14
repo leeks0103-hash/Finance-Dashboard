@@ -12,6 +12,8 @@ export interface DownloadFile {
   size:      number;
   /** 파일 최종 수정 시각 "YYYY-MM-DD HH:MM" — 추출 재실행 시 갱신됨 */
   modified:  string;
+  /** 저장된 파일이 아니라 받을 때마다 만드는 엑셀(프로젝트 상세) — size 없음, modified는 원본 기준 */
+  generated?: boolean;
 }
 
 /**

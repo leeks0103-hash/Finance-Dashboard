@@ -38,6 +38,14 @@ _FILES = {
         "desc":  "사업계획 통합관리 파일 (추출물이 아닌 원본, data/ 안 최신본)",
         "resolve": paths.resolve_perf_excel,
     },
+    # 저장된 파일이 아니라 받을 때마다 만드는 엑셀(2026-10-14) — 수정 시각은 원본(실적현황) 기준.
+    # 필터 없이 전체. 필터·검색 건 결과는 프로젝트 상세 표의 "↓ 엑셀"(/api/performance/data/export)
+    "project_detail": {
+        "label": "프로젝트 상세",
+        "desc":  "실적 탭 프로젝트 상세 표 전체 (프로젝트당 한 줄, 상이·착수↑ 배지 포함)",
+        "resolve": paths.resolve_perf_excel,
+        "generated": True,
+    },
 }
 
 
@@ -73,6 +81,7 @@ def api_download_list():
             "available": info is not None,
             "size":      info["size"] if info else 0,
             "modified":  info["modified"] if info else "",
+            "generated": bool(meta.get("generated")),
         })
     return jsonify({"files": items})
 
@@ -84,6 +93,11 @@ def api_download(key: str):
         return jsonify({"error": f"알 수 없는 파일 키: {key}"}), 404
 
     path = meta["resolve"]()
+    if meta.get("generated") and os.path.exists(path):
+        # 받을 때마다 최신 실적 데이터로 생성 — 요청 인자가 없으니 필터 없는 전체
+        from performance import api_perf_data_export
+        logger.info("엑셀 다운로드: %s (생성)", key)
+        return api_perf_data_export()
     if not os.path.exists(path):
         return jsonify({
             "error": f"{meta['label']} 파일이 없습니다. 추출 스크립트를 먼저 실행해주세요.",

@@ -30,6 +30,8 @@ import { useTableDndSensors } from './useTableDndSensors';
 import { SortableHeaderCell } from './SortableHeaderCell';
 import { CellPopup } from './CellPopup';
 import { TableTitleBar } from './TableTitleBar';
+import { ColumnFilterPopover, describeColumnFilter } from './ColumnFilterPopover';
+import type { ColumnFilterValue } from '@/types/columnFilter.types';
 import styles from './DataTable.module.css';
 
 // 펼침 패널 슬라이드 길이 — DataTable.module.css .expandSlide/.expandClosing 애니메이션과 맞출 것
@@ -58,8 +60,10 @@ interface DraggableThProps<T> {
    *  기본 리사이즈(옆 컬럼은 안 건드리고 테이블만 넓어짐)는 미수주 프로젝트·KPI 집계처럼
    *  가로스크롤이 없어야 하는 표에서 "한 컬럼 넓히면 뒤 컬럼이 화면 밖으로 밀려남" 문제가 있었음 */
   fixedTotalWidth?: boolean;
+  /** 머리글 깔때기 필터 — active면 강조, 누르면 필터 창(정렬·드래그와 안 겹치게 이벤트 막음) */
+  filter?: { active: boolean; onOpen: (el: HTMLElement) => void };
 }
-function DraggableTh<T>({ header, isDraggable, isHighlighted, onHeaderClick, fixedTotalWidth }: DraggableThProps<T>) {
+function DraggableTh<T>({ header, isDraggable, isHighlighted, onHeaderClick, fixedTotalWidth, filter }: DraggableThProps<T>) {
   const toggleSort = header.column.getToggleSortingHandler();
   const [selfResizing, setSelfResizing] = useState(false);
 
@@ -109,6 +113,8 @@ function DraggableTh<T>({ header, isDraggable, isHighlighted, onHeaderClick, fix
         header.column.getCanSort() ? styles.sortable : '',
         header.column.id === '__index' ? styles.indexCell : '',
         header.column.columnDef.meta?.staticCol ? styles.staticCol : '',
+        filter ? styles.thHasFilter : '',
+        filter?.active ? styles.thFiltered : '',
       ].join(' ')}
       width={header.getSize()}
       onClick={e => { toggleSort?.(e); onHeaderClick(header.column.id); }}
@@ -117,6 +123,20 @@ function DraggableTh<T>({ header, isDraggable, isHighlighted, onHeaderClick, fix
       {header.column.getCanSort() && (
         <span className={header.column.getIsSorted() ? styles.sortActive : styles.sortIdle}>
           {sortArrow(header.column.getIsSorted())}
+        </span>
+      )}
+      {filter && (
+        <span className={styles.filterBtnWrap} onPointerDown={e => e.stopPropagation()}>
+          <Button unstyled
+            className={`${styles.filterBtn} ${filter.active ? styles.filterBtnActive : ''}`}
+            aria-label={`${String(header.column.columnDef.header ?? '')} 필터`}
+            title={filter.active ? '필터 걸림 — 눌러서 바꾸기' : '필터'}
+            onClick={e => { e.stopPropagation(); filter.onOpen(e.currentTarget); }}>
+            <svg width="11" height="11" viewBox="0 0 16 16" aria-hidden="true"
+              fill={filter.active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round">
+              <path d="M2 3h12l-4.6 5.6V13l-2.8 1.4V8.6z" />
+            </svg>
+          </Button>
         </span>
       )}
       {isDraggable && header.column.getCanResize() && (
@@ -190,6 +210,12 @@ export interface ServerSorting {
   onChange: (sortBy: string | null, sortDir: 'asc' | 'desc') => void;
 }
 
+/** 서버사이드 열 필터(머리글 깔때기) — 걸린 필터 목록, 바뀌면 onChange(서버가 거름) */
+export interface ServerColumnFilters {
+  value:    ColumnFilterValue[];
+  onChange: (next: ColumnFilterValue[]) => void;
+}
+
 /** 서버사이드 검색 — 디바운스는 ViewModel에서 처리 */
 export interface ServerSearch {
   value:    string;
@@ -261,6 +287,8 @@ interface Props<T> {
   serverSearch?:      ServerSearch;
   /** 서버사이드 정렬 — 서버 페이지네이션 표에서 전체 기준 정렬(없으면 받아 온 페이지 안에서만 정렬됨) */
   serverSorting?:     ServerSorting;
+  /** 서버사이드 열 필터 — 제공하면 ColumnMeta.filter가 있는 머리글에 깔때기가 생김 */
+  serverColumnFilters?: ServerColumnFilters;
   /** 무한 로드 모드 — serverPagination 대신 사용 (useInfiniteQuery 연동) */
   infiniteLoadMore?:  InfiniteLoadMore;
   /** 초기 컬럼 표시 여부 (기본 숨김 컬럼 지정용) */
@@ -286,6 +314,8 @@ interface Props<T> {
   visibilityVersion?: string | number;
   /** 툴바 우측에 추가 렌더링할 요소 (뷰 전환 토글 등) */
   toolbarExtra?: ReactNode;
+  /** 제목줄 배지 범례 — 표 안 cellBadges와 같은 모양으로 "배지 = 뜻"을 나열 */
+  badgeLegend?: { tone: 'danger' | 'info'; label: string; desc: string }[];
   /** 검색행 안, 검색범위 셀렉트와 입력창 사이에 끼워 넣을 요소 (파트/보고단계 필터 등) */
   searchExtra?: ReactNode;
   /** 제목 옆 ⓘ 버튼 — 클릭 시 데이터 기준 설명 팝오버 */
@@ -369,6 +399,7 @@ const DataTable = <T extends object>({
   serverPagination,
   serverSearch,
   serverSorting,
+  serverColumnFilters,
   infiniteLoadMore,
   initialColumnVisibility = {},
   storageKey,
@@ -376,6 +407,7 @@ const DataTable = <T extends object>({
   persistColumnSizes = true,
   visibilityVersion,
   toolbarExtra,
+  badgeLegend,
   searchExtra,
   info,
   bodyClassName,
@@ -702,6 +734,19 @@ const DataTable = <T extends object>({
     ...(serverSorting && { manualSorting: true }),
   });
 
+  // ── 열 필터(머리글 깔때기) — 서버 표 전용. 창은 한 번에 하나 ──
+  const [filterOpen, setFilterOpen] = useState<{ id: string; el: HTMLElement } | null>(null);
+  const closeFilter = useCallback(() => setFilterOpen(null), []);
+  const columnTitle = (id: string) => {
+    const h = table.getColumn(id)?.columnDef.header;
+    return typeof h === 'string' ? h : id;
+  };
+  const setColumnFilter = (id: string, v: ColumnFilterValue | null) => {
+    if (!serverColumnFilters) return;
+    const rest = serverColumnFilters.value.filter(f => f.id !== id);
+    serverColumnFilters.onChange(v ? [...rest, v] : rest);
+  };
+
   // compact 테이블(KPI 집계, 파트별 실적 등) — 고정형 소형 테이블이라 가로 스크롤이 없어야 함.
   // 컬럼 합계가 카드 폭과 다르면(좁든 넓든) 첫 진입 시 비례 조정해서 항상 폭에 꼭 맞춤.
   // ⚠️ 이미 저장된 폭(colSizing)이 있으면 건드리지 않는다 — 안 그러면 컴포넌트가 리마운트될 때마다
@@ -979,6 +1024,41 @@ const DataTable = <T extends object>({
         </div>
       )}
 
+      {/* 걸린 열 필터 — 칩마다 ×, 모두 해제 */}
+      {serverColumnFilters && serverColumnFilters.value.length > 0 && (
+        <div className={styles.filterChips}>
+          <span className={styles.filterChipsLabel}>필터</span>
+          {serverColumnFilters.value.map(f => (
+            <span key={f.id} className={styles.filterChip}>
+              <Button unstyled className={styles.filterChipText}
+                onClick={e => setFilterOpen({ id: f.id, el: e.currentTarget })}>
+                {describeColumnFilter(f, columnTitle(f.id))}
+              </Button>
+              <Button unstyled className={styles.filterChipX} aria-label="이 필터 해제"
+                onClick={() => setColumnFilter(f.id, null)}>×</Button>
+            </span>
+          ))}
+          <Button variant="ghost" size="sm" onClick={() => serverColumnFilters.onChange([])}>모두 해제</Button>
+        </div>
+      )}
+      {filterOpen && serverColumnFilters && (() => {
+        const spec = table.getColumn(filterOpen.id)?.columnDef.meta?.filter;
+        if (!spec) return null;
+        return (
+          <ColumnFilterPopover
+            key={filterOpen.id}
+            anchor={filterOpen.el}
+            colId={filterOpen.id}
+            title={columnTitle(filterOpen.id)}
+            spec={spec}
+            options={extraMeta?.filterOptions ? (extraMeta.filterOptions as Record<string, string[]>)[filterOpen.id] : undefined}
+            value={serverColumnFilters.value.find(f => f.id === filterOpen.id)}
+            onApply={v => setColumnFilter(filterOpen.id, v)}
+            onClose={closeFilter}
+          />
+        );
+      })()}
+
       <div ref={bodyRef} className={fillHeight ? styles.fillBody : undefined}>
       {isLoading ? (
         <div className={styles.skeletonWrap}>
@@ -1029,6 +1109,10 @@ const DataTable = <T extends object>({
                           isHighlighted={highlightedCol === h.column.id}
                           onHeaderClick={setHighlight}
                           fixedTotalWidth={compact}
+                          filter={serverColumnFilters && h.column.columnDef.meta?.filter ? {
+                            active: serverColumnFilters.value.some(f => f.id === h.column.id),
+                            onOpen: el => setFilterOpen(prev => (prev?.id === h.column.id ? null : { id: h.column.id, el })),
+                          } : undefined}
                         />
                       ))}
                     </tr>
@@ -1216,7 +1300,13 @@ const DataTable = <T extends object>({
   if (!title) return tableCard;
 
   return (
-    <TableTitleBar title={title} count={!hideCount ? pagination.countLabel : undefined} toolbarExtra={toolbarExtra} info={info} bodyClassName={bodyClassName} fill={fillHeight}>
+    <TableTitleBar title={title} count={!hideCount ? pagination.countLabel : undefined} toolbarExtra={toolbarExtra} info={info} bodyClassName={bodyClassName} fill={fillHeight}
+      legend={badgeLegend?.length ? badgeLegend.map(b => (
+        <span key={b.label} className={styles.legendItem}>
+          <span className={`${styles.cellBadge} ${styles.legendBadge} ${b.tone === 'danger' ? styles.cellBadgeDanger : styles.cellBadgeInfo}`}>{b.label}</span>
+          {b.desc}
+        </span>
+      )) : undefined}>
       {tableCard}
     </TableTitleBar>
   );

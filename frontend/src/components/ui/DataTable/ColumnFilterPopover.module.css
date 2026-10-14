@@ -1,0 +1,69 @@
+.pop {
+  position: fixed;
+  z-index: 1040;   /* 모달(1000) 위, ⓘ(1050)·확인창(1060) 아래 — 셀 팝업과 같은 층 */
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  animation: popIn 0.14s ease;
+}
+@keyframes popIn {
+  from { opacity: 0; transform: translateY(-3px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.head {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-sub);
+  letter-spacing: 0.02em;
+}
+
+.input {
+  width: 100%;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  outline: none;
+  box-sizing: border-box;
+}
+.input:focus { border-color: var(--brand-mid); }
+
+.list {
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 2px 0;
+}
+.option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.option:hover { background: var(--bg-subtle); }
+.option span { overflow: hidden; text-overflow: ellipsis; }
+.optionAll { font-weight: 600; padding-inline: 2px; }
+.empty { padding: 8px; color: var(--text-muted); font-size: 0.75rem; }
+
+.range { display: flex; flex-direction: column; gap: 6px; }
+.rangeRow { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.rangeRow span { color: var(--text-sub); font-size: 0.76rem; }
+.error { color: var(--danger); font-size: 0.72rem; }
+
+.foot { display: flex; justify-content: flex-end; gap: 6px; }

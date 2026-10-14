@@ -11,6 +11,8 @@ export interface DownloadItem {
   available: boolean;
   size:      number;
   modified:  string;
+  /** 받을 때마다 만드는 파일 — 크기 대신 "받을 때 새로 만듦" */
+  generated?: boolean;
 }
 
 interface Props {
@@ -24,12 +26,14 @@ interface Props {
 
 const fmtSize = (bytes: number) =>
   bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)}MB` : `${Math.round(bytes / 1024)}KB`;
+const metaText = (f: DownloadItem) =>
+  f.generated ? `원본 ${f.modified} 기준 · 받을 때 새로 만듦` : `${f.modified} · ${fmtSize(f.size)}`;
 
 // 다운로드 전 확인(2026-09-28 — CSV 버튼과 동일하게 "다운로드 받으시겠냐고" 컨펌). <a download>는
 // 클릭 즉시 받아버리므로 기본 동작을 막고, 확인되면 임시 <a download>로 다시 클릭
 const confirmAndDownload = async (e: React.MouseEvent<HTMLAnchorElement>, f: DownloadItem, href: string) => {
   e.preventDefault();
-  const ok = await confirmDialog(`${f.label}\n(${f.modified} · ${fmtSize(f.size)})`, {
+  const ok = await confirmDialog(`${f.label}\n(${metaText(f)})`, {
     title: '파일을 다운로드하시겠습니까?',
     confirmText: '다운로드',
   });
@@ -92,7 +96,7 @@ export const DownloadMenu = ({ items, hrefOf, isLoading = false, buttonLabel = '
               >
                 <span className={styles.itemLabel}>{f.label}</span>
                 <span className={styles.itemDesc}>{f.desc}</span>
-                <span className={styles.itemMeta}>{f.modified} · {fmtSize(f.size)}</span>
+                <span className={styles.itemMeta}>{metaText(f)}</span>
               </a>
             ) : (
               <div key={f.key} className={`${styles.item} ${styles.disabled}`} role="menuitem" aria-disabled>

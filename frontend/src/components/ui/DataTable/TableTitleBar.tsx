@@ -13,11 +13,13 @@ interface Props {
   bodyClassName?: string;
   /** 부모 높이를 꽉 채움(DataTable fillHeight) */
   fill?:         boolean;
+  /** 가로 스크롤 안내 옆 설명(배지 범례 등) */
+  legend?:       ReactNode;
   children:      ReactNode;
 }
 
 /** 테이블 상단 제목 + 건수 배지 + 툴바 확장 슬롯 래퍼 — DataTable·KpiRawTable 공용 */
-export const TableTitleBar = ({ title, count, toolbarExtra, info, bodyClassName, fill, children }: Props) => (
+export const TableTitleBar = ({ title, count, toolbarExtra, info, bodyClassName, fill, legend, children }: Props) => (
   <div className={`${styles.outerGroup} ${fill ? styles.fill : ''}`}>
     <div className={styles.outerTitle}>
       <div className={styles.outerTitleLeft}>
@@ -27,6 +29,7 @@ export const TableTitleBar = ({ title, count, toolbarExtra, info, bodyClassName,
           {info && <InfoButton>{info}</InfoButton>}
         </div>
         <div className={styles.scrollHint}>⇔ Shift + 마우스 휠로 가로 스크롤</div>
+        {legend && <div className={styles.legend}>{legend}</div>}
       </div>
       {toolbarExtra && <div className={styles.extra}>{toolbarExtra}</div>}
     </div>

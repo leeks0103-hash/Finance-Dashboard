@@ -21,7 +21,10 @@ const num = (v: number) => formatNum(v);
 const eokMeta = { formatTitle: (v: unknown) => {
   const n = Number(v);
   return n ? `${formatNum(Math.round(n * 1000))}원` : undefined;
-} };
+}, filter: { type: 'number', unit: 'eok' } as const };
+// 머리글 깔때기 필터(2026-10-14) — 고르기 목록은 PerformancePage가 table meta.filterOptions로 넘김
+const textFilter   = { filter: { type: 'text' } as const };
+const selectFilter = { filter: { type: 'select' } as const };
 // 텍스트 컬럼 — 검색 매치 하이라이트
 const txt = (i: { getValue: () => unknown; table: { options: { meta?: { searchQuery?: string } } } }) =>
   <HighlightText text={String(i.getValue() ?? '')} query={i.table.options.meta?.searchQuery} />;
@@ -79,7 +82,7 @@ const financeCount = (code: string, codes?: Record<string, number>) => {
 const buildColumns = (_PERF_MONTH: string, finCompare: boolean) => [
   // ── 기본 표시 (2026-10-02 지정 순서) — 프로젝트당 한 줄(매출행 + 원가행의 사업계획 원가). 합계·1~12월은 삭제 ──
   h.accessor('project_code', {
-    header: '프로젝트코드', size: 230,   // 164 → 200 → 230(2026-10-02): 코드 16자 + 배지 + 호버 복사 아이콘 자리에 여유를 넉넉히
+    header: '프로젝트코드', size: 230, meta: textFilter,   // 164 → 200 → 230(2026-10-02): 코드 16자 + 배지 + 호버 복사 아이콘 자리에 여유를 넉넉히
     enableSorting: true,
     // 재무 PPT 이력이 있으면 건수 배지 — 더블클릭해야 2뎁스 유무를 알 수 있던 문제 해소
     cell: i => {
@@ -101,38 +104,38 @@ const buildColumns = (_PERF_MONTH: string, finCompare: boolean) => [
       );
     },
   }),
-  h.accessor('progress',     { header: '진행',       size: 78,  cell: txt }),
-  h.accessor('project_name', { header: '프로젝트명', size: 320, cell: txt, meta: { cellPopup: true } }),
+  h.accessor('progress',     { header: '진행',       size: 78,  cell: txt, meta: selectFilter }),
+  h.accessor('project_name', { header: '프로젝트명', size: 320, cell: txt, meta: { cellPopup: true, ...textFilter } }),
   // 팀·파트 — 기본 표시(2026-10-02 요청). 프로젝트명과 담당자 사이
-  h.accessor('team',         { header: '팀',           size: 172, cell: txt }),
+  h.accessor('team',         { header: '팀',           size: 172, cell: txt, meta: selectFilter }),
   // 파트 앞 원문자(①~⑦)는 차트·필터 칩 등에선 stripPartPrefix로 이미 떼고 보여주는데
   // 이 표만 원본 그대로 노출하고 있었음 — 여기선 번호가 필요 없다는 피드백으로 통일(2026-09-21)
-  h.accessor('part',         { header: '파트',         size: 128,
+  h.accessor('part',         { header: '파트',         size: 128, meta: selectFilter,
     cell: i => <HighlightText text={stripPartPrefix(String(i.getValue() ?? ''))} query={i.table.options.meta?.searchQuery} /> }),
-  h.accessor('manager',      { header: '담당자',     size: 78,  cell: txt }),
-  h.accessor('plan_initial',      { header: '사업계획 매출', size: 104, enableSorting: true, cell: i => eok(i), meta: eokMeta }),
+  h.accessor('manager',      { header: '담당자',     size: 86,  cell: txt, meta: selectFilter }),
+  h.accessor('plan_initial',      { header: '사업계획 매출', size: 116, enableSorting: true, cell: i => eok(i), meta: eokMeta }),
   // 원가행의 최초사업계획(V열) — 백엔드가 매출행 줄에 붙여 줌
-  h.accessor('plan_cost',         { header: '사업계획 원가', size: 104, enableSorting: true, cell: i => eok(i), meta: eokMeta }),
-  h.accessor('jun_check_total',   { header: '당월 추정 매출', size: 112, enableSorting: true, cell: i => eok(i),
+  h.accessor('plan_cost',         { header: '사업계획 원가', size: 116, enableSorting: true, cell: i => eok(i), meta: eokMeta }),
+  h.accessor('jun_check_total',   { header: '당월 추정 매출', size: 122, enableSorting: true, cell: i => eok(i),
     meta: { ...eokMeta, cellBadges: finBadges('jun_check_total'), cellGlow: finCompare ? finGlow : undefined } }),
   // 재무 대조 모드에서만 — 재무 이력(완료 단계) 값, 천원 단위로 내려옴(백엔드 _attach_finance_mismatch)
   ...(finCompare ? [h.accessor('fin_jun_check_total', { header: '재무 이력 매출(완료)', size: 132, cell: i => eok(i),
     meta: { ...eokMeta, cellGlow: finGlow } })] : []),
   // 원가행 BH / 매출행 BH − 원가행 BH(엑셀 AR17 − AR18) — 백엔드가 원가행에서 직접 읽어 줌(2026-10-02 사용자 정의)
-  h.accessor('est_cost',          { header: '당월 추정 직접원가', size: 136, enableSorting: true, cell: i => eok(i),
+  h.accessor('est_cost',          { header: '당월 추정 직접원가', size: 146, enableSorting: true, cell: i => eok(i),
     meta: { ...eokMeta, cellBadges: finBadges('est_cost'), cellGlow: finCompare ? finGlow : undefined } }),
   ...(finCompare ? [h.accessor('fin_est_cost', { header: '재무 이력 직접원가(완료)', size: 160, cell: i => eok(i),
     meta: { ...eokMeta, cellGlow: finGlow } }),
     // 착수 보고 직접원가 — "착수↑" 배지 비교 대상(2026-10-14)
     h.accessor('fin_start_est_cost', { header: '재무 이력 직접원가(착수)', size: 160, cell: i => eok(i),
     meta: { ...eokMeta, cellGlow: finGlow } })] : []),
-  h.accessor('est_gross',         { header: '매출 이익', size: 96, enableSorting: true, cell: i => eok(i), meta: eokMeta }),
-  h.accessor('cost_labor',        { header: '인건비',   size: 76, cell: i => eok(i), meta: eokMeta }),
-  h.accessor('cost_overhead',     { header: '공통원가', size: 84, cell: i => eok(i), meta: eokMeta }),
-  h.accessor('cost_mgmt',         { header: '관리비',   size: 76, cell: i => eok(i), meta: eokMeta }),
+  h.accessor('est_gross',         { header: '매출 이익', size: 104, enableSorting: true, cell: i => eok(i), meta: eokMeta }),
+  h.accessor('cost_labor',        { header: '인건비',   size: 86, cell: i => eok(i), meta: eokMeta }),
+  h.accessor('cost_overhead',     { header: '공통원가', size: 96, cell: i => eok(i), meta: eokMeta }),
+  h.accessor('cost_mgmt',         { header: '관리비',   size: 86, cell: i => eok(i), meta: eokMeta }),
   // 경상손익·손익률은 강조 음영(emphasisCol, 2026-10-02 요청)
-  h.accessor('operating_profit',  { header: '경상손익', size: 84, enableSorting: true, cell: i => eok(i), meta: { ...eokMeta, emphasisCol: true } }),
-  h.accessor('profit_rate',       { header: '손익률',   size: 76, enableSorting: true, meta: { emphasisCol: true },
+  h.accessor('operating_profit',  { header: '경상손익', size: 96, enableSorting: true, cell: i => eok(i), meta: { ...eokMeta, emphasisCol: true } }),
+  h.accessor('profit_rate',       { header: '손익률',   size: 86, enableSorting: true, meta: { emphasisCol: true, filter: { type: 'number', unit: 'pct' } },
     cell: i => i.getValue() ? formatPercent(i.getValue() as number, i.table.options.meta?.rawValues) : '-' }),
 
   // ── 기본 숨김 (컬럼 메뉴에서 체크하면 표시) ──

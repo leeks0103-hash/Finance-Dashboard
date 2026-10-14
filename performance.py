@@ -485,7 +485,7 @@ def _ratio(numer: float, denom: float) -> "float | None":
 def api_perf_options():
     df = get_perf_df()
     if df.empty:
-        return jsonify({"parts": [], "teams": [], "team_parts": {}, "progress": []})
+        return jsonify({"parts": [], "teams": [], "team_parts": {}, "progress": [], "managers": []})
     parts = sorted(df["part"].dropna().unique().tolist())
     teams = sorted(df["team"].dropna().unique().tolist())
     # 진행단계 — 값 종류가 적고 고정적(제안/착수/완료/드롭 등)이라 자유 검색보다 셀렉트박스가
@@ -498,7 +498,9 @@ def api_perf_options():
         team: sorted(g["part"].dropna().unique().tolist())
         for team, g in df.dropna(subset=["team"]).groupby("team")
     }
-    return jsonify({"parts": parts, "teams": teams, "team_parts": team_parts, "progress": progress})
+    # 담당자 — 프로젝트 상세 열 필터의 고르기 목록(2026-10-14)
+    managers = sorted(str(m).strip() for m in df["manager"].dropna().unique() if str(m).strip())
+    return jsonify({"parts": parts, "teams": teams, "team_parts": team_parts, "progress": progress, "managers": managers})
 
 
 # 매출행·원가행 값이 서로 다른(원가행에도 값이 있는) 필드 — 한 줄로 합칠 때 원가행 값을 `cost__<필드>`로 따로 싣는다.
@@ -648,11 +650,58 @@ def _project_rows(rows: pd.DataFrame) -> pd.DataFrame:
     return _attach_finance_mismatch(rows)
 
 
-@perf_bp.route("/api/performance/data")
-def api_perf_data():
+# 열 필터의 숫자 단위 → 데이터 단위. 실적 금액은 천원이라 '억' 입력값 × 100,000
+_CF_UNIT_SCALE = {"eok": 100_000, "pct": 1, "num": 1}
+
+
+def apply_column_filters(rows: pd.DataFrame, raw: str) -> pd.DataFrame:
+    """표 머리글 필터(2026-10-14). raw = JSON 배열
+      {"id": 열, "type": "text", "q": "부분일치"}
+      {"id": 열, "type": "select", "values": [...]}            — 파트는 원문자(①~) 뗀 값으로도 맞춤
+      {"id": 열, "type": "number", "unit": "eok"|"pct", "min": 2.1, "max": null}  — 이상/이하, 빈 값은 제외
+    모르는 열·잘못된 값은 무시(표가 깨지지 않게)."""
+    if not raw or rows.empty:
+        return rows
+    import json
+    try:
+        specs = json.loads(raw)
+    except ValueError:
+        logger.warning("열 필터 해석 실패 — 무시: %r", raw[:200])
+        return rows
+    if not isinstance(specs, list):
+        return rows
+    mask = pd.Series(True, index=rows.index)
+    for f in specs:
+        if not isinstance(f, dict) or f.get("id") not in rows.columns:
+            continue
+        col = rows[f["id"]]
+        kind = f.get("type")
+        if kind == "text":
+            q = str(f.get("q") or "").strip().lower()
+            if q:
+                mask &= col.astype(str).str.lower().str.contains(q, regex=False, na=False)
+        elif kind == "select":
+            values = {str(v) for v in (f.get("values") or [])}
+            if values:
+                text = col.fillna("").astype(str)
+                mask &= text.isin(values) | text.map(lambda v: PART_PREFIX_RE.sub("", v).strip()).isin(values)
+        elif kind == "number":
+            scale = _CF_UNIT_SCALE.get(f.get("unit"), 1)
+            num = pd.to_numeric(col, errors="coerce")
+            lo, hi = f.get("min"), f.get("max")
+            if isinstance(lo, (int, float)):
+                mask &= num >= lo * scale - 1e-9
+            if isinstance(hi, (int, float)):
+                mask &= num <= hi * scale + 1e-9
+    return rows[mask]
+
+
+def _perf_detail_frame() -> pd.DataFrame:
+    """프로젝트 상세 표의 행 — 필터·진행단계·검색·프로젝트당 1행·재무 대조·정렬까지(페이지 자르기 전).
+    표 조회(/data)와 엑셀 다운로드(/data/export)가 같은 행을 쓰게 공용(2026-10-14)"""
     df = apply_perf_filters(get_perf_df())
     if df.empty:
-        return jsonify({"data": [], "total": 0})
+        return df
     # 프로젝트당 한 줄 — 엑셀은 매출행+원가행 2행이지만 표에선 매출행에 원가행의 사업계획 원가(plan_cost)를
     # 붙여 한 줄로 내려준다(2026-10-02 요청, 예전엔 2행 + 프론트 세로 병합). 집계(summary)는 계속 rev/cost 분리.
     rows = df.copy()
@@ -679,10 +728,18 @@ def api_perf_data():
         rows = rows[mask]
 
     rows = _project_rows(rows)
-
-    total = len(rows)
+    # 열 필터(표 머리글 깔때기) — 합친 뒤 계산되는 열(당월 추정 직접원가·매출 이익 등)도 걸려야 해서 _project_rows 다음
+    rows = apply_column_filters(rows, request.args.get("cf", ""))
     # 전체 기준 정렬(표 머리글 클릭) — 페이지를 자르기 전에
-    rows = sort_frame(rows, request.args.get("sort_by", ""), request.args.get("sort_dir", "asc"))
+    return sort_frame(rows, request.args.get("sort_by", ""), request.args.get("sort_dir", "asc"))
+
+
+@perf_bp.route("/api/performance/data")
+def api_perf_data():
+    rows = _perf_detail_frame()
+    if rows.empty:
+        return jsonify({"data": [], "total": 0})
+    total = len(rows)
 
     try:
         page      = max(1, int(request.args.get("page", 1)))
@@ -696,6 +753,27 @@ def api_perf_data():
     page_df = rows.iloc[start:start + page_size]
     page_df = page_df.astype(object).where(pd.notna(page_df), None)
     return jsonify({"data": page_df.to_dict(orient="records"), "total": total})
+
+
+@perf_bp.route("/api/performance/data/export")
+def api_perf_data_export():
+    """프로젝트 상세 엑셀 — 화면 표와 같은 필터·검색·열 필터·정렬, 1뎁스만 + 배지(숫자 옆 글자·칸 색·메모)."""
+    import io
+    from flask import send_file
+    from perf_export import build_project_detail_xlsx, condition_text
+    from perf_export import finance_code_counts
+    import finance
+    rows = _perf_detail_frame()
+    base = {"year": _perf_current_year, "month": _perf_current_month} if _perf_current_month else None
+    try:
+        fin_counts = finance_code_counts(finance.get_df())
+    except Exception:
+        logger.warning("엑셀 — 재무 이력 건수를 못 세서 [N] 없이 만듦", exc_info=True)
+        fin_counts = {}
+    data = build_project_detail_xlsx(rows, condition_text(request.args, base), fin_counts)
+    name = f"프로젝트상세_{datetime.now():%Y%m%d_%H%M}.xlsx"
+    return send_file(io.BytesIO(data), as_attachment=True, download_name=name,
+                     mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 
 @perf_bp.route("/api/performance/fin-mismatch")
