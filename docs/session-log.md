@@ -1,5 +1,15 @@
 # 세션 진행 기록
 
+## [2026-10-14] 프로젝트 상세 — 재무 대조 빨간 칸 → 배지 + 착수 직접원가 이상 파란 배지
+
+- 기존 완료 프로젝트 재무 이력(완료 보고) 불일치: 칸 전체 빨간 배경·글자(`cellFlag`) → 값 옆 **빨간 배지 "상이"**(툴팁은 그대로 실적현황·재무 이력·차이)
+- 신규: 진행 '완료' 줄의 당월 추정 직접원가(원가행 BH)가 재무 이력 **착수** 보고 직접원가보다 크거나 같으면 **파란 배지 "착수↑"**(직접원가 칸).
+  같음은 1,000원 미만 차이까지(PPT 천원 반올림, 재무 대조와 같은 기준). 착수 직접원가가 0·없으면 비교 안 함.
+  백엔드 `_attach_start_cost_over` → `fin_cost_over_start`·`fin_start_est_cost`(천원)·`fin_start_filename`
+- DataTable `ColumnMeta.cellBadges`(danger/info, title은 셀 툴팁으로 합침) 신설. 재무 대조 모드(F)에선 "재무 이력 직접원가(착수)" 컬럼도 붙음
+- 현재(9월 집계): 완료 41건 중 착수 비교 가능 30 → 착수↑ 8(같음 4·초과 4), 상이 4. 헤드리스로 배지·툴팁 확인
+- 관리자 기능 > 완료 프로젝트 재무 불일치 목록(`FinMismatchTableModal`)은 그대로 빨간 칸(cellFlag)
+
 ## [2026-10-14] 로그인 화면 잠깐 끔 — 내일부터 사용, 오늘은 누구나 조회
 
 - 스위치 `frontend/src/utils/authMode.ts` `LOGIN_REQUIRED = false` + 백엔드 `app.py`의 `app.before_request(login_required_for_api)` 주석 처리

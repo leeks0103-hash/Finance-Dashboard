@@ -1,6 +1,14 @@
 import '@tanstack/react-table';
 
 declare module '@tanstack/react-table' {
+  /** ColumnMeta.cellBadges 한 개 — 값 옆 작은 배지 */
+  interface CellBadge {
+    tone: 'danger' | 'info';
+    label: string;
+    /** 마우스 올리면 보일 설명(셀 툴팁에 합쳐짐) */
+    title?: string;
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface TableMeta<TData> {
     /** 현재 검색어 — 셀 렌더러에서 매치 텍스트 하이라이트용 */
@@ -43,6 +51,9 @@ declare module '@tanstack/react-table' {
     formatTitle?: (value: unknown) => string | undefined;
     /** 이 행의 이 셀을 빨갛게 표시할지 — 문자열을 돌려주면 표시 + 그 문자열을 툴팁으로(예: 재무 이력과 값 불일치) */
     cellFlag?: (row: TData) => string | undefined;
+    /** 값 옆 작은 배지 — danger(빨강)/info(파랑). title은 셀 툴팁으로 합쳐짐(배지가 있으면 formatTitle 대신).
+     *  예: 프로젝트 상세 재무 이력 상이 / 착수 직접원가 이상(2026-10-14, 예전 cellFlag 빨간 칸 대체) */
+    cellBadges?: (row: TData) => CellBadge[] | undefined;
     /** 셀 음영 — 'static'(고정값, 연한 샌드) / 'filled'(값 있음, 아주 연한 하늘색). 헤더는 안 칠함 */
     cellTint?: (row: TData) => 'static' | 'filled' | undefined;
     /** 셀 테두리를 은은하게 빛나게(맥박 애니메이션) — 예: 재무 대조 모드의 비교 칸 */

@@ -429,6 +429,21 @@
 .table td.cellFlagged,
 .table tbody tr:hover td.cellFlagged { background: var(--danger-bg); color: var(--danger); font-weight: 600; }
 
+/* 값 옆 작은 배지 (ColumnMeta.cellBadges) — 빨강 = 문제(재무 이력 상이), 파랑 = 확인 필요(착수 직접원가 이상) */
+.cellBadge {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 0 5px;
+  border-radius: var(--radius-pill, 999px);
+  font-size: 0.66rem;
+  font-weight: 700;
+  line-height: 15px;
+  vertical-align: 1px;
+  color: #fff;
+}
+.cellBadgeDanger { background: var(--btn-danger-bg); }
+.cellBadgeInfo   { background: color-mix(in srgb, var(--accent) 82%, #000); }
+
 /* 빛나는 테두리 (ColumnMeta.cellGlow) — 안쪽 테두리 + 안쪽 번짐이 1.6초 주기로 밝아졌다 어두워짐.
    box-shadow라 칸 폭·표 레이아웃은 안 바뀜. 색은 Active Blue(--accent). 움직임 줄이기 설정이면 정지 */
 @keyframes cellGlowPulse {

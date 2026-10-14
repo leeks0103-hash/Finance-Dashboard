@@ -1,6 +1,7 @@
 import { createColumnHelper } from '@tanstack/react-table';
 import { HighlightText, CopyText } from '@/components/ui';
 import type { HideableColumn } from '@/components/ui/DataTable';
+import type { CellBadge } from '@tanstack/react-table';
 import type { PerfProject } from '@/types/performance.types';
 import { formatEokOrRaw, formatPctOrRaw, formatPercent, formatNum, stripPartPrefix } from '@/utils';
 import { countFinanceHistory } from '@/utils/projectCode';
@@ -25,19 +26,37 @@ const eokMeta = { formatTitle: (v: unknown) => {
 const txt = (i: { getValue: () => unknown; table: { options: { meta?: { searchQuery?: string } } } }) =>
   <HighlightText text={String(i.getValue() ?? '')} query={i.table.options.meta?.searchQuery} />;
 
-// 완료 프로젝트 — 재무 이력(완료 단계)과 값이 다르면 빨간 칸 + 툴팁에 재무 값(백엔드 _attach_finance_mismatch)
-const finFlag = (field: 'jun_check_total' | 'est_cost') => (r: PerfProject) => {
-  if (!r.fin_mismatch?.includes(field)) return undefined;
-  const fin = r[`fin_${field}`] as number | undefined;
+const wonText = (v: number | null | undefined) => v == null ? '-' : `${formatNum(Math.round(v * 1000))}원`;
+const signedWon = (perf: number | null | undefined, ref: number | null | undefined) => {
+  if (perf == null || ref == null) return '';
+  const d = Math.round((perf - ref) * 1000);
+  return `· 차이: ${d > 0 ? '+' : ''}${formatNum(d)}원`;
+};
+
+// 완료 프로젝트 배지(백엔드 _attach_finance_mismatch) — 2026-10-14 빨간 칸 → 배지로.
+//  빨강 "상이": 재무 이력(완료 보고)과 매출/직접원가가 1,000원 이상 다름
+//  파랑 "착수↑": 당월 추정 직접원가가 재무 이력 착수 보고 직접원가보다 크거나 같음(직접원가 칸만)
+const finBadges = (field: 'jun_check_total' | 'est_cost') => (r: PerfProject): CellBadge[] | undefined => {
+  const out: CellBadge[] = [];
   const perf = r[field] as number | undefined;
-  const won = (v: number | undefined) => v == null ? '-' : `${formatNum(Math.round(v * 1000))}원`;
-  const diff = perf != null && fin != null ? Math.round((perf - fin) * 1000) : undefined;
-  return [
-    `⚠ 재무 이력(완료 보고)과 ${field === 'jun_check_total' ? '매출' : '원가'} 금액 상이`,
-    `· 실적현황: ${won(perf)}`,
-    `· 재무 이력: ${won(fin)}`,
-    diff != null ? `· 차이: ${diff > 0 ? '+' : ''}${formatNum(diff)}원` : '',
-  ].filter(Boolean).join('\n');
+  if (r.fin_mismatch?.includes(field)) {
+    const fin = r[`fin_${field}`] as number | undefined;
+    out.push({ tone: 'danger', label: '상이', title: [
+      `⚠ 재무 이력(완료 보고)과 ${field === 'jun_check_total' ? '매출' : '원가'} 금액 상이`,
+      `· 실적현황: ${wonText(perf)}`,
+      `· 재무 이력: ${wonText(fin)}`,
+      signedWon(perf, fin),
+    ].filter(Boolean).join('\n') });
+  }
+  if (field === 'est_cost' && r.fin_cost_over_start) {
+    out.push({ tone: 'info', label: '착수↑', title: [
+      '착수 보고 직접원가보다 크거나 같음',
+      `· 실적현황: ${wonText(perf)}`,
+      `· 재무 이력(착수): ${wonText(r.fin_start_est_cost)}`,
+      signedWon(perf, r.fin_start_est_cost),
+    ].filter(Boolean).join('\n') });
+  }
+  return out.length ? out : undefined;
 };
 
 // 재무 대조 모드(설정 토글) — 완료이면서 재무 완료 이력이 있는 줄의 비교 칸(실적현황·재무 이력 매출/직접원가) 테두리를 빛나게
@@ -95,14 +114,17 @@ const buildColumns = (_PERF_MONTH: string, finCompare: boolean) => [
   // 원가행의 최초사업계획(V열) — 백엔드가 매출행 줄에 붙여 줌
   h.accessor('plan_cost',         { header: '사업계획 원가', size: 104, enableSorting: true, cell: i => eok(i), meta: eokMeta }),
   h.accessor('jun_check_total',   { header: '당월 추정 매출', size: 112, enableSorting: true, cell: i => eok(i),
-    meta: { ...eokMeta, cellFlag: finFlag('jun_check_total'), cellGlow: finCompare ? finGlow : undefined } }),
+    meta: { ...eokMeta, cellBadges: finBadges('jun_check_total'), cellGlow: finCompare ? finGlow : undefined } }),
   // 재무 대조 모드에서만 — 재무 이력(완료 단계) 값, 천원 단위로 내려옴(백엔드 _attach_finance_mismatch)
   ...(finCompare ? [h.accessor('fin_jun_check_total', { header: '재무 이력 매출(완료)', size: 132, cell: i => eok(i),
     meta: { ...eokMeta, cellGlow: finGlow } })] : []),
   // 원가행 BH / 매출행 BH − 원가행 BH(엑셀 AR17 − AR18) — 백엔드가 원가행에서 직접 읽어 줌(2026-10-02 사용자 정의)
   h.accessor('est_cost',          { header: '당월 추정 직접원가', size: 136, enableSorting: true, cell: i => eok(i),
-    meta: { ...eokMeta, cellFlag: finFlag('est_cost'), cellGlow: finCompare ? finGlow : undefined } }),
+    meta: { ...eokMeta, cellBadges: finBadges('est_cost'), cellGlow: finCompare ? finGlow : undefined } }),
   ...(finCompare ? [h.accessor('fin_est_cost', { header: '재무 이력 직접원가(완료)', size: 160, cell: i => eok(i),
+    meta: { ...eokMeta, cellGlow: finGlow } }),
+    // 착수 보고 직접원가 — "착수↑" 배지 비교 대상(2026-10-14)
+    h.accessor('fin_start_est_cost', { header: '재무 이력 직접원가(착수)', size: 160, cell: i => eok(i),
     meta: { ...eokMeta, cellGlow: finGlow } })] : []),
   h.accessor('est_gross',         { header: '매출 이익', size: 96, enableSorting: true, cell: i => eok(i), meta: eokMeta }),
   h.accessor('cost_labor',        { header: '인건비',   size: 76, cell: i => eok(i), meta: eokMeta }),

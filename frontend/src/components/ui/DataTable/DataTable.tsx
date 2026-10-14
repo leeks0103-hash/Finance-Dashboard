@@ -1094,11 +1094,13 @@ const DataTable = <T extends object>({
                           const flag = cell.column.columnDef.meta?.cellFlag?.(row.original);
                           const tint = cell.column.columnDef.meta?.cellTint?.(row.original);
                           const glow = !!cell.column.columnDef.meta?.cellGlow?.(row.original);
+                          const badges = cell.column.columnDef.meta?.cellBadges?.(row.original);
+                          const badgeTitle = badges?.map(b => b.title).filter(Boolean).join('\n\n') || undefined;
                           return (
                             <td
                               key={cell.id}
                               rowSpan={isMerged ? group.length : undefined}
-                              title={flag ?? cellTitle}
+                              title={flag ?? badgeTitle ?? cellTitle}
                               onClick={isLong ? () => {
                                 const onOpenFile = cell.column.columnDef.meta?.onOpenFile;
                                 // 팝업 제목 = 클릭한 컬럼 이름(파일명·비고…) — 예전엔 전부 "셀 내용"
@@ -1130,6 +1132,11 @@ const DataTable = <T extends object>({
                               ].join(' ') || undefined}
                             >
                               {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                              {badges?.map(b => (
+                                <span key={b.label} className={`${styles.cellBadge} ${b.tone === 'danger' ? styles.cellBadgeDanger : styles.cellBadgeInfo}`}>
+                                  {b.label}
+                                </span>
+                              ))}
                             </td>
                           );
                         })}

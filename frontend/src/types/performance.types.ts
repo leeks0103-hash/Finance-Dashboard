@@ -34,6 +34,10 @@ export interface PerfProject {
   /** 재무 이력 완료 단계 값(천원) — 툴팁용 */
   fin_jun_check_total?: number | null;
   fin_est_cost?:        number | null;
+  /** 완료 줄 — 당월 추정 직접원가가 재무 이력 착수 단계 직접원가보다 크거나 같음(1,000원 미만 차이는 같음) */
+  fin_cost_over_start?: boolean | null;
+  /** 재무 이력 착수 단계 직접원가(천원) — 착수 보고가 있고 0보다 클 때만 */
+  fin_start_est_cost?:  number | null;
   plan_cost_rate:    number;
   course_count:      number;
   session_count:     number;

@@ -573,8 +573,23 @@ _FIN_COMPARE_TOLERANCE_WON = 1000
 _FIN_COMPARE_FIELDS = (("jun_check_total", "revenue"), ("est_cost", "direct_cost"))
 
 
+def _attach_start_cost_over(rows: pd.DataFrame, idx, code: str, fin_start: pd.DataFrame) -> None:
+    """완료 줄 — 당월 추정 직접원가(원가행 BH)가 재무 이력 착수 단계 직접원가보다 크거나 같으면 fin_cost_over_start.
+    같음은 PPT 천원 반올림 때문에 1,000원 미만 차이까지(재무 대조와 같은 기준). 착수 직접원가가 0·빈 값이면 비교 안 함(2026-10-14)"""
+    if code not in fin_start.index:
+        return
+    sv, pv = fin_start.loc[code]["direct_cost"], rows.at[idx, "est_cost"]
+    if pd.isna(sv) or float(sv) <= 0 or pd.isna(pv):
+        return
+    rows.at[idx, "fin_start_est_cost"] = float(sv) / 1000
+    if float(pv) * 1000 - float(sv) > -_FIN_COMPARE_TOLERANCE_WON:
+        rows.at[idx, "fin_cost_over_start"] = True
+        rows.at[idx, "fin_start_filename"] = str(fin_start.loc[code].get("filename", "") or "")
+
+
 def _attach_finance_mismatch(rows: pd.DataFrame) -> pd.DataFrame:
-    """진행 '완료' 줄에 재무 완료 단계 값(fin_<필드>, 천원)과 다른 필드 목록(fin_mismatch)을 붙인다."""
+    """진행 '완료' 줄에 재무 완료 단계 값(fin_<필드>, 천원)과 다른 필드 목록(fin_mismatch)을 붙인다.
+    착수 단계 직접원가 대비 초과 여부(fin_cost_over_start·fin_start_est_cost)도 같이(_attach_start_cost_over)."""
     rows = rows.copy()
     rows["fin_mismatch"] = [[] for _ in range(len(rows))]
     if rows.empty:
@@ -587,10 +602,12 @@ def _attach_finance_mismatch(rows: pd.DataFrame) -> pd.DataFrame:
         return rows
     if fdf.empty:
         return rows
-    fin_done = fdf[fdf["stage"] == "완료"].drop_duplicates("project_code", keep="last").set_index("project_code")
+    fin_done  = fdf[fdf["stage"] == "완료"].drop_duplicates("project_code", keep="last").set_index("project_code")
+    fin_start = fdf[fdf["stage"] == "착수"].drop_duplicates("project_code", keep="last").set_index("project_code")
     done_mask = rows["progress"] == "완료"
     for idx in rows.index[done_mask]:
         code = str(rows.at[idx, "project_code"]).strip()
+        _attach_start_cost_over(rows, idx, code, fin_start)
         if code not in fin_done.index:
             continue
         f = fin_done.loc[code]
