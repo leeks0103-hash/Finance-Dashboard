@@ -573,6 +573,60 @@ def api_put_visibility():
     return jsonify(cur)
 
 
+# ── 실적 탭 "경영실적 현황 업데이트" 칸(라벨·날짜) ───────────────────────────
+# 처음엔 브라우저 localStorage였는데 관리자가 적어도 다른 사람 화면엔 안 보였음 → 서버 파일 하나에(2026-10-14).
+# 읽기는 로그인한 누구나, 쓰기는 관리자만
+_PERF_UPDATE_PATH = Path(__file__).parent / "data" / "perf_update.json"
+_PERF_UPDATE_DEFAULTS = {"label": "경영실적 현황 업데이트", "note": ""}
+_PERF_UPDATE_MAXLEN = 60
+_perf_update_lock = threading.Lock()
+
+
+def _read_perf_update() -> dict:
+    import json
+    out = dict(_PERF_UPDATE_DEFAULTS)
+    try:
+        saved = json.loads(_PERF_UPDATE_PATH.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return out
+    except Exception:
+        logger.warning("실적 업데이트 표시 파일을 못 읽음 — 기본값 사용: %s", _PERF_UPDATE_PATH)
+        return out
+    for k in out:
+        if isinstance(saved.get(k), str):
+            out[k] = saved[k][:_PERF_UPDATE_MAXLEN]
+    return out
+
+
+@app.route("/api/settings/perf-update")
+def api_get_perf_update():
+    with _perf_update_lock:
+        return jsonify(_read_perf_update())
+
+
+@app.route("/api/settings/perf-update", methods=["PUT"])
+def api_put_perf_update():
+    if not _extract_key_valid(request):
+        return jsonify({"ok": False, "error": "권한이 없습니다"}), 403
+    import json
+    body = request.get_json(silent=True) or {}
+    with _perf_update_lock:
+        cur = _read_perf_update()
+        for k, v in body.items():
+            if k not in _PERF_UPDATE_DEFAULTS or not isinstance(v, str):
+                return jsonify({"ok": False, "error": f"잘못된 값: {k}"}), 400
+            cur[k] = v.strip()[:_PERF_UPDATE_MAXLEN]
+        # 라벨을 다 지우면 기본 문구로
+        if not cur["label"]:
+            cur["label"] = _PERF_UPDATE_DEFAULTS["label"]
+        _PERF_UPDATE_PATH.parent.mkdir(exist_ok=True)
+        tmp = _PERF_UPDATE_PATH.with_suffix(".json.tmp")
+        tmp.write_text(json.dumps(cur, ensure_ascii=False, indent=2), encoding="utf-8")
+        os.replace(tmp, _PERF_UPDATE_PATH)
+    logger.info("[실적 업데이트 표시] 변경 %s", cur)
+    return jsonify(cur)
+
+
 @app.route("/api/extract/open-file", methods=["POST"])
 def api_extract_open_file():
     """추출 현황 목록의 원본 PPT 열기(↗). 미처리·실패 파일은 처리이력에 경로가 없어 재무/KPI 열기 API로는

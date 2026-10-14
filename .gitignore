@@ -30,6 +30,7 @@ data/*.xls
 data/*.csv
 data/ai_analysis_cache.json
 data/visibility.json
+data/perf_update.json
 
 # 로그
 *.log

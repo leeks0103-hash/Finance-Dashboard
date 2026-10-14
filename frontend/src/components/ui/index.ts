@@ -26,6 +26,7 @@ export * from './DataTable';
 export * from './MultiSelectDropdown';
 export * from './Pagination';
 export * from './Modal';
+export * from './UpdateDateField';
 export { FileOpenVisibleContext } from './fileOpenContext';
 export { InfoButton } from './InfoButton/InfoButton';
 // 다이얼로그(confirm/alert/prompt)는 utils/dialog에 있음 — hooks/도 써야 해서 레이어상 ui/보다

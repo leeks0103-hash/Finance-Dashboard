@@ -1,5 +1,23 @@
 # 세션 진행 기록
 
+## [2026-10-14] 실적 원본 ver9.4(9월 집계)로 교체 + 실적 필터바 "경영실적 현황 업데이트" 직접 입력 칸
+
+- **실적 원본 교체** — `data/26년 사업계획 통합관리 파일_ver9.4_261013_9월 사업현황 리뷰.xlsx`(사용자가 옮김), `.env` `PERF_EXCEL_PATH`도 새 파일로.
+  자동 선택 시트는 `2026년 (9월 집계)`. `check_perf_headers.py` 대조: 17(R)에 "DK수정 (향후삭제)" 컬럼이 새로 끼어 17 이후 전부 +1
+  (나머지 차이는 "8월→9월" 월 문구뿐, 9월 추정·집계 구조 동일) → `_PERF_COL_MAP_SEP`(8월 맵을 17 이상 +1) 신설, 9월 추정·집계 둘 다 매핑.
+  검증: 614행, 매출행 BA=BH−BB·BF=BA−BC−BD−BE·BH=1~12월 합·누계=1~9월 합·AX=BH−V 전부 100%. Flask 재시작함(base 2026-09)
+  - ⚠️ 원본에서 "DK수정 (향후삭제)" 컬럼이 지워지면 다시 `_PERF_COL_MAP_AUG`로 돌아갈 것
+- **경영실적 현황 업데이트 칸** — `.filterGroup` 안에 자식 `.filterRow`(flex space-between): 왼쪽 팀·파트 필터 / 오른쪽 끝 입력칸.
+  `components/ui/UpdateDateField`(라벨 + 자유 입력칸 + 달력 버튼) — 달력은 `react-day-picker` 9(schedule_table에서 쓰던 것, 신규 설치),
+  고르면 `YYYY-MM-DD`로 들어가고 글자는 직접 고쳐 쓸 수 있음(날짜 모양이면 달력에 그 날 선택). 색은 `.rdp-root` 변수를 현대 토큰으로.
+  값은 `ui.store.perfUpdatedNote`(persist, 이 브라우저에만 — 백엔드 없음), `features/PerfUpdateNote`가 연결
+  - 칩 → 드롭다운 전환 기준 1340 → 1400px(1366에서 26px 넘쳤음). 1920~1024 8개 폭 넘침 0, 입력·달력 선택·새로고침 유지 헤드리스 확인
+  - **서버 저장으로 변경**(같은 날) — localStorage라 책임님이 내 IP로 들어와도 내가 적은 날짜가 안 보였음(브라우저마다 따로 저장).
+    `data/perf_update.json`(gitignore) + `GET /api/settings/perf-update`(로그인한 누구나) / `PUT`(관리자만, 403), 항목당 60자, 라벨을 비우면 기본 문구.
+    프론트 `hooks/usePerfUpdateNote`(1분 폴링, 저장 즉시 반영·실패 시 되돌림), `ui.store`의 로컬 필드는 뺌
+  - **라벨("경영실적 현황 업데이트")도 직접 수정** — 라벨·날짜 모두 관리자만 입력칸, 일반 회원은 글자만(달력 버튼 없음).
+    입력은 Enter·칸 벗어날 때·달력 선택 시에만 저장(ESC는 취소). 헤드리스: 관리자 저장 → 별도 브라우저 일반 회원 화면에 같은 값, 일반 회원 PUT 403
+
 ## [2026-10-13] 들어가자마자 로그인 — 로그인 화면(모자이크 배경) + 서버 전체 API 잠금
 
 - **서버**: `auth.login_required_for_api`를 `app.before_request`로 — 로그인 안 하면 `/api/*` 전부 401.

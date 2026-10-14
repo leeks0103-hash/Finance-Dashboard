@@ -43,6 +43,16 @@
   margin-left: auto;
 }
 
+/* filterGroup 안 한 줄 — 왼쪽 필터 · 오른쪽 끝 업데이트 표시 */
+.filterRow {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
 .pageContent {
   max-width: 1900px;
   margin: 0 auto;

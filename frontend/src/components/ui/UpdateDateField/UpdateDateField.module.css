@@ -1,0 +1,113 @@
+.wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-sub);
+  white-space: nowrap;
+}
+
+/* 입력칸 — 글자만 보이다가 호버·포커스 때 테두리(표시값처럼 읽히게) */
+.input {
+  width: 128px;
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  outline: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+.input::placeholder { color: var(--text-muted); font-weight: 400; }
+.input:hover { border-color: var(--border); }
+.input:focus { border-color: var(--brand-mid); background: var(--surface); }
+
+/* 라벨 입력칸 — 평소엔 라벨 글자와 같은 모양, 호버·포커스 때만 테두리 */
+.labelEdit {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.input.labelInput {
+  width: auto;
+  field-sizing: content;
+  min-width: 4ch;
+  padding: 4px 4px;
+  text-align: right;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-sub);
+}
+
+/* 관리자 아닌 사람 — 읽기 전용 값 */
+.readValue {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.calBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-sub);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.calBtn:hover,
+.calBtn[aria-expanded="true"] { color: var(--brand-mid); border-color: var(--brand-mid); }
+
+.pop {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 300;
+  padding: 8px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  animation: popIn 0.14s ease;
+  font-size: 0.82rem;
+  color: var(--text-primary);
+}
+/* react-day-picker 색·크기 — 현대 9색 토큰으로. 라이브러리가 .rdp-root에 기본값(blue)을 두므로 거기에 덮어씀 */
+.pop :global(.rdp-root) {
+  --rdp-accent-color: var(--brand-mid);
+  --rdp-accent-background-color: var(--bg-subtle);
+  --rdp-today-color: var(--brand-mid);
+  --rdp-day-height: 34px;
+  --rdp-day-width: 34px;
+  --rdp-day_button-height: 32px;
+  --rdp-day_button-width: 32px;
+  --rdp-nav-height: 2.25rem;
+}
+/* 고른 날 — 테두리만 있던 기본 모양 대신 채움 */
+.pop :global(.rdp-selected .rdp-day_button) {
+  background: var(--brand-mid);
+  color: #fff;
+}
+.pop :global(.rdp-caption_label) { font-size: 0.9rem; }
+.pop :global(.rdp-today:not(.rdp-selected)) { font-weight: 700; }
+
+@keyframes popIn {
+  from { opacity: 0; transform: translateY(-3px); }
+  to   { opacity: 1; transform: none; }
+}

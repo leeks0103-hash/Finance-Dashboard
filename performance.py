@@ -215,6 +215,8 @@ _PERF_COL_MAP_AUG = {
     103: "note",              # CZ 비고
 }
 
+_PERF_COL_MAP_SEP = {(i if i < 17 else i + 1): name for i, name in _PERF_COL_MAP_AUG.items()}
+
 _PERF_COL_MAPS = {
     "2026년 (6월 집계)": _PERF_COL_MAP_JUN,
     "2026년 (7월 추정)": _PERF_COL_MAP_JUL,
@@ -222,6 +224,11 @@ _PERF_COL_MAPS = {
     # ver8.4_260908: "8월 집계"(확정실적) 시트 신규 추가 — check_perf_headers.py로 대조 시
     # "8월 추정"과 컬럼 구조(104개, 순서) 완전 동일 확인 → 같은 맵 재사용
     "2026년 (8월 집계)": _PERF_COL_MAP_AUG,
+    # ver9.4_261013: 9월 시트는 17(R)에 "DK수정 (향후삭제)" 컬럼이 새로 끼어 17 이후 전부 +1 —
+    # check_perf_headers.py로 대조(나머지 차이는 "8월→9월" 월 문구뿐), 9월 추정·집계 구조 동일.
+    # 원본에서 그 컬럼이 지워지면 다시 _PERF_COL_MAP_AUG로 돌아갈 것
+    "2026년 (9월 추정)": _PERF_COL_MAP_SEP,
+    "2026년 (9월 집계)": _PERF_COL_MAP_SEP,
 }
 
 

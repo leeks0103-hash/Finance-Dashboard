@@ -6,6 +6,7 @@ import { useBackgroundPrefetch } from '@/hooks/useBackgroundPrefetch';
 import FilterPanel  from '@/components/features/FilterPanel';
 import ActionBar    from '@/components/features/ActionBar';
 import PerfFilter   from '@/layouts/PerformanceFilterBar/PerformanceFilterBar';
+import PerfUpdateNote from '@/components/features/PerfUpdateNote';
 import styles from './TabLayout.module.css';
 
 import type { TabId } from '@/components/ui/TabNav/TabNav';
@@ -47,7 +48,13 @@ const TabLayout = () => {
       {!isKpi && (
         <div className={styles.filterGroup} data-tour="filter">
           {isFinance && <><FilterPanel /><ActionBar /></>}
-          {isPerformance && <PerfFilter />}
+          {/* 실적 — 왼쪽 팀·파트 필터 / 오른쪽 끝 "경영실적 현황 업데이트"(직접 입력, 2026-10-14) */}
+          {isPerformance && (
+            <div className={styles.filterRow}>
+              <PerfFilter />
+              <PerfUpdateNote />
+            </div>
+          )}
         </div>
       )}
 

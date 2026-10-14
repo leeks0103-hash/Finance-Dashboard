@@ -8,3 +8,9 @@ export interface VisibilitySettings {
   /** 파트별 계획 vs 실적의 달성률 — 'all'은 서버가 받지 않음(저조 팀 노출 방지) */
   achieveRate: Visibility;
 }
+
+/** 실적 탭 필터바 오른쪽 "경영실적 현황 업데이트" 칸 — 서버(data/perf_update.json) 저장, 관리자만 고침 */
+export interface PerfUpdateNote {
+  label: string;
+  note: string;
+}
