@@ -286,6 +286,8 @@ def load_perf_excel():
     # (2026-09-14 실측: K뉴딜 아카데미 2건이 코드 미기재로 통째로 누락돼 실적현황 합계가
     #  23.6억 적게 잡히는 문제 확인). 코드가 비면 프로젝트명으로 대체해서 식별자로 쓰고,
     # 상세 테이블(api_perf_data)에도 이 대체값이 그대로 노출된다.
+    # 2026-10-14: "프로젝트명_파트명"으로(파트 원문자 뗌) — 같은 이름이 파트별로 여러 건이라(K뉴딜 아카데미 SW/EM,
+    # 전기오류 일괄 인식 전동화/PM) 이름만으론 구분이 안 됐음. K뉴딜 파트 통합(아래) 전이라 K뉴딜TF(SW)/(EM)이 남음
     df["project_code"] = df["project_code"].fillna("").astype(str).str.strip()
     df["project_code"] = df["project_code"].replace({"nan": "", "<NA>": "", "NaN": ""})
     df["project_name"] = df["project_name"].fillna("").astype(str).str.strip()
@@ -293,10 +295,13 @@ def load_perf_excel():
     blank_code = df["project_code"] == ""
     if blank_code.any():
         logger.warning(
-            "프로젝트코드 미기재 %d행 — 프로젝트명으로 대체 (use_yn/category 필터 전 집계, "
+            "프로젝트코드 미기재 %d행 — 프로젝트명_파트명으로 대체 (use_yn/category 필터 전 집계, "
             "실제 반영분은 이보다 적음)", int(blank_code.sum()),
         )
-        df.loc[blank_code, "project_code"] = df.loc[blank_code, "project_name"]
+        part_txt = df.loc[blank_code, "part"].fillna("").astype(str).map(lambda v: PART_PREFIX_RE.sub("", v).strip())
+        part_txt = part_txt.replace({"nan": ""})
+        df.loc[blank_code, "project_code"] = (
+            df.loc[blank_code, "project_name"] + part_txt.map(lambda v: f"_{v}" if v else ""))
     df["use_yn"] = df["use_yn"].astype(str).str.strip()
     df = df[df["use_yn"] == "사용"]
     df = df[df["category"].isin(["매출", "원가"])]

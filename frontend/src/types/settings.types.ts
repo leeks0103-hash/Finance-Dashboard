@@ -5,7 +5,7 @@ export type Visibility = 'all' | 'admin' | 'none';
 export interface VisibilitySettings {
   /** 파일 바로가기(↗) 버튼 */
   fileOpen: Visibility;
-  /** 파트별 계획 vs 실적의 달성률 — 'all'은 서버가 받지 않음(저조 팀 노출 방지) */
+  /** 파트별 계획 vs 실적의 달성률 — 전체/관리자/숨김(2026-10-14 '전체' 추가, 기본 숨김) */
   achieveRate: Visibility;
 }
 

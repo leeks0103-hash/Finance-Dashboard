@@ -527,8 +527,9 @@ def api_extract_coverage():
 # all 전체 / admin 관리자 인증한 브라우저만 / none 아무도
 _VISIBILITY_PATH = Path(__file__).parent / "data" / "visibility.json"
 _VISIBILITY_DEFAULTS = {"fileOpen": "admin", "achieveRate": "none"}
-# 달성률은 '전체' 없음 — 저조한 팀이 모두에게 드러나지 않게(2026-09-29 원칙)
-_VISIBILITY_CHOICES = {"fileOpen": {"all", "admin", "none"}, "achieveRate": {"admin", "none"}}
+# 달성률은 처음엔 '전체'를 막았다가(저조한 팀이 모두에게 드러나지 않게, 2026-09-29) 관리자가 고를 수 있게 열어 둠(2026-10-14 요청).
+# 기본값은 그대로 숨김
+_VISIBILITY_CHOICES = {"fileOpen": {"all", "admin", "none"}, "achieveRate": {"all", "admin", "none"}}
 _visibility_lock = threading.Lock()
 
 

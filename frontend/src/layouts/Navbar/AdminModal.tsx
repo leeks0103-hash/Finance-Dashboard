@@ -32,10 +32,11 @@ type VisibilityOption = { value: Visibility; label: string; title: string };
 /** 공개 범위 설정 — 서버(data/visibility.json)에 저장돼 모든 사람 화면에 같이 적용(2026-10-06) */
 const VISIBILITY_ITEMS: { key: keyof VisibilitySettings; label: string; options: VisibilityOption[] }[] = [
   {
-    // 파트별 계획 vs 실적 드릴다운의 달성률(행별·합계·CSV). 저조한 팀이 한눈에 드러나지 않게
-    // '전체'는 없음(2026-09-29) — 서버도 받지 않음
+    // 파트별 계획 vs 실적 드릴다운의 달성률(행별·합계·CSV). 처음엔 저조한 팀이 드러나지 않게 '전체'를 뺐다가
+    // 관리자가 고를 수 있게 추가(2026-10-14 요청). 기본값은 숨김
     key: 'achieveRate', label: '달성률',
     options: [
+      { value: 'all',   label: '전체',   title: '모든 사람에게 달성률 표시' },
       { value: 'admin', label: '관리자', title: '관리자 인증한 브라우저에만 표시' },
       { value: 'none',  label: '숨김',   title: '아무에게도 표시 안 함' },
     ],
