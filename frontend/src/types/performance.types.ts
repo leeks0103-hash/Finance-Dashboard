@@ -252,3 +252,28 @@ export interface FinMismatchRow {
   cost_diff: number | null;
   cost_mismatch: boolean;
 }
+
+/** 실적현황 파일 자동 반영 상태 — 서버 data/perf_update_status.json(관리자 기능 창, 2026-10-14) */
+export interface PerfUpdateCheck { name: string; rate: number; ok: boolean }
+export interface PerfUpdateStatus {
+  /** 마지막으로 확인한 파일(최신 파일)과 결과 */
+  file?:       string;
+  sheet?:      string;
+  checked_at?: string;
+  ok?:         boolean;
+  /** 열 매핑 방법 — 기존 매핑 / 자동 정렬(기준: …) / + H-chat 보완 */
+  method?:     string;
+  changes?:    string[];
+  checks?:     PerfUpdateCheck[];
+  /** 억원(프로젝트 수는 건) */
+  totals?:     Record<string, number>;
+  /** H-chat 요약(자동 정렬한 경우만) */
+  summary?:    string;
+  error?:      string;
+  /** 지금 대시보드가 보여주는 파일·시트 — 최신이 실패하면 직전 파일 */
+  serving?:       string;
+  serving_sheet?: string;
+  /** data/의 실적 파일(최신 먼저) */
+  files:       string[];
+  loaded_at?:  string | null;
+}

@@ -1,5 +1,32 @@
 # 세션 진행 기록
 
+## [2026-10-14] 실적 자동 반영 꺼 둠 + 빈 코드 "_파트명" 원복
+
+- 자동 반영(아래 항목)은 코드는 두고 **꺼 둠**(요청) — `performance.PERF_AUTO_UPDATE=False`(예전 방식 `_load_perf_simple`: 파일 하나·코드 맵),
+  `paths.PERF_PICK_NEWEST=False`(.env PERF_EXCEL_PATH 우선 복구), 관리자 창 `<PerfUpdatePanel />` 주석, 업로드·상태 API는 꺼진 동안 404
+  - 켜기: 세 곳 True/주석 해제 + Flask 재시작
+- 프로젝트코드 빈 행: "프로젝트명_파트명" → 다시 **프로젝트명만**(파트 붙이기는 주석으로 남김)
+- 확인: 기준 9월·합계·건수(308) 동일, K뉴딜 아카데미 2건 코드 = 프로젝트명. Flask 재시작함
+- 책임님 하드코딩 커밋 pull 시도 — 원격 main·develop·책임님-app-fix 모두 새 커밋 없음(최신은 e922aa9 내 커밋)
+
+## [2026-10-14] 실적현황 파일 자동 반영 — 사람은 data/에 넣기만
+
+- **흐름**: data/에 새 `*사업계획 통합관리 파일*` → 서버가 감지(5초 간격, `get_perf_df`) → `perf_autoupdate.prepare`:
+  최신 시트 → 열 매핑(코드 맵 → 학습 맵 `data/perf_col_maps.json` → 없으면 기준 시트와 머리글 대조로 자동, 못 찾은 필수 열만 H-chat 제안)
+  → **계산식 검증 5종 + 채움·행 수**(95% 이상 통과) → 통과면 맵 학습·반영 + H-chat 3~5줄 요약, 실패면 **직전 파일로 계속 표시**
+  → 결과 `data/perf_update_status.json`. H-chat엔 머리글 글자만 전송
+- `paths.perf_excel_candidates`: 최신 = 파일명 날짜(_yymmdd_) → 수정 시각. **.env PERF_EXCEL_PATH는 이제 후보 없을 때만**(예전엔 .env 우선이라 새 파일 무시)
+- `performance.read_perf_frame(path, sheet, col_map)` 분리 — 캐시(load_perf_excel)와 검증이 같은 규칙으로 읽음. 리팩터 전후 합계·건수·기준월 동일
+- API(관리자): `GET /api/performance/update-status` · `POST …/update-status/retry` · `POST /api/performance/upload`(data/에 저장, 이름에 '사업계획 통합관리 파일', 80MB, 같은 이름 거부)
+  - axios 공용 Content-Type이 JSON이라 업로드는 `multipart/form-data`로 덮어써야 함(안 그러면 서버가 "파일이 없습니다")
+- 관리자 기능 창 맨 위(공개 범위 아래) `layouts/Navbar/PerfUpdatePanel` — 끌어다 놓기/파일 선택, 반영됨/반영 안 됨, H-chat 요약, 바뀐 점, 검증 표, 합계, 다시 시도
+- 시험: ① 코드에서 9월 맵을 지우고 9월 파일 → 자동 매핑이 수작업 `_PERF_COL_MAP_SEP`와 **완전히 같음**, 검증 전부 100%
+  ② 9월 시트를 10월로 복사 + AE열 삽입한 파일을 화면에서 올림 → "+1칸(AR열부터)·AE열 새로 생김" 자동 정렬·반영, 대시보드 즉시 10월기준
+  ③ 5월 열을 0으로 깨뜨린 11월 파일을 data/에 복사 → "계산식 검증 실패: 연간 합계 = 1~12월 합", 10월 데이터 유지
+  ④ 9월 시트를 8월 맵으로 읽으면 일치율 30%대 → 틀린 매핑은 확실히 막힘. 테스트 파일·학습 기록 삭제 후 9월로 복귀 확인
+- 실적 필터바 로딩: 옵션 오기 전 빈 알약 트랙만 보이던 것("밤티") → 칩 폭 스켈레톤(pulse, 움직임 줄이기면 정지)
+- CLAUDE.md에 "데이터 규칙" 섹션(실적·재무·KPI 파일/시트/열/단위/검증식/함정) + 아키텍처·파일 구조 갱신
+
 ## [2026-10-14] 관리자 기능 > 달성률 공개 범위에 "전체" 추가
 
 - 09-29엔 저조 팀 노출 방지로 달성률 '전체'를 서버·화면 모두 막았는데, 관리자가 고를 수 있게 열어 둠(요청). 전체/관리자/숨김, 기본값은 숨김 그대로

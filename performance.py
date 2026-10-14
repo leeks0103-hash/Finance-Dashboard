@@ -27,6 +27,13 @@ from paths import resolve_perf_excel
 
 PERF_EXCEL_PATH = resolve_perf_excel()
 
+# 실적 파일 자동 반영(perf_autoupdate — 열 자동 맞추기·H-chat·계산식 검증·직전 파일 폴백, 2026-10-14) — 일단 꺼 둠(같은 날 요청).
+# False면 예전과 똑같이: paths.resolve_perf_excel() 파일 하나(.env PERF_EXCEL_PATH 우선)를 코드 맵(_PERF_COL_MAPS)으로 읽음.
+# 켜려면 True + paths.PERF_PICK_NEWEST True + AdminModal의 <PerfUpdatePanel /> 주석 해제
+PERF_AUTO_UPDATE = False
+
+# 업로드로 자동 맞춘 열 매핑 저장 위치(2026-10-14) — data/는 gitignore
+PERF_LEARNED_MAPS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "perf_col_maps.json")
 _PERF_SHEET_RE = re.compile(r"^(\d{4})년 \((\d+)월 (추정|집계)\)$")
 
 _perf_cached_df: pd.DataFrame = pd.DataFrame()
@@ -249,29 +256,40 @@ def _resolve_perf_sheet(sheet_names):
     return latest.get("집계") or latest.get("추정")
 
 
-def load_perf_excel():
-    """_perf_cache_lock 보유 상태에서만 호출."""
-    global _perf_cached_df, _perf_last_loaded, _perf_cached_mtime, _perf_current_month, _perf_current_year, PERF_EXCEL_PATH
-    # 새 ver 파일을 data/ 에 넣고 reload 만 해도 잡히도록 매 로드마다 재탐색
-    PERF_EXCEL_PATH = resolve_perf_excel()
-    if not os.path.exists(PERF_EXCEL_PATH):
-        logger.warning("PERF_EXCEL_PATH 없음: %s", PERF_EXCEL_PATH)
-        _perf_cached_df   = pd.DataFrame()
-        _perf_last_loaded = None
-        _perf_cached_mtime = None
-        return _perf_cached_df
+def _learned_col_maps() -> dict:
+    """관리자 업로드로 자동 맞춘 열 매핑(data/perf_col_maps.json) — {시트명: {열 번호: 필드}}. 코드의 _PERF_COL_MAPS 다음으로 봄"""
+    import json
+    try:
+        with open(PERF_LEARNED_MAPS_PATH, encoding="utf-8") as f:
+            raw = json.load(f)
+        return {sheet: {int(k): v for k, v in m.items()} for sheet, m in raw.items()}
+    except FileNotFoundError:
+        return {}
+    except Exception:
+        logger.warning("학습된 열 매핑 파일을 못 읽음 — 무시: %s", PERF_LEARNED_MAPS_PATH, exc_info=True)
+        return {}
 
-    _perf_engine = "pyxlsb" if PERF_EXCEL_PATH.endswith(".xlsb") else "openpyxl"
-    with pd.ExcelFile(PERF_EXCEL_PATH, engine=_perf_engine) as xf:
-        resolved_sheet = _resolve_perf_sheet(xf.sheet_names)
-        logger.info("실적 시트 자동 선택: %s", resolved_sheet)
 
-        if resolved_sheet not in _PERF_COL_MAPS:
+def perf_col_map(sheet: str) -> "dict | None":
+    """시트 → 열 매핑. 코드에 적은 맵(_PERF_COL_MAPS) 우선, 없으면 업로드로 학습한 맵"""
+    return _PERF_COL_MAPS.get(sheet) or _learned_col_maps().get(sheet)
+
+
+def read_perf_frame(path: str, sheet: "str | None" = None, col_map: "dict | None" = None):
+    """실적 엑셀 한 시트를 읽어 정리한 DataFrame + (시트명, 연, 월). 캐시·전역값은 안 건드림 —
+    load_perf_excel(대시보드 캐시)과 업로드 검증(perf_upload)이 같은 규칙으로 읽게 공용(2026-10-14).
+    sheet 생략 = 최신 시트 자동 선택, col_map 생략 = perf_col_map(sheet)."""
+    _perf_engine = "pyxlsb" if path.endswith(".xlsb") else "openpyxl"
+    with pd.ExcelFile(path, engine=_perf_engine) as xf:
+        resolved_sheet = sheet or _resolve_perf_sheet(xf.sheet_names)
+        logger.info("실적 시트 선택: %s", resolved_sheet)
+
+        col_map = col_map or perf_col_map(resolved_sheet)
+        if not col_map:
             raise ValueError(
-                f"자동 선택된 시트 '{resolved_sheet}'에 대한 컬럼맵이 없습니다. "
-                f"scripts/check_perf_headers.py로 헤더를 확인하고 _PERF_COL_MAPS에 추가하세요."
+                f"시트 '{resolved_sheet}'에 대한 컬럼맵이 없습니다. 관리자 기능 > 실적현황 파일 업데이트로 올리면 "
+                f"자동으로 맞춰 주고, 수동이면 scripts/check_perf_headers.py로 헤더를 확인해 _PERF_COL_MAPS에 추가하세요."
             )
-        col_map     = _PERF_COL_MAPS[resolved_sheet]
         col_indices = sorted(col_map.keys())
         df = xf.parse(
             resolved_sheet,
@@ -280,14 +298,12 @@ def load_perf_excel():
             usecols=col_indices,
         )
     df.columns = [col_map[i] for i in col_indices]
-    df.columns = [col_map[i] for i in col_indices]
 
     # 프로젝트코드(O열)가 비어있어도 실제 매출/원가가 있는 행이면 집계에서 빠지면 안 됨
     # (2026-09-14 실측: K뉴딜 아카데미 2건이 코드 미기재로 통째로 누락돼 실적현황 합계가
     #  23.6억 적게 잡히는 문제 확인). 코드가 비면 프로젝트명으로 대체해서 식별자로 쓰고,
     # 상세 테이블(api_perf_data)에도 이 대체값이 그대로 노출된다.
-    # 2026-10-14: "프로젝트명_파트명"으로(파트 원문자 뗌) — 같은 이름이 파트별로 여러 건이라(K뉴딜 아카데미 SW/EM,
-    # 전기오류 일괄 인식 전동화/PM) 이름만으론 구분이 안 됐음. K뉴딜 파트 통합(아래) 전이라 K뉴딜TF(SW)/(EM)이 남음
+    # (2026-10-14 "프로젝트명_파트명"으로 바꿨다가 같은 날 원복 — 프로젝트명만. 되살리려면 아래 주석 블록)
     df["project_code"] = df["project_code"].fillna("").astype(str).str.strip()
     df["project_code"] = df["project_code"].replace({"nan": "", "<NA>": "", "NaN": ""})
     df["project_name"] = df["project_name"].fillna("").astype(str).str.strip()
@@ -295,13 +311,14 @@ def load_perf_excel():
     blank_code = df["project_code"] == ""
     if blank_code.any():
         logger.warning(
-            "프로젝트코드 미기재 %d행 — 프로젝트명_파트명으로 대체 (use_yn/category 필터 전 집계, "
+            "프로젝트코드 미기재 %d행 — 프로젝트명으로 대체 (use_yn/category 필터 전 집계, "
             "실제 반영분은 이보다 적음)", int(blank_code.sum()),
         )
-        part_txt = df.loc[blank_code, "part"].fillna("").astype(str).map(lambda v: PART_PREFIX_RE.sub("", v).strip())
-        part_txt = part_txt.replace({"nan": ""})
-        df.loc[blank_code, "project_code"] = (
-            df.loc[blank_code, "project_name"] + part_txt.map(lambda v: f"_{v}" if v else ""))
+        df.loc[blank_code, "project_code"] = df.loc[blank_code, "project_name"]
+        # part_txt = df.loc[blank_code, "part"].fillna("").astype(str).map(lambda v: PART_PREFIX_RE.sub("", v).strip())
+        # part_txt = part_txt.replace({"nan": ""})
+        # df.loc[blank_code, "project_code"] = (
+        #     df.loc[blank_code, "project_name"] + part_txt.map(lambda v: f"_{v}" if v else ""))
     df["use_yn"] = df["use_yn"].astype(str).str.strip()
     df = df[df["use_yn"] == "사용"]
     df = df[df["category"].isin(["매출", "원가"])]
@@ -357,8 +374,7 @@ def load_perf_excel():
     #    jun_check_total은 "N월 점검 연간합계"라는 이름 그대로 연간(전체) 값이 맞아 보정하지 않음.
     sheet_month_match = _PERF_SHEET_RE.match(resolved_sheet)
     current_month_num = int(sheet_month_match.group(2))
-    _perf_current_month = current_month_num
-    _perf_current_year = int(sheet_month_match.group(1))
+    current_year = int(sheet_month_match.group(1))
     elapsed_month_cols = [f"chk_m{m:02d}" for m in range(1, current_month_num + 1)]
     df["jun_actual"] = df[elapsed_month_cols].sum(axis=1)
     logger.info(
@@ -403,8 +419,75 @@ def load_perf_excel():
     )
 
     df = df.where(df.notna(), other=None)
-    df["filename"] = os.path.basename(PERF_EXCEL_PATH)
+    df["filename"] = os.path.basename(path)
+    return df, resolved_sheet, current_year, current_month_num
 
+
+def load_perf_excel():
+    """_perf_cache_lock 보유 상태에서만 호출.
+    data/의 실적 파일을 최신부터 시도(2026-10-14 자동 반영) — 처음 보는 파일은 perf_autoupdate.prepare로 열 맞추기·계산식 검증,
+    실패하면 다음(직전) 파일로 계속 보여줌. 이미 검증한 파일(같은 경로·수정 시각)은 바로 읽음."""
+    global _perf_cached_df, _perf_last_loaded, _perf_cached_mtime, _perf_current_month, _perf_current_year, PERF_EXCEL_PATH
+    import perf_autoupdate
+    from paths import perf_excel_candidates
+    if not PERF_AUTO_UPDATE:
+        return _load_perf_simple()
+    cands = [c for c in (perf_excel_candidates() or [resolve_perf_excel()]) if os.path.exists(c)]
+    if not cands:
+        PERF_EXCEL_PATH = resolve_perf_excel()
+        logger.warning("PERF_EXCEL_PATH 없음: %s", PERF_EXCEL_PATH)
+        _perf_cached_df   = pd.DataFrame()
+        _perf_last_loaded = None
+        _perf_cached_mtime = None
+        return _perf_cached_df
+
+    status = perf_autoupdate.read_status()
+    good = status.get("good") or {}
+    errors = []
+    for path in cands:
+        mtime = safe_mtime(path)
+        try:
+            if good.get("file") == path and good.get("mtime") == mtime and perf_col_map(good.get("sheet", "")):
+                df, sheet, year, month = read_perf_frame(path, good["sheet"])
+            elif path != cands[0] and perf_col_map(perf_autoupdate_sheet(path) or ""):
+                # 최신 파일이 실패해 내려온 직전 파일 — 이미 아는 시트면 그대로 읽음
+                df, sheet, year, month = read_perf_frame(path)
+            else:
+                df, sheet, year, month, _ = perf_autoupdate.prepare(path, good)
+        except Exception as e:
+            errors.append(f"{os.path.basename(path)}: {e}")
+            continue
+        st = perf_autoupdate.read_status()
+        st["good"] = {"file": path, "sheet": sheet, "mtime": mtime}
+        st["serving"] = os.path.basename(path)
+        st["serving_sheet"] = sheet
+        perf_autoupdate.write_status(st)
+        PERF_EXCEL_PATH = path
+        _perf_current_year, _perf_current_month = year, month
+        _perf_cached_df   = df
+        _perf_last_loaded = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        _perf_cached_mtime = mtime
+        if errors:
+            logger.warning("최신 실적 파일 반영 실패 — 직전 파일(%s)로 표시: %s", os.path.basename(path), " | ".join(errors))
+        logger.info("실적 엑셀 로드 완료: %d행 (매출 %d, 원가 %d)",
+                    len(df),
+                    int((df["category"] == "매출").sum()),
+                    int((df["category"] == "원가").sum()))
+        return df
+    raise ValueError("읽을 수 있는 실적 파일이 없습니다 — " + " | ".join(errors))
+
+
+def _load_perf_simple():
+    """자동 반영을 끈 동안(PERF_AUTO_UPDATE=False) — 예전 방식: 파일 하나, 코드에 적은 맵(+예전에 학습한 맵)"""
+    global _perf_cached_df, _perf_last_loaded, _perf_cached_mtime, _perf_current_month, _perf_current_year, PERF_EXCEL_PATH
+    PERF_EXCEL_PATH = resolve_perf_excel()
+    if not os.path.exists(PERF_EXCEL_PATH):
+        logger.warning("PERF_EXCEL_PATH 없음: %s", PERF_EXCEL_PATH)
+        _perf_cached_df   = pd.DataFrame()
+        _perf_last_loaded = None
+        _perf_cached_mtime = None
+        return _perf_cached_df
+    df, _, _perf_current_year, _perf_current_month = read_perf_frame(PERF_EXCEL_PATH)
     _perf_cached_df   = df
     _perf_last_loaded = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     _perf_cached_mtime = safe_mtime(PERF_EXCEL_PATH)
@@ -415,15 +498,33 @@ def load_perf_excel():
     return df
 
 
+def perf_autoupdate_sheet(path: str) -> "str | None":
+    """그 파일의 최신 시트 이름(못 읽으면 None)"""
+    try:
+        engine = "pyxlsb" if path.endswith(".xlsb") else "openpyxl"
+        with pd.ExcelFile(path, engine=engine) as xf:
+            return _resolve_perf_sheet(xf.sheet_names)
+    except Exception:
+        return None
+
+
+_perf_newest_checked = 0.0   # data/에 새 파일이 들어왔는지 보는 시각(5초 간격)
+
+
 def get_perf_df() -> pd.DataFrame:
-    """파일 mtime이 바뀌면 자동으로 다시 읽는다."""
-    global _perf_cached_df, _perf_cached_mtime
+    """파일 mtime이 바뀌거나 data/에 더 최신 실적 파일이 들어오면 자동으로 다시 읽는다."""
+    global _perf_cached_df, _perf_cached_mtime, _perf_newest_checked
+    import time
+    newer = False
+    if PERF_AUTO_UPDATE and time.time() - _perf_newest_checked > 5:
+        _perf_newest_checked = time.time()
+        newer = resolve_perf_excel() != PERF_EXCEL_PATH and not _perf_failed_newest()
     current_mtime = safe_mtime(PERF_EXCEL_PATH)
-    if not _perf_cached_df.empty and current_mtime == _perf_cached_mtime:
+    if not newer and not _perf_cached_df.empty and current_mtime == _perf_cached_mtime:
         return _perf_cached_df
     with _perf_cache_lock:
         current_mtime = safe_mtime(PERF_EXCEL_PATH)
-        if _perf_cached_df.empty or current_mtime != _perf_cached_mtime:
+        if newer or _perf_cached_df.empty or current_mtime != _perf_cached_mtime:
             try:
                 load_perf_excel()
             except Exception as e:
@@ -431,6 +532,15 @@ def get_perf_df() -> pd.DataFrame:
                 _perf_cached_df    = pd.DataFrame()
                 _perf_cached_mtime = current_mtime
     return _perf_cached_df
+
+
+def _perf_failed_newest() -> bool:
+    """최신 파일이 이미 검증에 실패했고 그 뒤로 안 바뀌었으면 True — 5초마다 다시 시도(H-chat 호출 포함)하지 않게"""
+    import perf_autoupdate
+    st = perf_autoupdate.read_status()
+    newest = resolve_perf_excel()
+    return (not st.get("ok") and st.get("file") == os.path.basename(newest)
+            and st.get("failed_mtime") == safe_mtime(newest))
 
 
 _PROGRESS_PRIORITY = ["제안", "협의", "착수", "중간", "완료", "인큐베이팅", "이월", "드롭", "미정"]
@@ -779,6 +889,82 @@ def api_perf_data_export():
     name = f"프로젝트상세_{datetime.now():%Y%m%d_%H%M}.xlsx"
     return send_file(io.BytesIO(data), as_attachment=True, download_name=name,
                      mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+
+# ── 실적현황 파일 자동 반영(관리자 기능 창) — 2026-10-14 ─────────────────────
+_PERF_UPLOAD_MAX = 80 * 1024 * 1024
+
+
+def _update_status_payload() -> dict:
+    import perf_autoupdate
+    from paths import perf_excel_candidates
+    st = perf_autoupdate.read_status()
+    st.pop("good", None)   # 서버 경로는 안 내보냄
+    st.pop("failed_mtime", None)
+    st["files"] = [os.path.basename(f) for f in perf_excel_candidates()]
+    st["loaded_at"] = _perf_last_loaded
+    return st
+
+
+@perf_bp.route("/api/performance/update-status")
+@admin_required
+def api_perf_update_status():
+    if not PERF_AUTO_UPDATE:
+        return jsonify({"ok": False, "error": "실적 파일 자동 반영은 지금 꺼져 있습니다"}), 404
+    get_perf_df()   # data/에 새 파일이 있으면 여기서 반영 시도
+    return jsonify(_update_status_payload())
+
+
+@perf_bp.route("/api/performance/update-status/retry", methods=["POST"])
+@admin_required
+def api_perf_update_retry():
+    if not PERF_AUTO_UPDATE:
+        return jsonify({"ok": False, "error": "실적 파일 자동 반영은 지금 꺼져 있습니다"}), 404
+    """최신 파일 다시 시도 — 실패 기록을 지우고 처음부터(H-chat 일시 오류 등)"""
+    import perf_autoupdate
+    st = perf_autoupdate.read_status()
+    st.pop("failed_mtime", None)
+    perf_autoupdate.write_status(st)
+    with _perf_cache_lock:
+        try:
+            load_perf_excel()
+        except Exception as e:
+            logger.error("실적 다시 시도 실패: %s", e)
+    return jsonify(_update_status_payload())
+
+
+@perf_bp.route("/api/performance/upload", methods=["POST"])
+@admin_required
+def api_perf_upload():
+    if not PERF_AUTO_UPDATE:
+        return jsonify({"ok": False, "error": "실적 파일 자동 반영은 지금 꺼져 있습니다"}), 404
+    """data/에 실적 파일 넣기(끌어다 놓기·파일 선택) — 사람이 폴더에 직접 넣는 것과 같음. 넣은 뒤 바로 반영 시도"""
+    from paths import DATA_DIR
+    f = request.files.get("file")
+    if not f or not f.filename:
+        return jsonify({"ok": False, "error": "파일이 없습니다"}), 400
+    name = os.path.basename(f.filename.replace("\\", "/"))
+    if not name.lower().endswith((".xlsx", ".xlsb")):
+        return jsonify({"ok": False, "error": "엑셀(.xlsx/.xlsb) 파일만 올릴 수 있습니다"}), 400
+    if "사업계획 통합관리 파일" not in name:
+        return jsonify({"ok": False, "error": "파일 이름에 '사업계획 통합관리 파일'이 있어야 합니다(대시보드가 실적 파일을 찾는 규칙)"}), 400
+    dest = os.path.join(DATA_DIR, name)
+    if os.path.exists(dest):
+        return jsonify({"ok": False, "error": "같은 이름의 파일이 이미 data/에 있습니다"}), 409
+    data = f.read(_PERF_UPLOAD_MAX + 1)
+    if len(data) > _PERF_UPLOAD_MAX:
+        return jsonify({"ok": False, "error": "파일이 너무 큽니다(80MB 초과)"}), 413
+    tmp = dest + ".uploading"
+    with open(tmp, "wb") as out:
+        out.write(data)
+    os.replace(tmp, dest)
+    logger.info("실적 파일 업로드: %s (%d bytes)", name, len(data))
+    with _perf_cache_lock:
+        try:
+            load_perf_excel()
+        except Exception as e:
+            logger.error("업로드 후 반영 실패: %s", e)
+    return jsonify(_update_status_payload())
 
 
 @perf_bp.route("/api/performance/fin-mismatch")

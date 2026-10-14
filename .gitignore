@@ -31,6 +31,8 @@ data/*.csv
 data/ai_analysis_cache.json
 data/visibility.json
 data/perf_update.json
+data/perf_col_maps.json
+data/perf_update_status.json
 
 # 로그
 *.log

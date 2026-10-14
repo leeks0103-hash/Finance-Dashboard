@@ -1,7 +1,7 @@
 import client from './client';
 import { appendPageParams } from './queryParams';
-import { getStoredExtractKey } from './extract.api';
-import type { PerfSummary, PerfProject, PerfOptions, PerfInsights, FinMismatchRow } from '@/types/performance.types';
+import { getStoredExtractKey, authHeaders } from './extract.api';
+import type { PerfSummary, PerfProject, PerfOptions, PerfInsights, FinMismatchRow, PerfUpdateStatus } from '@/types/performance.types';
 import type { PagedResponse, PageParams } from '@/types/finance.types';
 import type { ColumnFilterValue } from '@/types/columnFilter.types';
 
@@ -131,3 +131,20 @@ export const getPerfBreakdown = (
 /** 완료 프로젝트 재무 불일치 목록 — 관리자 전용, 필터 무관 전체 */
 export const getPerfFinMismatch = (): Promise<{ data: FinMismatchRow[]; total: number }> =>
   client.get<{ data: FinMismatchRow[]; total: number }>('/performance/fin-mismatch').then(r => r.data);
+
+// ── 실적현황 파일 자동 반영(관리자) — 2026-10-14 ──
+export const getPerfUpdateStatus = (): Promise<PerfUpdateStatus> =>
+  client.get<PerfUpdateStatus>('/performance/update-status', { headers: authHeaders(), timeout: 180_000 }).then(r => r.data);
+
+export const retryPerfUpdate = (): Promise<PerfUpdateStatus> =>
+  client.post<PerfUpdateStatus>('/performance/update-status/retry', null, { headers: authHeaders(), timeout: 180_000 }).then(r => r.data);
+
+/** data/에 넣고 바로 반영 시도 — 오래 걸릴 수 있음(H-chat 포함) */
+export const uploadPerfFile = (file: File): Promise<PerfUpdateStatus> => {
+  const form = new FormData();
+  form.append('file', file);
+  // client 기본 Content-Type이 JSON이라 그대로 두면 axios가 FormData를 JSON으로 바꿔 보냄 → multipart로 덮어씀(경계값은 axios가 붙임)
+  return client.post<PerfUpdateStatus>('/performance/upload', form,
+    { headers: { ...authHeaders(), 'Content-Type': 'multipart/form-data' }, timeout: 180_000 })
+    .then(r => r.data);
+};

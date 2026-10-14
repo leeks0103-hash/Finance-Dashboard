@@ -69,6 +69,23 @@
 }
 .chips::-webkit-scrollbar { display: none; }
 
+/* 옵션 오기 전 칩 자리(스켈레톤) — 칩과 같은 높이·알약 모양, 표 스켈레톤과 같은 깜빡임 */
+.chipSkeleton {
+  flex-shrink: 0;
+  height: 23px;
+  border-radius: var(--radius-pill, 999px);
+  background: color-mix(in srgb, var(--text-muted) 18%, transparent);
+  animation: chipPulse 1.4s ease infinite;
+}
+.chipSkeleton:nth-child(even) { animation-delay: 0.15s; }
+@keyframes chipPulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.45; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chipSkeleton { animation: none; }
+}
+
 .panel { display: flex; align-items: center; gap: 20px; flex-wrap: nowrap; }
 
 /* 좁은 화면 — 칩 그룹 대신 드롭다운으로 전환 (가로 스크롤/잘림 방지).

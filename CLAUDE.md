@@ -9,13 +9,15 @@
 ## 아키텍처
 
 ```
-PPT 보고서 → Python 추출 스크립트 → 엑셀(.xlsx) → Flask API → React 대시보드
+재무·KPI : NAS PPT 보고서 → 추출 스크립트(scripts/extract_*_ppt.py) → data/*.xlsx → Flask(finance.py·kpi.py) → React
+실적현황 : 회사 '사업계획 통합관리 파일' 엑셀 → data/ + .env PERF_EXCEL_PATH → Flask(performance.py) → React  (자동 반영 perf_autoupdate.py는 꺼 둠)
 ```
 
 ## 기술 스택
-- **Backend**: Python · Flask · pandas · reportlab · waitress
-- **Frontend**: Vite · React 19 · TypeScript · Zustand · TanStack Query · Chart.js
-- **데이터**: 로컬 엑셀 파일 (시트명: `취합`, 13컬럼)
+- **Backend**: Python · Flask · pandas · openpyxl · waitress / H-chat(사내 LLM, `ai_insight._call_hchat`)
+- **Frontend**: Vite · React 19 · TypeScript · Zustand · TanStack Query · TanStack Table · Chart.js · react-day-picker
+- **데이터**: 로컬 엑셀 3종 — 재무 `data/재무관점 필수 데이터 추출.xlsx`(시트 `취합`, 16열) ·
+  KPI `data/KPI 지표 데이터 추출.xlsx` · 실적 `data/*사업계획 통합관리 파일*.xlsx`(월마다 새 파일). 자세한 규칙은 아래 "데이터 규칙"
 
 ---
 
@@ -89,10 +91,77 @@ return <KpiCard value={vm.revenue} />;
 
 ---
 
+## 데이터 규칙 — 숫자가 틀리지 않게 (반드시 지킬 것)
+
+> 계산은 백엔드에서. 프론트는 받은 값을 단위 변환·표시만. 아래 규칙을 바꾸면 화면 숫자가 원본 엑셀과 어긋나니,
+> 바꿀 땐 원본 엑셀로 직접 재계산해 대조하고 `docs/session-log.md`에 근거를 남긴다.
+
+### 실적현황(경영실적 탭) — `performance.py`, `perf_autoupdate.py`, `paths.py`
+- **파일 선택**(지금, `paths.PERF_PICK_NEWEST=False`): `.env PERF_EXCEL_PATH` 우선 → 없거나 파일이 없으면 `data/` 바로 아래
+  이름에 `사업계획 통합관리 파일`이 든 `.xlsx/.xlsb` 중 **파일명 날짜(`_yymmdd_`) 최신**, 없으면 수정 시각(`paths.perf_excel_candidates`).
+  하위 폴더(`경영실적 히스토리/`)·`~$` 잠금파일 제외. **새 달 파일을 넣으면 `.env` 경로도 바꿔야 함**(True면 data/ 최신이 우선)
+- **시트 선택**: `YYYY년 (N월 집계|추정)` 중 (연,월) 최신, 같은 달이면 **집계 > 추정**(`_resolve_perf_sheet`)
+- **기준월** = 그 시트의 N월(`summary.base`). 달력(오늘−1개월)으로 짐작하지 말 것(10-01 9월 실적이 없는데 9월로 칠해진 사고)
+- **엑셀 위치**: 머리글 11~12행(`skiprows=10`, 2줄), 데이터 13행부터(`skiprows=12`). 열 번호는 0부터
+- **열 매핑**(열 번호 → 필드) 우선순위: ① 코드 `_PERF_COL_MAPS[시트명]` ② 학습 맵 `data/perf_col_maps.json`
+  ③ 둘 다 없으면 `perf_autoupdate.prepare`가 자동으로 만듦(아래). 매달 열이 밀릴 수 있음
+  (8월: L열 '비딩여부' 삽입 / 9월: R열 'DK수정 (향후삭제)' 삽입 → `_PERF_COL_MAP_SEP` = 8월 맵에서 17 이상 +1)
+- **새 파일 자동 반영 — ⚠️ 지금 꺼 둠**(2026-10-14, `performance.PERF_AUTO_UPDATE=False`·`paths.PERF_PICK_NEWEST=False`·AdminModal `<PerfUpdatePanel />` 주석).
+  꺼진 동안은 새 시트가 나오면 예전처럼 `scripts/check_perf_headers.py`로 대조해 `_PERF_COL_MAPS`에 맵을 **코드로** 추가해야 함.
+  켜면(사람은 data/에 넣기만, 관리자 기능 창 끌어다 놓기도 같음):
+  1. 기준 시트 = 같은 파일 안 이미 아는 지난달 시트(없으면 직전에 잘 읽힌 파일의 시트)
+  2. 머리글 글자 대조(difflib, **달·연도 숫자는 빼고 비교** "8월 점검"="9월 점검")로 열 옮김 → 못 찾은 필수 열만 H-chat이 제안
+     (H-chat엔 **머리글 글자만** 보냄 — 금액·프로젝트명 등 데이터 전송 금지)
+  3. **계산식 검증**(매출행, 오차 1천원, 항목별 95% 이상이어야 통과 — 9월 실측 전부 100%, 틀린 매핑은 30%대로 떨어짐):
+     매출이익(BA) = 연간 합계(BH) − 직접원가(BB) / 경상손익(BF) = BA − 인건비(BC) − 공통원가(BD) − 관리비(BE) /
+     BH = 1~12월 합 / 계획 대비 차이(AX) = BH − 최초사업계획(V) / 매출행 BB = 바로 아래 원가행 BH / 파트·프로젝트명 채워짐 / 매출행 50개 이상
+  4. 통과 → 맵 학습·반영, 실패 → **직전 파일로 계속 표시** + 이유를 `data/perf_update_status.json`(관리자 기능 창)에.
+     실패한 파일은 안 바뀌면 다시 시도 안 함(관리자 창 "다시 시도"). 검증 기준을 느슨하게 바꾸지 말 것
+- **단위**: 실적 금액은 전부 **천원**. 억 = 천원 ÷ 100,000. 엑셀 다운로드는 원(×1000). 손익률 = 원본(비율) × 100
+- **행 구조**: 프로젝트당 **매출행 + 바로 아래 원가행** 2행(K열 구분). `use_yn == "사용"`·구분 매출/원가만 씀.
+  표는 `_merge_rev_cost_rows`로 1행(원가행 값은 `est_cost`·`plan_cost`·`cost__필드`), 집계(summary)는 매출/원가 분리 그대로
+- **함정**
+  - `jun_actual`(AO/AR "N월 실적")은 원본이 **1~12월 전체**(미래월 추정 포함) → 반드시 1~기준월(chk_m01~mNN)만 재합산(`read_perf_frame`)
+  - '원가'가 두 뜻: 원가행(=직접원가만, BB) vs 손익의 총원가(직접+인건비+공통+관리비). "매출 − 원가"는 경상손익이 아니라 **매출이익**
+  - 경상손익(BF)은 연간 기준 — 누계 손익은 행별 배부율((BC+BD+BE)÷BA)을 누계 매출이익에 적용해 재구성(`acc_operating_profit`), 적자행은 간접비 0
+  - 원가행의 BA~BG는 0 — 손익은 매출행만 합산
+  - 손익률 평균은 **가중평균**(Σ경상손익 ÷ Σ매출), 행별 단순평균 금지(부호까지 달라짐)
+  - 진행률/달성 = 누계 매출 ÷ **연간 추정 매출**(`est_progress_rate`), 계획 대비는 `achieve_rate`(관리자 공개 범위)
+  - 프로젝트코드 **빈 값**만 → 프로젝트명으로 대체(같은 이름 K뉴딜 아카데미 SW/EM 2건은 코드가 같아짐 — "_파트명" 붙이기는 해봤다가 원복, 주석으로 남김)
+  - 파트 `⑦ K뉴딜TF(SW)/(EM)` → `⑦ K뉴딜TF`로 통합. 화면 파트명은 원문자(①~⑳) 뗌(`stripPartPrefix`/`PART_PREFIX_RE`)
+  - 묶음 키: 정식 코드(`^[A-Za-z]\d{10,}`)는 코드만, placeholder(생성예정·드롭·미정 등)는 코드+프로젝트명, **연속 행끼리만**
+- **재무 대조(완료 줄)**: 실적 당월 추정 매출(BH)·직접원가(원가행 BH) vs 재무 이력 완료 단계 매출·직접원가, 1,000원 이상 차이 → "상이".
+  당월 추정 직접원가 ≥ 재무 이력 착수 직접원가(1,000원 미만 차이는 같음, 착수 0·없음은 비교 안 함) → "착수↑"
+
+### 재무(PPT 추출) — `finance.py`, `scripts/extract_financial_ppt.py`
+- `data/재무관점 필수 데이터 추출.xlsx` 시트 `취합` 16열(`EXCEL_COLS`): 코드·연도·파트·단계·매출·지출·직접원가·인건비·공통원가·경상이익·이익율·비고·파일명·처리일·반영일·미수사유. 금액 **원** 단위
+- 보고단계 순서(하드코딩, 프론트 `utils/stageOrder.ts`와 같게): 검토 → 사업계획 → 사전검토 → 제안 → 착수 → 중간 → 완료 → 추가제안 → 추가중간 → 추가완료
+- **완료 보고 PPT는 매출·직접원가만** 채움 — 나머지 0은 '값 없음'(화면 회색)
+- 출력 xlsx를 **Excel로 열지 말 것** — AIP 레이블이 붙어 암호화되면 openpyxl이 못 읽음(Excel COM 폴백은 있으나 느림). 재무 0건이면 이것부터 의심
+- 추출은 열기 실패 파일이 조용히 옛 값으로 남을 수 있음(known-issues). SoftCamp DRM(`SCDSA`) 파일은 로컬 사본으로만 열기
+
+### KPI — `kpi.py`, `scripts/extract_kpi_ppt.py`
+- 집계 대상: 정식 코드만, "추가제안" 단계 제외, **같은 (정식코드, 수행연도)는 가장 진행된 단계 1건만**(추가완료 > … > 완료 > 중간 > 착수 > 제안 …)
+- 합계/평균: 항목명에 `건수`·`매출액`이 있으면 합계, 아니면 평균. 26년 목표(사업계획)는 고정값(`_PLAN_TARGETS`)
+- KPI 취합 표(화면)는 전체 행 그대로, 집계에만 위 규칙. 화면의 미입력·0·하이픈은 "N"
+
+### 공통
+- 코드(.py) 바꾸면 **Flask 재시작** 필요(`python dashboard_manager.py --start`). `/api/*/reload`는 엑셀만 다시 읽음
+- `data/`의 xlsx·json(학습 맵·상태·공개 범위·업데이트 메모)은 git 제외. 비밀번호·`.env`는 절대 커밋 금지
+- 로그인: `utils/authMode.ts LOGIN_REQUIRED` + `app.py before_request` 주석(지금은 꺼 둠). 계정 `.env ADMIN_ACCOUNTS`(관리자: 본인 1명만, 손대지 말 것)·`USER_ACCOUNTS`(`scripts/fill_user_accounts.py`로 채움)
+
 ## 파일 구조
 ```
 dashboard/
-├── app.py                    # Flask 앱 + 전체 API
+├── app.py                    # Flask 앱 — 블루프린트 등록, 로그인 검사, 추출 실행, 공개 범위·데이터 이상 API
+├── finance.py / kpi.py       # 재무·KPI 엑셀 읽기·집계 API
+├── performance.py            # 실적현황 읽기(read_perf_frame)·캐시·집계·프로젝트 상세·열 필터·엑셀 다운로드 API
+├── perf_autoupdate.py        # 새 실적 파일 열 맞추기(자동·H-chat)·계산식 검증·상태 기록
+├── perf_export.py            # 프로젝트 상세 엑셀(1뎁스 + 배지) 만들기
+├── paths.py                  # 데이터 경로(실적 파일 고르기 perf_excel_candidates)
+├── auth.py / shared.py / downloads.py / ai_insight.py
+├── scripts/                  # 추출 스크립트, check_perf_headers.py, fill_user_accounts.py
+├── data/                     # 엑셀·상태 json (git 제외) — 경영실적 히스토리/ 에 지난 실적 파일
 ├── README.md                 # 프로젝트 설명 (한국어)
 ├── frontend/
 │   └── src/

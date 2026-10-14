@@ -7,6 +7,13 @@ import { FilterChip, MultiSelectDropdown } from '@/components/ui';
 import { isAllSelected } from '@/utils/array';
 import styles from './PerformanceFilterBar.module.css';
 
+// 옵션(팀·파트 목록)이 오기 전 칩 자리 — 빈 트랙만 덩그러니 보이던 것 대신 실제 칩과 비슷한 폭의 스켈레톤(2026-10-14)
+const TEAM_SKELETON = [34, 112, 150, 98];
+const PART_SKELETON = [34, 36, 46, 92, 76, 36, 46, 62];
+const ChipSkeleton = ({ widths }: { widths: number[] }) => (
+  <>{widths.map((w, i) => <span key={`${w}-${i}`} className={styles.chipSkeleton} style={{ width: w }} aria-hidden="true" />)}</>
+);
+
 const PerformanceFilterBar = () => {
   const { data: options } = usePerformanceOptions();
   const selectedParts      = usePerfStore(s => s.selectedParts);
@@ -67,6 +74,7 @@ const PerformanceFilterBar = () => {
         <span className={styles.label}>팀</span>
         <div className={styles.group}>
         <div className={styles.chips}>
+          {!ready && <ChipSkeleton widths={TEAM_SKELETON} />}
           {ready && <>
             <FilterChip label="전체" checked={!selectedTeam} onChange={() => handleTeamChange('')} />
             {teams.map(team => (
@@ -97,6 +105,7 @@ const PerformanceFilterBar = () => {
         <span className={styles.label}>파트</span>
         <div className={styles.group}>
         <div className={styles.chips}>
+          {!ready && <ChipSkeleton widths={PART_SKELETON} />}
           {ready && <>
             <FilterChip label="전체" checked={allPartsSelected} onChange={toggleAllParts} />
             {parts.map(p => (

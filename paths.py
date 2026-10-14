@@ -14,6 +14,7 @@ PPT 원본 폴더(추출 스크립트 입력)는 .env를 따르지 않고 NAS �
 """
 
 import glob
+import re
 import logging
 import os
 
@@ -40,30 +41,45 @@ def _from_env(var: str, default_name: str) -> str:
     return os.path.join(DATA_DIR, default_name)
 
 
-def resolve_perf_excel() -> str:
-    """실적 엑셀 경로 — .env 우선, 없거나 파일이 없으면 data/ 안 최신 수정본 자동 선택.
+_PERF_NAME_DATE_RE = re.compile(r"_(\d{6})_")   # "…ver9.4_261013_9월…" → 261013(yymmdd)
 
-    매달 새 ver 파일을 data/ 에 넣기만 하면 .env·코드 어느 쪽도 안 고쳐도 된다.
-    (Excel 임시 잠금파일 `~$...` 는 제외)
-    """
-    val = os.environ.get("PERF_EXCEL_PATH", "").strip()
-    if val:
-        path = val if os.path.isabs(val) else os.path.join(BASE_DIR, val)
-        if os.path.exists(path):
-            return path
-        logger.warning("PERF_EXCEL_PATH 파일 없음(%s) — data/ 최신 파일로 자동 폴백", val)
 
-    candidates = [
+def perf_excel_candidates() -> list[str]:
+    """data/ 바로 아래의 실적 엑셀(이름에 '사업계획 통합관리 파일') — 최신 먼저.
+    최신 = 파일명의 날짜(_yymmdd_) → 없으면 수정 시각. 복사해 넣으면 수정 시각이 원본 그대로라 날짜를 먼저 봄.
+    하위 폴더(경영실적 히스토리 등)와 Excel 잠금파일(~$)은 제외."""
+    files = [
         f
         for ext in ("xlsx", "xlsb")
         for f in glob.glob(os.path.join(DATA_DIR, f"*사업계획 통합관리 파일*.{ext}"))
         if not os.path.basename(f).startswith("~$")
     ]
-    if not candidates:
-        return os.path.join(BASE_DIR, val) if val else os.path.join(DATA_DIR, "사업계획 통합관리 파일.xlsx")
-    latest = max(candidates, key=os.path.getmtime)
-    logger.info("실적 엑셀 자동 선택: %s", os.path.basename(latest))
-    return latest
+
+    def key(f):
+        m = _PERF_NAME_DATE_RE.search(os.path.basename(f))
+        return (m.group(1) if m else "000000", os.path.getmtime(f))
+    return sorted(files, key=key, reverse=True)
+
+
+# True = data/ 최신 파일 우선(.env는 후보 없을 때만 — 실적 자동 반영용, 2026-10-14) / False = 예전처럼 .env 우선.
+# 자동 반영(performance.PERF_AUTO_UPDATE)을 꺼 둔 동안은 False
+PERF_PICK_NEWEST = False
+
+
+def resolve_perf_excel() -> str:
+    """실적 엑셀 경로.
+    PERF_PICK_NEWEST=False(지금): .env PERF_EXCEL_PATH 우선, 없거나 파일이 없으면 data/ 최신(perf_excel_candidates 첫 번째).
+    True: data/ 최신 우선 — 예전엔 .env가 우선이라 새 파일을 넣어도 고정된 옛 파일을 계속 읽었음."""
+    val = os.environ.get("PERF_EXCEL_PATH", "").strip()
+    env_path = (val if os.path.isabs(val) else os.path.join(BASE_DIR, val)) if val else ""
+    cands = perf_excel_candidates()
+    if not PERF_PICK_NEWEST and env_path:
+        if os.path.exists(env_path):
+            return env_path
+        logger.warning("PERF_EXCEL_PATH 파일 없음(%s) — data/ 최신 파일로 자동 폴백", val)
+    if cands:
+        return cands[0]
+    return env_path or os.path.join(DATA_DIR, "사업계획 통합관리 파일.xlsx")
 
 
 # ── 엑셀 경로 ────────────────────────────────────────────────
