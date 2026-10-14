@@ -19,6 +19,7 @@ import { useExtractJob } from '@/hooks/useExtractJob';
 import { useOpenFile } from '@/hooks/useOpenFile';
 import { useUiStore } from '@/store';
 import { pathToTab } from '@/utils/routing';
+import { LOGIN_REQUIRED } from '@/utils/authMode';
 import styles from './Navbar.module.css';
 
 /** 테마 아이콘 — 이모지(🌙☀) 대신 SVG. 글자색(currentColor)을 따름.
@@ -383,7 +384,8 @@ const Navbar = () => {
               </div>
 
               {/* 관리자 기능 — 관리자 계정으로 로그인했을 때만(일반 회원에겐 칸 자체가 안 보임, 2026-10-13) */}
-              {extractJob.isAuthed && <>
+              {/* 로그인 화면을 꺼 둔 동안(LOGIN_REQUIRED=false)엔 누구나 보임 — 관리자 로그인 입구가 이 창뿐이라 */}
+              {(extractJob.isAuthed || !LOGIN_REQUIRED) && <>
               <div className={styles.divider} />
 
               {/* 관리자용 기능 — 달성률 / 파일 바로가기 공개 범위 / PPT 데이터 추출(인증 포함)은 모달에서.
@@ -404,17 +406,23 @@ const Navbar = () => {
               </div>
               </>}
 
-              {/* 계정 — 들어가자마자 로그인(2026-10-13). 로그아웃하면 로그인 화면으로 */}
+              {/* 계정 — 들어가자마자 로그인(2026-10-13). 로그아웃하면 로그인 화면으로.
+                  로그인 화면을 꺼 둔 동안엔 로그인했을 때만(로그아웃은 관리자 기능 창에도 있음) */}
+              {(LOGIN_REQUIRED || extractJob.authedName) && <>
               <div className={styles.divider} />
               <div className={styles.section}>
                 <span className={styles.sectionLabel}>계정</span>
                 <div className={styles.accountRow}>
-                  <span className={styles.accountName}>{extractJob.authedName || '로그인됨'}</span>
+                  <span className={styles.accountName}>
+                    {extractJob.authedName || '로그인됨'}
+                    {extractJob.isAuthed && <span className={styles.accountRole}>(관리자)</span>}
+                  </span>
                   <Button variant="ghost" size="sm" onClick={() => { setOpen(false); extractJob.logout(); }}>
                     로그아웃
                   </Button>
                 </div>
               </div>
+              </>}
             </div>
           )}
           </div>
@@ -423,7 +431,8 @@ const Navbar = () => {
 
       {colorOpen && <ChartColorModal onClose={() => setColorOpen(false)} />}
       {financeModalOpen && <FinanceDataModal onClose={() => setFinanceModalOpen(false)} />}
-      {adminOpen && extractJob.isAuthed && (
+      {/* 로그인 화면을 꺼 둔 동안엔 비관리자도 열림 — 창 안 로그인 폼으로 관리자 인증 */}
+      {adminOpen && (extractJob.isAuthed || !LOGIN_REQUIRED) && (
         <AdminModal
           extractJob={extractJob}
           onClose={() => setAdminOpen(false)}

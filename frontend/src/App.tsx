@@ -5,6 +5,7 @@ import { FileOpenVisibleContext } from '@/components/ui';
 import { LoginScreen } from '@/components/features/LoginScreen';
 import { useVisible } from '@/hooks/useVisibility';
 import { useAuthSession } from '@/hooks/useAuthSession';
+import { LOGIN_REQUIRED } from '@/utils/authMode';
 import styles from './App.module.css';
 
 // 로그인한 뒤에만 그림 — 조회 훅이 전부 여기 아래라 로그인 전엔 데이터 요청이 한 건도 안 나감
@@ -27,8 +28,9 @@ const App = () => {
   const auth = useAuthSession();
   return (
     <>
-      {auth.status === 'in' && <Dashboard />}
-      {auth.showLogin && <LoginScreen onLogin={auth.login} onDone={auth.dismissLogin} />}
+      {/* LOGIN_REQUIRED=false(2026-10-14, 잠깐 누구나 조회) — 로그인 화면 없이 바로 대시보드 */}
+      {(!LOGIN_REQUIRED || auth.status === 'in') && <Dashboard />}
+      {LOGIN_REQUIRED && auth.showLogin && <LoginScreen onLogin={auth.login} onDone={auth.dismissLogin} />}
     </>
   );
 };

@@ -5,6 +5,7 @@ import { setUnauthorizedHandler } from '@/api/client';
 import {
   loginAdmin, verifySession, getStoredExtractKey, getStoredRole, setStoredExtractAuth, clearStoredExtractAuth,
 } from '@/api/extract.api';
+import { LOGIN_REQUIRED } from '@/utils/authMode';
 
 type Status = 'checking' | 'out' | 'in';
 
@@ -21,7 +22,7 @@ export const useAuthSession = () => {
   const authRole    = useUiStore(s => s.authRole);
   const setAuthRole = useUiStore(s => s.setAuthRole);
   const [status, setStatus]       = useState<Status>(() => (getStoredExtractKey() ? 'checking' : 'out'));
-  const [showLogin, setShowLogin] = useState(() => !getStoredExtractKey());
+  const [showLogin, setShowLogin] = useState(() => LOGIN_REQUIRED && !getStoredExtractKey());
 
   // 저장된 토큰이 아직 유효한지 처음 한 번 — 비밀번호가 바뀌었거나 계정이 빠졌으면 로그인 화면.
   // 역할도 서버 기준으로 다시 받음(.env에서 관리자 ↔ 일반이 바뀌었을 수 있어서).
@@ -31,7 +32,7 @@ export const useAuthSession = () => {
     verifySession().then(res => {
       if (res === false) {
         clearStoredExtractAuth();
-        setShowLogin(true);
+        setShowLogin(LOGIN_REQUIRED);
         setStatus('out');
         return;
       }
@@ -44,7 +45,9 @@ export const useAuthSession = () => {
   }, []);
 
   // 로그아웃·토큰 무효 → 로그인 화면. 다음 사람이 이전 화면 데이터를 못 보게 캐시도 비움
+  // (LOGIN_REQUIRED=false면 누구나 보는 화면이라 그대로 둠 — 관리자 전용 캐시는 extractJob.logout이 지움)
   useEffect(() => {
+    if (!LOGIN_REQUIRED) return;
     if (status === 'in' && !authRole) {
       setStatus('out');
       setShowLogin(true);

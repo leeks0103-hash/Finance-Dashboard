@@ -1,5 +1,16 @@
 # 세션 진행 기록
 
+## [2026-10-14] 로그인 화면 잠깐 끔 — 내일부터 사용, 오늘은 누구나 조회
+
+- 스위치 `frontend/src/utils/authMode.ts` `LOGIN_REQUIRED = false` + 백엔드 `app.py`의 `app.before_request(login_required_for_api)` 주석 처리
+  - 로그인 화면(`LoginScreen`)·로그인 전 401 없이 바로 대시보드. 로그아웃해도 로그인 화면으로 안 가고 캐시도 안 비움(관리자 전용 캐시만 extractJob.logout이 지움)
+  - **관리자 기능은 그대로** — 관리자 API(`@admin_required`·`_extract_key_valid`) 403 유지. 관리자 로그인 입구가 ⚙ > 관리자 기능 창뿐이라
+    꺼 둔 동안엔 그 칸·창을 누구나 열 수 있게(창 안 로그인 폼, 관리자 계정만 통과 — 10-12 이전 방식). ⚙ "계정" 칸은 로그인했을 때만
+  - 헤드리스(새 브라우저, 토큰 없음): 로그인 화면 없음·데이터 4xx 0건 → 관리자 기능 창 로그인 → 인증됨·계정 칸 → 로그아웃해도 대시보드 유지.
+    curl: summary·perf-update 200 / fin-mismatch·extract/coverage 403
+  - **다시 켤 때**: `LOGIN_REQUIRED = true` + `app.py` 주석 해제 → Flask 재시작
+- ⚙ "계정" 칸 — 관리자 계정이면 사번(이름) 옆에 "(관리자)" 표시(`.accountRole`)
+
 ## [2026-10-14] 실적 원본 ver9.4(9월 집계)로 교체 + 실적 필터바 "경영실적 현황 업데이트" 직접 입력 칸
 
 - **실적 원본 교체** — `data/26년 사업계획 통합관리 파일_ver9.4_261013_9월 사업현황 리뷰.xlsx`(사용자가 옮김), `.env` `PERF_EXCEL_PATH`도 새 파일로.

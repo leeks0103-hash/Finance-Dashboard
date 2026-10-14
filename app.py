@@ -39,7 +39,9 @@ class NumpyJSONProvider(DefaultJSONProvider):
 app = Flask(__name__)
 app.json = NumpyJSONProvider(app)
 
-app.before_request(login_required_for_api)
+# 들어가자마자 로그인(2026-10-13) — 2026-10-14 잠깐 끔(내일부터 사용, 누구나 조회). 다시 켤 땐 아래 주석 해제 +
+# frontend/src/utils/authMode.ts LOGIN_REQUIRED = true. 관리자 API(@admin_required·_extract_key_valid)는 그대로 403
+# app.before_request(login_required_for_api)
 app.register_blueprint(finance_bp)
 app.register_blueprint(perf_bp)
 app.register_blueprint(kpi_bp)
