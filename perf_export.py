@@ -38,7 +38,7 @@ _PCT = '0.0"%"'
 
 # (헤더, 필드, 종류, 폭) — 화면 프로젝트 상세 기본 컬럼 순서. 종류: txt / won(천원→원) / pct / num
 _MAIN_COLS = [
-    ("NO.",               "_group_no",        "num", 6),
+    ("NO.",               "_no",              "num", 6),    # 엑셀 줄 순서대로 1부터(정렬·필터와 무관하게 연속)
     ("프로젝트코드",       "project_code",     "txt", 20),
     ("진행",              "progress",         "txt", 8),
     ("프로젝트명",         "project_name",     "txt", 44),
@@ -182,6 +182,7 @@ def build_project_detail_xlsx(rows: pd.DataFrame, condition: str, fin_counts: di
     for _, row in rows.iterrows():
         r += 1
         rec = row.to_dict()
+        rec["_no"] = r - head_row
         rec["part"] = strip_part_prefix(str(rec.get("part") or ""))
         n_fin = _finance_count(rec.get("project_code"), fin_counts or {}, count_cache)
         if n_fin:

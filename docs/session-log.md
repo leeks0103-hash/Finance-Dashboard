@@ -33,6 +33,7 @@
 - 표 제목줄 "⇔ Shift + 마우스 휠" 옆 배지 범례 — DataTable `badgeLegend`(TableTitleBar `legend`): [상이] 완료 보고 대비 당월 매출/원가가 다른 경우 · [착수↑] 착수 보고 대비 당월 원가가 크거나 같은 경우
 - **Raw Data 다운로드 메뉴에도 "프로젝트 상세"** — `downloads.py` `project_detail`(`generated: True`): 저장 파일이 아니라 받을 때마다 같은 엑셀을 필터 없이 전체로 생성
   (`performance.api_perf_data_export` 재사용). 메뉴엔 크기 대신 "원본 YYYY-MM-DD HH:MM 기준 · 받을 때 새로 만듦"(`DownloadItem.generated`). 재무·KPI 탭 메뉴 공통
+- 엑셀 NO.는 받은 줄 순서대로 1부터(예전엔 `_group_no`라 정렬·필터 시 번호가 띄엄띄엄)
 - 처음엔 재무 이력 2뎁스를 엑셀 행 그룹 + "재무 이력" 시트로 넣었다가 억지스러워 뺌(요청) — 1뎁스만
 - 헤드리스: 검색 E1416 → 시트 1개·그룹 행 0·자동 필터·배지 5칸 표시 형식/색 확인. 엑셀 화면 캡처는 못 함(LibreOffice 없음)
 
