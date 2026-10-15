@@ -105,7 +105,8 @@ def _badges(row) -> dict[str, list[tuple[str, str, str]]]:
 
 
 # 프론트 utils/projectCode.extractRealCode·countFinanceHistory와 같은 규칙 — 프로젝트코드 옆 숫자 배지(재무 이력 건수)
-_REAL_CODE_RE = re.compile(r"^[A-Z]\d{6,}")
+# 코드 바로 뒤가 끝·공백·괄호일 때만 — "E148600126040002_SW" 같은 붙여 만든 코드는 배지 없음(2026-10-15)
+_REAL_CODE_RE = re.compile(r"^[A-Z]\d{6,}(?=$|[\s(（])")
 
 
 def finance_code_counts(fin_df: pd.DataFrame) -> dict[str, int]:
