@@ -627,6 +627,15 @@ const DataTable = <T extends object>({
     }
   }, [autoExpandKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const expandedRowRef = useRef<HTMLTableRowElement>(null);
+  // 1뎁스 칸 ↔ 펼친 패널의 짝 컬럼(ColumnMeta.linkedExpandCol) — 패널 안 표의 같은 data-col 칸(머리글 포함)에 클래스만 붙였다 뗌.
+  // 패널은 다른 DataTable이라 상태로 넘기지 않고 DOM에서 바로 찾음(다시 그리기 없음)
+  const setLinkedHint = useCallback((col: string, on: boolean, color?: string) => {
+    expandedRowRef.current?.querySelectorAll<HTMLElement>(`[data-col="${CSS.escape(col)}"]`).forEach(el => {
+      el.classList.toggle(styles.linkedHint, on);
+      if (on && color) el.style.setProperty('--link-color', color);
+      else el.style.removeProperty('--link-color');
+    });
+  }, []);
 
   // 펼쳐진 행이 뷰포트 밖에 있으면 페이지 스크롤
   useEffect(() => {
@@ -1180,10 +1189,16 @@ const DataTable = <T extends object>({
                           const glow = !!cell.column.columnDef.meta?.cellGlow?.(row.original);
                           const badges = cell.column.columnDef.meta?.cellBadges?.(row.original);
                           const badgeTitle = badges?.map(b => b.title).filter(Boolean).join('\n\n') || undefined;
+                          const linkedCol = isExpanded ? cell.column.columnDef.meta?.linkedExpandCol : undefined;
+                          const cmpColor = cell.column.columnDef.meta?.compareColor;
                           return (
                             <td
                               key={cell.id}
+                              data-col={cell.column.id}
+                              onMouseEnter={linkedCol ? () => setLinkedHint(linkedCol, true, cmpColor) : undefined}
+                              onMouseLeave={linkedCol ? () => setLinkedHint(linkedCol, false) : undefined}
                               rowSpan={isMerged ? group.length : undefined}
+                              style={glow && cmpColor ? { '--glow-color': cmpColor } as CSSProperties : undefined}
                               title={flag ?? badgeTitle ?? cellTitle}
                               onClick={isLong ? () => {
                                 const onOpenFile = cell.column.columnDef.meta?.onOpenFile;

@@ -13,6 +13,8 @@ const EXTRACT_TARGET_LABEL: Record<ExtractTarget, string> = { finance: '재무',
 
 /** 방식 선택 버튼에 나오는 것만 — 'failed'(실패 파일만)는 추출 현황 카드의 버튼으로 따로 실행 */
 type PickMode = Exclude<ExtractMode, 'failed'>;
+/** 지금 안 쓰는 방식 — 버튼은 보이되 못 누름(2026-10-19: 증분·초기화만 씀). 다시 쓰려면 여기서 빼기 */
+const DISABLED_MODES: ReadonlySet<PickMode> = new Set(['force']);
 const EXTRACT_MODE_INFO: Record<PickMode, { label: string; desc: string }> = {
   incremental: {
     label: '증분',
@@ -73,7 +75,7 @@ const AdminModal = ({ extractJob, onClose }: Props) => {
     () => running?.targets ?? ['finance', 'kpi'],
   );
   const [extractMode, setExtractMode] = useState<PickMode>(
-    () => (running?.mode && running.mode !== 'failed' ? running.mode : 'incremental'),
+    () => (running?.mode && running.mode !== 'failed' && !DISABLED_MODES.has(running.mode) ? running.mode : 'incremental'),
   );
   const extractLocked = extractJob.isRunning || extractJob.isStarting;
   const [extractAuthError, setExtractAuthError] = useState('');
@@ -204,7 +206,8 @@ const AdminModal = ({ extractJob, onClose }: Props) => {
                   <Button key={m} variant="ghost" size="sm"
                     className={`${styles.segBtn} ${extractMode === m ? styles.segActive : ''}`}
                     onClick={() => setExtractMode(m)}
-                    disabled={extractLocked}
+                    disabled={extractLocked || DISABLED_MODES.has(m)}
+                    title={DISABLED_MODES.has(m) ? '지금은 쓰지 않는 방식 — 증분·초기화를 쓰세요' : undefined}
                   >{EXTRACT_MODE_INFO[m].label}</Button>
                 ))}
               </div>

@@ -205,6 +205,26 @@ def coverage(force: bool = False) -> dict:
     return data
 
 
+_names_cache: dict = {"at": 0.0, "names": None}
+_NAMES_TTL = 300  # 초 — 데이터 이상 배지가 부를 때마다 NAS를 훑지 않게
+
+
+def source_filenames() -> "set[str] | None":
+    """지금 원본 폴더에 있는 PPT 파일명 집합(재무·KPI 규칙 합집합, 5분 캐시). 폴더에 못 가면 None.
+    데이터 이상의 코드 충돌 기록에서 이름이 바뀌거나 지워진 파일을 빼는 데 씀(2026-10-19) —
+    처리이력 시트는 옛 이름이 남아 있어(KPI는 지운 파일 기록도 유지) 못 씀"""
+    with _cache_lock:
+        if _names_cache["names"] is not None and time.time() - _names_cache["at"] < _NAMES_TTL:
+            return _names_cache["names"]
+    root = paths.PPT_SOURCE_DIR
+    if not os.path.isdir(root):
+        return None
+    names = {os.path.basename(p) for p in _list_finance_files(root) + _list_kpi_files(root)}
+    with _cache_lock:
+        _names_cache.update(at=time.time(), names=names)
+    return names
+
+
 def find_path(filename: str) -> str | None:
     """추출 현황 목록의 파일명 → 원본 전체경로. 아직 안 훑었으면 한 번 훑음"""
     with _cache_lock:

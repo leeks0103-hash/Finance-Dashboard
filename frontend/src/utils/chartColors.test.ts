@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  colorClashes, colorWarnings, getChartPalette, normalizeHex, sanitizeChartColors,
+  colorClashes, colorWarnings, getChartPalette, normalizeHex, sanitizeChartColors, sanitizeChartColorSet,
 } from './chartColors';
 
 describe('normalizeHex', () => {
@@ -49,5 +49,22 @@ describe('경고', () => {
   it('같은 차트 역할끼리 비슷한 색이면 충돌', () => {
     expect(colorClashes('revenue', { cost: '#012d5f' })).toContain('cost');
     expect(colorClashes('revenue', {})).toEqual([]);
+  });
+});
+
+describe('주간/야간 따로 저장(2026-10-19)', () => {
+  it('옛 형식(한 벌)은 주간·야간 둘 다에 복사', () => {
+    expect(sanitizeChartColorSet({ revenue: 'red' })).toEqual({ light: { revenue: 'red' }, dark: { revenue: 'red' } });
+  });
+  it('새 형식은 모드별로 검증, 깨진 값은 빈 값', () => {
+    expect(sanitizeChartColorSet({ light: { cost: 'gold' }, dark: { cost: 'nope' } })).toEqual({ light: { cost: 'gold' }, dark: {} });
+    expect(sanitizeChartColorSet(null)).toEqual({ light: {}, dark: {} });
+  });
+  it('야간 경고는 남색 배경 기준', () => {
+    expect(colorWarnings('#0e2038', true).length).toBeGreaterThan(0);
+    expect(colorWarnings('#fafafa', true)).toEqual([]);
+  });
+  it('경상손익도 고를 수 있음', () => {
+    expect(getChartPalette(false, { costProfit: 'navy' }).costProfit).toBe('rgba(0,44,95,1)');
   });
 });

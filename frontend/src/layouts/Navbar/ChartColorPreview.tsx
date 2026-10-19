@@ -1,5 +1,5 @@
 import { useChartPalette } from '@/hooks/useChartPalette';
-import type { ChartColorOverrides } from '@/utils/chartColors';
+import type { ChartColorOverrides, ColorMode } from '@/utils/chartColors';
 import styles from './ChartColorPreview.module.css';
 
 /** 차트 색상 모달 위쪽 미리보기 — 고른 색을 실제 차트 모양(막대·계획선·손실·도넛)으로 바로 보여 줌.
@@ -10,7 +10,7 @@ const BARS = [
   { name: 'C파트', plan: 45, rev: 52, cost: 30, loss: false },
 ];
 const RATES = [12, -6, 18, 7];
-const DONUT = [0.55, 0.2, 0.13, 0.12];
+const DONUT = [0.5, 0.18, 0.12, 0.1, 0.1];   // 직접원가·인건비·공통원가·관리비·경상손익
 
 const H = 92;              // 막대 영역 높이
 const BW = 13;             // 막대 폭
@@ -25,14 +25,15 @@ const arc = (start: number, end: number, r: number, R: number) => {
   return `M ${p(start, R)} A ${R} ${R} 0 ${large} 1 ${p(end, R)} L ${p(end, r)} A ${r} ${r} 0 ${large} 0 ${p(start, r)} Z`;
 };
 
-/** overrides — 저장 전 선택(모달 draft). 미리보기는 저장 안 해도 바로 바뀜 */
-const ChartColorPreview = ({ overrides }: { overrides?: ChartColorOverrides }) => {
-  const c = useChartPalette(overrides);
-  const donutColors = [c.costDirect, c.costLabor, c.costOverhead, c.costMgmt];
+/** overrides — 저장 전 선택(모달 draft). 미리보기는 저장 안 해도 바로 바뀜.
+ *  mode — 주간/야간 탭. 카드 배경·글자도 그 모드로(data-theme을 이 칸에만 걸어 CSS 변수가 바뀜) */
+const ChartColorPreview = ({ overrides, mode }: { overrides?: ChartColorOverrides; mode?: ColorMode }) => {
+  const c = useChartPalette(overrides, mode);
+  const donutColors = [c.costDirect, c.costLabor, c.costOverhead, c.costMgmt, c.costProfit];
   let acc = 0;
 
   return (
-    <div className={styles.root} aria-label="차트 색상 미리보기">
+    <div className={styles.root} data-theme={mode} aria-label="차트 색상 미리보기">
       <figure className={styles.card}>
         <figcaption>계획 · 매출 · 원가(손실)</figcaption>
         <svg viewBox={`0 0 ${GROUP_W * BARS.length} ${H + 14}`} className={styles.svg}>

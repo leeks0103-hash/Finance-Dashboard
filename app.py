@@ -77,18 +77,23 @@ def api_data_health():
     )
 
     rows = []
+    admin = is_admin()
     for f in set(fin_by_file.index) & set(kpi_by_file.index):
         fset, kset = fin_by_file[f], kpi_by_file[f]
         if fset == kset:
             continue
         if not any(_real_code(c) for c in fset | kset):
             continue  # 둘 다 placeholder일 때만 다름 — 실제 오류 아님
-        if _all_pending_code(fset) or _all_pending_code(kset):
-            continue  # 한쪽이 아직 코드 미발급("생성예정"·"생성 예정"·"(생성 필요)")이면 예외(2026-10-19 요청)
+        # 한쪽이 아직 코드 미발급("생성예정"·"생성 예정"·"(생성 필요)")이면 오류가 아님 — 관리자에게만 참고로 보임
+        # (10-19 처음엔 아예 뺐다가 같은 날 "관리자만 볼 수 있게"로 변경)
+        pending = _all_pending_code(fset) or _all_pending_code(kset)
+        if pending and not admin:
+            continue
         rows.append({
             "file": f,
             "finance_codes": sorted(fset),
             "kpi_codes": sorted(kset),
+            "pending": pending,
         })
 
     conflicts, read_failures = _read_code_conflicts()
@@ -236,7 +241,8 @@ def _read_code_conflicts():
     구분 못 함(2026-09-18/21 발견, memory: kpi-finance-code-conflict-batch-file-limit) —
     그래서 각 건을 _classify_conflict()로 한 번 더 걸러 verdict를 붙인다.
     """
-    # 충돌은 A→B, B→A 양방향으로 기록되므로 (소스, 코드) 단위로 묶어 관련 파일 집합만 남긴다
+    # 충돌은 A→B, B→A 양방향으로 기록되므로 코드 단위로 묶어 관련 파일 집합만 남긴다.
+    # 재무·KPI가 같은 코드를 각각 기록해 배지에 두 줄로 나오던 것 → 코드당 한 줄, source는 "재무 · KPI"(2026-10-19)
     grouped = {}
     read_failures = []
     for source, path in (("재무", EXCEL_PATH), ("KPI", KPI_EXCEL_PATH)):
@@ -249,13 +255,27 @@ def _read_code_conflicts():
                 continue
             # 재무는 (코드,연도,파트,구분,기존,신규,발견일시) / KPI는 (코드,연도,단계,기존,신규,발견일시)
             existing, new = (r[4], r[5]) if source == "재무" else (r[3], r[4])
-            entry = grouped.setdefault((source, str(r[0])), {
-                "source": source, "code": str(r[0]), "files": [],
+            entry = grouped.setdefault(str(r[0]), {
+                "source": source, "code": str(r[0]), "files": [], "_sources": [],
             })
+            if source not in entry["_sources"]:
+                entry["_sources"].append(source)
             for f in (existing, new):
                 f = str(f or "").strip()
                 if f and f not in entry["files"]:
                     entry["files"].append(f)
+
+    for entry in grouped.values():
+        entry["source"] = " · ".join(entry.pop("_sources"))
+
+    # 지금 원본 폴더에 없는 파일(이름 변경·삭제)은 충돌 기록에서 뺌 — 충돌 시트는 추출 때마다 쌓이기만 해서
+    # 옛 이름이 계속 보였음(2026-10-19 HDAT 인증평가 사례). 남은 파일이 2개 미만이면 충돌 아님. 폴더에 못 가면 거르지 않음
+    from extract_coverage import source_filenames
+    current = source_filenames()
+    if current is not None:
+        for entry in grouped.values():
+            entry["files"] = [f for f in entry["files"] if f in current]
+        grouped = {k: e for k, e in grouped.items() if len(e["files"]) >= 2}
 
     fin_df = get_df()
     kpi_df = get_kpi_df()

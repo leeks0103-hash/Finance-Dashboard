@@ -13,6 +13,7 @@
  *   costLabor    — 원가구성 도넛: 인건비 (Active Blue)
  *   costOverhead — 원가구성 도넛: 공통원가 (Sky Blue에 검정 30% 섞은 톤 — 원색은 너무 연해서)
  *   costMgmt     — 원가구성 도넛: 관리비 (Hyundai Gold — 파랑 3톤과 구분되는 유일한 브랜드색)
+ *   costProfit   — 원가구성 도넛: 경상손익 (기본은 loss와 같은 Active Red — 2026-10-19 따로 고를 수 있게 분리)
  *   plan         — 계획·목표 등 비교 기준선 계열 (Sand/블루그레이 중립 — 실적 계열과 겹치지 않게). 계획 막대는 이 색으로 통일
  *   planLabel    — 계획 막대 위 수치 글자색 (plan을 불투명·진하게 — 반투명 plan 그대로면 글자가 흐려서, 막대색은 유지)
  *   planRevenue  — "파트별 추정 매출/원가" 확대 모달 전용 매출 계획선 (매출과 같은 파랑 계열, 밝기만 다르게)
@@ -30,6 +31,7 @@ export interface ChartPalette {
   costLabor:    string;
   costOverhead: string;
   costMgmt:     string;
+  costProfit:   string;
   plan:         string;
   planLabel:    string;
   planRevenue:  string;
@@ -73,6 +75,7 @@ const basePalette = (dark: boolean): ChartPalette => dark ? {
   costLabor:    'rgba(0,170,210,1)',    /* Active Blue */
   costOverhead: 'rgba(119,141,161,1)',  /* Sky Blue에 검정 30% — 원래 Sky Blue는 흰 배경에서 너무 연했음(2026-09-29) */
   costMgmt:     'rgba(199,148,113,1)',  /* Hyundai Gold tint */
+  costProfit:   'rgba(255,106,77,1)',   /* Active Red tint — loss와 같은 기본값 */
   plan:         'rgba(159,179,196,0.55)', /* 블루그레이 중립 — 계획·목표 */
   planLabel:    'rgba(159,179,196,1)',  /* plan 불투명 — 수치 글자용 */
   planRevenue:  'rgba(170,202,230,1)',  /* Sky Blue — revenue tint보다 밝게 */
@@ -87,6 +90,7 @@ const basePalette = (dark: boolean): ChartPalette => dark ? {
   costLabor:    'rgba(0,170,210,1)',    /* Active Blue */
   costOverhead: 'rgba(119,141,161,1)',  /* Sky Blue에 검정 30% — 원래 Sky Blue는 흰 배경에서 너무 연했음(2026-09-29) */
   costMgmt:     'rgba(163,107,79,1)',   /* Hyundai Gold */
+  costProfit:   'rgba(230,51,18,1)',    /* Active Red — loss와 같은 기본값 */
   plan:         'rgba(107,98,87,0.45)',  /* Sand 계열 중립 — 계획·목표 */
   planLabel:    'rgba(132,129,125,1)',  /* plan의 흰 배경 실효색(188,184,179)에 검정 30% — 수치 글자가 흐리다는 피드백(2026-09-29) */
   planRevenue:  'rgba(0,170,210,1)',    /* Active Blue — Hyundai Blue 막대 위에서도 보이게 */
@@ -125,9 +129,14 @@ export const SWATCH_IDS = Object.keys(CHART_SWATCHES) as SwatchId[];
 
 export type ColorRole =
   | 'revenue' | 'cost' | 'profit' | 'loss' | 'plan'
-  | 'costDirect' | 'costLabor' | 'costOverhead' | 'costMgmt';
+  | 'costDirect' | 'costLabor' | 'costOverhead' | 'costMgmt' | 'costProfit';
 
 export type ChartColorOverrides = Partial<Record<ColorRole, ChartColorValue>>;
+
+/** 주간/야간 모드별 사용자 지정 색 — 따로 고르고 따로 저장(2026-10-19, 예전엔 한 벌을 고르면 야간은 자동 계산) */
+export type ColorMode = 'light' | 'dark';
+export type ChartColorSet = Record<ColorMode, ChartColorOverrides>;
+export const EMPTY_COLOR_SET: ChartColorSet = { light: {}, dark: {} };
 
 /** 설정 화면에 나열할 역할 — default는 basePalette와 같은 견본(설정 화면에서 "선택됨" 표시용) */
 export const COLOR_ROLES: { role: ColorRole; label: string; desc: string; group: 'bar' | 'donut'; default: SwatchId }[] = [
@@ -140,6 +149,7 @@ export const COLOR_ROLES: { role: ColorRole; label: string; desc: string; group:
   { role: 'costLabor',    label: '인건비',      desc: '원가 비율 도넛',                    group: 'donut', default: 'activeBlue' },
   { role: 'costOverhead', label: '공통원가',    desc: '원가 비율 도넛',                    group: 'donut', default: 'skyDeep' },
   { role: 'costMgmt',     label: '관리비',      desc: '원가 비율 도넛',                    group: 'donut', default: 'gold' },
+  { role: 'costProfit',   label: '경상손익',    desc: '원가 비율 도넛',                    group: 'donut', default: 'red' },
 ];
 const ROLE_SET = new Set<string>(COLOR_ROLES.map(r => r.role));
 
@@ -149,6 +159,7 @@ const CO_SHOWN: [ColorRole, ColorRole][] = [
   ['revenue', 'cost'], ['revenue', 'plan'], ['revenue', 'loss'], ['cost', 'plan'], ['cost', 'loss'], ['profit', 'loss'],
   ['costDirect', 'costLabor'], ['costDirect', 'costOverhead'], ['costDirect', 'costMgmt'],
   ['costLabor', 'costOverhead'], ['costLabor', 'costMgmt'], ['costOverhead', 'costMgmt'],
+  ['costDirect', 'costProfit'], ['costLabor', 'costProfit'], ['costOverhead', 'costProfit'], ['costMgmt', 'costProfit'],
 ];
 
 // ── 색 계산 ──
@@ -217,6 +228,16 @@ export const sanitizeChartColors = (raw: unknown): ChartColorOverrides => {
   return out;
 };
 
+/** 모드별 저장값 검증 — 옛 형식(한 벌, 2026-10-19 이전)은 주간·야간 둘 다에 그대로 복사 */
+export const sanitizeChartColorSet = (raw: unknown): ChartColorSet => {
+  if (raw && typeof raw === 'object' && !Array.isArray(raw) && ('light' in raw || 'dark' in raw)) {
+    const r = raw as Record<string, unknown>;
+    return { light: sanitizeChartColors(r.light), dark: sanitizeChartColors(r.dark) };
+  }
+  const flat = sanitizeChartColors(raw);
+  return { light: { ...flat }, dark: { ...flat } };
+};
+
 /** 고른 값의 원래 색(배경 보정 전) — 견본은 테마별 색, 직접 넣은 색은 라이트 그대로·다크는 배경에 묻히면 밝힘 */
 const rawRgb = (v: ChartColorValue, dark: boolean): Rgb => {
   if (isSwatchId(v)) return CHART_SWATCHES[v][dark ? 'dark' : 'light'];
@@ -235,16 +256,15 @@ export const swatchRgba = (v: ChartColorValue, dark: boolean) => rgba(drawRgb(v,
 /** 피커 초기값 — 지금 색의 라이트 hex */
 export const valueToHex = (v: ChartColorValue) => (isSwatchId(v) ? rgbToHex(CHART_SWATCHES[v].light) : v);
 
-/** 직접 넣은 색 안내 — 배경 대비가 낮으면 경고, 그릴 때 보정하면 그것도 알림 */
-export const colorWarnings = (v: ChartColorValue): string[] => {
+/** 직접 넣은 색 안내 — 그 모드 배경과 대비가 낮으면 경고, 그릴 때 보정하면 그것도 알림 */
+export const colorWarnings = (v: ChartColorValue, dark = false): string[] => {
   if (!isCustomColor(v)) return [];
   const c = hexToRgb(v);
-  const out: string[] = [];
+  if (dark) return contrastRatio(c, SURFACE.dark) < DARK_TARGET ? ['남색 배경에 묻히지 않게 밝게 그립니다'] : [];
   const light = contrastRatio(c, SURFACE.light);
-  if (light < MIN_VISIBLE) out.push('흰 배경과 거의 같아 주간 모드에선 조금 진하게 그립니다');
-  else if (light < MIN_COMFORT) out.push('주간 모드에서 연해서 잘 안 보일 수 있어요');
-  if (contrastRatio(c, SURFACE.dark) < DARK_TARGET) out.push('야간 모드에선 배경에 묻히지 않게 밝게 그립니다');
-  return out;
+  if (light < MIN_VISIBLE) return ['흰 배경과 거의 같아 조금 진하게 그립니다'];
+  if (light < MIN_COMFORT) return ['연해서 잘 안 보일 수 있어요'];
+  return [];
 };
 
 /** 눈으로 구분하기 어려울 만큼 가까운 색인지(가중 RGB 거리) — 견본끼리는 같은 견본일 때만 걸림 */
@@ -255,12 +275,12 @@ const tooSimilar = (a: Rgb, b: Rgb) => {
 };
 
 /** role과 같거나 너무 비슷한 색이 된(같은 차트에 함께 나오는) 다른 역할들 */
-export const colorClashes = (role: ColorRole, overrides: ChartColorOverrides): ColorRole[] => {
+export const colorClashes = (role: ColorRole, overrides: ChartColorOverrides, dark = false): ColorRole[] => {
   const mine = swatchOf(role, overrides);
   return CO_SHOWN.flatMap(([a, b]) => (a === role ? [b] : b === role ? [a] : []))
     .filter(other => {
       const theirs = swatchOf(other, overrides);
-      return theirs === mine || tooSimilar(rawRgb(theirs, false), rawRgb(mine, false));
+      return theirs === mine || tooSimilar(rawRgb(theirs, dark), rawRgb(mine, dark));
     });
 };
 
@@ -289,7 +309,7 @@ export const getChartPalette = (dark: boolean, overrides: ChartColorOverrides = 
     // 수치 글자: 라이트는 흰 배경 위 실효색에 검정 30%(기본값과 같은 방식), 다크는 불투명 그대로
     p.planLabel = rgba(dark ? plan : mix(mix(WHITE, plan, alpha), BLACK, 0.3));
   }
-  for (const role of ['costDirect', 'costLabor', 'costOverhead', 'costMgmt'] as const) {
+  for (const role of ['costDirect', 'costLabor', 'costOverhead', 'costMgmt', 'costProfit'] as const) {
     const c = pick(role);
     if (c) p[role] = rgba(c);
   }

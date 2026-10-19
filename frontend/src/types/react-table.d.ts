@@ -63,6 +63,11 @@ declare module '@tanstack/react-table' {
     cellTint?: (row: TData) => 'static' | 'filled' | undefined;
     /** 셀 테두리를 은은하게 빛나게(맥박 애니메이션) — 예: 재무 대조 모드의 비교 칸 */
     cellGlow?: (row: TData) => boolean;
+    /** 펼친 2뎁스 패널에서 짝이 되는 컬럼 id — 이 칸에 마우스를 올리면 패널의 그 열이 은은하게 표시됨
+     *  (예: 당월 추정 직접원가 → 재무 이력 직접원가, 2026-10-19) */
+    linkedExpandCol?: string;
+    /** 비교군 색(CSS 색 값) — cellGlow 테두리·linkedExpandCol 표시가 이 색. 같은 비교군 컬럼끼리 같은 색을 줌(재무 대조 F) */
+    compareColor?: string;
     /**
      * 제공 시, 행 데이터를 받아 true면 그 <td>에 회색 음영(cellMuted)을 입힌다 —
      * "값 없음/해당 없음이 정상"임을 대시(-) 텍스트보다 더 눈에 띄게 표시하고 싶을 때

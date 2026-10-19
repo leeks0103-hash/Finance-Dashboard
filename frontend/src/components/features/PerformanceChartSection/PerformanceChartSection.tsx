@@ -557,8 +557,8 @@ const PerformanceChartSection = () => {
   // ), [vm.profitRate.isProfit, palette]);
 
   const doughnutColors = useMemo(
-    // 직접원가·인건비·공통원가(파랑 3톤) + 관리비(Gold) + 경상손익(Red — 3파랑/골드와 구분되는 유일한 브랜드 액센트)
-    () => [palette.costDirect, palette.costLabor, palette.costOverhead, palette.costMgmt, palette.loss],
+    // 직접원가·인건비·공통원가(파랑 3톤) + 관리비(Gold) + 경상손익(기본 Red — ⚙ 차트 색상에서 따로 고름, 2026-10-19)
+    () => [palette.costDirect, palette.costLabor, palette.costOverhead, palette.costMgmt, palette.costProfit],
     [palette],
   );
 

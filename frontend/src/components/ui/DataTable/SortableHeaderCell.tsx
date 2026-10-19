@@ -27,6 +27,7 @@ export const SortableHeaderCell = ({
   return (
     <th
       ref={setNodeRef}
+      data-col={id}
       onClick={!isDragging ? onClick : undefined}
       className={[className ?? '', isHighlighted ? highlightedClassName : ''].filter(Boolean).join(' ')}
       style={{

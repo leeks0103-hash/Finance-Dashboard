@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { sanitizeChartColors, type ChartColorOverrides } from '@/utils/chartColors';
+import { EMPTY_COLOR_SET, sanitizeChartColorSet, type ChartColorSet } from '@/utils/chartColors';
 
 interface UiStore {
   showChartLabels: boolean;
@@ -35,10 +35,11 @@ interface UiStore {
   adminAuthed: boolean;   // authRole === 'admin' — 기존 사용처 호환
   setAuthRole: (role: 'admin' | 'user' | null) => void;
 
-  /** 차트 역할별 사용자 지정 색(⚙ 설정 > 차트 색상, 2026-10-08) — 이 브라우저에만. 기본값과 같은 견본은 저장 안 함 */
-  chartColors: ChartColorOverrides;
+  /** 차트 역할별 사용자 지정 색(⚙ 설정 > 차트 색상, 2026-10-08) — 이 브라우저에만. 기본값과 같은 견본은 저장 안 함.
+   *  주간/야간 따로(2026-10-19) */
+  chartColors: ChartColorSet;
   /** 차트 색상 모달의 저장 버튼 — 고른 것 전체를 한 번에(2026-10-13, 예전엔 누를 때마다 바로 저장) */
-  saveChartColors: (next: ChartColorOverrides) => void;
+  saveChartColors: (next: ChartColorSet) => void;
 }
 
 export const useUiStore = create<UiStore>()(
@@ -65,8 +66,8 @@ export const useUiStore = create<UiStore>()(
       adminAuthed: false,
       setAuthRole: (role) => set({ authRole: role, adminAuthed: role === 'admin' }),
 
-      chartColors: {},
-      saveChartColors: (next) => set({ chartColors: sanitizeChartColors(next) }),
+      chartColors: EMPTY_COLOR_SET,
+      saveChartColors: (next) => set({ chartColors: sanitizeChartColorSet(next) }),
     }),
     {
       name: 'ui-store',
@@ -78,7 +79,7 @@ export const useUiStore = create<UiStore>()(
       // 저장된 차트 색이 깨졌거나(직접 고친 localStorage·옛 형식) 모르는 값이면 버림
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<UiStore>;
-        return { ...current, ...p, chartColors: sanitizeChartColors(p.chartColors) };
+        return { ...current, ...p, chartColors: sanitizeChartColorSet(p.chartColors) };
       },
     },
   ),

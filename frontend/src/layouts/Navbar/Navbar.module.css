@@ -216,10 +216,26 @@
   flex: 1;
 }
 
+/* '생성 예정' 코드 불일치 — 오류가 아니라 관리자 참고용이라 회색 알약 */
+.healthPendingTag {
+  flex-shrink: 0;
+  margin-top: 1px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-subtle);
+  color: var(--text-sub);
+  font-size: 0.66rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
 .healthCodes {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  /* 제목(CopyText, 안쪽 여백 4px)보다 안쪽으로 — 설명이 제목보다 왼쪽으로 튀어나와 보이지 않게 */
+  padding-left: 10px;
   font-size: 0.7rem;
   color: var(--text-sub);
 }

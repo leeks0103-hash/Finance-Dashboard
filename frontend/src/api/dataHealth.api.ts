@@ -4,6 +4,8 @@ export interface DataHealthRow {
   file: string;
   finance_codes: string[];
   kpi_codes: string[];
+  /** 한쪽 코드가 아직 '생성 예정'류 — 오류 아님, 관리자 응답에만 들어옴 */
+  pending?: boolean;
 }
 
 /**

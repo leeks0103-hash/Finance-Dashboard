@@ -62,6 +62,11 @@ const finBadges = (field: 'jun_check_total' | 'est_cost') => (r: PerfProject): C
   return out.length ? out : undefined;
 };
 
+// 재무 대조 비교군 색 — 같은 걸 비교하는 칸끼리 같은 색(2026-10-19, 예전엔 전부 Active Blue).
+// 매출 = Active Blue, 직접원가 = Hyundai Gold(차트의 원가 색과 같은 계열). 테두리 빛남(F)·2뎁스 짝 열 표시 공용
+const CMP_REVENUE = 'var(--accent)';
+const CMP_COST    = 'var(--warn)';
+
 // 재무 대조 모드(설정 토글) — 완료이면서 재무 완료 이력이 있는 줄의 비교 칸(실적현황·재무 이력 매출/직접원가) 테두리를 빛나게
 const finGlow = (r: PerfProject) => r.progress === '완료' && (r.fin_jun_check_total != null || r.fin_est_cost != null);
 
@@ -117,18 +122,20 @@ const buildColumns = (_PERF_MONTH: string, finCompare: boolean) => [
   // 원가행의 최초사업계획(V열) — 백엔드가 매출행 줄에 붙여 줌
   h.accessor('plan_cost',         { header: '사업계획 원가', size: 116, enableSorting: true, cell: i => eok(i), meta: eokMeta }),
   h.accessor('jun_check_total',   { header: '당월 추정 매출', size: 122, enableSorting: true, cell: i => eok(i),
-    meta: { ...eokMeta, cellBadges: finBadges('jun_check_total'), cellGlow: finCompare ? finGlow : undefined } }),
+    meta: { ...eokMeta, cellBadges: finBadges('jun_check_total'), cellGlow: finCompare ? finGlow : undefined,
+      compareColor: CMP_REVENUE, linkedExpandCol: 'revenue' } }),
   // 재무 대조 모드에서만 — 재무 이력(완료 단계) 값, 천원 단위로 내려옴(백엔드 _attach_finance_mismatch)
   ...(finCompare ? [h.accessor('fin_jun_check_total', { header: '재무 이력 매출(완료)', size: 132, cell: i => eok(i),
-    meta: { ...eokMeta, cellGlow: finGlow } })] : []),
+    meta: { ...eokMeta, cellGlow: finGlow, compareColor: CMP_REVENUE } })] : []),
   // 원가행 BH / 매출행 BH − 원가행 BH(엑셀 AR17 − AR18) — 백엔드가 원가행에서 직접 읽어 줌(2026-10-02 사용자 정의)
   h.accessor('est_cost',          { header: '당월 추정 직접원가', size: 146, enableSorting: true, cell: i => eok(i),
-    meta: { ...eokMeta, cellBadges: finBadges('est_cost'), cellGlow: finCompare ? finGlow : undefined } }),
+    meta: { ...eokMeta, cellBadges: finBadges('est_cost'), cellGlow: finCompare ? finGlow : undefined,
+      compareColor: CMP_COST, linkedExpandCol: 'direct_cost' } }),
   ...(finCompare ? [h.accessor('fin_est_cost', { header: '재무 이력 직접원가(완료)', size: 160, cell: i => eok(i),
-    meta: { ...eokMeta, cellGlow: finGlow } }),
+    meta: { ...eokMeta, cellGlow: finGlow, compareColor: CMP_COST } }),
     // 착수 보고 직접원가 — "착수↑" 배지 비교 대상(2026-10-14)
     h.accessor('fin_start_est_cost', { header: '재무 이력 직접원가(착수)', size: 160, cell: i => eok(i),
-    meta: { ...eokMeta, cellGlow: finGlow } })] : []),
+    meta: { ...eokMeta, cellGlow: finGlow, compareColor: CMP_COST } })] : []),
   h.accessor('est_gross',         { header: '매출 이익', size: 104, enableSorting: true, cell: i => eok(i), meta: eokMeta }),
   h.accessor('cost_labor',        { header: '인건비',   size: 86, cell: i => eok(i), meta: eokMeta }),
   h.accessor('cost_overhead',     { header: '공통원가', size: 96, cell: i => eok(i), meta: eokMeta }),

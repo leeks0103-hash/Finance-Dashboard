@@ -218,10 +218,15 @@ const Navbar = () => {
                           <li key={row.file} className={styles.healthItem}>
                             <div className={styles.healthFileRow}>
                               <CopyText text={row.file} className={styles.healthFile} onOpen={openFile} />
+                              {row.pending && (
+                                <span className={styles.healthPendingTag} title="한쪽 코드가 아직 생성 예정 — 오류 아님, 관리자에게만 보임">
+                                  생성 예정
+                                </span>
+                              )}
                             </div>
                             <div className={styles.healthCodes}>
-                              <span>재무: {row.finance_codes.join(', ') || '—'}</span>
-                              <span>KPI: {row.kpi_codes.join(', ') || '—'}</span>
+                              <span>재무 : {row.finance_codes.join(', ') || '—'}</span>
+                              <span>KPI : {row.kpi_codes.join(', ') || '—'}</span>
                             </div>
                           </li>
                         ))}

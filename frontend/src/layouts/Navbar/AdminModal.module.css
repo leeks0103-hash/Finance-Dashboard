@@ -94,6 +94,10 @@
   background: var(--bg-header);
   color: var(--text-secondary);
 }
+.segment .segBtn:disabled:not(.segActive) {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 .segment .segActive,
 .segment .segActive:hover {
   background: var(--brand);
