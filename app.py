@@ -99,6 +99,11 @@ def api_data_health():
     conflicts, read_failures = _read_code_conflicts()
     # 같은 프로젝트가 단계별로 재보고된 것으로 판정된 건(likely_same_project)은 문제 아님 — 응답에서 뺌(2026-10-06)
     conflicts = [c for c in conflicts if c["verdict"] != "likely_same_project"]
+    # 코드 자체가 '생성 예정'류(아직 미발급)인 충돌은 서로 다른 프로젝트가 같은 문구를 쓴 것뿐 — 오류 아님, 관리자에게만(2026-10-19)
+    for c in conflicts:
+        c["pending"] = _all_pending_code([c["code"]])
+    if not admin:
+        conflicts = [c for c in conflicts if not c["pending"]]
     finished_anomalies = _read_finished_report_anomalies(fin_df)
     return jsonify({
         "count": len(rows) + len(conflicts) + len(finished_anomalies) + len(read_failures),

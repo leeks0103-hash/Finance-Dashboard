@@ -23,6 +23,8 @@ export interface DataHealthConflict {
   verdict?: 'needs_review' | 'likely_same_project';
   /** verdict 판단 근거 (예: "파트·매출 금액이 파일 간 일관됨") */
   reason?:  string;
+  /** 코드가 '생성 예정'류 — 오류 아님, 관리자 응답에만 들어옴 */
+  pending?: boolean;
 }
 
 /**
