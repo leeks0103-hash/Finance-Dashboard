@@ -63,6 +63,7 @@ const PerfUpdatePanel = () => {
           onChange={e => { send(e.target.files?.[0]); e.target.value = ''; }} />
       </div>
       {upload.isError && <div className={styles.error}>올리지 못했습니다 — {errText(upload.error)}</div>}
+      {upload.data?.notice && <div className={styles.notice}>{upload.data.notice}</div>}
 
       {isLoading && <div className={styles.muted}>상태 불러오는 중…</div>}
       {status?.file && (

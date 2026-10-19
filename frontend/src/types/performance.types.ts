@@ -276,4 +276,6 @@ export interface PerfUpdateStatus {
   /** data/의 실적 파일(최신 먼저) */
   files:       string[];
   loaded_at?:  string | null;
+  /** 올리기 결과 안내 — 같은 파일이 이미 있음 / 같은 이름 이전 파일을 히스토리로 옮김 */
+  notice?:     string;
 }

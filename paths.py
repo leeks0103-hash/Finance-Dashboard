@@ -63,7 +63,7 @@ def perf_excel_candidates() -> list[str]:
 
 # True = data/ 최신 파일 우선(.env는 후보 없을 때만 — 실적 자동 반영용, 2026-10-14) / False = 예전처럼 .env 우선.
 # 자동 반영(performance.PERF_AUTO_UPDATE)을 꺼 둔 동안은 False
-PERF_PICK_NEWEST = False
+PERF_PICK_NEWEST = True   # 2026-10-15 켬(자동 반영과 같이)
 
 
 def resolve_perf_excel() -> str:

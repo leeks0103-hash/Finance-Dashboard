@@ -30,7 +30,7 @@ PERF_EXCEL_PATH = resolve_perf_excel()
 # 실적 파일 자동 반영(perf_autoupdate — 열 자동 맞추기·H-chat·계산식 검증·직전 파일 폴백, 2026-10-14) — 일단 꺼 둠(같은 날 요청).
 # False면 예전과 똑같이: paths.resolve_perf_excel() 파일 하나(.env PERF_EXCEL_PATH 우선)를 코드 맵(_PERF_COL_MAPS)으로 읽음.
 # 켜려면 True + paths.PERF_PICK_NEWEST True + AdminModal의 <PerfUpdatePanel /> 주석 해제
-PERF_AUTO_UPDATE = False
+PERF_AUTO_UPDATE = True   # 2026-10-15 켬
 
 # 업로드로 자동 맞춘 열 매핑 저장 위치(2026-10-14) — data/는 gitignore
 PERF_LEARNED_MAPS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "perf_col_maps.json")
@@ -949,11 +949,28 @@ def api_perf_upload():
     if "사업계획 통합관리 파일" not in name:
         return jsonify({"ok": False, "error": "파일 이름에 '사업계획 통합관리 파일'이 있어야 합니다(대시보드가 실적 파일을 찾는 규칙)"}), 400
     dest = os.path.join(DATA_DIR, name)
-    if os.path.exists(dest):
-        return jsonify({"ok": False, "error": "같은 이름의 파일이 이미 data/에 있습니다"}), 409
     data = f.read(_PERF_UPLOAD_MAX + 1)
     if len(data) > _PERF_UPLOAD_MAX:
         return jsonify({"ok": False, "error": "파일이 너무 큽니다(80MB 초과)"}), 413
+    notice = ""
+    if os.path.exists(dest):
+        # 같은 이름 — 내용까지 같으면 할 일 없음(이미 반영된 그 파일), 다르면 기존 파일을 히스토리로 옮기고 교체(2026-10-15)
+        with open(dest, "rb") as cur:
+            same = cur.read() == data
+        if same:
+            st = _update_status_payload()
+            st["notice"] = "이미 data 폴더에 있는 같은 파일입니다 — 지금 반영된 상태 그대로"
+            return jsonify(st)
+        hist = os.path.join(DATA_DIR, "경영실적 히스토리")
+        os.makedirs(hist, exist_ok=True)
+        base, ext = os.path.splitext(name)
+        moved = os.path.join(hist, f"{base}_교체전_{datetime.now():%y%m%d_%H%M%S}{ext}")
+        try:
+            os.replace(dest, moved)
+        except OSError:
+            return jsonify({"ok": False, "error": "기존 같은 이름 파일이 열려 있어 바꿀 수 없습니다 — Excel에서 닫고 다시 올려 주세요"}), 409
+        notice = f"같은 이름의 이전 파일은 '경영실적 히스토리/{os.path.basename(moved)}'로 옮기고 새 파일로 바꿨습니다"
+        logger.info("실적 파일 같은 이름 교체 — 이전 파일 보관: %s", moved)
     tmp = dest + ".uploading"
     with open(tmp, "wb") as out:
         out.write(data)
@@ -964,7 +981,10 @@ def api_perf_upload():
             load_perf_excel()
         except Exception as e:
             logger.error("업로드 후 반영 실패: %s", e)
-    return jsonify(_update_status_payload())
+    st = _update_status_payload()
+    if notice:
+        st["notice"] = notice
+    return jsonify(st)
 
 
 @perf_bp.route("/api/performance/fin-mismatch")

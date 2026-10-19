@@ -39,9 +39,9 @@ class NumpyJSONProvider(DefaultJSONProvider):
 app = Flask(__name__)
 app.json = NumpyJSONProvider(app)
 
-# 들어가자마자 로그인(2026-10-13) — 2026-10-14 잠깐 끔(내일부터 사용, 누구나 조회). 다시 켤 땐 아래 주석 해제 +
-# frontend/src/utils/authMode.ts LOGIN_REQUIRED = true. 관리자 API(@admin_required·_extract_key_valid)는 그대로 403
-# app.before_request(login_required_for_api)
+# 들어가자마자 로그인(2026-10-13) — 10-14 잠깐 껐다가 10-15 다시 켬. 끌 땐 아래 줄 주석 +
+# frontend/src/utils/authMode.ts LOGIN_REQUIRED = false. 관리자 API(@admin_required·_extract_key_valid)는 그대로 403
+# app.before_request(login_required_for_api)   # 2026-10-19 회의용으로 잠깐 끔 — 다시 켤 땐 주석 해제 + authMode.ts
 app.register_blueprint(finance_bp)
 app.register_blueprint(perf_bp)
 app.register_blueprint(kpi_bp)
@@ -83,6 +83,8 @@ def api_data_health():
             continue
         if not any(_real_code(c) for c in fset | kset):
             continue  # 둘 다 placeholder일 때만 다름 — 실제 오류 아님
+        if _all_pending_code(fset) or _all_pending_code(kset):
+            continue  # 한쪽이 아직 코드 미발급("생성예정"·"생성 예정"·"(생성 필요)")이면 예외(2026-10-19 요청)
         rows.append({
             "file": f,
             "finance_codes": sorted(fset),
@@ -101,6 +103,11 @@ def api_data_health():
         # 코드충돌 시트를 COM으로도 못 읽은 쪽 — "충돌 0건"과 "읽지 못해 모름"을 화면에서 구분
         "read_failures": read_failures,
     })
+
+
+def _all_pending_code(codes):
+    """코드 집합이 전부 '생성 예정'류 placeholder인지 — 띄어쓰기·괄호 무관하게 '생성'이 든 값."""
+    return bool(codes) and all("생성" in str(c).replace(" ", "") for c in codes)
 
 
 _FINISHED_ANOMALY_COLS = {

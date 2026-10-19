@@ -43,12 +43,25 @@ export const ColumnFilterPopover = ({ anchor, colId, title, spec, options = [], 
   const [min, setMin] = useState(value?.type === 'number' && value.min != null ? String(value.min) : '');
   const [max, setMax] = useState(value?.type === 'number' && value.max != null ? String(value.max) : '');
 
-  // 깔때기 오른쪽 끝에 맞춰 아래로, 화면 밖으로 안 나가게
+  // 깔때기 오른쪽 끝에 맞춰 아래로 — 아래 공간이 모자라면(표가 짧아 머리글이 화면 아래쪽일 때) 위로 뒤집고,
+  // 위아래 다 모자라면 화면 높이에 맞춰 줄이고 목록만 스크롤(예전엔 화면 밖으로 잘려 끝 항목이 안 보였음)
+  const [maxH, setMaxH] = useState<number | undefined>(undefined);
   useLayoutEffect(() => {
     const place = () => {
       const r = anchor.getBoundingClientRect();
       const left = Math.min(Math.max(EDGE, r.right - W), window.innerWidth - W - EDGE);
-      setPos({ top: r.bottom + 6, left });
+      const vh = window.innerHeight;
+      const h = ref.current?.scrollHeight ?? 0;   // 줄이기 전 원래 높이
+      const below = vh - r.bottom - 6 - EDGE;
+      const above = r.top - 6 - EDGE;
+      let top: number;
+      let cap: number | undefined;
+      if (h <= below) top = r.bottom + 6;
+      else if (h <= above) top = r.top - 6 - h;
+      else if (below >= above) { top = r.bottom + 6; cap = below; }
+      else { cap = above; top = r.top - 6 - above; }
+      setPos({ top, left });
+      setMaxH(cap);
     };
     place();
     const onDown = (e: MouseEvent) => {
@@ -103,7 +116,7 @@ export const ColumnFilterPopover = ({ anchor, colId, title, spec, options = [], 
 
   return createPortal(
     <div ref={ref} className={styles.pop}
-      style={{ width: W, top: pos?.top ?? -9999, left: pos?.left ?? -9999 }}
+      style={{ width: W, top: pos?.top ?? -9999, left: pos?.left ?? -9999, maxHeight: maxH }}
       role="dialog" aria-label={`${title} 필터`}>
       <div className={styles.head}>{title}</div>
 

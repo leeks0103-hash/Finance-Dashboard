@@ -1,7 +1,8 @@
 """
 임직원 명단 엑셀 → .env USER_ACCOUNTS(일반 회원) 한 줄 채우기(2026-10-14).
 
-엑셀 머리글(첫 행)에 필요한 열: 사번, 비밀번호 / 있으면 씀: 이름
+엑셀 머리글(첫 행)에 필요한 열: 사번(또는 사원번호), 비밀번호(또는 시크릿키) / 있으면 씀: 이름(또는 사용자명)
+  - 회사 사용자 목록(현대엔지비사용자목록_*.xlsx: 사용자명·사원번호·EMAIL·시크릿키)도 그대로 됨
   - 지금 받은 '임직원_비밀번호_68명.xlsx'(No., 비밀번호)에 사번·이름 열만 추가하면 됨
   - 관리자(ADMIN_ACCOUNTS)는 건드리지 않음. 명단에 관리자 사번이 있으면 일반 회원에서 뺌(관리자로 남음)
   - 비밀번호는 화면에 찍지 않음. 형식을 깨는 글자(쉼표·콜론)·빈 값·사번 중복은 오류로 멈춤
@@ -9,6 +10,7 @@
 사용:
   python scripts/fill_user_accounts.py "<엑셀 경로>"            # 미리보기(바꾸지 않음)
   python scripts/fill_user_accounts.py "<엑셀 경로>" --apply    # .env의 USER_ACCOUNTS 줄 교체
+  --no-name 을 붙이면 이름 없이 사번:비밀번호만(화면 계정 칸엔 사번이 보임)
 적용 후 Flask 재시작해야 로그인에 반영됨.
 """
 import io
@@ -34,11 +36,13 @@ def read_roster(path: str) -> list[tuple[str, str, str]]:
     wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
     rows = list(wb.worksheets[0].iter_rows(values_only=True))
     head = [_cell(h) for h in rows[0]]
-    for need in ("사번", "비밀번호"):
-        if need not in head:
-            sys.exit(f"[중단] 머리글에 '{need}' 열이 없습니다. 지금 머리글: {head}")
-    i_emp, i_pw = head.index("사번"), head.index("비밀번호")
-    i_name = head.index("이름") if "이름" in head else None
+
+    def col(*names):
+        return next((head.index(n) for n in names if n in head), None)
+    i_emp, i_pw = col("사번", "사원번호"), col("비밀번호", "시크릿키")
+    i_name = None if "--no-name" in sys.argv else col("이름", "사용자명")
+    if i_emp is None or i_pw is None:
+        sys.exit(f"[중단] 머리글에 사번(사원번호)·비밀번호(시크릿키) 열이 있어야 합니다. 지금 머리글: {head}")
 
     out, seen, errors = [], set(), []
     for n, r in enumerate(rows[1:], start=2):

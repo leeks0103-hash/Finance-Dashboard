@@ -11,8 +11,10 @@
   box-shadow: var(--shadow-md);
   font-size: 0.8rem;
   color: var(--text-primary);
+  overflow: hidden;
   animation: popIn 0.14s ease;
 }
+.pop > :not(.list) { flex-shrink: 0; }
 @keyframes popIn {
   from { opacity: 0; transform: translateY(-3px); }
   to   { opacity: 1; transform: none; }
@@ -41,6 +43,8 @@
 
 .list {
   max-height: 220px;
+  min-height: 48px;
+  flex: 1 1 auto;   /* 창이 화면 높이에 맞춰 줄면 목록만 줄고 스크롤 */
   overflow-y: auto;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);

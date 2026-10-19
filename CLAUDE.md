@@ -10,7 +10,7 @@
 
 ```
 재무·KPI : NAS PPT 보고서 → 추출 스크립트(scripts/extract_*_ppt.py) → data/*.xlsx → Flask(finance.py·kpi.py) → React
-실적현황 : 회사 '사업계획 통합관리 파일' 엑셀 → data/ + .env PERF_EXCEL_PATH → Flask(performance.py) → React  (자동 반영 perf_autoupdate.py는 꺼 둠)
+실적현황 : 회사 '사업계획 통합관리 파일' 엑셀 → data/에 넣기만 → Flask(performance.py + perf_autoupdate.py 자동 반영) → React
 ```
 
 ## 기술 스택
@@ -97,18 +97,18 @@ return <KpiCard value={vm.revenue} />;
 > 바꿀 땐 원본 엑셀로 직접 재계산해 대조하고 `docs/session-log.md`에 근거를 남긴다.
 
 ### 실적현황(경영실적 탭) — `performance.py`, `perf_autoupdate.py`, `paths.py`
-- **파일 선택**(지금, `paths.PERF_PICK_NEWEST=False`): `.env PERF_EXCEL_PATH` 우선 → 없거나 파일이 없으면 `data/` 바로 아래
-  이름에 `사업계획 통합관리 파일`이 든 `.xlsx/.xlsb` 중 **파일명 날짜(`_yymmdd_`) 최신**, 없으면 수정 시각(`paths.perf_excel_candidates`).
-  하위 폴더(`경영실적 히스토리/`)·`~$` 잠금파일 제외. **새 달 파일을 넣으면 `.env` 경로도 바꿔야 함**(True면 data/ 최신이 우선)
+- **파일 선택**(지금, `paths.PERF_PICK_NEWEST=True`): `data/` 바로 아래 이름에 `사업계획 통합관리 파일`이 든 `.xlsx/.xlsb` 중
+  **파일명 날짜(`_yymmdd_`) 최신**, 없으면 수정 시각(`paths.perf_excel_candidates`). 하위 폴더(`경영실적 히스토리/`)·`~$` 잠금파일 제외.
+  `.env PERF_EXCEL_PATH`는 data/에 후보가 없을 때만(False로 끄면 예전처럼 .env 우선)
 - **시트 선택**: `YYYY년 (N월 집계|추정)` 중 (연,월) 최신, 같은 달이면 **집계 > 추정**(`_resolve_perf_sheet`)
 - **기준월** = 그 시트의 N월(`summary.base`). 달력(오늘−1개월)으로 짐작하지 말 것(10-01 9월 실적이 없는데 9월로 칠해진 사고)
 - **엑셀 위치**: 머리글 11~12행(`skiprows=10`, 2줄), 데이터 13행부터(`skiprows=12`). 열 번호는 0부터
 - **열 매핑**(열 번호 → 필드) 우선순위: ① 코드 `_PERF_COL_MAPS[시트명]` ② 학습 맵 `data/perf_col_maps.json`
   ③ 둘 다 없으면 `perf_autoupdate.prepare`가 자동으로 만듦(아래). 매달 열이 밀릴 수 있음
   (8월: L열 '비딩여부' 삽입 / 9월: R열 'DK수정 (향후삭제)' 삽입 → `_PERF_COL_MAP_SEP` = 8월 맵에서 17 이상 +1)
-- **새 파일 자동 반영 — ⚠️ 지금 꺼 둠**(2026-10-14, `performance.PERF_AUTO_UPDATE=False`·`paths.PERF_PICK_NEWEST=False`·AdminModal `<PerfUpdatePanel />` 주석).
-  꺼진 동안은 새 시트가 나오면 예전처럼 `scripts/check_perf_headers.py`로 대조해 `_PERF_COL_MAPS`에 맵을 **코드로** 추가해야 함.
-  켜면(사람은 data/에 넣기만, 관리자 기능 창 끌어다 놓기도 같음):
+- **새 파일 자동 반영 — 켜져 있음**(2026-10-15, `performance.PERF_AUTO_UPDATE`·`paths.PERF_PICK_NEWEST`·AdminModal `<PerfUpdatePanel />`).
+  끄면 새 시트가 나올 때 예전처럼 `scripts/check_perf_headers.py`로 대조해 `_PERF_COL_MAPS`에 맵을 **코드로** 추가해야 함.
+  사람은 data/에 넣기만(관리자 기능 창 끌어다 놓기도 같음):
   1. 기준 시트 = 같은 파일 안 이미 아는 지난달 시트(없으면 직전에 잘 읽힌 파일의 시트)
   2. 머리글 글자 대조(difflib, **달·연도 숫자는 빼고 비교** "8월 점검"="9월 점검")로 열 옮김 → 못 찾은 필수 열만 H-chat이 제안
      (H-chat엔 **머리글 글자만** 보냄 — 금액·프로젝트명 등 데이터 전송 금지)
@@ -148,7 +148,7 @@ return <KpiCard value={vm.revenue} />;
 ### 공통
 - 코드(.py) 바꾸면 **Flask 재시작** 필요(`python dashboard_manager.py --start`). `/api/*/reload`는 엑셀만 다시 읽음
 - `data/`의 xlsx·json(학습 맵·상태·공개 범위·업데이트 메모)은 git 제외. 비밀번호·`.env`는 절대 커밋 금지
-- 로그인: `utils/authMode.ts LOGIN_REQUIRED` + `app.py before_request` 주석(지금은 꺼 둠). 계정 `.env ADMIN_ACCOUNTS`(관리자: 본인 1명만, 손대지 말 것)·`USER_ACCOUNTS`(`scripts/fill_user_accounts.py`로 채움)
+- 로그인: `utils/authMode.ts LOGIN_REQUIRED` + `app.py before_request`(지금 켜져 있음 — 끌 땐 둘 다). 계정 `.env ADMIN_ACCOUNTS`(관리자: 본인 1명만, 손대지 말 것)·`USER_ACCOUNTS`(`scripts/fill_user_accounts.py`로 채움)
 
 ## 파일 구조
 ```

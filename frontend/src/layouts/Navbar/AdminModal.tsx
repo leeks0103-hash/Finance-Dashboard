@@ -6,7 +6,7 @@ import type { Visibility, VisibilitySettings } from '@/types/settings.types';
 import type { ExtractTarget, ExtractMode } from '@/types/extract.types';
 import ExtractCoverage from './ExtractCoverage';
 import FinMismatch from './FinMismatch';
-// import PerfUpdatePanel from './PerfUpdatePanel';   // 실적 자동 반영 꺼 둠(2026-10-14)
+import PerfUpdatePanel from './PerfUpdatePanel';
 import styles from './AdminModal.module.css';
 
 const EXTRACT_TARGET_LABEL: Record<ExtractTarget, string> = { finance: '재무', kpi: 'KPI' };
@@ -170,9 +170,9 @@ const AdminModal = ({ extractJob, onClose }: Props) => {
               : '공개 범위는 이 화면뿐 아니라 접속한 모든 사람에게 적용됩니다(다른 화면엔 1분 안에 반영)'}
           </span>
 
-          {/* 실적현황 파일 자동 반영 — data/에 넣거나 여기로 끌어다 놓으면 열 맞추기·검증 후 반영(2026-10-14).
-              일단 꺼 둠(같은 날 요청) — 켜려면 아래 주석 + 위 import 해제, 서버 performance.PERF_AUTO_UPDATE·paths.PERF_PICK_NEWEST도 True
-          <PerfUpdatePanel /> */}
+          {/* 실적현황 파일 자동 반영 — data/에 넣거나 여기로 끌어다 놓으면 열 맞추기·검증 후 반영(2026-10-14, 10-15 켬).
+              끄려면 이 줄 + 위 import 주석, 서버 performance.PERF_AUTO_UPDATE·paths.PERF_PICK_NEWEST False */}
+          <PerfUpdatePanel />
 
           <section className={styles.group}>
             {/* 제목 오른쪽 끝에 마지막 추출 시각(2026-10-06 요청) */}
