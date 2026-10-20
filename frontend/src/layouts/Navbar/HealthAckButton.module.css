@@ -1,0 +1,62 @@
+/* 데이터 이상 목록 — 파일별 '수정 완료' 표시(2026-10-20). 둘 다 같은 알약 크기라 눌러도 줄이 안 출렁임 */
+.btn,
+.done {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* 아직 안 누름 — 옅은 테두리 알약, 마우스 올리면 Active Blue */
+.btn {
+  color: var(--text-sub);
+  background: transparent;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background-color 0.15s;
+}
+.btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* 누름 — 연한 파랑 알약 */
+.done {
+  color: var(--accent);
+  background: var(--accent-bg);
+  border: 1px solid transparent;
+}
+.by { font-weight: 500; opacity: 0.85; }
+
+/* 취소 × — 알약에 마우스 올렸을 때만 */
+.undo {
+  border: none;
+  background: none;
+  padding: 0;
+  outline: none;
+  width: 0;
+  margin-left: 0;
+  overflow: hidden;
+  font-size: 0.8rem;
+  line-height: 1;
+  color: var(--text-muted);
+  opacity: 0;
+  cursor: pointer;
+  transition: width 0.15s, margin 0.15s, opacity 0.15s;
+}
+.done:hover .undo,
+.undo:focus-visible { width: 10px; margin-left: 2px; opacity: 1; }
+.undo:hover { color: var(--danger); }
+
+@media (prefers-reduced-motion: reduce) {
+  .btn, .undo { transition: none; }
+}

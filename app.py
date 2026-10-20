@@ -106,6 +106,7 @@ def api_data_health():
         conflicts = [c for c in conflicts if not c["pending"]]
     finished_anomalies = _read_finished_report_anomalies(fin_df)
     return jsonify({
+        "acks": _valid_health_acks(),
         "count": len(rows) + len(conflicts) + len(finished_anomalies) + len(read_failures),
         "rows": rows,
         "conflicts": conflicts,
@@ -113,6 +114,71 @@ def api_data_health():
         # 코드충돌 시트를 COM으로도 못 읽은 쪽 — "충돌 0건"과 "읽지 못해 모름"을 화면에서 구분
         "read_failures": read_failures,
     })
+
+
+# ── 데이터 이상 "수정 완료" 표시(2026-10-20) ──────────────────────────────────────────
+# "!" 목록의 파일을 담당자가 PPT에서 고친 뒤 누르면 서버에 남아(다른 PC에서도 보임) 관리자가 재추출할 파일을 알 수 있음.
+# 표시 뒤에 그 파일이 다시 추출되면(처리이력 처리일시가 표시 시각보다 늦음) 저절로 없어짐 — 그래도 이상이면 다시 빨간 "!"
+_ACK_PATH = Path(__file__).parent / "data" / "health_ack.json"
+_ack_lock = threading.Lock()
+
+
+def _read_health_acks() -> dict:
+    import json
+    try:
+        data = json.loads(_ACK_PATH.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else {}
+    except FileNotFoundError:
+        return {}
+    except Exception:
+        logger.warning("수정 완료 표시 파일을 못 읽음 — 무시: %s", _ACK_PATH)
+        return {}
+
+
+def _write_health_acks(acks: dict) -> None:
+    import json
+    _ACK_PATH.parent.mkdir(exist_ok=True)
+    tmp = _ACK_PATH.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(acks, ensure_ascii=False, indent=2), encoding="utf-8")
+    os.replace(tmp, _ACK_PATH)
+
+
+def _valid_health_acks() -> dict:
+    """표시 뒤에 다시 추출된 파일은 빼고, 지워진 것은 파일에서도 정리"""
+    from extract_coverage import last_processed
+    with _ack_lock:
+        acks = _read_health_acks()
+        if not acks:
+            return {}
+        try:
+            processed = last_processed()
+        except Exception:
+            logger.exception("처리이력 읽기 실패 — 수정 완료 표시는 그대로 둠")
+            return acks
+        valid = {f: a for f, a in acks.items() if processed.get(f, "") < str(a.get("at", ""))}
+        if len(valid) != len(acks):
+            _write_health_acks(valid)
+        return valid
+
+
+@app.route("/api/data-health/ack", methods=["POST"])
+def api_data_health_ack():
+    """{file, done} — done=true면 '수정 완료' 표시, false면 취소. 로그인했으면 누른 사람 이름(없으면 사번)을 남김"""
+    body = request.get_json(silent=True) or {}
+    file = str(body.get("file") or "").strip()
+    if not file or len(file) > 300:
+        return jsonify({"ok": False, "error": "파일명이 없습니다"}), 400
+    user = current_user(request)
+    with _ack_lock:
+        acks = _read_health_acks()
+        if body.get("done", True):
+            acks[file] = {"at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                          "by": (user.get("name") or user.get("emp_no")) if user else ""}
+        else:
+            acks.pop(file, None)
+        _write_health_acks(acks)
+    logger.info("[데이터 이상] 수정 완료 %s: %s", "표시" if body.get("done", True) else "취소", file)
+    return jsonify({"ok": True, "acks": acks})
 
 
 def _all_pending_code(codes):

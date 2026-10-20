@@ -17,9 +17,18 @@ export const useVisibilitySettings = () => {
     staleTime: 0,
     refetchInterval: 60_000,
   });
+  // 낙관적 반영 — 누르는 즉시 화면을 바꾸고 저장은 뒤에서. 예전엔 서버 응답까지 선택 표시가 안 옮겨가고
+  // 그동안 버튼이 전부 잠겨(흐려져) 누를 때마다 깜빡였음(2026-10-20). 실패하면 이전 값으로 되돌림
   const mutation = useMutation({
     mutationFn: putVisibility,
-    onSuccess:  saved => qc.setQueryData(QUERY_KEY, saved),
+    onMutate: async (patch: Partial<VisibilitySettings>) => {
+      await qc.cancelQueries({ queryKey: QUERY_KEY });
+      const prev = qc.getQueryData<VisibilitySettings>(QUERY_KEY);
+      qc.setQueryData<VisibilitySettings>(QUERY_KEY, { ...DEFAULTS, ...prev, ...patch });
+      return { prev };
+    },
+    onError: (_e, _patch, c) => { if (c?.prev) qc.setQueryData(QUERY_KEY, c.prev); },
+    onSuccess: saved => qc.setQueryData(QUERY_KEY, saved),
   });
   return {
     settings: data ?? DEFAULTS,

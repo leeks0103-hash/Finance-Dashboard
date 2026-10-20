@@ -11,7 +11,8 @@ import { useProductTour } from '@/components/features/ProductTour';
 import AdminModal from './AdminModal';
 import ChartColorModal from './ChartColorModal';
 import { useTheme } from '@/hooks';
-import { useDataHealth } from '@/hooks/useDataHealth';
+import { useDataHealth, useDataHealthAck } from '@/hooks/useDataHealth';
+import HealthAckButton from './HealthAckButton';
 import { useChartLabelToggle } from '@/hooks/useChartLabelToggle';
 import { useKeyShortcuts } from '@/hooks/useKeyShortcuts';
 import { toast } from '@/utils/dialog';
@@ -68,6 +69,9 @@ const Navbar = () => {
 
   // KPI ↔ 재무 데이터 프로젝트코드 불일치 감지 — 평소엔 안 보이고, 있을 때만 ⚙ 왼쪽에 경고 뱃지
   const { data: health } = useDataHealth();
+  // '수정 완료' 표시 — 파일별, 서버 저장(2026-10-20)
+  const healthAcks = health?.acks ?? {};
+  const healthAck = useDataHealthAck();
   const healthRows = health?.rows ?? [];
   // 코드 충돌(서로 다른 PPT가 같은 키를 공유해 한쪽이 덮어써진 경우) — 덮어써진 파일은
   // healthRows(파일명 기준 비교)로는 안 잡히므로 별도로 노출.
@@ -192,12 +196,15 @@ const Navbar = () => {
                         {healthConflicts.map(c => (
                           <li key={`${c.source}-${c.code}`} className={styles.healthItem}>
                             <div className={styles.healthFileRow}>
-                              <CopyText text={c.code} className={styles.healthFile} />
+                              <CopyText text={c.code} className={`${styles.healthFile} ${styles.healthCode}`} />
                             </div>
                             <div className={styles.healthCodes}>
-                              <span>{c.source} · {c.files.length}개 파일이 같은 코드 사용</span>
+                              <span className={styles.healthDesc}>{c.source} · {c.files.length}개 파일이 같은 코드 사용</span>
                               {c.files.map(f => (
-                                <span key={f}>· <CopyText text={f} onOpen={openFile} /></span>
+                                <span key={f} className={styles.healthAckLine}>
+                                  <span>· <CopyText text={f} onOpen={openFile} /></span>
+                                  <HealthAckButton ack={healthAcks[f]} onToggle={done => healthAck.toggle(f, done)} />
+                                </span>
                               ))}
                             </div>
                           </li>
@@ -218,6 +225,7 @@ const Navbar = () => {
                           <li key={row.file} className={styles.healthItem}>
                             <div className={styles.healthFileRow}>
                               <CopyText text={row.file} className={styles.healthFile} onOpen={openFile} />
+                              <HealthAckButton ack={healthAcks[row.file]} onToggle={done => healthAck.toggle(row.file, done)} />
                             </div>
                             <div className={styles.healthCodes}>
                               <span>재무 : {row.finance_codes.join(', ') || '—'}</span>
@@ -241,6 +249,7 @@ const Navbar = () => {
                           <li key={a.filename + a.project_code} className={styles.healthItem}>
                             <div className={styles.healthFileRow}>
                               <CopyText text={a.filename} className={styles.healthFile} onOpen={openFile} />
+                              <HealthAckButton ack={healthAcks[a.filename]} onToggle={done => healthAck.toggle(a.filename, done)} />
                             </div>
                             <div className={styles.healthCodes}>
                               <span>{a.part} · <CopyText text={a.project_code} /></span>

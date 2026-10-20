@@ -147,8 +147,8 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow-md);
-  width: 600px;
-  max-width: 90vw;
+  width: 680px;   /* 600 → 680: 글자 키우며(2026-10-20 "너무 작다") 파일명이 덜 줄바꿈되게 */
+  max-width: 92vw;
   z-index: 200;
   animation: dropIn 0.15s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
@@ -166,18 +166,18 @@
   align-items: baseline;
   flex-wrap: wrap;
   gap: 6px;
-  font-size: 0.75rem;
+  font-size: 0.86rem;
   font-weight: 700;
   color: var(--text-primary);
 }
 
 .healthIcon {
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   line-height: 1;
 }
 
 .healthHeaderSub {
-  font-size: 0.68rem;
+  font-size: 0.78rem;
   font-weight: 400;
   color: var(--text-muted);
 }
@@ -191,7 +191,7 @@
   list-style: none;
   margin: 0;
   padding: 4px 0;
-  max-height: 320px;
+  max-height: 380px;
   overflow-y: auto;
 }
 
@@ -209,7 +209,7 @@
 }
 
 .healthFile {
-  font-size: 0.74rem;
+  font-size: 0.84rem;
   font-weight: 600;
   color: var(--text-primary);
   word-break: break-all;
@@ -219,11 +219,12 @@
 .healthCodes {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
   /* 제목(CopyText, 안쪽 여백 4px)보다 안쪽으로 — 설명이 제목보다 왼쪽으로 튀어나와 보이지 않게 */
   padding-left: 10px;
-  font-size: 0.7rem;
-  color: var(--text-sub);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-primary);   /* 파일명·코드 — 본문색 + 500(2026-10-20 "밋밋하다") */
 }
 
 /* 설정 버튼 + 드롭다운 */
@@ -456,3 +457,15 @@
 .accountName { font-size: 0.82rem; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* 관리자 계정이면 이름 옆에 (관리자) */
 .accountRole { margin-left: 4px; font-size: 0.74rem; font-weight: 600; color: var(--text-sub); }
+
+/* 코드 충돌 파일 줄 — 파일명 + 오른쪽 '수정 완료' 표시 */
+.healthAckLine {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+/* 항목 제목(코드 충돌의 코드) — 브랜드 남색 굵게, 설명 줄은 작고 흐리게: 셋이 같은 굵기·색이라 밋밋했음(2026-10-20) */
+.healthCode { color: var(--accent); font-weight: 700; }
+.healthDesc { font-size: 0.74rem; font-weight: 400; color: var(--text-muted); }

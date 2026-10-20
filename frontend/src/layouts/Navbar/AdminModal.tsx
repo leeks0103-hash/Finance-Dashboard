@@ -24,7 +24,7 @@ const EXTRACT_MODE_INFO: Record<PickMode, { label: string; desc: string }> = {
   },
   selected: {
     label: '선택',
-    desc: '아래에서 고른 파일만 다시 읽습니다. 고른 파일 이름으로 남아 있던 기존 행은 지우고 새로 넣어(덮어쓰기) PPT에서 지운 행·바뀐 코드·지운 비고까지 그대로 반영합니다. 파일을 열지 못하면 기존 행은 그대로 둡니다. 다른 파일은 건드리지 않습니다. 빨간 행(!)은 데이터 이상(상단 "!" 배지)에 걸린 파일로 목록 맨 위에 모아 둡니다 — PPT를 고친 뒤 골라서 다시 추출하세요.',
+    desc: '아래에서 고른 파일만 다시 읽습니다. 고른 파일 이름으로 남아 있던 기존 행은 지우고 새로 넣어(덮어쓰기) PPT에서 지운 행·바뀐 코드·지운 비고까지 그대로 반영합니다. 파일을 열지 못하면 기존 행은 그대로 둡니다. 다른 파일은 건드리지 않습니다. 빨간 행(!)은 데이터 이상(상단 "!" 배지)에 걸린 파일로 목록 맨 위에 모아 둡니다 — PPT를 고친 뒤 골라서 다시 추출하세요. 담당자가 "!" 목록에서 "수정 완료"를 누른 파일은 파란 "✓ 수정 완료" 배지가 붙고 빨간 행 중 맨 위로 옵니다 — 그 파일만 골라 다시 추출하면 됩니다(다시 추출하면 배지는 저절로 사라짐).',
   },
   // force: {
   //   label: '전체',
@@ -185,7 +185,6 @@ const AdminModal = ({ extractJob, onClose }: Props) => {
                     <Button key={o.value} variant="ghost" size="sm"
                       className={`${styles.segBtn} ${visibility.settings[item.key] === o.value ? styles.segActive : ''}`}
                       onClick={() => visibility.update({ [item.key]: o.value })}
-                      disabled={visibility.isSaving}
                       title={o.title}
                     >{o.label}</Button>
                   ))}
@@ -202,7 +201,6 @@ const AdminModal = ({ extractJob, onClose }: Props) => {
             <Toggle
               checked={visibility.settings.aiInsight !== 'none'}
               onChange={() => visibility.update({ aiInsight: visibility.settings.aiInsight === 'none' ? 'all' : 'none' })}
-              disabled={visibility.isSaving}
               label={visibility.settings.aiInsight === 'none' ? '끔' : '켬'}
             />
           </section>

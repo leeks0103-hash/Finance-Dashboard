@@ -21,6 +21,8 @@ interface Row {
   kpi?: CoverageStatus;
   /** 데이터 이상(Navbar "!" 배지)에 걸린 이유 — 있으면 목록 맨 위·빨간 행 */
   issues?: string[];
+  /** 담당자가 '수정 완료'를 누른 시각·사람 — 빨간 행 그대로 두고 배지(재추출할 파일), 빨간 행 중 맨 위 */
+  ack?: { at: string; by: string };
 }
 
 interface Props {
@@ -63,14 +65,15 @@ const ExtractFilePicker = ({ selected, onChange, targets, disabled }: Props) => 
         const r = map.get(it.file) ?? { file: it.file };
         r[t] = it.status;
         r.issues = issuesByFile.get(it.file);
+        r.ack = health?.acks?.[it.file];
         map.set(it.file, r);
       }
     }
     // 데이터 이상 파일이 맨 위, 그다음 상태(실패·미처리 …) 순
-    const rank = (r: Row) => (r.issues ? -10 : 0) + Math.min(
+    const rank = (r: Row) => (r.issues ? (r.ack ? -20 : -10) : 0) + Math.min(
       r.finance ? STATUS_RANK[r.finance] : 9, r.kpi ? STATUS_RANK[r.kpi] : 9);
     return [...map.values()].sort((a, b) => rank(a) - rank(b) || a.file.localeCompare(b.file, 'ko'));
-  }, [data, issuesByFile]);
+  }, [data, issuesByFile, health]);
 
   const selectedSet = useMemo(() => new Set(selected), [selected]);
   const q = query.trim().toLowerCase();
@@ -102,6 +105,7 @@ const ExtractFilePicker = ({ selected, onChange, targets, disabled }: Props) => 
         {visible.map(r => {
           const usable = inTargets(r);
           const tip = [r.file, ...(r.issues ?? []).map(w => `! ${w}`),
+            ...(r.ack ? [`✓ 수정 완료${r.ack.by ? ` · ${r.ack.by}` : ''} · ${r.ack.at} — 다시 추출하세요`] : []),
             ...(usable ? [] : ['지금 고른 대상(재무/KPI)의 추출 범위가 아닌 파일'])].join('\n');
           return (
             <li key={r.file}>
@@ -116,6 +120,7 @@ const ExtractFilePicker = ({ selected, onChange, targets, disabled }: Props) => 
                 <span className={styles.file}>
                   {r.issues && <span className={styles.issueMark} aria-label="데이터 이상">!</span>}
                   {r.file}
+                  {r.ack && <span className={styles.ackBadge}>✓ 수정 완료</span>}
                 </span>
                 <span className={styles.status}>
                   {(['finance', 'kpi'] as const).map(t => r[t] && (

@@ -179,6 +179,22 @@ def _source_coverage(key: str, folder_files: list[str]) -> dict:
     return result
 
 
+def last_processed() -> dict[str, str]:
+    """파일명 → 재무·KPI 처리이력 중 가장 늦은 처리일시("YYYY-MM-DD HH:MM:SS"). 결과 엑셀만 읽음(NAS 안 봄, 엑셀 mtime 캐시).
+    데이터 이상 '수정 완료' 표시가 그 뒤에 재추출됐는지 판단하는 데 씀(2026-10-20)"""
+    out: dict[str, str] = {}
+    for cfg in SOURCES.values():
+        if not os.path.exists(cfg["excel"]):
+            continue
+        hist = read_sheet_cached(cfg["excel"], cfg["history_sheet"])
+        if hist is None or "파일명" not in hist.columns or "처리일시" not in hist.columns:
+            continue
+        for name, at in zip(hist["파일명"].astype(str).str.strip(), hist["처리일시"].astype(str).str.strip()):
+            if name and at > out.get(name, ""):
+                out[name] = at
+    return out
+
+
 def coverage(force: bool = False) -> dict:
     with _cache_lock:
         if not force and _cache["data"] is not None and time.time() - _cache["at"] < _CACHE_TTL:

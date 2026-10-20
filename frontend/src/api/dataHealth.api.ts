@@ -49,7 +49,15 @@ export interface DataHealthReadFailure {
   file:   string;   // 엑셀 파일명
 }
 
+/** 담당자가 PPT를 고친 뒤 누른 '수정 완료' 표시 — 그 뒤 재추출되면 서버가 저절로 지움(2026-10-20) */
+export interface DataHealthAck {
+  at: string;   // YYYY-MM-DD HH:MM:SS
+  by: string;   // 누른 사람 이름(로그인 안 했으면 빈 값)
+}
+
 export interface DataHealthResponse {
+  /** 파일명 → 수정 완료 표시. 구버전 서버면 없음 */
+  acks?: Record<string, DataHealthAck>;
   count: number;
   rows: DataHealthRow[];
   conflicts: DataHealthConflict[];
@@ -61,3 +69,7 @@ export interface DataHealthResponse {
 /** KPI ↔ 재무 데이터가 같은 파일에서 서로 다른 프로젝트코드를 뽑아낸 경우 + 코드 충돌 목록 */
 export const getDataHealth = (): Promise<DataHealthResponse> =>
   client.get<DataHealthResponse>('/data-health').then(r => r.data);
+
+/** '수정 완료' 표시(done=true) / 취소(false) — 응답은 바뀐 뒤의 전체 표시 */
+export const ackDataHealth = (file: string, done: boolean): Promise<{ ok: boolean; acks: Record<string, DataHealthAck> }> =>
+  client.post('/data-health/ack', { file, done }).then(r => r.data);

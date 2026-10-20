@@ -1,10 +1,11 @@
 import { useMemo, useState, useCallback, type ReactNode } from 'react';
 import {
-  DndContext, closestCenter,
-  type DragEndEvent,
+  DndContext, DragOverlay, closestCenter,
+  type DragEndEvent, type DragOverEvent, type DragStartEvent,
 } from '@dnd-kit/core';
+import { CSS } from '@dnd-kit/utilities';
 import {
-  SortableContext, rectSortingStrategy, useSortable, arrayMove,
+  SortableContext, useSortable, arrayMove, type SortingStrategy,
 } from '@dnd-kit/sortable';
 import { usePerformanceChartViewModel } from '@/hooks/viewmodels';
 import type { MonthlyTableRow, PlanVsActualRow } from '@/hooks/viewmodels/usePerformanceChartViewModel';
@@ -28,23 +29,72 @@ import {
 import type { ChartOptions } from 'chart.js';
 import { stripPartPrefix, prefersReducedMotion } from '@/utils/format';
 import { getDatalabelAlpha } from '@/utils/datalabelFade';
-import { SORTABLE_TRANSITION, sortableItemStyle } from '@/components/ui/sortableMotion';
+import { SORTABLE_TRANSITION } from '@/components/ui/sortableMotion';
 import styles from './PerformanceChartSection.module.css';
 
-// 레이아웃: 월별 실적 추이(전체 너비 1줄) → 파트별 이익율+원가구성(1줄) → 파트별 계획vs실적+진행단계(1줄)
-// 'progress'(진행단계별 매출/원가)는 요청에 따라 비활성 — 되살리려면 배열에 다시 넣고 아래 렌더러 주석 해제
-const DEFAULT_CHART_ORDER = ['monthly', 'profitRate', 'costBreakdown', 'planVsActual'];
-const LS_CHART_ORDER = 'performance-chart-order';
-// 항상 한 줄 전체를 차지하는 차트 — 드래그로 순서가 바뀌어도 이 카드가 위치한 줄은 전체 폭 유지
-const FULL_ROW_ID = 'monthly';
+// 레이아웃(2026-10-20 요청): 1줄 = 월별 실적 추이(8칸) + 전체 평균 원가 비율 도넛(4칸)
+//                          2줄 = 파트별 추정 매출/원가(8칸, 예전 월별만큼 크게) + 파트별 계획 vs 추정 실적(4칸) — 2줄은 더 높게
+// 예전엔 월별이 한 줄 전체, 2줄에 나머지 셋(5+3+4). 'progress'(진행단계별)는 요청에 따라 비활성
+const DEFAULT_CHART_ORDER = ['monthly', 'costBreakdown', 'profitRate', 'planVsActual'];
+// 배치가 바뀌어 저장된 옛 순서(월별 → 파트별 → 도넛 …)로는 줄이 어긋나 키를 올림 — 한 번 기본 순서로 돌아감
+const LS_CHART_ORDER = 'performance-chart-order-v2';
 
-// 2번째 줄 카드별 고정 폭(12칸 그리드 기준 span). 슬롯이 아니라 '카드'에 붙어서
-// 재배치해도 파트별 추정 매출/원가(넓게)는 그대로 넓게 유지된다. 합 = 12.
-const SPAN_BY_ID: Record<string, 'spanWide' | 'spanNarrow' | 'spanMid'> = {
-  profitRate:    'spanWide',    // 파트별 추정 매출/원가 — 크게
-  costBreakdown: 'spanNarrow',  // 원가구성 도넛 — 작게
-  planVsActual:  'spanMid',     // 파트별 계획 vs 추정 실적
+// 카드별 고정 폭(12칸 그리드 span) + 높이 — 슬롯이 아니라 '카드'에 붙어서 드래그로 순서를 바꿔도 크기 유지.
+// 한 줄 합 = 12. 높이는 같은 줄에서 큰 쪽에 맞춰 늘어남(grid stretch)
+type SpanKey = 'span9' | 'span8' | 'span4' | 'span3';
+const SPAN_BY_ID: Record<string, readonly [SpanKey, 'rowShort' | 'rowTall']> = {
+  monthly:       ['span9', 'rowShort'],   // 월별 실적 추이 — 파트별 추정 매출/원가보다 넓게(2026-10-20)
+  costBreakdown: ['span3', 'rowShort'],   // 전체 평균 원가 비율 도넛
+  profitRate:    ['span8', 'rowTall'],    // 파트별 추정 매출/원가 — 크게
+  planVsActual:  ['span4', 'rowTall'],    // 파트별 계획 vs 추정 실적 — 높게
 };
+const staticPreview: SortingStrategy = () => null;
+
+// 드래그로 바꾼 순서가 줄을 깨지 않는지 — 앞에서부터 한 줄(12칸)씩 채워 각 줄이 정확히 12가 되면 OK.
+// 넓은 카드 둘(8+8)이나 좁은 카드 둘(4+4)이 한 줄에 오면 칸이 비어 배치가 깨짐(2026-10-20)
+const SPAN_COLS: Record<SpanKey, number> = { span9: 9, span8: 8, span4: 4, span3: 3 };
+const isValidChartOrder = (order: string[]) => {
+  let row = 0;
+  for (const id of order) {
+    row += SPAN_COLS[(SPAN_BY_ID[id] ?? ['span4'])[0]];
+    if (row > 12) return false;
+    if (row === 12) row = 0;
+  }
+  return row === 0;
+};
+// 순서를 줄(합 12칸) 단위로 나눔 — 줄 바꾸기(핸들 더블클릭)용
+const splitChartRows = (order: string[]) => {
+  const rows: string[][] = [];
+  let cur: string[] = [], sum = 0;
+  for (const id of order) {
+    cur.push(id);
+    sum += SPAN_COLS[(SPAN_BY_ID[id] ?? ['span4'])[0]];
+    if (sum >= 12) { rows.push(cur); cur = []; sum = 0; }
+  }
+  if (cur.length) rows.push(cur);
+  return rows;
+};
+// 그 카드가 있는 줄을 바로 아래 줄과 통째로 맞바꿈(마지막 줄이면 위 줄과) — 월별 9+도넛 3 ↔ 파트별 8+계획 vs 실적 4처럼
+// 칸 수가 다른 줄은 드래그로는 못 바꾸므로(2026-10-20)
+const swapChartRow = (order: string[], id: string) => {
+  const rows = splitChartRows(order);
+  const i = rows.findIndex(r => r.includes(id));
+  if (i < 0 || rows.length < 2) return order;
+  const j = i + 1 < rows.length ? i + 1 : i - 1;
+  [rows[i], rows[j]] = [rows[j], rows[i]];
+  return rows.flat();
+};
+// 드래그 중 커서를 따라다니는 작은 카드(DragOverlay)에 쓸 제목 — 큰 차트 카드를 통째로 끌면 크기가 달라
+// (9·8·4·3칸) 움직임이 어색하고 화면 밖으로 밀렸음. 원래 카드는 제자리에 흐리게 남고 이 미니 카드만 움직임(2026-10-20)
+const CHART_TITLES: Record<string, string> = {
+  monthly: '월별 실적 추이',
+  costBreakdown: '전체 평균 원가 비율',
+  profitRate: '파트별 추정 매출/원가',
+  planVsActual: '파트별 계획 vs 추정 실적',
+};
+const OVERLAY_DROP_ANIMATION = { duration: 220, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' };
+
+const cardClass = (id: string) => (SPAN_BY_ID[id] ?? ['span4', 'rowShort']).map(k => styles[k]).join(' ');
 
 // 파트별 경상이익 카드 전용 여백 — 그래프 면적을 최대한 넓게 쓰기 위해 직접 지정한다.
 // makeBarOptions의 최소 여백(right 58 / top 30)은 가로 막대 차트가 막대 오른쪽에 수치를 찍기
@@ -238,10 +288,59 @@ const costLabelAlign = (ctx: { chart: Chart; datasetIndex: number; dataIndex: nu
 };
 // 원가 2층 막대의 층 안 수치 — 가운데 흰 글자. 막대가 좁아 '억' 없이 숫자만 작게(합계는 막대 위에 '억' 붙여 따로).
 // 층이 글자보다 낮거나 좁으면 생략 — 그 값은 마우스 올림·확대 표에서(2026-10-20)
+// 층 막대는 보기용 높이(data)와 실제값(realData)이 다를 수 있음 — 숫자·툴팁은 항상 실제값(2026-10-20)
+type RealDataset = { data: unknown[]; realData?: number[] };
+const realValue = (ctx: { dataIndex: number; dataset: unknown }) => {
+  const d = ctx.dataset as RealDataset;
+  return d.realData?.[ctx.dataIndex] ?? Number(d.data[ctx.dataIndex]);
+};
+// 원가 2층 보기용 높이(2026-10-20) — 직접원가에 비해 공통원가가 너무 얇아(5~10배 이상 차이) 층 안에 숫자가 안 들어가고
+// 오른쪽으로 삐져나오던 것. 원가 막대 전체 높이(= 실제 합계)는 그대로 두고 두 층의 경계만 옮겨 공통원가 층을 키움 —
+// 매출 막대와의 비교·막대 위 합계·원가율은 실제와 같고, 층 안 숫자·툴팁도 실제값(realData).
+// 공통원가 층 최소 높이 = max(막대의 20%, 화면 18px) — 비율만 쓰면 PM처럼 막대 자체가 짧은 파트는 20%여도 몇 px라
+// 숫자가 안 들어가서 화면 픽셀 기준도 둠(단 막대의 절반은 넘지 않게). 공통원가가 직접원가보다 크면 그대로
+const OVERHEAD_MIN_SHARE = 0.2;
+const OVERHEAD_MIN_PX = 18;
+const layerBoostPlugin: Plugin<'bar'> = {
+  id: 'layerBoost',
+  // 축 크기가 정해진 뒤에야 px ↔ 억 환산이 되므로 그린 뒤 계산해서 다르면 한 번 더 그림(전체 합은 같아 축이 안 바뀌어 반복 없음)
+  afterUpdate(chart) {
+    type LayerDs = { data: number[]; realData?: number[] };
+    const direct = chart.data.datasets[1] as unknown as LayerDs | undefined;
+    const overhead = chart.data.datasets[2] as unknown as LayerDs | undefined;
+    const y = chart.scales.y;
+    if (!direct?.realData || !overhead?.realData || !y) return;
+    let nextD = direct.realData, nextO = overhead.realData;
+    // 공통원가를 범례로 숨기면 직접원가는 실제 높이 그대로
+    if (chart.isDatasetVisible(2) && chart.isDatasetVisible(1)) {
+      const upp = (y.max - y.min) / Math.max(1, y.bottom - y.top);   // 1px당 억
+      nextD = []; nextO = [];
+      direct.realData.forEach((d, i) => {
+        const o = overhead.realData![i] ?? 0;
+        const t = d + o;
+        const minO = Math.max(t * OVERHEAD_MIN_SHARE, Math.min(OVERHEAD_MIN_PX * upp, t * 0.5));
+        const boosted = o > 0 && d > o && o < minO;
+        nextO.push(boosted ? minO : o);
+        nextD.push(boosted ? t - minO : d);
+      });
+    }
+    const same = (p: number[], q: number[]) => p.length === q.length && p.every((v, i) => Math.abs(v - (q[i] ?? 0)) < 1e-6);
+    if (same(direct.data, nextD) && same(overhead.data, nextO)) return;
+    direct.data = nextD;
+    overhead.data = nextO;
+    chart.update();
+  },
+};
 const SEGMENT_FONT = { size: 10, weight: 'bold' as const, family: "'Pretendard', 'Malgun Gothic', sans-serif" };
 type SegCtx = { chart: Chart; datasetIndex: number; dataIndex: number; dataset: { data: unknown[]; backgroundColor?: unknown } };
 type SegEl = { y: number; base: number; width: number };
-const segEl = (ctx: SegCtx) => ctx.chart.getDatasetMeta(ctx.datasetIndex).data[ctx.dataIndex] as unknown as SegEl | undefined;
+// 막대의 '애니메이션이 끝난 뒤' 위치·크기(getProps(…, true)) — 그냥 el.y/base를 읽으면 처음 그릴 때(막대가 0에서 자라는 중)
+// 높이가 0이라 '안 들어감'으로 판정돼 층 안 숫자가 안 보이다가, 마우스를 올려 다시 그려야 나타났음(2026-10-20)
+const segEl = (ctx: SegCtx): SegEl | undefined => {
+  const el = ctx.chart.getDatasetMeta(ctx.datasetIndex).data[ctx.dataIndex] as unknown as
+    { getProps?: (keys: string[], final?: boolean) => SegEl } | undefined;
+  return el?.getProps?.(['y', 'base', 'width'], true);
+};
 // 데이터셋에 display를 주면 '그래프 수치' 토글(옵션의 display)을 덮어써서 직접 따름
 const labelsOn = (ctx: SegCtx) =>
   (ctx.chart.options.plugins as { datalabels?: { display?: unknown } } | undefined)?.datalabels?.display !== false;
@@ -252,7 +351,7 @@ const segFits = (ctx: SegCtx) => {
   const c = ctx.chart.ctx;
   c.save();
   c.font = `bold ${SEGMENT_FONT.size}px ${SEGMENT_FONT.family}`;
-  const w = c.measureText(String(ctx.dataset.data[ctx.dataIndex])).width;
+  const w = c.measureText(String(realValue(ctx))).width;
   c.restore();
   return w <= el.width - 2;
 };
@@ -264,7 +363,7 @@ const SEGMENT_LABEL = {
   color: '#FFFFFF',
   textStrokeWidth: 0,
   font: SEGMENT_FONT,
-  formatter: (v: number) => `${v}`,
+  formatter: (_: number, ctx: SegCtx) => `${realValue(ctx)}`,
   display: (ctx: SegCtx) => labelsOn(ctx) && segFits(ctx),
 };
 // 공통원가 층이 얇아 안에 안 들어가면 — 그 층 높이에 맞춰 막대 바로 오른쪽 빈 틈(다음 파트 매출 막대 전)에 층 색 숫자.
@@ -280,9 +379,52 @@ const SIDE_LABEL = {
     const bg = ctx.dataset.backgroundColor;
     return (Array.isArray(bg) ? bg[ctx.dataIndex] : bg) as string;
   },
-  formatter: (v: number) => `${v}`,
-  display: (ctx: SegCtx) => labelsOn(ctx) && Number(ctx.dataset.data[ctx.dataIndex]) > 0 && !segFits(ctx),
+  formatter: (_: number, ctx: SegCtx) => `${realValue(ctx)}`,
+  display: (ctx: SegCtx) => labelsOn(ctx) && realValue(ctx) > 0 && !segFits(ctx),
 };
+// 매출·원가 막대 사이 원가율(2026-10-20 요청) — "원가 ÷ 매출"을 두 막대 경계 아래에 수치만(알약 테두리는 뺌).
+// 원가 = 원가 막대 전체(직접원가 + 공통원가, 보이는 막대 높이 그대로). 위치는 두 막대 발치(가로축 바로 아래) —
+// 막대 위·안은 합계·층 수치로 차 있어 가렸음. x축 눈금 글자를 COST_RATE_GAP만큼 내려 자리를 만듦.
+// 데이터셋 순서: 0 매출 / 1 직접원가 / 2 공통원가.
+// 매출·원가 중 하나라도 숨기면(범례) 안 그림, '그래프 수치' 토글을 따름
+interface CostRateOpts { show: boolean; text: string }
+const COST_RATE_FONT = "bold 12px 'Pretendard', 'Malgun Gothic', sans-serif";
+const COST_RATE_GAP = 20;   // x축 눈금(파트명)을 이만큼 내려 원가율 수치 자리 확보 — 알약 빼서 22 → 16, 글자 10 → 12px로 20(2026-10-20)
+const costRatePlugin: Plugin<'bar'> = {
+  id: 'costRate',
+  afterDatasetsDraw(chart) {
+    const o = (chart.options.plugins as { costRate?: CostRateOpts } | undefined)?.costRate;
+    if (!o?.show) return;
+    const metas = [0, 1, 2].map(i => chart.getDatasetMeta(i));
+    if (!metas[0] || !metas[1] || !chart.isDatasetVisible(0) || !chart.isDatasetVisible(1)) return;
+    const data = chart.data.datasets.map(d => d.data as number[]);
+    const showOverhead = !!metas[2] && chart.isDatasetVisible(2);
+    const { ctx } = chart;
+    ctx.save();
+    ctx.globalAlpha = getDatalabelAlpha();
+    ctx.font = COST_RATE_FONT;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    metas[0].data.forEach((revEl, i) => {
+      const rev = Number(data[0]?.[i]) || 0;
+      const cost = (Number(data[1]?.[i]) || 0) + (showOverhead ? Number(data[2]?.[i]) || 0 : 0);
+      const costEl = (showOverhead ? metas[2] : metas[1]).data[i] as unknown as { x: number; y: number; base: number; width: number } | undefined;
+      const r = revEl as unknown as { x: number; width: number };
+      if (!costEl || rev <= 0 || cost <= 0) return;
+      const text = `${Math.round((cost / rev) * 1000) / 10}%`;
+      const h = 15;   // 글자 줄 높이 — 가로축 바로 아래 자리 잡기용
+      const x = (r.x + r.width / 2 + costEl.x - costEl.width / 2) / 2;   // 두 막대 경계
+      // 공통원가 층의 base는 직접원가 꼭대기라 가로축 기준은 직접원가 층(아래층) base로
+      const baseY = (metas[1].data[i] as unknown as { base: number } | undefined)?.base ?? costEl.base;
+      const y = baseY + h / 2 + 3;
+      // 알약 테두리·배경은 뺌 — 원가색 테두리가 촌스럽다는 피드백, 수치만(2026-10-20)
+      ctx.fillStyle = o.text;
+      ctx.fillText(text, x, y + 0.5);
+    });
+    ctx.restore();
+  },
+};
+
 const overlaps = (a: Rect, b: Rect) => a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b;
 
 // 한 계열(점선 + 점)을 그림 — clipX가 있으면 차트 왼쪽 끝부터 거기까지만 보이게
@@ -477,6 +619,39 @@ const planLinePlugin: Plugin<'bar'> = {
 };
 
 // x축 stacked 해제 + 테마(격자·눈금) 색 오버라이드 병합 — 그룹형 바 차트 여러 개가 공유하는 패턴
+// 가로 막대 끝 수치("22.8억 (101.3%)")가 그래프 안에 딱 들어가게 값 축(x) 끝을 늘림(2026-10-20).
+// 예전엔 오른쪽 여백 104px 고정 + 축 grace 15%로 빈 공간을 두 번 잡아 그래프가 좁았음 — 막대마다
+// "막대 끝 + 글자 폭 ≤ 그래프 오른쪽"이 되는 최소 축 끝을 계산(짧은 막대 수치는 원래 빈 공간을 씀).
+// 그래프 폭은 직전 배치값을 쓰고, 처음 한 번은 어림값 — 다음 그리기에서 맞춰짐. 글자는 makeBarOptions datalabels와 같게
+interface FitBarLabelsOpts { show: boolean; showRate: boolean }
+const FIT_LABEL_FONT = "bold 14px 'Pretendard', 'Malgun Gothic', sans-serif";
+const fitBarLabelsPlugin: Plugin<'bar'> = {
+  id: 'fitBarLabels',
+  afterDataLimits(chart, args) {
+    const o = (chart.options.plugins as { fitBarLabels?: FitBarLabelsOpts } | undefined)?.fitBarLabels;
+    const scale = (args as { scale: { id: string; max: number; min: number } }).scale;
+    if (!o?.show || scale.id !== 'x' || scale.max <= 0) return;
+    const w = chart.chartArea ? chart.chartArea.right - chart.chartArea.left : chart.width * 0.7;
+    const { ctx } = chart;
+    ctx.save();
+    ctx.font = FIT_LABEL_FONT;
+    let need = scale.max;
+    chart.data.datasets.forEach((ds, di) => {
+      if (!chart.isDatasetVisible(di)) return;
+      const rates = (ds as { rates?: (number | null)[] }).rates;
+      (ds.data as number[]).forEach((v, i) => {
+        if (!(v > 0)) return;
+        const rate = o.showRate ? rates?.[i] : null;
+        const text = rate != null ? `${v}억 (${rate}%)` : `${v}억`;
+        const room = w - ctx.measureText(text).width - 10;   // datalabels offset 4 + 여유
+        if (room > 0) need = Math.max(need, scale.min + (v - scale.min) * w / room);
+      });
+    });
+    ctx.restore();
+    scale.max = need;
+  },
+};
+
 const withUnstackedTheme = (
   options: ChartOptions<'bar'>,
   scaleOverride: { x: Record<string, unknown>; y: Record<string, unknown> },
@@ -488,22 +663,30 @@ const withUnstackedTheme = (
 // 드래그 가능 차트 카드 래퍼 — 재무 ChartSection과 동일 패턴(카드 전체가 아닌 그립 아이콘만 드래그)
 // spanClassName: 2번째 줄 카드는 폭이 슬롯이 아니라 '카드' 기준(각 카드에 고정 span) —
 //   재배치해도 파트별 추정 매출/원가가 좁아지지 않게
-interface SortableChartProps { id: string; fullRow?: boolean; spanClassName?: string; children: ReactNode; }
-function SortableChart({ id, fullRow, spanClassName, children }: SortableChartProps) {
+interface SortableChartProps { id: string; fullRow?: boolean; spanClassName?: string; dropState?: 'ok' | 'bad' | null; onHandleDoubleClick?: () => void; children: ReactNode; }
+function SortableChart({ id, fullRow, spanClassName, dropState, onHandleDoubleClick, children }: SortableChartProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, transition: SORTABLE_TRANSITION });
   return (
     <div
       ref={setNodeRef}
-      className={[fullRow ? styles.fullRow : '', spanClassName ?? ''].filter(Boolean).join(' ') || undefined}
+      className={[fullRow ? styles.fullRow : '', spanClassName ?? '',
+        dropState === 'ok' ? styles.dropOk : dropState === 'bad' ? styles.dropBad : ''].filter(Boolean).join(' ') || undefined}
       style={{
-        ...sortableItemStyle({ transform, transition, isDragging }),
-        height: '100%',
+        // 끄는 동안 원래 카드는 제자리에 흐리게(자리 표시) — 실제로 움직이는 건 DragOverlay 미니 카드
+        transform: CSS.Transform.toString(transform),
+        transition: [transition, 'opacity 0.2s ease'].filter(Boolean).join(', '),
+        opacity: isDragging ? 0.35 : 1,
+        // 높이는 카드 클래스(.rowShort/.rowTall min-height) + 그리드 늘이기로 — 예전 height:100%·minHeight:0
+        // (grid-auto-rows 고정일 때 쓰던 것)이 남아 있으면 그 min-height를 덮어써 차트가 납작해짐(2026-10-20)
+        display: 'flex',
+        flexDirection: 'column',
         minWidth: 0,
-        minHeight: 0,
         position: 'relative',
       }}
     >
-      <div className={styles.dragHandle} {...attributes} {...listeners} aria-label="차트 순서 이동" title="드래그하여 순서 변경">
+      {/* 드래그는 몇 px 움직여야 시작(activationConstraint distance)이라 더블클릭과 안 겹침 */}
+      <div className={styles.dragHandle} {...attributes} {...listeners} onDoubleClick={onHandleDoubleClick}
+        aria-label="차트 순서 이동" title="드래그하여 순서 변경 · 더블클릭하면 위아래 줄 바꾸기">
         ⠿
       </div>
       {children}
@@ -519,9 +702,7 @@ function ChartStateGrid({ variant, icon, message, ids }: ChartStateGridProps) {
   return (
     <>
       {ids.map(id => {
-        const full = id === FULL_ROW_ID;
-        const spanClassName = full ? '' : (styles[SPAN_BY_ID[id] ?? 'spanMid'] ?? '');
-        const className = [full ? styles.fullRow : '', spanClassName].filter(Boolean).join(' ');
+        const className = cardClass(id);
         return variant === 'skeleton' ? (
           <div key={id} className={`${styles.skeleton} ${className}`} />
         ) : (
@@ -578,17 +759,40 @@ const PerformanceChartSection = () => {
       const saved: string[] = JSON.parse(localStorage.getItem(LS_CHART_ORDER) ?? '[]');
       const valid = saved.filter(id => DEFAULT_CHART_ORDER.includes(id));
       const added = DEFAULT_CHART_ORDER.filter(id => !valid.includes(id));
-      return valid.length ? [...valid, ...added] : DEFAULT_CHART_ORDER;
+      const merged = valid.length ? [...valid, ...added] : DEFAULT_CHART_ORDER;
+      return isValidChartOrder(merged) ? merged : DEFAULT_CHART_ORDER;   // 줄이 깨지는 저장값은 버림
     } catch { return DEFAULT_CHART_ORDER; }
   });
 
   const dndSensors = useTableDndSensors();
 
+  // 드래그 중 놓을 자리 안내 — 놓을 수 있으면 파란 점선, 줄이 깨지는 자리면 빨간 점선(그 자리엔 놓아도 안 바뀜)
+  const [dropTarget, setDropTarget] = useState<{ id: string; ok: boolean } | null>(null);
+  const [activeChartId, setActiveChartId] = useState<string | null>(null);
+  const handleChartDragStart = useCallback((e: DragStartEvent) => setActiveChartId(String(e.active.id)), []);
+  const handleChartDragOver = useCallback((e: DragOverEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) { setDropTarget(null); return; }
+    const next = arrayMove(chartOrder, chartOrder.indexOf(String(active.id)), chartOrder.indexOf(String(over.id)));
+    setDropTarget({ id: String(over.id), ok: isValidChartOrder(next) });
+  }, [chartOrder]);
   const handleChartDragEnd = useCallback((e: DragEndEvent) => {
+    setDropTarget(null);
+    setActiveChartId(null);
     const { active, over } = e;
     if (!over || active.id === over.id) return;
     setChartOrder(prev => {
       const next = arrayMove(prev, prev.indexOf(String(active.id)), prev.indexOf(String(over.id)));
+      if (!isValidChartOrder(next)) return prev;   // 줄이 깨지는 자리 — 그대로 둠
+      localStorage.setItem(LS_CHART_ORDER, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  const handleSwapRow = useCallback((id: string) => {
+    setChartOrder(prev => {
+      const next = swapChartRow(prev, id);
+      if (next === prev || !isValidChartOrder(next)) return prev;
       localStorage.setItem(LS_CHART_ORDER, JSON.stringify(next));
       return next;
     });
@@ -620,6 +824,10 @@ const PerformanceChartSection = () => {
 
   const monthlyOptions = useMemo(() => ({
     ...vm.monthly.options,
+    // 세로 막대라 수치가 막대 '위'에 찍힘 — makeBarOptions 최소 여백의 right 58(가로 막대 수치용)은 여기선
+    // 오른쪽만 텅 비게 해서 덮어씀. 막대도 기본(0.8×0.9)보다 굵게 해 양옆 빈 공간을 줄임(2026-10-20)
+    layout: { padding: { top: 30, right: 8, bottom: 4, left: 4 } },
+    datasets: { bar: { categoryPercentage: 0.88, barPercentage: 0.92 } },
     scales: {
       x: { ...scaleOverride.x },
       y: { ...scaleOverride.y, ticks: { ...scaleOverride.y.ticks, callback: (v: string | number) => v + '억' } },
@@ -633,8 +841,12 @@ const PerformanceChartSection = () => {
     const base = withUnstackedTheme(vm.planVsActual.options, scaleOverride);
     return {
       ...base,
+      // 수치 자리는 여백 대신 축 끝을 막대별로 딱 맞게 늘려서(fitBarLabelsPlugin) — 오른쪽 여백은 최소
+      layout: { padding: { ...(base.layout?.padding as object), right: 8 } },
+      scales: { ...base.scales, x: { ...base.scales?.x, grace: 0 } },
       plugins: {
         ...base.plugins,
+        fitBarLabels: { show: vm.showLabels, showRate: vm.planVsActual.showRate },
         datalabels: {
           ...base.plugins?.datalabels,
           color: (ctx: { datasetIndex: number; dataset: { backgroundColor?: unknown }; dataIndex: number }) => {
@@ -645,7 +857,7 @@ const PerformanceChartSection = () => {
         },
       },
     };
-  }, [vm.planVsActual.options, scaleOverride, palette.planLabel]);
+  }, [vm.planVsActual.options, scaleOverride, palette.planLabel, vm.showLabels, vm.planVsActual.showRate]);
 
   // 이익율/이익액 토글 비활성화로 미사용(주석 처리) — 복구 시 PROFIT_LABEL과 함께 해제
   // const profitRateOptions = useMemo(() => ({
@@ -680,8 +892,8 @@ const PerformanceChartSection = () => {
 
   // 파트별 경상이익 카드 — 매출/원가 2계열(모두 0 이상)이라 월별 실적 추이 차트와 같은 방식으로
   // 표시(anchor/align 'end', 부호 분기 불필요). 그룹형 막대라 stacked 해제
-  const partRevCostOptions = useMemo(() => ({
-    ...withUnstackedTheme(makeBarOptions(vm.showLabels, labelColor, {
+  const partRevCostOptions = useMemo(() => {
+   const base = withUnstackedTheme(makeBarOptions(vm.showLabels, labelColor, {
       layout: { padding: { ...PROFIT_PADDING, top: 36 } },
       plugins: {
         datalabels: {
@@ -705,14 +917,27 @@ const PerformanceChartSection = () => {
           },
         },
       },
-    }), scaleOverride),
+    }), scaleOverride);
+   return {
+    ...base,
+    // 매출·원가 막대 사이 원가율 칩(costRatePlugin) — makeBarOptions는 legend·datalabels 외 플러그인 옵션을 버려서 여기서 덧붙임
+    plugins: {
+      ...base.plugins,
+      costRate: { show: vm.showLabels, text: labelColor },
+      // 원가 층은 보기용 높이라 툴팁도 실제값(realData)으로
+      tooltip: { callbacks: { label: (ctx: { dataIndex: number; dataset: unknown }) =>
+        `${(ctx.dataset as { label?: string }).label}: ${realValue(ctx)}억` } },
+    },
     scales: {
       // x축 파트명 — 다크 모드에선 흰색(공통 tickColor Sand가 어두운 배경에서 흐려 보임), 라이트는 공통값 유지
       // 원가 막대 = 직접원가(아래) + 공통원가(위) 2층(2026-10-20) — 데이터셋 stack으로 매출 막대와 나란히, 원가끼리만 쌓음
-      x: { ...scaleOverride.x, stacked: true, offset: true, ticks: { ...scaleOverride.x.ticks, align: 'center' as const, color: dark ? '#FFFFFF' : tickColor } },
-      y: { ...scaleOverride.y, stacked: true, ticks: { ...scaleOverride.y.ticks, callback: (v: string | number) => v + '억' } },
+      x: { ...scaleOverride.x, stacked: true, offset: true, ticks: { ...scaleOverride.x.ticks, align: 'center' as const, color: dark ? '#FFFFFF' : tickColor,
+        padding: vm.showLabels ? COST_RATE_GAP : 3 } },
+      // 위 여유(grace) 15% → 8% — 막대 위 수치 자리는 layout padding top 36이 따로 잡고 있어 위가 많이 비었음(2026-10-20)
+      y: { ...scaleOverride.y, grace: '8%', stacked: true, ticks: { ...scaleOverride.y.ticks, callback: (v: string | number) => v + '억' } },
     },
-  }), [vm.showLabels, labelColor, scaleOverride, dark, tickColor]);
+   };
+  }, [vm.showLabels, labelColor, scaleOverride, dark, tickColor]);
 
   // "파트별 추정 매출/원가" 확대 모달 전용 — 차트 밑에 원본 수치 표를 같이 보여줘서
   // 막대를 하나씩 클릭하지 않아도 전체 파트를 한 번에 검증할 수 있게 함 (2026-09-15 시범)
@@ -825,6 +1050,7 @@ const PerformanceChartSection = () => {
                 rates: pick(vm.planVsActual.rates) },
             ]}
             options={planVsActualOptions}
+            plugins={[fitBarLabelsPlugin]}
           />
         );
       };
@@ -860,7 +1086,13 @@ const PerformanceChartSection = () => {
       );
       return (
         <ChartCard modalContent={modalContent}>
-          <ChartCard.Title><span className={styles.chartTitle}>파트별 계획 vs 추정 실적<InfoButton>{INFO_PLAN_VS_ACTUAL}</InfoButton></span></ChartCard.Title>
+          <ChartCard.Title>
+            <span className={styles.chartTitle}>파트별 계획 vs 추정 실적<InfoButton>{INFO_PLAN_VS_ACTUAL}</InfoButton></span>
+            {/* 막대 수치의 %가 뭔지 — %가 실제로 보일 때(그래프 수치 + 달성률 공개 범위)만 */}
+            {vm.showLabels && showRate && (
+              <span className={styles.titleNote}><b className={styles.titleNotePct}>%</b>계획 대비 달성률 = 추정 실적 ÷ 계획</span>
+            )}
+          </ChartCard.Title>
           <ChartCard.Body>{chartEl}</ChartCard.Body>
         </ChartCard>
       );
@@ -882,9 +1114,9 @@ const PerformanceChartSection = () => {
       const overheads = pick(vm.profitRate.overheads);
       const baseDatasets = [
         { label: '매출', data: pick(vm.profitRate.revenues), backgroundColor: palette.revenue, stack: 'rev' },
-        { label: '직접원가', data: directs, backgroundColor: visibleCostColors, stack: 'cost',
+        { label: '직접원가', data: directs, realData: directs, backgroundColor: visibleCostColors, stack: 'cost',
           datalabels: SEGMENT_LABEL },
-        { label: '공통원가', data: overheads, backgroundColor: palette.costOverhead, stack: 'cost',
+        { label: '공통원가', data: overheads, realData: overheads, backgroundColor: palette.costOverhead, stack: 'cost',
           datalabels: {
             labels: {
               value: SEGMENT_LABEL,
@@ -912,6 +1144,7 @@ const PerformanceChartSection = () => {
           labels={visibleLabels}
           datasets={baseDatasets}
           options={partRevCostOptions}
+          plugins={[costRatePlugin, layerBoostPlugin]}
         />
       );
       // 확대 모달 전용 — 목표선(매출/원가 계획)을 캔버스 플러그인으로 겹쳐 그려서 계획 대비
@@ -971,7 +1204,7 @@ const PerformanceChartSection = () => {
           labels={visibleLabels}
           datasets={baseDatasets}
           options={modalOptions}
-          plugins={[planLinePlugin]}
+          plugins={[planLinePlugin, costRatePlugin, layerBoostPlugin]}
         />
       );
       const modalContent = (
@@ -1010,6 +1243,10 @@ const PerformanceChartSection = () => {
         <ChartCard modalContent={modalContent} modalHeight="88vh">
           <ChartCard.Title>
             <span className={styles.chartTitle}>파트별 추정 매출/원가<InfoButton>{INFO_PROFIT_RATE}</InfoButton></span>
+            {/* 막대 발치 칩의 %가 뭔지 — 칩이 보일 때(그래프 수치)만 */}
+            {vm.showLabels && (
+              <span className={styles.titleNote}><b className={styles.titleNotePct}>%</b>원가율 = 원가(직접+공통) ÷ 매출</span>
+            )}
             {/* 이익율/이익액 토글 비활성화(담당자 지정) — 매출/원가 2계열 고정 표시로 대체. 복구 시 주석 해제
             <span className={styles.toggleGroup}>
               <span className={styles.badge}>{showProfitAmount ? '경상이익' : '평균 이익율'}</span>
@@ -1105,8 +1342,9 @@ const PerformanceChartSection = () => {
         <SortableChart
           key={c.id}
           id={c.id}
-          fullRow={c.id === FULL_ROW_ID}
-          spanClassName={c.id === FULL_ROW_ID ? undefined : styles[SPAN_BY_ID[c.id] ?? 'spanMid']}
+          spanClassName={cardClass(c.id)}
+          dropState={dropTarget?.id === c.id ? (dropTarget.ok ? 'ok' : 'bad') : null}
+          onHandleDoubleClick={() => handleSwapRow(c.id)}
         >
           {c.node}
         </SortableChart>
@@ -1114,12 +1352,27 @@ const PerformanceChartSection = () => {
 
   return (
     <>
-      <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handleChartDragEnd}>
-        <SortableContext items={visibleCharts.map(c => c.id)} strategy={rectSortingStrategy}>
+      <DndContext sensors={dndSensors} collisionDetection={closestCenter}
+        onDragStart={handleChartDragStart} onDragOver={handleChartDragOver} onDragEnd={handleChartDragEnd}
+        onDragCancel={() => { setDropTarget(null); setActiveChartId(null); }}
+        // 가로 자동 스크롤 끔 — 오른쪽으로 끌면 무한 가로 스크롤 되던 것. 미니 카드(DragOverlay)는 position:fixed라
+        // 페이지 폭을 늘리지 않아 예전의 화면 밖 막기(modifier)는 필요 없음
+        autoScroll={{ threshold: { x: 0, y: 0.2 } }}>
+        {/* 끄는 동안 다른 카드는 제자리(미리 밀려나는 미리보기 없음) — 카드 크기가 달라(8칸·4칸) 미리보기가 카드를
+            늘리고 찌그러뜨리며 화면 밖으로 밀었음. 놓을 자리는 점선 테두리로 안내, 놓는 순간 순서 바뀜(2026-10-20) */}
+        <SortableContext items={visibleCharts.map(c => c.id)} strategy={staticPreview}>
           <div className={styles.grid} key={`${dark ? 'dark' : 'light'}-${chartState}`}>
             {content}
           </div>
         </SortableContext>
+        <DragOverlay dropAnimation={prefersReducedMotion() ? null : OVERLAY_DROP_ANIMATION}>
+          {activeChartId ? (
+            <div className={styles.dragGhost}>
+              <span className={styles.dragGhostGrip}>⠿</span>
+              {CHART_TITLES[activeChartId] ?? activeChartId}
+            </div>
+          ) : null}
+        </DragOverlay>
       </DndContext>
 
       {breakdown && (
