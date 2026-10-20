@@ -5,8 +5,12 @@ export type Visibility = 'all' | 'admin' | 'none';
 export interface VisibilitySettings {
   /** 파일 바로가기(↗) 버튼 */
   fileOpen: Visibility;
+  /** 폴더 바로가기(파일이 든 폴더 열기) — ↗와 따로(2026-10-20) */
+  folderOpen: Visibility;
   /** 파트별 계획 vs 실적의 달성률 — 전체/관리자/숨김(2026-10-14 '전체' 추가, 기본 숨김) */
   achieveRate: Visibility;
+  /** AI 인사이트 버튼 — 관리자 기능 토글(켬 = all / 끔 = none, 2026-10-20) */
+  aiInsight: Visibility;
 }
 
 /** 실적 탭 필터바 오른쪽 "경영실적 현황 업데이트" 칸 — 서버(data/perf_update.json) 저장, 관리자만 고침 */

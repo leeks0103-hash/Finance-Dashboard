@@ -1,0 +1,92 @@
+/* 선택한 파일만 다시 추출 — 파일 고르기(2026-10-19) */
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.search {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 9px;
+  font-size: 0.74rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text-primary);
+}
+.search:focus { outline: none; border-color: var(--accent); }
+.count {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-sub);
+  white-space: nowrap;
+}
+.list {
+  list-style: none;
+  max-height: 240px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+}
+.item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 9px;
+  font-size: 0.72rem;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+}
+.list li:last-child .item { border-bottom: none; }
+.item:hover { background: var(--bg-subtle); }
+.itemOff { opacity: 0.45; cursor: default; }
+.file {
+  color: var(--text-primary);
+  word-break: break-all;
+}
+.status {
+  display: flex;
+  gap: 4px;
+}
+.pill {
+  font-size: 0.62rem;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 999px;
+  white-space: nowrap;
+  background: var(--bg-header);
+  color: var(--text-sub);
+}
+.pill_failed  { background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger); }
+.pill_pending { background: color-mix(in srgb, var(--warn) 14%, transparent); color: var(--warn); }
+.empty {
+  padding: 10px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* 데이터 이상(Navbar "!" 배지)에 걸린 파일 — 맨 위, 빨간 행 */
+.itemIssue { background: color-mix(in srgb, var(--danger) 9%, transparent); }
+.itemIssue:hover { background: color-mix(in srgb, var(--danger) 15%, transparent); }
+.itemIssue .file { color: var(--danger); font-weight: 600; }
+.issueMark {
+  display: inline-grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  margin-right: 5px;
+  border-radius: 50%;
+  background: var(--danger);
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 700;
+  vertical-align: 1px;
+}

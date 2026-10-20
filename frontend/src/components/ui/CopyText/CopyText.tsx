@@ -114,7 +114,9 @@ const CopyText = ({ text, className, highlight, onSearch, onOpen, truncate, cent
   // 사이에 빈칸으로 남아 ↗가 글자에서 멀리 떨어져 보였음(2026-09-30). ↗ 뒤에 복사 아이콘을 띄우는 안은
   // "아이콘 둘이 나란히 생기는 건 아닌 것 같다"로 반려 → 글자 호버 배경으로만 복사 가능함을 알리고,
   // 복사한 직후의 ✓만 ↗ 뒤 자리에 잠깐 표시. 전체 폭은 그대로라 표 컬럼 폭은 안 바뀜
-  const showOpen = !!onOpen && canOpen;
+  const showOpen = !!onOpen && canOpen.file;
+  const showFolder = !!onOpen?.openFolder && canOpen.folder;
+  const showAny = showOpen || showFolder;
   // 복사 후: 텍스트 체크마크 / 복사 전: CSS로만 만든 아이콘(after면 호버 아이콘 없이 ✓만)
   const copyIcon = (after: boolean) => (
     <span className={`${styles.icon} ${after ? styles.iconAfter : ''} ${copied ? styles.check : ''}`} aria-hidden="true">
@@ -125,7 +127,7 @@ const CopyText = ({ text, className, highlight, onSearch, onOpen, truncate, cent
   return (
     <span className={`${styles.wrap} ${truncate ? styles.truncWrap : ''}`}>
       <span
-        className={`${styles.root} ${truncate ? styles.truncWrap : ''} ${copied ? styles.copied : ''} ${centered && !showOpen ? styles.centered : ''} ${className ?? ''}`}
+        className={`${styles.root} ${truncate ? styles.truncWrap : ''} ${copied ? styles.copied : ''} ${centered && !showAny ? styles.centered : ''} ${className ?? ''}`}
         onClick={handleClick}
         onDoubleClick={handleDblClick}
         title={title}
@@ -136,7 +138,7 @@ const CopyText = ({ text, className, highlight, onSearch, onOpen, truncate, cent
         {truncate
           ? <span className={styles.truncText}><HighlightText text={text} query={highlight} /></span>
           : <HighlightText text={text} query={highlight} />}
-        {!showOpen && copyIcon(false)}
+        {!showAny && copyIcon(false)}
       </span>
       {showOpen && (
         <Button
@@ -150,7 +152,7 @@ const CopyText = ({ text, className, highlight, onSearch, onOpen, truncate, cent
           {opening ? <span className={styles.openSpinner} aria-hidden="true" /> : <OpenIcon />}
         </Button>
       )}
-      {showOpen && onOpen?.openFolder && (
+      {showFolder && onOpen?.openFolder && (
         <Button unstyled
           className={`${styles.openBtn} ${styles.folderBtn} ${folderState === 'busy' ? styles.opening : ''} ${folderState === 'done' ? styles.folderDone : ''}`}
           title={folderState === 'busy' ? '폴더 여는 중…' : folderState === 'done' ? '폴더를 열었습니다' : `파일이 있는 폴더 열기 — ${text}`}
@@ -160,7 +162,7 @@ const CopyText = ({ text, className, highlight, onSearch, onOpen, truncate, cent
             : folderState === 'done' ? <DoneIcon /> : <FolderIcon />}
         </Button>
       )}
-      {showOpen && copyIcon(true)}
+      {showAny && copyIcon(true)}
     </span>
   );
 };

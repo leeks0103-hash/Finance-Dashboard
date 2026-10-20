@@ -27,6 +27,9 @@ BASE_DIR = _paths.PPT_SOURCE_DIR
 #   부분 실행이라 --retry와 똑같이 정리(삭제·옛 행 제거) 단계는 건너뜀. AIP 실패 목록 파일은 안 건드림(2026-10-01)
 ONLY_LIST = os.environ.get("EXTRACT_ONLY_LIST", "").strip()
 RETRY_MODE = "--retry" in sys.argv or bool(ONLY_LIST)
+# EXTRACT_REPLACE_FILE_ROWS=1: 대시보드 "선택한 파일만 다시 추출" — 열기에 성공한 파일은 그 파일 이름으로 남은 기존 행을
+# 지우고 새로 넣음(덮어쓰기). PPT에서 지운 행·바뀐 코드의 옛 행·지운 비고까지 깨끗이 반영. 열기 실패면 안 지움(2026-10-19)
+REPLACE_FILE_ROWS = os.environ.get("EXTRACT_REPLACE_FILE_ROWS", "0") == "1"
 
 # 출력 엑셀: 프로젝트 data/ 폴더로 저장
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -570,6 +573,16 @@ def upsert_rows(data_ws, rows, conflict_ws=None):
     return inserted, updated
 
 
+def delete_rows_of_file(data_ws, filename):
+    """취합 시트에서 원본파일명(13열)이 이 파일인 행을 전부 제거 — '선택한 파일만 다시 추출'(REPLACE_FILE_ROWS)용"""
+    target = normalize_text(filename)
+    rows = [r for r in range(2, data_ws.max_row + 1)
+            if normalize_text(data_ws.cell(row=r, column=13).value) == target]
+    for r in reversed(rows):
+        data_ws.delete_rows(r)
+    return len(rows)
+
+
 def cleanup_stale_rows(data_ws, all_records):
     """PPT 안의 값(코드·연도·파트·구분)이 수정되면 make_row_key() 결과가 바뀌어 upsert_rows()가
     새 행을 추가하고, 옛 키의 행은 그대로 남는다 — 파일명이 그대로라 cleanup_deleted_files()가
@@ -1094,6 +1107,11 @@ def main():
             try:
                 log(f"[처리중] {ppt_path}")
                 extracted_rows = extract_financial_rows_from_ppt(ppt_app, ppt_path)
+
+                if REPLACE_FILE_ROWS:
+                    removed = delete_rows_of_file(data_ws, os.path.basename(ppt_path))
+                    if removed:
+                        log(f"  └ [덮어쓰기] 이 파일의 기존 행 {removed}개 제거 후 새로 반영")
 
                 if not extracted_rows:
                     append_history(

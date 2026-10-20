@@ -62,12 +62,13 @@ const PROFIT_PADDING = { top: 22, right: 12, bottom: 12, left: 4 };
 // };
 
 // "파트별 추정 매출/원가" 확대 모달의 검증용 표 — 컬럼은 상태 의존 없어 모듈 스코프
-interface PartRevCostRow { part: string; revenue: number; cost: number; costRate: number | null; profit: number; }
+interface PartRevCostRow { part: string; revenue: number; cost: number; overhead: number; costRate: number | null; profit: number; }
 const prc = createColumnHelper<PartRevCostRow>();
 const partRevCostColumns = [
   prc.accessor('part',     { header: '파트',        size: 110 }),
   prc.accessor('revenue',  { header: '매출(억)',    size: 100, cell: i => i.getValue().toLocaleString() }),
-  prc.accessor('cost',     { header: '원가(억)',    size: 100, cell: i => i.getValue().toLocaleString() }),
+  prc.accessor('cost',     { header: '직접원가(억)', size: 100, cell: i => i.getValue().toLocaleString() }),
+  prc.accessor('overhead', { header: '공통원가(억)', size: 100, cell: i => i.getValue().toLocaleString() }),
   prc.accessor('costRate', { header: '원가율(%)',   size: 100, cell: i => i.getValue() == null ? '—' : `${i.getValue()}%` }),
   prc.accessor('profit',   { header: '매출이익(억)', size: 110, cell: i => i.getValue().toLocaleString() }),
 ];
@@ -234,6 +235,53 @@ const costLabelAlign = (ctx: { chart: Chart; datasetIndex: number; dataIndex: nu
   const w = c.measureText(`${ctx.dataset.data[ctx.dataIndex]}억`).width + LABEL_PAD_X * 2;
   c.restore();
   return -90 + (Math.atan(COST_LABEL_SHIFT / (w / 2 + REV_COST_LABEL_OFFSET)) * 180) / Math.PI;
+};
+// 원가 2층 막대의 층 안 수치 — 가운데 흰 글자. 막대가 좁아 '억' 없이 숫자만 작게(합계는 막대 위에 '억' 붙여 따로).
+// 층이 글자보다 낮거나 좁으면 생략 — 그 값은 마우스 올림·확대 표에서(2026-10-20)
+const SEGMENT_FONT = { size: 10, weight: 'bold' as const, family: "'Pretendard', 'Malgun Gothic', sans-serif" };
+type SegCtx = { chart: Chart; datasetIndex: number; dataIndex: number; dataset: { data: unknown[]; backgroundColor?: unknown } };
+type SegEl = { y: number; base: number; width: number };
+const segEl = (ctx: SegCtx) => ctx.chart.getDatasetMeta(ctx.datasetIndex).data[ctx.dataIndex] as unknown as SegEl | undefined;
+// 데이터셋에 display를 주면 '그래프 수치' 토글(옵션의 display)을 덮어써서 직접 따름
+const labelsOn = (ctx: SegCtx) =>
+  (ctx.chart.options.plugins as { datalabels?: { display?: unknown } } | undefined)?.datalabels?.display !== false;
+// 층 안에 숫자가 들어가는지 — 높이 12px 이상, 글자 폭이 막대 폭 안
+const segFits = (ctx: SegCtx) => {
+  const el = segEl(ctx);
+  if (!el || Math.abs(el.base - el.y) < 12) return false;
+  const c = ctx.chart.ctx;
+  c.save();
+  c.font = `bold ${SEGMENT_FONT.size}px ${SEGMENT_FONT.family}`;
+  const w = c.measureText(String(ctx.dataset.data[ctx.dataIndex])).width;
+  c.restore();
+  return w <= el.width - 2;
+};
+const SEGMENT_LABEL = {
+  anchor: 'center' as const,
+  align: 'center' as const,
+  offset: 0,
+  padding: 0,
+  color: '#FFFFFF',
+  textStrokeWidth: 0,
+  font: SEGMENT_FONT,
+  formatter: (v: number) => `${v}`,
+  display: (ctx: SegCtx) => labelsOn(ctx) && segFits(ctx),
+};
+// 공통원가 층이 얇아 안에 안 들어가면 — 그 층 높이에 맞춰 막대 바로 오른쪽 빈 틈(다음 파트 매출 막대 전)에 층 색 숫자.
+// 화면 구성은 그대로 두고 숫자만 항상 보이게(대표님이 보신 화면 유지, 2026-10-20). 0이면 표시 안 함
+const SIDE_LABEL = {
+  anchor: 'center' as const,
+  align: 0,
+  offset: (ctx: SegCtx) => (segEl(ctx)?.width ?? 0) / 2 + 2,
+  padding: 0,
+  textStrokeWidth: 0,
+  font: SEGMENT_FONT,
+  color: (ctx: SegCtx) => {
+    const bg = ctx.dataset.backgroundColor;
+    return (Array.isArray(bg) ? bg[ctx.dataIndex] : bg) as string;
+  },
+  formatter: (v: number) => `${v}`,
+  display: (ctx: SegCtx) => labelsOn(ctx) && Number(ctx.dataset.data[ctx.dataIndex]) > 0 && !segFits(ctx),
 };
 const overlaps = (a: Rect, b: Rect) => a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b;
 
@@ -660,8 +708,9 @@ const PerformanceChartSection = () => {
     }), scaleOverride),
     scales: {
       // x축 파트명 — 다크 모드에선 흰색(공통 tickColor Sand가 어두운 배경에서 흐려 보임), 라이트는 공통값 유지
-      x: { ...scaleOverride.x, stacked: false, offset: true, ticks: { ...scaleOverride.x.ticks, align: 'center' as const, color: dark ? '#FFFFFF' : tickColor } },
-      y: { ...scaleOverride.y, ticks: { ...scaleOverride.y.ticks, callback: (v: string | number) => v + '억' } },
+      // 원가 막대 = 직접원가(아래) + 공통원가(위) 2층(2026-10-20) — 데이터셋 stack으로 매출 막대와 나란히, 원가끼리만 쌓음
+      x: { ...scaleOverride.x, stacked: true, offset: true, ticks: { ...scaleOverride.x.ticks, align: 'center' as const, color: dark ? '#FFFFFF' : tickColor } },
+      y: { ...scaleOverride.y, stacked: true, ticks: { ...scaleOverride.y.ticks, callback: (v: string | number) => v + '억' } },
     },
   }), [vm.showLabels, labelColor, scaleOverride, dark, tickColor]);
 
@@ -672,12 +721,12 @@ const PerformanceChartSection = () => {
       const revenue = vm.profitRate.revenues[i];
       const cost    = vm.profitRate.costs[i];
       return {
-        part, revenue, cost,
+        part, revenue, cost, overhead: vm.profitRate.overheads[i] ?? 0,
         costRate: revenue > 0 ? +(cost / revenue * 100).toFixed(1) : null,
         profit:   +(revenue - cost).toFixed(1),
       };
     }),
-    [vm.profitRate.labels, vm.profitRate.revenues, vm.profitRate.costs],
+    [vm.profitRate.labels, vm.profitRate.revenues, vm.profitRate.costs, vm.profitRate.overheads],
   );
 
   // "월별 실적 추이" 확대 모달 표 — 행은 VM(원금액 기준 계산), 셀 클릭은 차트 막대와 같은 드릴다운
@@ -772,7 +821,8 @@ const PerformanceChartSection = () => {
             labels={pick(vm.planVsActual.labels)}
             datasets={[
               { label: '계획(억)', data: pick(vm.planVsActual.planInitial), backgroundColor: planColor },
-              { label: '추정 실적(억)', data: pick(vm.planVsActual.junCheckTotal), backgroundColor: palette.revenue },
+              { label: '추정 실적(억)', data: pick(vm.planVsActual.junCheckTotal), backgroundColor: palette.revenue,
+                rates: pick(vm.planVsActual.rates) },
             ]}
             options={planVsActualOptions}
           />
@@ -826,9 +876,28 @@ const PerformanceChartSection = () => {
       const pick = <T,>(arr: T[]) => visibleIdx.map(i => arr[i]);
       const visibleLabels  = pick(vm.profitRate.labels);
       const visibleCostColors = pick(vm.profitRate.labels.map(p => lossParts.has(p) ? palette.loss : palette.cost));
+      // 원가는 2층 — 아래 직접원가(원가행 BH) · 위 공통원가(매출행 BD). 각 층 안에 그 층 값, 맨 위에 두 층 합(2026-10-20 요청).
+      // 층 안 수치는 흰 글자(층이 낮아 글자가 안 들어가면 생략), 합계는 원가색 글자로 막대 위
+      const directs   = pick(vm.profitRate.costs);
+      const overheads = pick(vm.profitRate.overheads);
       const baseDatasets = [
-        { label: '매출', data: pick(vm.profitRate.revenues), backgroundColor: palette.revenue },
-        { label: '원가', data: pick(vm.profitRate.costs),    backgroundColor: visibleCostColors },
+        { label: '매출', data: pick(vm.profitRate.revenues), backgroundColor: palette.revenue, stack: 'rev' },
+        { label: '직접원가', data: directs, backgroundColor: visibleCostColors, stack: 'cost',
+          datalabels: SEGMENT_LABEL },
+        { label: '공통원가', data: overheads, backgroundColor: palette.costOverhead, stack: 'cost',
+          datalabels: {
+            labels: {
+              value: SEGMENT_LABEL,
+              side: SIDE_LABEL,
+              total: {
+                display: vm.showLabels,
+                anchor: 'end' as const, align: 'end' as const,
+                color: palette.cost,
+                formatter: (_: number, ctx: { dataIndex: number }) =>
+                  `${+((directs[ctx.dataIndex] ?? 0) + (overheads[ctx.dataIndex] ?? 0)).toFixed(1)}억`,
+              },
+            },
+          } },
       ];
       // x축 라벨 클릭 — 다른 차트(드릴다운)와 달리 이 차트는 그 파트를 숨김/복원 토글.
       // 막대 자체를 클릭한 경우(datasetIndex >= 0)는 기존처럼 드릴다운 유지.

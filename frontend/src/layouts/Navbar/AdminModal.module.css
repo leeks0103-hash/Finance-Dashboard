@@ -31,10 +31,10 @@
   gap: 12px;
 }
 
-/* 달성률 · 파일 바로가기 공개 범위 — 짧은 설정 두 개는 한 줄에 */
+/* 공개 범위(달성률·파일·폴더 바로가기) — 짧은 설정은 한 줄에, 좁으면 줄바꿈(2026-10-20 세 개로) */
 .twoCol {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 12px;
 }
 
@@ -158,3 +158,13 @@
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+
+/* 기능 켜기·끄기(AI 인사이트) — 왼쪽 이름·설명, 오른쪽 토글 */
+.toggleGroup {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.toggleText { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.toggleDesc { font-size: 0.72rem; color: var(--text-muted); }

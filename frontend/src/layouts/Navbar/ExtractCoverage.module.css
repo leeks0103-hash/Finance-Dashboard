@@ -206,3 +206,11 @@
 }
 
 .retryBtn { flex-shrink: 0; }
+
+/* 접힌 묶음을 펼쳤을 때 맨 위 쉬운 설명 한 줄 */
+.groupHint {
+  margin: 4px 0 6px;
+  font-size: 0.7rem;
+  line-height: 1.5;
+  color: var(--text-sub);
+}

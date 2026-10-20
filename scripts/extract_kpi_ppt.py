@@ -34,6 +34,9 @@ from shared import strip_stage_suffix as _shared_strip_stage_suffix, local_copy_
 # EXTRACT_ONLY_LIST: 대시보드 "실패 파일만 다시 추출"이 넘기는 경로 목록 파일 — 그 파일만 처리(부분 실행, 2026-10-01)
 ONLY_LIST = _os_boot.environ.get("EXTRACT_ONLY_LIST", "").strip()
 RETRY_MODE = "--retry" in _sys.argv or bool(ONLY_LIST)
+# EXTRACT_REPLACE_FILE_ROWS=1: 대시보드 "선택한 파일만 다시 추출" — 처리에 성공한 파일은 그 파일 이름의 기존 행을 지우고
+# 새로 넣음(덮어쓰기, KPI 표가 없어졌으면 행도 없어짐). 처리 실패면 안 지움(2026-10-19)
+REPLACE_FILE_ROWS = _os_boot.environ.get("EXTRACT_REPLACE_FILE_ROWS", "0") == "1"
 ROOT_DIR = Path(_paths.PPT_SOURCE_DIR)
 
 # 출력 엑셀: 프로젝트 data/ 폴더로 저장
@@ -253,7 +256,9 @@ _STAGE_RANK = {s: i for i, s in enumerate(STAGE_ORDER)}
 
 def _pick_latest_stage(values) -> Optional[str]:
     """재무 표 '구분' 칸 값들 중 가장 진행된 단계(STAGE_ORDER 기준). 아는 단계가 없으면 None."""
-    found = [normalize_text(v) for v in values]
+    # "중간 (상반기)"·"중간(하반기 착수)"처럼 괄호 설명이 붙은 단계는 괄호 앞만 봄 — 예전엔 정확히 같은 글자만 인정해서
+    # 이런 칸을 버리고 표에 같이 적힌 '착수'를 골라 중간 보고서가 착수로 기록됐음(2026-10-20, HDAT 인증평가 중간)
+    found = [re.sub(r"\s+", "", normalize_text(v).split("(")[0]) for v in values]
     found = [v for v in found if v in _STAGE_RANK]
     return max(found, key=_STAGE_RANK.get) if found else None
 
@@ -1325,6 +1330,7 @@ def main():
     total_success = 0
     total_fail = 0
     all_records = []
+    replaced_files = set()   # REPLACE_FILE_ROWS — 처리에 성공해 기존 행을 갈아끼울 파일명
 
     for ppt_path, file_meta in all_target_files:
         logger.info(f"전체 추출 요청: {ppt_path.name}")
@@ -1344,6 +1350,7 @@ def main():
 
         if success:
             total_success += 1
+            replaced_files.add(normalize_text(file_meta["파일명"]))
             if RETRY_MODE:
                 _retry_remaining = [p for p in _retry_remaining if p != str(ppt_path)]
         else:
@@ -1355,6 +1362,15 @@ def main():
                 logger.info(f"[retry 대상 기록] {ppt_path.name}")
 
         wb.save(excel_path)
+
+    if REPLACE_FILE_ROWS and replaced_files:
+        rows_to_delete = [
+            r for r in range(2, data_ws.max_row + 1)
+            if normalize_text(data_ws.cell(row=r, column=FILENAME_COL).value) in replaced_files
+        ]
+        for r in reversed(rows_to_delete):
+            data_ws.delete_rows(r)
+        logger.info(f"[덮어쓰기] 선택한 파일 {len(replaced_files)}개의 기존 행 {len(rows_to_delete)}개 제거 후 새로 반영")
 
     if all_records:
         inserted, updated = upsert_data_rows(data_ws, all_records, conflict_ws)

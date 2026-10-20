@@ -315,7 +315,8 @@ _EXTRACT_SCRIPTS = {
     "finance": "extract_financial_ppt.py",
     "kpi":     "extract_kpi_ppt.py",
 }
-_EXTRACT_MODES = {"incremental", "force", "reset", "failed"}
+_EXTRACT_MODES = {"incremental", "force", "reset", "failed", "selected"}
+_SELECTED_MAX = 300  # mode=selected 한 번에 고를 수 있는 파일 수
 # Navbar에서 "PPT 데이터 추출" 자체를 보이게/실행 가능하게 하는 공용 키 — 아직 배포 전이라
 # LAN에 공유돼도 아무나 못 누르게(2026-09-23, 본인+책임님만 권한). 비어있으면 무조건 거부(안전 기본값)
 EXTRACT_ADMIN_KEY = os.environ.get("EXTRACT_ADMIN_KEY", "").strip()
@@ -351,6 +352,8 @@ def _run_extract_script(name: str, mode: str, only_list: "str | None" = None) ->
     env.pop("EXTRACT_ONLY_LIST", None)
     if only_list:
         env["EXTRACT_ONLY_LIST"] = only_list
+    # mode=selected: 고른 파일은 그 파일 이름으로 남은 기존 행을 지우고 새로 넣음(덮어쓰기) — 열기 실패한 파일은 안 지움(2026-10-19)
+    env["EXTRACT_REPLACE_FILE_ROWS"] = "1" if mode == "selected" else "0"
 
     proc = subprocess.Popen(
         [python, str(script)],
@@ -398,16 +401,38 @@ def _write_failed_list(target: str) -> "tuple[str | None, str]":
     return list_path, f"실패 파일 {len(paths_)}개 다시 추출" + (f" · {note}" if note else "")
 
 
-def _extract_job(targets: list, mode: str):
+def _write_selected_list(target: str, files: list) -> "tuple[str | None, str]":
+    """mode=selected — 관리자가 고른 파일명 중 이 추출(재무/KPI)이 대상으로 삼는 것만 전체경로 목록 파일로.
+    대상 여부·경로는 추출 현황과 같은 폴더 목록 기준(KPI는 깊이 2까지라 재무에만 있는 파일이 있을 수 있음)"""
+    import tempfile
+    from extract_coverage import coverage, find_path
+    data = coverage(force=True)
+    if not data.get("ok") or target not in data:
+        return None, data.get("error") or "원본 폴더 목록을 못 읽었습니다"
+    names = {it["file"] for it in data[target]["items"]}
+    picked = [f for f in files if f in names]
+    paths_ = [p for p in (find_path(f) for f in picked) if p]
+    skipped = len(files) - len(paths_)
+    note = f"이 추출 대상이 아닌 파일 {skipped}개 제외" if skipped else ""
+    if not paths_:
+        return None, note
+    fd, list_path = tempfile.mkstemp(suffix=".txt", prefix=f"extract_selected_{target}_")
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        f.write("\n".join(paths_) + "\n")
+    return list_path, f"선택한 파일 {len(paths_)}개 다시 추출(덮어쓰기)" + (f" · {note}" if note else "")
+
+
+def _extract_job(targets: list, mode: str, files: "list | None" = None):
     global _extract_cancel_requested
     logs = []
     ok_all = True
     cancelled = False
     for t in targets:
-        if mode == "failed":
-            list_path, note = _write_failed_list(t)
+        if mode in ("failed", "selected"):
+            list_path, note = _write_failed_list(t) if mode == "failed" else _write_selected_list(t, files or [])
             if list_path is None:
-                logs.append(f"[{t}] 다시 추출할 실패 파일 없음" + (f" — {note}" if note else ""))
+                what = "실패 파일" if mode == "failed" else "선택한 파일 중 이 추출 대상"
+                logs.append(f"[{t}] 다시 추출할 {what} 없음" + (f" — {note}" if note else ""))
                 continue
             try:
                 ok, msg = _run_extract_script(t, mode, list_path)
@@ -487,6 +512,13 @@ def api_extract_run():
         return jsonify({"ok": False, "error": "targets가 비어있습니다"}), 400
     if mode not in _EXTRACT_MODES:
         return jsonify({"ok": False, "error": "mode 값이 올바르지 않습니다"}), 400
+    files = None
+    if mode == "selected":
+        files = list(dict.fromkeys(str(f).strip() for f in (body.get("files") or []) if str(f).strip()))
+        if not files:
+            return jsonify({"ok": False, "error": "다시 추출할 파일을 고르세요"}), 400
+        if len(files) > _SELECTED_MAX:
+            return jsonify({"ok": False, "error": f"한 번에 {_SELECTED_MAX}개까지 고를 수 있습니다"}), 400
 
     with _extract_lock:
         if _extract_status["running"]:
@@ -502,7 +534,7 @@ def api_extract_run():
             "finished_at": None, "ok": None, "message": "", "cancelled": False,
         })
 
-    threading.Thread(target=_extract_job, args=(targets, mode), daemon=True).start()
+    threading.Thread(target=_extract_job, args=(targets, mode, files), daemon=True).start()
     return jsonify({"ok": True, "started": True})
 
 
@@ -558,10 +590,13 @@ def api_extract_coverage():
 # 서버 파일 하나에 두고 모든 화면이 같은 값을 읽음(2026-10-06). 노출만 관리 — API 접근 자체는 막지 않음.
 # all 전체 / admin 관리자 인증한 브라우저만 / none 아무도
 _VISIBILITY_PATH = Path(__file__).parent / "data" / "visibility.json"
-_VISIBILITY_DEFAULTS = {"fileOpen": "admin", "achieveRate": "none"}
+# folderOpen: 폴더 바로가기 — 파일 바로가기(↗)와 따로(2026-10-20). 기본값은 저장값이 없을 때 예전과 같게 fileOpen 따라감(_read_visibility)
+# aiInsight: AI 인사이트 버튼 — 관리자 기능 토글로 켜고 끔(전체/숨김, 2026-10-20). 기본 숨김(10-02부터 숨겨 둔 상태 유지)
+_VISIBILITY_DEFAULTS = {"fileOpen": "admin", "folderOpen": "admin", "achieveRate": "none", "aiInsight": "none"}
 # 달성률은 처음엔 '전체'를 막았다가(저조한 팀이 모두에게 드러나지 않게, 2026-09-29) 관리자가 고를 수 있게 열어 둠(2026-10-14 요청).
 # 기본값은 그대로 숨김
-_VISIBILITY_CHOICES = {"fileOpen": {"all", "admin", "none"}, "achieveRate": {"all", "admin", "none"}}
+_VISIBILITY_CHOICES = {"fileOpen": {"all", "admin", "none"}, "folderOpen": {"all", "admin", "none"},
+                       "achieveRate": {"all", "admin", "none"}, "aiInsight": {"all", "admin", "none"}}
 _visibility_lock = threading.Lock()
 
 
@@ -578,6 +613,9 @@ def _read_visibility() -> dict:
     for k, choices in _VISIBILITY_CHOICES.items():
         if saved.get(k) in choices:
             out[k] = saved[k]
+    # folderOpen을 따로 저장한 적 없으면 예전처럼 fileOpen 값을 그대로(갑자기 보이거나 숨지 않게)
+    if "folderOpen" not in saved and saved.get("fileOpen") in _VISIBILITY_CHOICES["fileOpen"]:
+        out["folderOpen"] = saved["fileOpen"]
     return out
 
 

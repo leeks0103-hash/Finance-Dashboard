@@ -49,10 +49,10 @@ interface RunExtractResult {
   error?:  string;
 }
 
-export const runExtract = (targets: ExtractTarget[], mode: ExtractMode): Promise<RunExtractResult> =>
+export const runExtract = (targets: ExtractTarget[], mode: ExtractMode, files?: string[]): Promise<RunExtractResult> =>
   client.post<RunExtractResult>(
     '/extract/run',
-    { targets, mode },
+    { targets, mode, ...(files ? { files } : {}) },
     { headers: authHeaders() },
   )
     .then(r => r.data)

@@ -5,20 +5,20 @@ import type { CoverageItem, CoverageStatus, ExtractTarget, SourceCoverage } from
 import styles from './ExtractCoverage.module.css';
 
 const STATUS_LABEL: Record<CoverageStatus, string> = {
-  extracted: '추출됨',
-  merged:    '다른 파일로 합쳐짐',
+  extracted: '반영됨',
+  merged:    '다른 보고서로 반영',
   no_table:  '표 없음',
-  failed:    '실패',
-  pending:   '미처리',
+  failed:    '열기 실패',
+  pending:   '아직 안 읽음',
 };
 
 /** 상태 설명 — 범례에 마우스를 올리면 툴팁으로 */
 const STATUS_HINT: Record<CoverageStatus, string> = {
-  extracted: '취합 시트에 이 파일 이름으로 행이 들어감',
-  merged:    '행은 뽑았지만 같은 (코드/연도/단계) 행을 다른 파일(보통 같은 프로젝트의 다음 단계 보고서)이 덮어써 그 파일 이름으로 남음 — 데이터 손실 아님',
-  no_table:  '열어 봤지만 재무/KPI 표가 없는 PPT(양식 밖 보고서 등)',
-  failed:    '파일을 열지 못함 — 원인과 조치는 목록 참고',
-  pending:   '아직 한 번도 처리 안 됨 — 다음 추출 때 처리됨',
+  extracted: '이 파일의 숫자가 대시보드에 들어가 있음',
+  merged:    '다음 단계 보고서(예: 제안 → 착수)의 표에도 이 단계 숫자가 같이 들어 있어, 대시보드엔 그 다음 보고서 쪽 숫자로 들어가 있음 — 빠진 데이터 아님(두 보고서 숫자가 다르면 다음 보고서 숫자가 쓰임)',
+  no_table:  '파일은 열었지만 재무/KPI 표가 없어 가져올 숫자가 없음(보고서 양식이 아닌 자료 등) — 문제 아님',
+  failed:    '파일을 열지 못해 숫자를 못 가져옴 — 이유와 할 일은 목록 참고',
+  pending:   '새로 들어와 아직 한 번도 읽지 않은 파일 — 다음 추출 때 읽음',
 };
 
 // 막대·범례 순서 — 왼쪽부터 정상 → 확인 필요
@@ -102,25 +102,30 @@ const SourceCard = ({ src, onRetryFailed, retryDisabled }: SourceCardProps) => {
       </div>
 
       <div className={styles.meta}>
-        취합 시트 {src.rows_total}행
-        <span className={styles.metaHint}> — 한 파일에서 보고단계별로 여러 행이 나와 파일 수와 다른 게 정상</span>
+        대시보드에 들어간 줄 {src.rows_total}개
+        <span className={styles.metaHint}> — 보고서 한 개에서 단계별로 여러 줄이 나올 수 있어 파일 수와 달라도 정상</span>
       </div>
 
-      {!src.excel_ok && <div className={styles.warn}>결과 엑셀을 읽지 못했습니다(암호화 등) — 숫자가 비어 있을 수 있음</div>}
+      {!src.excel_ok && <div className={styles.warn}>추출 결과 파일을 읽지 못했습니다(보안 암호화 등) — 아래 숫자가 비어 있을 수 있음</div>}
       {src.duplicate_names > 0 && (
-        <div className={styles.warn}>하위 폴더 여러 곳에 같은 이름 파일 {src.duplicate_names}개 — 결과 엑셀에선 구분 안 됨</div>
+        <div className={styles.warn}>이름이 똑같은 파일이 다른 폴더에 또 있음 {src.duplicate_names}개 — 서로 구분이 안 돼 한쪽만 반영될 수 있음</div>
       )}
 
       {OPEN_GROUPS.some(s => by(s).length > 0) && <ItemList items={OPEN_GROUPS.flatMap(by)} />}
       {FOLDED_GROUPS.map(s => by(s).length > 0 && (
         <details key={s} className={styles.details}>
           <summary>{STATUS_LABEL[s]} {by(s).length}건 보기</summary>
+          <p className={styles.groupHint}>{STATUS_HINT[s]}</p>
           <ItemList items={by(s)} />
         </details>
       ))}
       {src.orphans.length > 0 && (
         <details className={styles.details}>
-          <summary>폴더엔 없는데 결과에 남은 파일 {src.orphans.length}건</summary>
+          <summary>지워졌거나 이름이 바뀐 파일 {src.orphans.length}건</summary>
+          <p className={styles.groupHint}>
+            원본 폴더에서는 없어졌는데(삭제·이름 변경) 예전에 읽은 숫자가 아직 대시보드에 남아 있는 파일입니다.
+            다음 추출 때 자동으로 정리됩니다.
+          </p>
           <ul className={styles.list}>
             {/* 폴더에 없는 파일이라 열기(↗)는 없음 — 복사만 */}
             {src.orphans.map(f => <li key={f} className={styles.item}><span className={styles.file}><CopyText text={f} /></span></li>)}

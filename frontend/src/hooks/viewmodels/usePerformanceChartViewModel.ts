@@ -61,6 +61,8 @@ export interface PerformanceChartViewModel {
     /** 연간 추정 실적(BE열) — 계획이 연간 기준이라 누계 실적(1~N월) 대신 같은 기간끼리 비교 */
     junCheckTotal: number[];
     rows:          PlanVsActualRow[];
+    /** 파트별 계획 대비 추정 실적 %(labels 순서, 계획 0이면 null) — 막대 수치 옆 표시용 */
+    rates:         (number | null)[];
     /** 합계행 — hidden(체크 해제한 파트명)을 뺀 나머지만 원금액으로 합산 */
     totalFor:      (hidden: ReadonlySet<string>) => PlanVsActualRow;
     /** 달성률 컬럼 노출 여부 — 관리자 키 + ⚙ 관리자용 기능 "달성률" 토글 둘 다 만족 */
@@ -75,6 +77,8 @@ export interface PerformanceChartViewModel {
     // "파트별 추정 매출/원가" 카드용 — 연간 추정 매출/원가 2계열 (담당자 지정)
     revenues: number[];
     costs:    number[];
+    /** 공통원가(매출행 BD열, 억) — 원가 막대 위층(아래층은 직접원가 = costs, 2026-10-20) */
+    overheads: number[];
     // 목표선(시범) — 파트별 매출/원가 계획
     planRevenue: number[];
     planCost:    number[];
@@ -155,16 +159,21 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
     },
   }), [showLabels, labelColor, monthlyLength]);
 
+  // 추정 실적 막대 수치 옆에 계획 대비 %(= 달성률, 2026-10-20 요청) — 달성률 공개 범위(showRate)를 따름.
+  // %는 데이터셋의 rates(막대 순서와 같은 배열, 컴포넌트가 숨긴 파트를 뺀 뒤 넘김)에서 읽음. 계획 0이면 % 없음
   const planVsActualOptions = useMemo(() => makeBarOptions(showLabels, labelColor, {
-    layout: { padding: { right: 52 } },
+    layout: { padding: { right: showRate ? 104 : 52 } },
     plugins: {
       datalabels: {
         anchor: 'end',
         align:  'end',
-        formatter: (v: number) => `${v}억`,
+        formatter: (v: number, ctx: { dataIndex: number; dataset: { rates?: (number | null)[] } }) => {
+          const rate = showRate ? ctx.dataset.rates?.[ctx.dataIndex] : null;
+          return rate != null ? `${v}억 (${rate}%)` : `${v}억`;
+        },
       },
     },
-  }), [showLabels, labelColor]);
+  }), [showLabels, labelColor, showRate]);
 
   const profitRateOptions = useMemo(() => makeBarOptions(showLabels, labelColor, {
     // bottom — 마이너스 막대는 수치가 막대 아래에 찍히므로 잘리지 않게 여백 확보
@@ -250,6 +259,7 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
           planInitial:   parts.map(p => toEokNum(summary.by_part[p].plan_initial)),
           junCheckTotal: parts.map(p => toEokNum(summary.by_part[p].jun_check_total)),
           rows,
+          rates: rows.map(r => r.rate),
           totalFor: (hidden: ReadonlySet<string>) =>
             toRow('합계', sum('plan_initial', hidden), sum('jun_check_total', hidden)),
         };
@@ -262,6 +272,7 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
         // "파트별 추정 매출/원가" — 누계(jun_actual/jun_cost)가 아니라 연간 추정치 기준
         revenues: parts.map(p => toEokNum(summary.by_part[p].jun_check_total)),
         costs:    parts.map(p => toEokNum(summary.by_part[p].jun_cost_check)),
+        overheads: parts.map(p => toEokNum(summary.by_part[p].cost_overhead ?? 0)),
         planRevenue: parts.map(p => toEokNum(summary.by_part[p].plan_initial)),
         planCost:    parts.map(p => toEokNum(summary.by_part[p].plan_cost)),
       },
@@ -326,8 +337,8 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
     return {
       isLoading, isError, isEmpty: false, showLabels, labelColor,
       monthly:          { labels: [], revenues: [], costs: [], isFuture: [], rows: [], options: monthlyOptions },
-      planVsActual:     { labels: [], planInitial: [], junCheckTotal: [], rows: [], totalFor: () => ({ part: '합계', plan: 0, actual: 0, diff: 0, rate: null }), showRate, options: planVsActualOptions },
-      profitRate:       { labels: [], rates: [], profits: [], isProfit: [], revenues: [], costs: [], planRevenue: [], planCost: [], options: profitRateOptions },
+      planVsActual:     { labels: [], planInitial: [], junCheckTotal: [], rows: [], rates: [], totalFor: () => ({ part: '합계', plan: 0, actual: 0, diff: 0, rate: null }), showRate, options: planVsActualOptions },
+      profitRate:       { labels: [], rates: [], profits: [], isProfit: [], revenues: [], costs: [], overheads: [], planRevenue: [], planCost: [], options: profitRateOptions },
       costBreakdown:    { labels: [], values: [] },
       progress:         { labels: [], revenues: [], expenditures: [], options: progressOptions },
       partOptions:      ['전체'],

@@ -35,8 +35,8 @@ export const CellPopup = ({ title, popup, copied, onClose, onCopy }: Props) => {
   const [folderState, setFolderState] = useState<'idle' | 'busy' | 'done'>('idle');
   useEffect(() => { setFolderState('idle'); }, [popup?.text]);
   if (!popup) return null;
-  const onOpen = canOpen ? popup.onOpen : undefined;
-  const onOpenFolder = canOpen ? popup.onOpenFolder : undefined;
+  const onOpen = canOpen.file ? popup.onOpen : undefined;
+  const onOpenFolder = canOpen.folder ? popup.onOpenFolder : undefined;
 
   return createPortal(
     <div className={`${styles.popupOverlay} ${closing ? 'closingOverlay' : ''}`} onClick={close}>
@@ -49,7 +49,7 @@ export const CellPopup = ({ title, popup, copied, onClose, onCopy }: Props) => {
             큰 버튼이었음(2026-09-29 버튼으로 통일, 바로가기 복구) */}
         <div className={styles.popupBody}>
           <span className={styles.popupText}>{popup.text}</span>
-          {(popup.copyable || onOpen) && (
+          {(popup.copyable || onOpen || onOpenFolder) && (
             <span className={styles.popupActions}>
               {popup.copyable && (
                 <Button

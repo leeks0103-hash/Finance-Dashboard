@@ -154,19 +154,20 @@ def _source_coverage(key: str, folder_files: list[str]) -> dict:
         h = latest.get(name)
         rows = int(rows_by_file.get(name, 0))
         if h is None:
-            status, reason = "pending", "아직 처리 안 됨(처리이력에 없음) — 다음 추출 때 처리됨"
+            status, reason = "pending", "새로 들어온 파일 — 아직 한 번도 읽지 않았고, 다음 추출 때 읽습니다"
         elif h["status"] in cfg["fail_status"]:
             status, reason = "failed", _explain_failure(h["path"])
         elif rows > 0:
             status, reason = "extracted", ""
         elif _NO_TABLE_RE.search(h["message"]):
             # 열어 봤지만 재무/KPI 표가 없는 PPT(양식 밖 보고서·자체 기획 등)
-            status, reason = "no_table", h["message"]
+            status, reason = "no_table", "파일은 열었지만 재무/KPI 표가 없어 가져올 숫자가 없음(보고서 양식이 아닌 자료 등) — 문제 아님"
         else:
             # 행은 뽑았는데 취합엔 이 파일 이름의 행이 없음 — 같은 (코드/연도/단계) 키를 쓰는 다른 파일(보통 같은 프로젝트의
             # 다음 단계 보고서)이 나중에 같은 행을 덮어써서 그 파일 이름으로 남은 것. 데이터가 사라진 건 아님
             status = "merged"
-            reason = f"{h['message']} → 같은 (코드/연도/단계) 행을 다른 파일이 덮어써 그 파일 이름으로 남음(보통 같은 프로젝트의 다른 단계 보고서)"
+            reason = ("다음 단계 보고서(예: 제안 → 착수)의 표에도 이 단계 숫자가 같이 들어 있어, 대시보드엔 그 다음 보고서 쪽 숫자로 들어가 있음"
+                      " — 빠진 데이터 아님(두 보고서 숫자가 다르면 다음 보고서 숫자가 쓰임)")
         result["counts"][status] += 1
         result["items"].append({"file": name, "status": status, "rows": rows, "reason": reason,
                                 # 원본 처리 메시지(오류 코드 등) — 실패일 때만, 화면엔 마우스 올렸을 때만

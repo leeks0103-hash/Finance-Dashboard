@@ -2,7 +2,8 @@ export type ExtractTarget = 'finance' | 'kpi';
 
 /** incremental=증분(기본, 바뀐 파일만) · force=초기화 없이 전체 재처리 · reset=출력 초기화 후 전체 재구축(파괴적) */
 /** failed = 추출 현황에서 '실패'인 파일만 다시(DRM 파일은 로컬 사본으로 시도, 2026-10-01) */
-export type ExtractMode = 'incremental' | 'force' | 'reset' | 'failed';
+/** selected = 고른 파일만 다시(그 파일 이름의 기존 행을 지우고 새로 넣음 — 덮어쓰기, 2026-10-19) */
+export type ExtractMode = 'incremental' | 'force' | 'reset' | 'failed' | 'selected';
 
 export interface ExtractStatus {
   running:     boolean;

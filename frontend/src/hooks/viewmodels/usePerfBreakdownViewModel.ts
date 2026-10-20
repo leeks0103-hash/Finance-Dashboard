@@ -23,7 +23,7 @@ export interface PerfBreakdownTarget {
 // 백엔드가 "알 수 없는 차트/시리즈"만 돌려줘서 빈 모달이 떴음. 그런 클릭은 아예 모달을 안 연다
 // (2026-09-28). performance.py _PERF_BREAKDOWN에 시리즈를 추가하면 여기도 같이 올릴 것
 const PERF_BREAKDOWN_SERIES: Record<PerfBreakdownChart, number> = {
-  monthly: 5, planVsActual: 2, profitRate: 2, partAchievement: 2, costBreakdown: 5,
+  monthly: 5, planVsActual: 2, profitRate: 3, partAchievement: 2, costBreakdown: 5,
 };
 export const canPerfBreakdown = (chart: PerfBreakdownChart, series: number) =>
   series >= 0 && series < (PERF_BREAKDOWN_SERIES[chart] ?? 0);

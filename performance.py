@@ -546,6 +546,16 @@ def _perf_failed_newest() -> bool:
 _PROGRESS_PRIORITY = ["제안", "협의", "착수", "중간", "완료", "인큐베이팅", "이월", "드롭", "미정"]
 
 
+# 어느 팀에도 속하지 않는 파트 — K뉴딜TF는 원본에서 행마다 팀이 SW·전동화/모빌리티·기획으로 나뉘어 적혀 있어
+# 어느 팀을 골라도 끼어 들어갔음(2026-10-20, 심각 — 팀 실적에 K뉴딜TF가 섞임). 팀을 고르면 빼고, 팀 → 파트 목록에도 안 넣음.
+# 팀 "전체"이거나 이 파트를 직접 고르면 그대로 보임. 원문자 뗀 이름으로 비교
+_TEAMLESS_PARTS = {"K뉴딜TF"}
+
+
+def _is_teamless_part(part) -> bool:
+    return PART_PREFIX_RE.sub("", str(part)).strip() in _TEAMLESS_PARTS
+
+
 def apply_perf_filters(df: pd.DataFrame) -> pd.DataFrame:
     parts = request.args.getlist("part")
     team  = request.args.get("team", "")
@@ -553,7 +563,7 @@ def apply_perf_filters(df: pd.DataFrame) -> pd.DataFrame:
         stripped_part = df["part"].astype(str).apply(lambda p: PART_PREFIX_RE.sub("", p))
         df = df[stripped_part.isin(parts)]
     if team:
-        df = df[df["team"] == team]
+        df = df[(df["team"] == team) & ~df["part"].apply(_is_teamless_part)]
     return df
 
 
@@ -610,7 +620,7 @@ def api_perf_options():
         sorted(p for p in progress_present if p not in _PROGRESS_PRIORITY)
     # 팀 → 그 팀 소속 파트 목록 — 원가 비율 카드에서 "팀 고르면 파트가 좁혀지는" 용도
     team_parts = {
-        team: sorted(g["part"].dropna().unique().tolist())
+        team: sorted(p for p in g["part"].dropna().unique().tolist() if not _is_teamless_part(p))
         for team, g in df.dropna(subset=["team"]).groupby("team")
     }
     # 담당자 — 프로젝트 상세 열 필터의 고르기 목록(2026-10-14)
@@ -1268,8 +1278,11 @@ _PERF_BREAKDOWN = {
         "series": [
             {"label": "매출", "category": "매출", "field": "jun_check_total",
              "field_desc": "매출행의 연간 점검 합계 (엑셀 BH열)"},
-            {"label": "원가", "category": "원가", "field": "jun_check_total",
+            {"label": "직접원가", "category": "원가", "field": "jun_check_total",
              "field_desc": "원가행의 연간 점검 합계 (엑셀 BH열) — 매출행 '직접원가(BB열)'와 1:1로 대응"},
+            # 원가 막대 위층(2026-10-20) — 손익의 공통원가(매출행 BD열, 연간 기준)
+            {"label": "공통원가", "category": "매출", "field": "cost_overhead",
+             "field_desc": "매출행의 공통원가 (엑셀 BD열, 연간 기준)"},
         ],
     },
     "partAchievement": {

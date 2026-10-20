@@ -77,8 +77,8 @@ export const useExtractJob = () => {
   });
 
   const runMutation = useMutation({
-    mutationFn: ({ targets, mode }: { targets: ExtractTarget[]; mode: ExtractMode }) =>
-      runExtract(targets, mode),
+    mutationFn: ({ targets, mode, files }: { targets: ExtractTarget[]; mode: ExtractMode; files?: string[] }) =>
+      runExtract(targets, mode, files),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['extract-status'] }); },
   });
 

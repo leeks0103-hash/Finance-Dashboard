@@ -6,7 +6,7 @@ import type { VisibilitySettings } from '@/types/settings.types';
 const QUERY_KEY = ['settings-visibility'];
 
 /** 서버가 응답하기 전·실패 시 기본값 — 서버 기본값과 같게(바로가기 관리자만, 달성률 숨김) */
-const DEFAULTS: VisibilitySettings = { fileOpen: 'admin', achieveRate: 'none' };
+const DEFAULTS: VisibilitySettings = { fileOpen: 'admin', folderOpen: 'admin', achieveRate: 'none', aiInsight: 'none' };
 
 /** 기능별 공개 범위(서버 저장) — 관리자가 바꾸면 다른 화면엔 1분 안에 반영 */
 export const useVisibilitySettings = () => {
