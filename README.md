@@ -23,8 +23,9 @@ cd frontend && npm install
 ## 2. 켜기 / 끄기
 
 ```bash
-python dashboard_manager.py --start   # 켜기 (dashboard_start.bat 더블클릭도 같음)
-python dashboard_manager.py --stop    # 끄기
+python dashboard_manager.py --start   # 켜기 — 이미 켜져 있으면 재시작 (dashboard_start.bat 더블클릭도 같음)
+python dashboard_manager.py           # 켜져 있으면 끄고, 꺼져 있으면 켬
+python dashboard_manager.py --status  # 상태만 확인
 ```
 - 내 PC: `http://localhost:5188`
 - 다른 사람: `http://<이 PC IP>:5188` (예: `http://10.206.32.222:5188`)
@@ -62,7 +63,7 @@ python dashboard_manager.py --stop    # 끄기
 ⚙ > 관리자 기능 > 공개 범위 — 바꾸면 모든 사람 화면에 바로 적용
 
 ### 계정을 추가·변경했을 때
-`.env` 수정 → **Flask 재시작**(`--stop` 후 `--start`)
+`.env` 수정 → **Flask 재시작**(`--start` 한 번)
 
 ### 코드(.py)를 고쳤을 때
 **Flask 재시작** 필요. `/api/*/reload`는 엑셀만 다시 읽고 코드는 안 바뀜. 프론트(.tsx)는 저장하면 바로 반영
