@@ -141,23 +141,15 @@ const Navbar = () => {
 
         {/* 우측 — (KPI/실적현황 탭) 다운로드 + 설정 */}
         <div className={styles.right}>
-          {/* 인사이트 버튼(각 ActionBar의 첫 자식) 왼쪽에 배치 — 항상 마운트해두고 없을 때만
-              visibility:hidden으로 숨김(display:none/조건부 마운트 대신). 그래야 이상 건수가
-              0→N으로 바뀌는 순간에도 이 자리(너비+gap)가 그대로라 옆 버튼들이 리플로우로
-              밀리지 않음(예전엔 조건부 렌더로 나타날 때마다 ActionBar가 옆으로 밀렸음) */}
           {/* 업데이트 요청 노란 "!" — 관리자만(조회 자체가 관리자일 때만), 2026-10-21 */}
           {adminAuthed && <ExtractRequestBadge onExtract={files => { setAdminPreset(files); setAdminOpen(true); }} />}
-          {/* 나타나고 사라질 때 살짝 커지며 페이드(.healthShown) — 예전엔 인라인 visibility로 뚝 켜지고 꺼졌음 */}
-          <div
-            className={`${styles.health} ${healthTotal > 0 ? styles.healthShown : ''}`}
-            ref={healthRef}
-            data-tour="health"
-            aria-hidden={healthTotal === 0}
-          >
+          {/* 빨간 "!"(데이터 이상) — 0건이면 아예 안 그림(2026-10-21). 예전엔 자리를 비워 둬서(visibility)
+              옆 버튼이 안 밀리게 했는데, 이상이 없을 때 노란 "!"가 빈칸 하나 떨어져 보였음. 나타날 땐 .health 등장 애니메이션 */}
+          {healthTotal > 0 ? (
+          <div className={styles.health} ref={healthRef} data-tour="health">
               <Button unstyled
                 className={styles.healthBtn}
                 onClick={() => setHealthOpen(v => !v)}
-                tabIndex={healthTotal > 0 ? 0 : -1}
                 aria-label={`KPI/재무 데이터 이상 ${healthTotal}건`}
                 aria-expanded={healthOpen}
                 title={`KPI/재무 데이터 이상 ${healthTotal}건 (코드 충돌 ${healthConflicts.length} / KPI↔재무 코드 불일치 ${healthRows.length} / 완료보고 이상 ${finishedAnomalies.length}${readFailures.length ? ` / 코드충돌 시트 읽기 실패 ${readFailures.length}` : ''})`}
@@ -272,6 +264,7 @@ const Navbar = () => {
                 </div>
               )}
           </div>
+          ) : null}
 
           {activeTab === 'kpi' && <KpiActionBar />}
           {activeTab === 'performance' && <PerformanceActionBar />}

@@ -29,11 +29,12 @@ const ExtractRequestBadge = ({ onExtract }: Props) => {
     return () => document.removeEventListener('mousedown', handler);
   }, [open]);
 
-  const shown = items.length > 0;
+  // 요청 0건이면 안 그림(빨간 "!"와 같은 방식, 2026-10-21)
+  if (items.length === 0) return null;
   return (
-    <div className={`${styles.health} ${shown ? styles.healthShown : ''}`} ref={ref} aria-hidden={!shown}>
+    <div className={styles.health} ref={ref}>
       <Button unstyled className={`${styles.healthBtn} ${styles.requestBtn}`}
-        onClick={() => setOpen(v => !v)} tabIndex={shown ? 0 : -1}
+        onClick={() => setOpen(v => !v)}
         aria-label={`업데이트 요청 ${items.length}건`} aria-expanded={open}
         title={`PPT 업데이트(다시 추출) 요청 ${items.length}건`}>
         !
@@ -57,9 +58,9 @@ const ExtractRequestBadge = ({ onExtract }: Props) => {
                     <span className={styles.healthDesc}>
                       {it.at}{it.by ? ` · ${it.by}` : ''} 요청
                       {' · '}
-                      {it.changed === true ? <b className={styles.requestChanged}>원본 바뀜</b>
-                        : it.changed === false ? <b className={styles.requestSame}>마지막 추출 뒤 원본 안 바뀜(저장 안 했을 수 있음)</b>
-                        : '원본 수정 시각 모름'}
+                      {it.changed === true ? <b className={styles.requestChanged}>원본이 바뀌었어요</b>
+                        : it.changed === false ? <b className={styles.requestSame}>마지막 추출 뒤로 원본이 바뀌지 않았어요(저장을 안 하셨을 수 있어요)</b>
+                        : '원본 수정 시각을 알 수 없어요'}
                       {it.modified ? ` (원본 ${it.modified}` : ''}{it.modified ? `${it.last_extracted ? ` · 추출 ${it.last_extracted}` : ''})` : ''}
                     </span>
                   </div>

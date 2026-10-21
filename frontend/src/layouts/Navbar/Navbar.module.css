@@ -96,18 +96,12 @@
    평소엔 렌더 자체가 안 됨(healthRows.length === 0) */
 .health {
   position: relative;
-  /* 기본은 숨김(자리는 차지 — 옆 버튼이 안 밀리게). 이상 건수가 생기면 .healthShown으로 살짝 커지며 등장.
-     사라질 땐 다 흐려진 뒤에 visibility를 끔(transition-delay) */
-  opacity: 0;
-  visibility: hidden;
-  transform: scale(0.6);
-  transition: opacity 0.2s ease, transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), visibility 0s 0.2s;
+  /* 이상이 생기면 그때 마운트 — 살짝 커지며 등장 */
+  animation: healthPop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-.healthShown {
-  opacity: 1;
-  visibility: visible;
-  transform: none;
-  transition-delay: 0s;
+@keyframes healthPop {
+  from { opacity: 0; transform: scale(0.6); }
+  to   { opacity: 1; transform: none; }
 }
 
 .healthBtn {
@@ -445,7 +439,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .dropdown { animation: none; }
-  .health { transition: none; transform: none; }
+  .health { animation: none; }
   .extractRunningBadge { animation: none; }
   .adminBusySpinner { animation-duration: 1.4s; }
   .themeIcon { animation: none; }
