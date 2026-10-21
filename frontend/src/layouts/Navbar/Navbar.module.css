@@ -469,3 +469,19 @@
 /* 항목 제목(코드 충돌의 코드) — 브랜드 남색 굵게, 설명 줄은 작고 흐리게: 셋이 같은 굵기·색이라 밋밋했음(2026-10-20) */
 .healthCode { color: var(--accent); font-weight: 700; }
 .healthDesc { font-size: 0.74rem; font-weight: 400; color: var(--text-muted); }
+
+/* 업데이트 요청 노란 "!"(관리자만, 2026-10-21) — 데이터 이상 빨간 "!"와 구분. 노랑은 9색에 없어 Hyundai Gold 밝은 톤 */
+.requestBtn {
+  background: rgba(199, 148, 113, 0.18);
+  border-color: rgb(199, 148, 113);
+  color: rgb(199, 148, 113);
+  animation-name: requestPulse;
+}
+.requestBtn:hover { background: rgb(199, 148, 113); color: #fff; }
+@keyframes requestPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(199, 148, 113, 0.5); }
+  50%      { box-shadow: 0 0 0 4px rgba(199, 148, 113, 0); }
+}
+.requestChanged { color: var(--accent); font-weight: 600; }
+.requestSame    { color: var(--warn, #a36b4f); font-weight: 600; }
+.requestFoot { padding: 4px 14px 12px; display: flex; justify-content: flex-end; }

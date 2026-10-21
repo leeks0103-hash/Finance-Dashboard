@@ -8,6 +8,13 @@
   같은 파일이 상대 PC에 추적 안 된 채 있으면 "untracked working tree files would be overwritten"로 pull이 멈춤.
   `data/**/*.xlsx|xls|csv`로 바꾸고 추적 해제(로컬 파일은 그대로)
 - ⚠️ `현대엔지비사용자목록_261014.xlsx`(사번·시크릿키)가 GitHub 이력에 남아 있음 — 이력 정리(force push)·비밀번호 교체 여부 결정 필요
+- 파트별 계획 vs 추정 실적: 세로축 파트명 자간 -1px(`tightTicksPlugin` — y축 update·drawLabels 동안만 canvas letterSpacing), 달성률(%·제목 안내·확대 표 열)은 공개 범위와 무관하게 항상(요청)
+- **PPT 업데이트(재추출) 요청**: 파일명 옆 아이콘(복사·폴더·↗ 옆 둥근 화살표, CopyText·셀 팝업·KPI 상세) — 누구나 누름(공개 범위 무관).
+  누르면 원본 수정 시각 vs 마지막 처리일시를 보여 주고("원본 바뀜" / "안 바뀜 — 저장하셨나요?") 확인 후 서버 `data/extract_requests.json`(요청자·시각)에.
+  관리자에게만 헤더 노란 "!"(`layouts/Navbar/ExtractRequestBadge`, 1분 폴링) → 목록(바뀜 여부·지우기) → "N개 선택 추출로 열기" = 관리자 기능 창을 그 파일들 고른 '선택' 방식으로.
+  요청 뒤에 다시 추출되면 저절로 빠짐(데이터 이상 '수정 완료'와 같은 규칙). 원본은 stat만(안 엶). API `extract_requests.py` — check·POST(로그인)·GET·dismiss(관리자)
+- AI 인사이트 토글 트랙의 켬/끔 글자 뺌. 미수주 프로젝트 비고·프로젝트 상세 프로젝트명 칸 글자 왼쪽 정렬(머리글은 가운데, `ColumnMeta.alignLeft`)
+- 확인: 업데이트 요청 API test_client(확인·요청·목록·지우기), tsc(기존 오류 2개 그대로). 화면 확인은 아직. Flask 재시작함
 
 ## [2026-10-20] PPT 추출 — "선택" 방식(고른 파일만 다시, 덮어쓰기)
 

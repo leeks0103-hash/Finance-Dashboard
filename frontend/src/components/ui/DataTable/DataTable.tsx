@@ -1205,9 +1205,11 @@ const DataTable = <T extends object>({
                                 // 팝업 제목 = 클릭한 컬럼 이름(파일명·비고…) — 예전엔 전부 "셀 내용"
                                 const header = cell.column.columnDef.header;
                                 const openFolder = onOpenFile?.openFolder;
+                                const requestUpdate = onOpenFile?.requestUpdate;
                                 openPopup(text, true, onOpenFile ? () => onOpenFile(text) : undefined,
                                   typeof header === 'string' ? header : cell.column.id,
-                                  openFolder ? () => openFolder(text) : undefined);
+                                  openFolder ? () => openFolder(text) : undefined,
+                                  requestUpdate ? () => requestUpdate(text) : undefined);
                               } : undefined}
                               onDoubleClick={
                                 canExpand
@@ -1223,6 +1225,7 @@ const DataTable = <T extends object>({
                                 cell.column.id === '__index' ? styles.indexCell : '',
                                 cell.column.columnDef.meta?.staticCol ? styles.staticCol : '',
                                 cell.column.columnDef.meta?.emphasisCol ? styles.emphasisCol : '',
+                                cell.column.columnDef.meta?.alignLeft ? styles.tdLeft : '',
                                 highlightedCol === cell.column.id ? styles.tdHighlighted : '',
                                 isMuted ? styles.cellMuted : '',
                                 flag ? styles.cellFlagged : '',

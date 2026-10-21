@@ -31,7 +31,7 @@ const PerformanceInsightSection = () => {
     h.accessor('part', { header: '파트', size: 90 }),
     // 글씨가 짧아도(길이 무관) 복사 가능해야 해서 DataTable의 20자 이상 자동팝업 대신
     // CopyText를 직접 씀(2026-09-15 사용자 지정 — 특히 비고·미수사유)
-    h.accessor('note', { header: '비고', size: 220, cell: i => i.getValue() ? <CopyText text={i.getValue()} /> : <span>-</span> }),
+    h.accessor('note', { header: '비고', size: 220, meta: { alignLeft: true }, cell: i => i.getValue() ? <CopyText text={i.getValue()} /> : <span>-</span> }),
     h.accessor('missed_bid_reason', {
       header: '미수사유',
       size: 260,

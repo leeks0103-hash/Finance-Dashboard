@@ -74,6 +74,8 @@ interface Props {
    *  모달에서 인증해도 Navbar(추출 중 배지 등)는 모름 */
   extractJob: ReturnType<typeof useExtractJob>;
   onClose: () => void;
+  /** 업데이트 요청 "!"에서 열 때 — 이 파일들을 고른 채 '선택' 방식으로 시작(2026-10-21) */
+  initialSelected?: string[];
 }
 
 /**
@@ -81,7 +83,7 @@ interface Props {
  * 예전엔 280px 드롭다운 안에 다 들어 있어 비좁았고, 확인창 버튼을 누르면 "바깥 클릭"으로 드롭다운이
  * 닫히는 문제도 있어 모달로 분리(2026-09-30 요청). 권한(EXTRACT_ADMIN_KEY) 없으면 인증 버튼만 보임.
  */
-const AdminModal = ({ extractJob, onClose }: Props) => {
+const AdminModal = ({ extractJob, onClose, initialSelected }: Props) => {
   const visibility = useVisibilitySettings();
 
   // 추출이 이미 돌고 있으면 그 작업의 대상·방식으로 시작 — 모달을 다시 열어도 실제 작업과 어긋나지 않게
@@ -90,11 +92,11 @@ const AdminModal = ({ extractJob, onClose }: Props) => {
     () => running?.targets ?? ['finance', 'kpi'],
   );
   const [extractMode, setExtractMode] = useState<PickMode>(
-    () => (running?.mode && running.mode in EXTRACT_MODE_INFO && !DISABLED_MODES.has(running.mode as PickMode) ? running.mode as PickMode : 'incremental'),
+    () => !running && initialSelected?.length ? 'selected' : (running?.mode && running.mode in EXTRACT_MODE_INFO && !DISABLED_MODES.has(running.mode as PickMode) ? running.mode as PickMode : 'incremental'),
   );
   const extractLocked = extractJob.isRunning || extractJob.isStarting;
   // mode=selected — 다시 추출할 파일명(원본 폴더 기준)
-  const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<string[]>(() => initialSelected ?? []);
   const [extractAuthError, setExtractAuthError] = useState('');
 
   const toggleExtractTarget = (t: ExtractTarget) => {
@@ -201,7 +203,7 @@ const AdminModal = ({ extractJob, onClose }: Props) => {
             <Toggle
               checked={visibility.settings.aiInsight !== 'none'}
               onChange={() => visibility.update({ aiInsight: visibility.settings.aiInsight === 'none' ? 'all' : 'none' })}
-              label={visibility.settings.aiInsight === 'none' ? '끔' : '켬'}
+              /* 트랙 안 켬/끔 글자 뺌(2026-10-21 요청) */
             />
           </section>
           <span className={styles.hint}>

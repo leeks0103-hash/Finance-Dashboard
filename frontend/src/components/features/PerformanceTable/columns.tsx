@@ -110,7 +110,7 @@ const buildColumns = (_PERF_MONTH: string, finCompare: boolean) => [
     },
   }),
   h.accessor('progress',     { header: '진행',       size: 78,  cell: txt, meta: selectFilter }),
-  h.accessor('project_name', { header: '프로젝트명', size: 320, cell: txt, meta: { cellPopup: true, ...textFilter } }),
+  h.accessor('project_name', { header: '프로젝트명', size: 320, cell: txt, meta: { cellPopup: true, alignLeft: true, ...textFilter } }),
   // 팀·파트 — 기본 표시(2026-10-02 요청). 프로젝트명과 담당자 사이
   h.accessor('team',         { header: '팀',           size: 172, cell: txt, meta: selectFilter }),
   // 파트 앞 원문자(①~⑦)는 차트·필터 칩 등에선 stripPartPrefix로 이미 떼고 보여주는데

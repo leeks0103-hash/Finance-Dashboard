@@ -34,6 +34,7 @@ data/perf_update.json
 data/perf_col_maps.json
 data/perf_update_status.json
 data/health_ack.json
+data/extract_requests.json
 
 # 로그
 *.log

@@ -4,4 +4,6 @@
  */
 export type FileOpener = ((filename: string) => void | Promise<unknown>) & {
   openFolder?: (filename: string) => void | Promise<unknown>;
+  /** 붙어 있으면 업데이트(재추출) 요청 버튼도 그림 — 원본을 고친 뒤 관리자에게 알림(2026-10-21) */
+  requestUpdate?: (filename: string) => void | Promise<unknown>;
 };

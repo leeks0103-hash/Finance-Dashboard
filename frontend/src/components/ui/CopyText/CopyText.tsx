@@ -41,6 +41,14 @@ const FolderIcon = () => (
   </svg>
 );
 
+/** 업데이트 요청 — 종이비행기(관리자에게 요청 보내기). 둥근 화살표는 새로고침처럼 보여서 바꿈(2026-10-21) */
+const RequestIcon = () => (
+  <svg className={styles.openIcon} viewBox="0 0 12 12" width="12" height="12" aria-hidden="true">
+    <path d="M10.6 1.4 1.4 5.2l3.6 1.5 1.5 3.7 4.1-9Z" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
+    <path d="M10.6 1.4 5 6.7" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+  </svg>
+);
+
 /** 폴더 열림 ✓ */
 const DoneIcon = () => (
   <svg className={styles.openIcon} viewBox="0 0 12 12" width="12" height="12" aria-hidden="true">
@@ -56,6 +64,8 @@ const CopyText = ({ text, className, highlight, onSearch, onOpen, truncate, cent
   const [opening, setOpening] = useState(false);
   // 폴더 열기 — 누르면 스피너, 열리면 ✓ 잠깐(복사·↗처럼 눌렀다는 반응, 2026-10-06)
   const [folderState, setFolderState] = useState<'idle' | 'busy' | 'done'>('idle');
+  // 업데이트 요청 — 폴더와 같은 반응(스피너 → ✓)
+  const [requestState, setRequestState] = useState<'idle' | 'busy' | 'done'>('idle');
   const canOpen = useContext(FileOpenVisibleContext);
 
   const copy = useCallback(async () => {
@@ -88,6 +98,20 @@ const CopyText = ({ text, className, highlight, onSearch, onOpen, truncate, cent
     }
   };
 
+  const handleRequest = async (e: MouseEvent) => {
+    e.stopPropagation();
+    if (!onOpen?.requestUpdate || requestState === 'busy') return;
+    setRequestState('busy');
+    let ok = false;
+    try {
+      const r = await onOpen.requestUpdate(text);
+      ok = !!(r as { ok?: boolean } | undefined)?.ok;
+    } finally {
+      setRequestState(ok ? 'done' : 'idle');
+      if (ok) setTimeout(() => setRequestState('idle'), COPIED_MS);
+    }
+  };
+
   const handleOpen = async (e: MouseEvent) => {
     e.stopPropagation();
     if (!onOpen || opening) return;
@@ -116,7 +140,9 @@ const CopyText = ({ text, className, highlight, onSearch, onOpen, truncate, cent
   // 복사한 직후의 ✓만 ↗ 뒤 자리에 잠깐 표시. 전체 폭은 그대로라 표 컬럼 폭은 안 바뀜
   const showOpen = !!onOpen && canOpen.file;
   const showFolder = !!onOpen?.openFolder && canOpen.folder;
-  const showAny = showOpen || showFolder;
+  // 업데이트 요청은 공개 범위와 무관하게 누구나(원본을 고친 사람이 누름, 2026-10-21)
+  const showRequest = !!onOpen?.requestUpdate;
+  const showAny = showOpen || showFolder || showRequest;
   // 복사 후: 텍스트 체크마크 / 복사 전: CSS로만 만든 아이콘(after면 호버 아이콘 없이 ✓만)
   const copyIcon = (after: boolean) => (
     <span className={`${styles.icon} ${after ? styles.iconAfter : ''} ${copied ? styles.check : ''}`} aria-hidden="true">
@@ -160,6 +186,16 @@ const CopyText = ({ text, className, highlight, onSearch, onOpen, truncate, cent
           onClick={handleOpenFolder}>
           {folderState === 'busy' ? <span className={styles.openSpinner} aria-hidden="true" />
             : folderState === 'done' ? <DoneIcon /> : <FolderIcon />}
+        </Button>
+      )}
+      {showRequest && onOpen?.requestUpdate && (
+        <Button unstyled
+          className={`${styles.openBtn} ${styles.folderBtn} ${requestState === 'busy' ? styles.opening : ''} ${requestState === 'done' ? styles.folderDone : ''}`}
+          title={requestState === 'busy' ? '확인 중…' : requestState === 'done' ? '요청했습니다' : `원본을 고쳤으면 업데이트(다시 추출) 요청 — ${text}`}
+          aria-label={requestState === 'done' ? '요청함' : '업데이트 요청'} aria-busy={requestState === 'busy'}
+          onClick={handleRequest}>
+          {requestState === 'busy' ? <span className={styles.openSpinner} aria-hidden="true" />
+            : requestState === 'done' ? <DoneIcon /> : <RequestIcon />}
         </Button>
       )}
       {showAny && copyIcon(true)}

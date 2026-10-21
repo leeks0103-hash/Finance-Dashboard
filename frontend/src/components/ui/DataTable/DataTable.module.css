@@ -777,3 +777,6 @@
   cursor: pointer;
 }
 .filterChipX:hover { color: var(--danger); }
+
+/* 셀만 왼쪽 정렬(ColumnMeta.alignLeft) — 머리글은 가운데 그대로 */
+.table td.tdLeft { text-align: left; }

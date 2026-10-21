@@ -13,6 +13,7 @@ import ChartColorModal from './ChartColorModal';
 import { useTheme } from '@/hooks';
 import { useDataHealth, useDataHealthAck } from '@/hooks/useDataHealth';
 import HealthAckButton from './HealthAckButton';
+import ExtractRequestBadge from './ExtractRequestBadge';
 import { useChartLabelToggle } from '@/hooks/useChartLabelToggle';
 import { useKeyShortcuts } from '@/hooks/useKeyShortcuts';
 import { toast } from '@/utils/dialog';
@@ -40,6 +41,7 @@ const SunIcon = () => (
 const Navbar = () => {
   const { theme, toggle: toggleTheme } = useTheme();
   const { showRawValues, toggleRawValues, showFinCompare, toggleFinCompare } = useUiStore();
+  const adminAuthed = useUiStore(s => s.adminAuthed);
   // 그래프 수치 — 켤 때/끌 때 페이드(끌 때는 투명해진 뒤 숨김)
   const chartLabels = useChartLabelToggle();
 
@@ -60,6 +62,8 @@ const Navbar = () => {
   // 모달에 넘김 — 추출 중 배지도 같은 인증·진행 상태를 봐야 해서
   const extractJob = useExtractJob();
   const [adminOpen, setAdminOpen] = useState(false);
+  // 업데이트 요청 "!"에서 연 경우 미리 고를 파일들
+  const [adminPreset, setAdminPreset] = useState<string[] | undefined>();
   const [colorOpen, setColorOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const { pathname } = useLocation();
@@ -141,6 +145,8 @@ const Navbar = () => {
               visibility:hidden으로 숨김(display:none/조건부 마운트 대신). 그래야 이상 건수가
               0→N으로 바뀌는 순간에도 이 자리(너비+gap)가 그대로라 옆 버튼들이 리플로우로
               밀리지 않음(예전엔 조건부 렌더로 나타날 때마다 ActionBar가 옆으로 밀렸음) */}
+          {/* 업데이트 요청 노란 "!" — 관리자만(조회 자체가 관리자일 때만), 2026-10-21 */}
+          {adminAuthed && <ExtractRequestBadge onExtract={files => { setAdminPreset(files); setAdminOpen(true); }} />}
           {/* 나타나고 사라질 때 살짝 커지며 페이드(.healthShown) — 예전엔 인라인 visibility로 뚝 켜지고 꺼졌음 */}
           <div
             className={`${styles.health} ${healthTotal > 0 ? styles.healthShown : ''}`}
@@ -444,7 +450,8 @@ const Navbar = () => {
       {adminOpen && (extractJob.isAuthed || !LOGIN_REQUIRED) && (
         <AdminModal
           extractJob={extractJob}
-          onClose={() => setAdminOpen(false)}
+          initialSelected={adminPreset}
+          onClose={() => { setAdminOpen(false); setAdminPreset(undefined); }}
         />
       )}
     </header>

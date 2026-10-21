@@ -11,6 +11,7 @@ interface PopupState {
   copyable: boolean;
   onOpen?:  () => void;
   onOpenFolder?: () => unknown;
+  onRequest?: () => unknown;
   /** 클릭한 셀의 컬럼 이름 — 있으면 title prop보다 우선 */
   title?:   string;
 }
@@ -33,10 +34,12 @@ export const CellPopup = ({ title, popup, copied, onClose, onCopy }: Props) => {
   const canOpen = useContext(FileOpenVisibleContext);
   // 폴더 열기 반응 — 누르면 스피너, 열리면 ✓ 잠깐(복사 버튼처럼, 2026-10-06). 팝업 내용이 바뀌면 초기화
   const [folderState, setFolderState] = useState<'idle' | 'busy' | 'done'>('idle');
-  useEffect(() => { setFolderState('idle'); }, [popup?.text]);
+  const [requestState, setRequestState] = useState<'idle' | 'busy' | 'done'>('idle');
+  useEffect(() => { setFolderState('idle'); setRequestState('idle'); }, [popup?.text]);
   if (!popup) return null;
   const onOpen = canOpen.file ? popup.onOpen : undefined;
   const onOpenFolder = canOpen.folder ? popup.onOpenFolder : undefined;
+  const onRequest = popup.onRequest;   // 업데이트 요청은 공개 범위와 무관하게 누구나
 
   return createPortal(
     <div className={`${styles.popupOverlay} ${closing ? 'closingOverlay' : ''}`} onClick={close}>
@@ -49,7 +52,7 @@ export const CellPopup = ({ title, popup, copied, onClose, onCopy }: Props) => {
             큰 버튼이었음(2026-09-29 버튼으로 통일, 바로가기 복구) */}
         <div className={styles.popupBody}>
           <span className={styles.popupText}>{popup.text}</span>
-          {(popup.copyable || onOpen || onOpenFolder) && (
+          {(popup.copyable || onOpen || onOpenFolder || onRequest) && (
             <span className={styles.popupActions}>
               {popup.copyable && (
                 <Button
@@ -87,6 +90,24 @@ export const CellPopup = ({ title, popup, copied, onClose, onCopy }: Props) => {
                   {folderState === 'busy' ? <span className={styles.spinner} aria-hidden />
                     : folderState === 'done' ? <svg viewBox="0 0 16 16" aria-hidden><path d="M3 8.5l3 3 7-7" /></svg>
                     : <svg viewBox="0 0 16 16" aria-hidden><path d="M2 4.2v7.6a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1H8L6.6 3.2H3a1 1 0 0 0-1 1Z" /></svg>}
+                </Button>
+              )}
+              {/* 업데이트(다시 추출) 요청(2026-10-21) — 원본을 고친 사람이 관리자에게 알림 */}
+              {onRequest && (
+                <Button unstyled
+                  className={`${styles.iconBtn} ${requestState === 'done' ? styles.iconBtnDone : ''}`}
+                  onClick={async () => {
+                    if (requestState === 'busy') return;
+                    setRequestState('busy');
+                    const r = await onRequest() as { ok?: boolean } | undefined;
+                    setRequestState(r?.ok ? 'done' : 'idle');
+                    if (r?.ok) setTimeout(() => setRequestState('idle'), 1500);
+                  }}
+                  title={requestState === 'busy' ? '확인 중…' : requestState === 'done' ? '요청했습니다' : '원본을 고쳤으면 업데이트(다시 추출) 요청'}
+                  aria-label={requestState === 'done' ? '요청함' : '업데이트 요청'} aria-busy={requestState === 'busy'}>
+                  {requestState === 'busy' ? <span className={styles.spinner} aria-hidden />
+                    : requestState === 'done' ? <svg viewBox="0 0 16 16" aria-hidden><path d="M3 8.5l3 3 7-7" /></svg>
+                    : <svg viewBox="0 0 16 16" aria-hidden><path d="M14 2 2 7l4.7 2 2 4.9L14 2Z" /><path d="M14 2 6.7 9" /></svg>}
                 </Button>
               )}
             </span>
