@@ -1,7 +1,7 @@
 /* DataTable .pageSizeSelect 와 동일 스타일 — 팀/파트명이 길어서 폭은 더 넓게(130→190→230px).
    "전동화/모빌리티 기술교육팀"(14자)처럼 긴 팀명이 190px에서 잘려서 재확대 */
 .select {
-  width: 230px;
+  width: 190px;
   max-width: 100%;
   font-size: 0.75rem;
   color: var(--text-sub);
@@ -26,3 +26,6 @@
 /* 셀렉트 왼쪽 깔때기 아이콘(2026-10-21) */
 .wrap { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-width: 0; }
 .icon { color: var(--text-muted); }
+.icon { transition: color 0.2s ease; }
+/* 상단 필터바와 범위가 다를 때 — Active Red */
+.iconDiff { color: var(--danger); }

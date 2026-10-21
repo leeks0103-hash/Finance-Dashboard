@@ -11,6 +11,8 @@ interface Props {
   /** 접두어 제거된 값. '전체'가 기본 */
   selectedPart: string;
   onPartChange: (v: string) => void;
+  /** 상단 필터바 선택과 다르면 true — 깔때기 아이콘을 빨간색으로 */
+  differs?:     boolean;
 }
 
 const ALL = 'all';
@@ -22,7 +24,7 @@ const partValue = (part: string) => `part:${part}`;
  * 네이티브 <select>. optgroup으로 "팀"/"파트"를 나눠 보여주되 둘은 대등한 개별 선택지다
  * (팀을 먼저 골라야 파트가 나오는 계단식 아님) — 하나를 고르면 다른 쪽은 자동으로 전체로 풀린다.
  */
-const CostFilterPopover = ({ teams, selectedTeam, onTeamChange, parts, selectedPart, onPartChange }: Props) => {
+const CostFilterPopover = ({ teams, selectedTeam, onTeamChange, parts, selectedPart, onPartChange, differs = false }: Props) => {
   const value = selectedTeam ? teamValue(selectedTeam) : selectedPart !== '전체' ? partValue(selectedPart) : ALL;
 
   const handleChange = (e: ChangeEvent<HTMLSelectElement>) => {
@@ -35,9 +37,12 @@ const CostFilterPopover = ({ teams, selectedTeam, onTeamChange, parts, selectedP
   };
 
   return (
-    <span className={styles.wrap}>
-    {/* 상단 필터바와 같은 깔때기 — 이 카드만의 필터임을 알리는 표시(2026-10-21) */}
-    <FilterIcon className={styles.icon} />
+    <span
+      className={styles.wrap}
+      title={differs ? '상단 필터와 다른 범위를 보고 있습니다 — 이 카드는 상단 필터와 따로 고릅니다' : '이 카드만의 팀/파트 선택(상단 필터와 같은 범위)'}
+    >
+    {/* 상단 필터바와 같은 깔때기 — 상단 필터와 범위가 다르면 빨간색(2026-10-21) */}
+    <FilterIcon className={`${styles.icon} ${differs ? styles.iconDiff : ''}`} />
     <select
       className={styles.select}
       value={value}

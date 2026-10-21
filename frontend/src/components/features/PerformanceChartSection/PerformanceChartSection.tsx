@@ -1316,6 +1316,7 @@ const PerformanceChartSection = () => {
             parts={(vm.partOptions ?? []).filter(p => p !== '전체')}
             selectedPart={vm.selectedCostPart}
             onPartChange={vm.setSelectedCostPart}
+            differs={vm.costFilterDiffers}
           />
         </ChartCard.Title>
         <ChartCard.Body>

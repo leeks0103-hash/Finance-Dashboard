@@ -3,6 +3,7 @@ import { usePerformanceSummary } from '@/hooks/usePerformanceSummary';
 import { usePerformanceSummaryAll } from '@/hooks/usePerformanceSummaryAll';
 import { usePerformanceOptions } from '@/hooks/usePerformanceData';
 import { useUiStore } from '@/store';
+import { usePerfStore } from '@/store/perf.store';
 import { useTheme } from '@/hooks/useTheme';
 import { makeBarOptions } from '@/utils/chartOptions';
 import { getChartTheme } from '@/utils/chartColors';
@@ -97,6 +98,8 @@ export interface PerformanceChartViewModel {
   setSelectedCostPart: (v: string) => void;
   /** selectedCostPart의 원본 파트명(접두어 포함) — 드릴다운 breakdown 조회의 partOverride용 */
   selectedCostPartRaw?: string;
+  /** 카드 자체 팀/파트 선택이 상단 필터바(팀·파트 칩)와 다른지 — 깔때기 아이콘 빨간색 표시용 */
+  costFilterDiffers: boolean;
   progress: {
     labels:       string[];
     revenues:     number[];
@@ -142,6 +145,22 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
 
   const teams     = useMemo(() => sortTeams(options?.teams ?? []), [options]);
   const teamParts = useMemo(() => options?.team_parts ?? {}, [options]);
+
+  // 카드 선택 vs 상단 필터바 — 같은 범위를 가리키면 false.
+  // 카드 '전체' = 필터바 팀 미선택 + 파트 전부(또는 비어 있음), 카드 팀 = 필터바 같은 팀, 카드 파트 = 필터바 그 파트 하나만
+  const headerTeam  = usePerfStore(s => s.selectedTeam);
+  const headerParts = usePerfStore(s => s.selectedParts);
+  const costFilterDiffers = useMemo(() => {
+    if (!options) return false;
+    if (selectedCostTeam) return headerTeam !== selectedCostTeam;
+    if (selectedCostPart !== '전체') {
+      return headerParts.length !== 1 || stripPartPrefix(headerParts[0]) !== selectedCostPart;
+    }
+    // 필터바 store는 원문자 뗀 파트명(AIㆍDS)을 담음 — 서버 옵션(① AIㆍDS)도 떼서 비교
+    const allParts = (options.parts ?? []).map(stripPartPrefix);
+    const allSelected = headerParts.length === 0 || allParts.every(p => headerParts.includes(p));
+    return !allSelected;
+  }, [options, selectedCostTeam, selectedCostPart, headerTeam, headerParts]);
 
   const monthlyLength = summary?.monthly.length ?? 12;
 
@@ -348,7 +367,7 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
       progress:         { labels: [], revenues: [], expenditures: [], options: progressOptions },
       partOptions:      ['전체'],
       teams, selectedCostTeam, setSelectedCostTeam,
-      selectedCostPart, setSelectedCostPart, selectedCostPartRaw,
+      selectedCostPart, setSelectedCostPart, selectedCostPartRaw, costFilterDiffers,
       chartData: null,
     };
   }
@@ -362,7 +381,7 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
     progress:         { ...chartData.progress,     options: progressOptions },
     partOptions:      chartData.partOptions,
     teams, selectedCostTeam, setSelectedCostTeam,
-    selectedCostPart, setSelectedCostPart, selectedCostPartRaw,
+    selectedCostPart, setSelectedCostPart, selectedCostPartRaw, costFilterDiffers,
     chartData,
   };
 };

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button';
 // datalabels 등록 + "그래프 수치" 토글 켜기/끄기 페이드 (side-effect)
 import '@/utils/datalabelFade';
 import '@/utils/chartCrisp';   // 배율 125% 등에서 캔버스 글씨 번짐 방지 (side-effect)
-import { outsideLabelsPlugin } from './outsideLabelsPlugin';
+import { outsideLabelsPlugin, outsideLabelSidePadding } from './outsideLabelsPlugin';
 import styles from './DoughnutChart.module.css';
 
 Chart.register(ArcElement, Tooltip, Legend);
@@ -99,7 +99,11 @@ const DoughnutChart = ({
               : undefined,
             // 얇은 세그먼트의 % 라벨이 캔버스 밖으로 나가 잘리지 않도록 여백 확보 (ChartCard가 overflow:hidden)
             // sm(메인 카드): 링 크기 거의 그대로(12→20px). lg(확대 모달): 인출선·글자가 커서 여백도 크게(64px)
-            layout: { padding: outsideLabels ? (outsideLabelsSize === 'lg' ? 68 : outsideLabelsSize === 'md' ? 28 : 24) : 12 },
+            // md(메인 카드): 위아래 28, 좌우는 라벨 폭을 재서 — 3칸 카드에서 좌우 라벨이 잘리던 것(2026-10-21)
+            layout: { padding: !outsideLabels ? 12
+              : outsideLabelsSize === 'lg' ? 68
+              : outsideLabelsSize === 'md' ? { top: 28, bottom: 28, left: outsideLabelSidePadding('md'), right: outsideLabelSidePadding('md') }
+              : 24 },
             plugins: {
               // 범례는 아래 2열 그리드로 직접 그린다 (Chart.js 기본 범례는 개수에 따라 줄이 어긋남)
               legend: { display: false },

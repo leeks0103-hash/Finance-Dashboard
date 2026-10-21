@@ -64,6 +64,14 @@ const measureTextWidth = (text: string, font: string): number => {
   return measureCtx.measureText(text).width;
 };
 
+/** 좌우 여백 — 인출선(r2+horiz) + 글자 간격 4 + 가장 긴 % 라벨("100.0%") 폭 + 2px.
+ *  좁은 카드(3칸)에선 도넛이 가로 폭에 맞춰 그려져, 고정 28px로는 좌우 끝 라벨이 잘렸음(2026-10-21) */
+export const outsideLabelSidePadding = (size: 'sm' | 'md' | 'lg'): number => {
+  const preset = SIZE_PRESET[size];
+  const textW = measureTextWidth('100.0%', `700 ${preset.font}px 'Pretendard', sans-serif`);
+  return Math.ceil(preset.r2 + preset.horiz + 4 + (textW || preset.font * 3.4) + 2);
+};
+
 /** showValue면 라벨 길이가 값 크기에 따라 달라져 고정 여백으로는 잘림 — 실제 텍스트 폭을 재서 계산.
  *  showValue가 아니면 기존 고정값(lg 68 / sm 24) 그대로 */
 export const computeOutsideLabelPadding = (
