@@ -3,7 +3,6 @@ import { usePerformanceSummary } from '@/hooks/usePerformanceSummary';
 import { usePerformanceSummaryAll } from '@/hooks/usePerformanceSummaryAll';
 import { usePerformanceOptions } from '@/hooks/usePerformanceData';
 import { useUiStore } from '@/store';
-import { useVisible } from '@/hooks/useVisibility';
 import { useTheme } from '@/hooks/useTheme';
 import { makeBarOptions } from '@/utils/chartOptions';
 import { getChartTheme } from '@/utils/chartColors';
@@ -31,7 +30,7 @@ export interface MonthlyTableRow {
 
 /**
  * "파트별 계획 vs 추정 실적" 확대 모달 표 한 행(억). 차이·달성률은 원금액(천원)으로 계산 후 변환.
- * 달성률(추정 실적 ÷ 계획)은 관리자 토글(showRate) 켰을 때만 화면에 노출 — 저조 파트 낙인 방지
+ * 달성률(추정 실적 ÷ 계획)은 달성률 공개 범위와 무관하게 항상 표시(2026-10-21 요청)
  */
 export interface PlanVsActualRow {
   part:   string;
@@ -122,7 +121,8 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
   const period = usePerfPeriod();
   const { data: options } = usePerformanceOptions();
   const showLabels = useUiStore(s => s.showChartLabels);
-  const showRate   = useVisible('achieveRate');
+  // 파트별 계획 vs 추정 실적의 달성률은 공개 범위와 무관하게 항상 표시(2026-10-21 요청) — 예전: useVisible('achieveRate')
+  const showRate   = true;
   const { theme } = useTheme();
   const { labelColor } = getChartTheme(theme === 'dark');
 

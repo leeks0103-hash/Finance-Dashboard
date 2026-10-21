@@ -623,6 +623,27 @@ const planLinePlugin: Plugin<'bar'> = {
 // 그래프 폭은 직전 배치값을 쓰고, 처음 한 번은 어림값 — 다음 그리기에서 맞춰짐. 글자는 makeBarOptions datalabels와 같게
 interface FitBarLabelsOpts { show: boolean; showRate: boolean }
 const FIT_LABEL_FONT = "bold 14px 'Pretendard', 'Malgun Gothic', sans-serif";
+// 세로축(파트명) 글자 자간 좁히기(2026-10-21) — "전동화&차량개발"처럼 긴 파트명이 축 칸을 다 잡아먹어서.
+// Chart.js 눈금엔 자간 옵션이 없어 y축의 update(글자 폭 재기·칸 맞추기)·drawLabels(그리기)를 감싸 canvas letterSpacing을 그동안만 켬.
+// 폭 재기도 같은 자간으로 해야 축 칸이 실제로 줄어듦(measureText가 letterSpacing을 반영)
+const TICK_LETTER_SPACING = '-1px';
+const tightTicksPlugin: Plugin<'bar'> = {
+  id: 'tightTicks',
+  beforeLayout(chart) {
+    const sc = chart.scales.y as unknown as { update: (...a: unknown[]) => void; drawLabels: (a: unknown) => void; _tight?: boolean } | undefined;
+    if (!sc || sc._tight) return;
+    sc._tight = true;
+    const ctx = chart.ctx as CanvasRenderingContext2D & { letterSpacing?: string };
+    const wrap = <A extends unknown[]>(fn: (...a: A) => void) => (...a: A) => {
+      const prev = ctx.letterSpacing;
+      ctx.letterSpacing = TICK_LETTER_SPACING;
+      try { fn(...a); } finally { ctx.letterSpacing = prev ?? '0px'; }
+    };
+    sc.update = wrap(sc.update.bind(sc));
+    sc.drawLabels = wrap(sc.drawLabels.bind(sc));
+  },
+};
+
 const fitBarLabelsPlugin: Plugin<'bar'> = {
   id: 'fitBarLabels',
   afterDataLimits(chart, args) {
@@ -1048,7 +1069,7 @@ const PerformanceChartSection = () => {
                 rates: pick(vm.planVsActual.rates) },
             ]}
             options={planVsActualOptions}
-            plugins={[fitBarLabelsPlugin]}
+            plugins={[fitBarLabelsPlugin, tightTicksPlugin]}
           />
         );
       };
@@ -1086,8 +1107,8 @@ const PerformanceChartSection = () => {
         <ChartCard modalContent={modalContent}>
           <ChartCard.Title>
             <span className={styles.chartTitle}>파트별 계획 vs 추정 실적<InfoButton>{INFO_PLAN_VS_ACTUAL}</InfoButton></span>
-            {/* 막대 수치의 %가 뭔지 — %가 실제로 보일 때(그래프 수치 + 달성률 공개 범위)만 */}
-            {vm.showLabels && showRate && (
+            {/* 막대 수치의 %가 뭔지 — 항상 표시(2026-10-21 요청, 예전엔 그래프 수치 + 달성률 공개 범위일 때만) */}
+            {(
               <span className={styles.titleNote}><b className={styles.titleNotePct}>%</b>계획 대비 달성률 = 추정 실적 ÷ 계획</span>
             )}
           </ChartCard.Title>
