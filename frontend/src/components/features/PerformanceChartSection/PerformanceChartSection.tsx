@@ -388,7 +388,7 @@ const SIDE_LABEL = {
 // 매출·원가 중 하나라도 숨기면(범례) 안 그림, '그래프 수치' 토글을 따름
 interface CostRateOpts { show: boolean; text: string }
 const COST_RATE_FONT = "bold 12px 'Pretendard', 'Malgun Gothic', sans-serif";
-const COST_RATE_LIFT = 26;   // 더 높은 막대 꼭대기에서 이만큼 위 — 막대 위 합계 수치(약 14px) 위 한 줄
+const COST_RATE_LIFT = 36;   // 더 높은 막대 꼭대기에서 이만큼 위 — 막대 위 합계 수치(약 14px)와 붙어 헷갈려 26 → 36(2026-10-21)
 const costRatePlugin: Plugin<'bar'> = {
   id: 'costRate',
   afterDatasetsDraw(chart) {
@@ -414,7 +414,7 @@ const costRatePlugin: Plugin<'bar'> = {
       const x = (r.x + r.width / 2 + costEl.x - costEl.width / 2) / 2;   // 두 막대 경계
       // 위쪽 = y가 작은 쪽. 원가 꼭대기 = 위층(공통원가, 숨기면 직접원가) 막대의 y
       const topY = Math.min((revEl as unknown as { y: number }).y, costEl.y);
-      const y = Math.max(topY - COST_RATE_LIFT, chart.chartArea.top - 24);   // 차트 위 여백 밖으로는 안 나가게
+      const y = Math.max(topY - COST_RATE_LIFT, chart.chartArea.top - 38);   // 차트 위 여백 밖으로는 안 나가게
       // 알약 테두리·배경은 뺌 — 원가색 테두리가 촌스럽다는 피드백, 수치만(2026-10-20)
       ctx.fillStyle = o.text;
       ctx.fillText(text, x, y + 0.5);
@@ -892,7 +892,7 @@ const PerformanceChartSection = () => {
   // 표시(anchor/align 'end', 부호 분기 불필요). 그룹형 막대라 stacked 해제
   const partRevCostOptions = useMemo(() => {
    const base = withUnstackedTheme(makeBarOptions(vm.showLabels, labelColor, {
-      layout: { padding: { ...PROFIT_PADDING, top: 36 } },
+      layout: { padding: { ...PROFIT_PADDING, top: 46 } },   // 원가율 줄 자리까지 36 → 46
       plugins: {
         datalabels: {
           // makeBarOptions 기본(13px)보다 살짝만 작게 — 이전엔 10px로 너무 작게 오버라이드돼
@@ -921,7 +921,7 @@ const PerformanceChartSection = () => {
     // 매출·원가 막대 사이 원가율 칩(costRatePlugin) — makeBarOptions는 legend·datalabels 외 플러그인 옵션을 버려서 여기서 덧붙임
     plugins: {
       ...base.plugins,
-      costRate: { show: vm.showLabels, text: labelColor },
+      costRate: { show: vm.showLabels, text: dark ? 'rgb(0,170,210)' : 'rgb(0,119,147)' },   // 합계 수치(labelColor)와 다른 색 — Active Blue(라이트는 검정 30% 섞어 진하게). 공통원가 회청색은 너무 연했음
       // 원가 층은 보기용 높이라 툴팁도 실제값(realData)으로
       tooltip: { callbacks: { label: (ctx: { dataIndex: number; dataset: unknown }) =>
         `${(ctx.dataset as { label?: string }).label}: ${realValue(ctx)}억` } },
