@@ -1,5 +1,14 @@
 # 세션 진행 기록
 
+## [2026-10-21] 원가율 위치 + git pull 안 되던 것
+
+- 파트별 추정 매출/원가: 원가율을 막대 발치(가로축 아래) → 매출·원가 막대 경계 위, 더 높은 막대 꼭대기에서 26px 위(`COST_RATE_LIFT`,
+  막대 위 합계 수치보다 한 줄 위). x축 눈금 내림(`COST_RATE_GAP`)은 없앰
+- **책임님 git pull 실패 원인**: `.gitignore`가 `data/*.xlsx`라 하위 폴더(`data/경영실적 히스토리/`·`data/사용자 목록/`) 엑셀이 커밋돼 있었음(7ae80a2 등) —
+  같은 파일이 상대 PC에 추적 안 된 채 있으면 "untracked working tree files would be overwritten"로 pull이 멈춤.
+  `data/**/*.xlsx|xls|csv`로 바꾸고 추적 해제(로컬 파일은 그대로)
+- ⚠️ `현대엔지비사용자목록_261014.xlsx`(사번·시크릿키)가 GitHub 이력에 남아 있음 — 이력 정리(force push)·비밀번호 교체 여부 결정 필요
+
 ## [2026-10-20] PPT 추출 — "선택" 방식(고른 파일만 다시, 덮어쓰기)
 
 - 관리자 기능 > PPT 추출 방식에 **선택** 추가: 원본 폴더 파일 목록(`layouts/Navbar/ExtractFilePicker` — 추출 현황과 같은 목록, 재무·KPI 상태 알약, 실패·미처리가 위, 검색)에서 고른 파일만 다시 추출

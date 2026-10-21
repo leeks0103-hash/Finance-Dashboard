@@ -25,9 +25,9 @@ Thumbs.db
 *.jpg
 
 # 추출된 데이터 파일 (대용량 바이너리, git 제외)
-data/*.xlsx
-data/*.xls
-data/*.csv
+data/**/*.xlsx
+data/**/*.xls
+data/**/*.csv
 data/ai_analysis_cache.json
 data/visibility.json
 data/perf_update.json

@@ -382,14 +382,13 @@ const SIDE_LABEL = {
   formatter: (_: number, ctx: SegCtx) => `${realValue(ctx)}`,
   display: (ctx: SegCtx) => labelsOn(ctx) && realValue(ctx) > 0 && !segFits(ctx),
 };
-// 매출·원가 막대 사이 원가율(2026-10-20 요청) — "원가 ÷ 매출"을 두 막대 경계 아래에 수치만(알약 테두리는 뺌).
-// 원가 = 원가 막대 전체(직접원가 + 공통원가, 보이는 막대 높이 그대로). 위치는 두 막대 발치(가로축 바로 아래) —
-// 막대 위·안은 합계·층 수치로 차 있어 가렸음. x축 눈금 글자를 COST_RATE_GAP만큼 내려 자리를 만듦.
-// 데이터셋 순서: 0 매출 / 1 직접원가 / 2 공통원가.
+// 매출·원가 막대 사이 원가율 — "원가 ÷ 매출"을 두 막대 경계 위, 더 높은 막대 꼭대기보다 조금 위에 수치만(2026-10-21 요청).
+// 처음엔 막대 발치(가로축 아래)였음 — 막대 위 합계 수치보다 한 줄 더 위에 둠.
+// 원가 = 원가 막대 전체(직접원가 + 공통원가, 보이는 막대 높이 그대로). 데이터셋 순서: 0 매출 / 1 직접원가 / 2 공통원가.
 // 매출·원가 중 하나라도 숨기면(범례) 안 그림, '그래프 수치' 토글을 따름
 interface CostRateOpts { show: boolean; text: string }
 const COST_RATE_FONT = "bold 12px 'Pretendard', 'Malgun Gothic', sans-serif";
-const COST_RATE_GAP = 20;   // x축 눈금(파트명)을 이만큼 내려 원가율 수치 자리 확보 — 알약 빼서 22 → 16, 글자 10 → 12px로 20(2026-10-20)
+const COST_RATE_LIFT = 26;   // 더 높은 막대 꼭대기에서 이만큼 위 — 막대 위 합계 수치(약 14px) 위 한 줄
 const costRatePlugin: Plugin<'bar'> = {
   id: 'costRate',
   afterDatasetsDraw(chart) {
@@ -412,11 +411,10 @@ const costRatePlugin: Plugin<'bar'> = {
       const r = revEl as unknown as { x: number; width: number };
       if (!costEl || rev <= 0 || cost <= 0) return;
       const text = `${Math.round((cost / rev) * 1000) / 10}%`;
-      const h = 15;   // 글자 줄 높이 — 가로축 바로 아래 자리 잡기용
       const x = (r.x + r.width / 2 + costEl.x - costEl.width / 2) / 2;   // 두 막대 경계
-      // 공통원가 층의 base는 직접원가 꼭대기라 가로축 기준은 직접원가 층(아래층) base로
-      const baseY = (metas[1].data[i] as unknown as { base: number } | undefined)?.base ?? costEl.base;
-      const y = baseY + h / 2 + 3;
+      // 위쪽 = y가 작은 쪽. 원가 꼭대기 = 위층(공통원가, 숨기면 직접원가) 막대의 y
+      const topY = Math.min((revEl as unknown as { y: number }).y, costEl.y);
+      const y = Math.max(topY - COST_RATE_LIFT, chart.chartArea.top - 24);   // 차트 위 여백 밖으로는 안 나가게
       // 알약 테두리·배경은 뺌 — 원가색 테두리가 촌스럽다는 피드백, 수치만(2026-10-20)
       ctx.fillStyle = o.text;
       ctx.fillText(text, x, y + 0.5);
@@ -932,7 +930,7 @@ const PerformanceChartSection = () => {
       // x축 파트명 — 다크 모드에선 흰색(공통 tickColor Sand가 어두운 배경에서 흐려 보임), 라이트는 공통값 유지
       // 원가 막대 = 직접원가(아래) + 공통원가(위) 2층(2026-10-20) — 데이터셋 stack으로 매출 막대와 나란히, 원가끼리만 쌓음
       x: { ...scaleOverride.x, stacked: true, offset: true, ticks: { ...scaleOverride.x.ticks, align: 'center' as const, color: dark ? '#FFFFFF' : tickColor,
-        padding: vm.showLabels ? COST_RATE_GAP : 3 } },
+        padding: 3 } },
       // 위 여유(grace) 15% → 8% — 막대 위 수치 자리는 layout padding top 36이 따로 잡고 있어 위가 많이 비었음(2026-10-20)
       y: { ...scaleOverride.y, grace: '8%', stacked: true, ticks: { ...scaleOverride.y.ticks, callback: (v: string | number) => v + '억' } },
     },
