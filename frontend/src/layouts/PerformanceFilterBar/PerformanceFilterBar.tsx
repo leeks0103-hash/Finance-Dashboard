@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from 'react';
+import FilterIcon from '@/components/ui/FilterIcon/FilterIcon';
 import { usePerformanceOptions } from '@/hooks/usePerformanceData';
 import { stripPartPrefix } from '@/utils';
 import { sortParts, sortTeams } from '@/utils/partOrder';
@@ -71,6 +72,7 @@ const PerformanceFilterBar = () => {
     <div className={styles.panel}>
       {/* 라벨은 트랙 밖, 트랙 안엔 칩만 — 라벨이 칩과 섞여 구분이 안 됐음(2026-10-01) */}
       <div className={`${styles.field} ${styles.chipsOnly}`}>
+        <FilterIcon className={styles.filterIcon} />
         <span className={styles.label}>팀</span>
         <div className={styles.group}>
         <div className={styles.chips}>

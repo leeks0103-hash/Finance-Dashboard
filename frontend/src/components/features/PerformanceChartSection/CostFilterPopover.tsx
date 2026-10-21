@@ -1,4 +1,5 @@
 import type { ChangeEvent } from 'react';
+import FilterIcon from '@/components/ui/FilterIcon/FilterIcon';
 import styles from './CostFilterPopover.module.css';
 
 interface Props {
@@ -34,6 +35,9 @@ const CostFilterPopover = ({ teams, selectedTeam, onTeamChange, parts, selectedP
   };
 
   return (
+    <span className={styles.wrap}>
+    {/* 상단 필터바와 같은 깔때기 — 이 카드만의 필터임을 알리는 표시(2026-10-21) */}
+    <FilterIcon className={styles.icon} />
     <select
       className={styles.select}
       value={value}
@@ -48,6 +52,7 @@ const CostFilterPopover = ({ teams, selectedTeam, onTeamChange, parts, selectedP
         {parts.map(part => <option key={part} value={partValue(part)}>{part}</option>)}
       </optgroup>
     </select>
+    </span>
   );
 };
 
