@@ -546,15 +546,9 @@ def _perf_failed_newest() -> bool:
 _PROGRESS_PRIORITY = ["제안", "협의", "착수", "중간", "완료", "인큐베이팅", "이월", "드롭", "미정"]
 
 
-# 어느 팀에도 속하지 않는 파트 — K뉴딜TF는 원본에서 행마다 팀이 SW·전동화/모빌리티·기획으로 나뉘어 적혀 있어
-# 어느 팀을 골라도 끼어 들어갔음(2026-10-20, 심각 — 팀 실적에 K뉴딜TF가 섞임). 팀을 고르면 빼고, 팀 → 파트 목록에도 안 넣음.
-# 팀 "전체"이거나 이 파트를 직접 고르면 그대로 보임. 원문자 뗀 이름으로 비교
-_TEAMLESS_PARTS = {"K뉴딜TF"}
-
-
-def _is_teamless_part(part) -> bool:
-    return PART_PREFIX_RE.sub("", str(part)).strip() in _TEAMLESS_PARTS
-
+# K뉴딜TF는 원본에서 행마다 팀(SW·전동화/모빌리티·기획)이 적혀 있음 — 팀을 고르면 그 팀 몫 K뉴딜TF 행만(2026-10-21 요청).
+# 2026-10-20엔 팀을 고르면 K뉴딜TF를 통째로 뺐음(_TEAMLESS_PARTS) — 도넛이 "팀 = 소속 파트 전체 합"이라 세 팀 몫이 다 더해지던 게
+# 진짜 원인이어서, 도넛은 행의 팀 기준(by_team)으로 바꾸고 제외는 없앰. 팀 "전체"에 K뉴딜TF만 고르면 세 팀 몫이 다 나옴
 
 def apply_perf_filters(df: pd.DataFrame) -> pd.DataFrame:
     parts = request.args.getlist("part")
@@ -563,7 +557,7 @@ def apply_perf_filters(df: pd.DataFrame) -> pd.DataFrame:
         stripped_part = df["part"].astype(str).apply(lambda p: PART_PREFIX_RE.sub("", p))
         df = df[stripped_part.isin(parts)]
     if team:
-        df = df[(df["team"] == team) & ~df["part"].apply(_is_teamless_part)]
+        df = df[df["team"] == team]
     return df
 
 
@@ -620,7 +614,7 @@ def api_perf_options():
         sorted(p for p in progress_present if p not in _PROGRESS_PRIORITY)
     # 팀 → 그 팀 소속 파트 목록 — 원가 비율 카드에서 "팀 고르면 파트가 좁혀지는" 용도
     team_parts = {
-        team: sorted(p for p in g["part"].dropna().unique().tolist() if not _is_teamless_part(p))
+        team: sorted(g["part"].dropna().unique().tolist())
         for team, g in df.dropna(subset=["team"]).groupby("team")
     }
     # 담당자 — 프로젝트 상세 열 필터의 고르기 목록(2026-10-14)
@@ -769,7 +763,9 @@ def _project_rows(rows: pd.DataFrame) -> pd.DataFrame:
     # 떨어져 있고, 묶음은 **연속된 행**끼리만 만들어지므로 코드만으로 묶어도 섞이지 않는다.
     code = rows["project_code"].astype(str).str.strip()
     is_real_code = code.str.fullmatch(r"[A-Za-z]\d{10,}").fillna(False)
-    group_key = code.where(is_real_code, code + "␟" + rows["project_name"].astype(str))
+    # 코드가 빈(→ 프로젝트명으로 대체된) 행·placeholder는 팀까지 키에 넣음 — K뉴딜 아카데미처럼 같은 이름 프로젝트가
+    # 팀마다 따로 있고 시트에 붙어 있으면 한 묶음으로 합쳐졌음(2026-10-21). 화면엔 안 보이는 내부 키, 매달 같은 값(UUID 안 씀)
+    group_key = code.where(is_real_code, code + "␟" + rows["project_name"].astype(str) + "␟" + rows["team"].astype(str))
     group_no = (group_key != group_key.shift()).cumsum()
     rows = _merge_rev_cost_rows(rows, group_no)
     return _attach_finance_mismatch(rows)
@@ -1109,6 +1105,19 @@ def api_perf_summary():
             "cost_mgmt":     float(rev_grp["cost_mgmt"].sum()),
         }
 
+    # 팀별 원가 구성·경상손익 — 도넛 '팀' 보기용, 행의 팀 칸 기준(2026-10-21). 예전엔 프론트가 "팀 = 소속 파트 합"으로 더해
+    # 팀이 여러 개인 파트(K뉴딜TF)가 세 팀에 통째로 들어갔음
+    by_team = {
+        team_name: {
+            "cost_direct":      float(g["cost_direct"].sum()),
+            "cost_labor":       float(g["cost_labor"].sum()),
+            "cost_overhead":    float(g["cost_overhead"].sum()),
+            "cost_mgmt":        float(g["cost_mgmt"].sum()),
+            "operating_profit": float(g["operating_profit"].sum()),
+        }
+        for team_name, g in rev.dropna(subset=["team"]).groupby("team")
+    }
+
     by_progress_raw = {}
     for prog_name, rev_grp in rev.groupby("progress"):
         cost_grp = cost[cost["progress"] == prog_name]
@@ -1149,7 +1158,7 @@ def api_perf_summary():
     # 실적/추정 경계를 이걸로 맞춤. 예전엔 프론트가 "오늘 - 1개월"로 짐작해서, 10월 1일이 되자 9월 시트가 아직 없는데도
     # 9월을 실적으로 칠했음(2026-10-01)
     base = {"year": _perf_current_year, "month": _perf_current_month} if _perf_current_month else None
-    return jsonify({"total": total, "by_part": by_part, "by_progress": by_progress, "monthly": monthly,
+    return jsonify({"total": total, "by_part": by_part, "by_team": by_team, "by_progress": by_progress, "monthly": monthly,
                     "loaded_at": _perf_last_loaded, "base": base})
 
 
@@ -1366,7 +1375,7 @@ def _perf_breakdown_series(df, spec, s, key):
             "part":  str(r.get("part", "")).strip(),
             "team":  str(r.get("team", "")).strip(),
         }
-        k = (info["project_code"], info["project_name"]) if merge else len(acc)
+        k = (info["project_code"], info["project_name"], info["team"]) if merge else len(acc)   # 팀까지 — 같은 이름 K뉴딜이 팀마다 따로
         if k in acc:
             acc[k]["raw"] += v
         else:
@@ -1397,7 +1406,7 @@ def _perf_breakdown_compare(df, spec, key):
     by_code: dict = {}
     for role, rows in (("plan", plan_rows), ("actual", actual_rows)):
         for r in rows:
-            k = (r["project_code"], r["project_name"])
+            k = (r["project_code"], r["project_name"], r.get("team", ""))
             entry = by_code.setdefault(k, {
                 "project_code": r["project_code"], "project_name": r["project_name"],
                 "part": r["part"], "team": r["team"], "plan": 0.0, "actual": 0.0,

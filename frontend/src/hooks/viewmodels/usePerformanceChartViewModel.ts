@@ -292,18 +292,23 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
           }];
         })
       ),
-      // 팀 단위 구성비 — 소속 파트 전부 합산. "전체/팀/파트"를 대등한 개별 선택지로 두면서
-      // 팀을 골라도 그 팀만의 원가 비율을 바로 보여주기 위함(파트를 거쳐야 하는 계단식이 아님)
+      // 팀 단위 구성비 — 서버 by_team(행의 팀 칸 기준, 2026-10-21). 예전엔 "소속 파트 전부 합산"이라 팀이 여러 개인
+      // K뉴딜TF가 세 팀에 통째로 들어갔음. 옛 서버(by_team 없음)면 예전 방식으로
       costBreakdownByTeam: Object.fromEntries(
         teams.map(team => {
-          const allowed = new Set(teamParts[team] ?? []);
-          const sums = [0, 0, 0, 0, 0];
-          costParts.forEach(p => {
-            if (!allowed.has(p)) return;
-            const bp = costSummary.by_part[p];
-            [bp.cost_direct ?? 0, bp.cost_labor ?? 0, bp.cost_overhead ?? 0, bp.cost_mgmt ?? 0, bp.operating_profit ?? 0]
-              .forEach((v, i) => { sums[i] += v; });
-          });
+          const bt = costSummary.by_team?.[team];
+          let sums = [0, 0, 0, 0, 0];
+          if (bt) {
+            sums = [bt.cost_direct, bt.cost_labor, bt.cost_overhead, bt.cost_mgmt, bt.operating_profit];
+          } else if (!costSummary.by_team) {
+            const allowed = new Set(teamParts[team] ?? []);
+            costParts.forEach(p => {
+              if (!allowed.has(p)) return;
+              const bp = costSummary.by_part[p];
+              [bp.cost_direct ?? 0, bp.cost_labor ?? 0, bp.cost_overhead ?? 0, bp.cost_mgmt ?? 0, bp.operating_profit ?? 0]
+                .forEach((v, i) => { sums[i] += v; });
+            });
+          }
           return [team, { labels: ['직접원가', '인건비', '공통원가', '관리비', '경상손익'], values: sums.map(toEokNum) }];
         })
       ),

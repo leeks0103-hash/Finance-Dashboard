@@ -20,6 +20,8 @@ interface CostData {
 interface Props {
   total:      CostData;
   byPart:     Record<string, CostData>;
+  /** 팀별 구성 — 행의 팀 칸 기준(VM costBreakdownByTeam). 있으면 소속 파트 합 대신 이걸 씀(K뉴딜TF 중복 방지, 2026-10-21) */
+  byTeam?:    Record<string, CostData>;
   partsRaw:   string[];
   teams:      string[];
   teamParts:  Record<string, string[]>;
@@ -92,7 +94,7 @@ function SortableCard({ cell, colors, showLabels, cols4, onExpand, index }: {
  * 미니 카드는 이 그리드 안에서만 드래그로 순서 변경 가능(localStorage 저장, 팀/파트 모드 각각 별도),
  * 카드 우측상단 "⤢" 버튼을 누르면 그 카드를 확대해서 전사평균과 나란히 비교할 수 있다.
  */
-const CostBreakdownModal = ({ total, byPart, partsRaw, teams, teamParts, colors, showLabels, onSliceClick }: Props) => {
+const CostBreakdownModal = ({ total, byPart, byTeam, partsRaw, teams, teamParts, colors, showLabels, onSliceClick }: Props) => {
   const [rightMode, setRightMode] = useState<'team' | 'part'>('part');
   const [order, setOrder] = useState<Record<'team' | 'part', string[]>>({
     team: loadOrder('cost-mini-order-team'),
@@ -103,6 +105,7 @@ const CostBreakdownModal = ({ total, byPart, partsRaw, teams, teamParts, colors,
   const dndSensors = useTableDndSensors();
 
   const teamData = (team: string): CostData => {
+    if (byTeam?.[team]) return { labels: COST_LABELS, values: byTeam[team].values };
     const allowed = new Set(teamParts[team] ?? []);
     const sums = [0, 0, 0, 0, 0];
     partsRaw.forEach(p => {

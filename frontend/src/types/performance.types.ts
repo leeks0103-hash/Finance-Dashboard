@@ -183,6 +183,8 @@ export interface PerfProgressStats {
 export interface PerfSummary {
   total:       PerfTotal;
   by_part:     Record<string, PerfPartStats>;
+  /** 팀별 원가 구성·경상손익 — 행의 팀 칸 기준(도넛 팀 보기, 2026-10-21). 옛 서버엔 없음 */
+  by_team?:    Record<string, { cost_direct: number; cost_labor: number; cost_overhead: number; cost_mgmt: number; operating_profit: number }>;
   by_progress: Record<string, PerfProgressStats>;
   monthly:     PerfMonthly[];
   loaded_at?:  string | null;

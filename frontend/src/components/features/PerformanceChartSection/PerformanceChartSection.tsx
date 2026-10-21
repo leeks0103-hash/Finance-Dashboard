@@ -382,13 +382,14 @@ const SIDE_LABEL = {
   formatter: (_: number, ctx: SegCtx) => `${realValue(ctx)}`,
   display: (ctx: SegCtx) => labelsOn(ctx) && realValue(ctx) > 0 && !segFits(ctx),
 };
-// 매출·원가 막대 사이 원가율 — "원가 ÷ 매출"을 두 막대 경계 위, 더 높은 막대 꼭대기보다 조금 위에 수치만(2026-10-21 요청).
-// 처음엔 막대 발치(가로축 아래)였음 — 막대 위 합계 수치보다 한 줄 더 위에 둠.
+// 원가율 — "원가 ÷ 매출"을 원가 막대 위, 원가 합계 수치 바로 위에 괄호로 "(54.8%)"(2026-10-21 시안 요청).
+// 그 전엔 막대 발치(가로축 아래) → 두 막대 경계 위(더 높은 막대 기준)였음.
 // 원가 = 원가 막대 전체(직접원가 + 공통원가, 보이는 막대 높이 그대로). 데이터셋 순서: 0 매출 / 1 직접원가 / 2 공통원가.
 // 매출·원가 중 하나라도 숨기면(범례) 안 그림, '그래프 수치' 토글을 따름
-interface CostRateOpts { show: boolean; text: string }
+// 월별 실적 추이도 같은 플러그인(2026-10-21 요청) — 데이터셋 0 매출 / 1 원가(층 없음). 막대가 좁으면 안 그림(minBarWidth)
+interface CostRateOpts { show: boolean; text: string; minBarWidth?: number; lift?: number }   // lift: 차트별 높이(기본 COST_RATE_LIFT)
 const COST_RATE_FONT = "bold 12px 'Pretendard', 'Malgun Gothic', sans-serif";
-const COST_RATE_LIFT = 36;   // 더 높은 막대 꼭대기에서 이만큼 위 — 막대 위 합계 수치(약 14px)와 붙어 헷갈려 26 → 36(2026-10-21)
+const COST_RATE_LIFT = 41;   // 원가 막대 꼭대기에서 이만큼 위 — 원가 합계 수치 상자(offset 4 + 14px 글자 + 위아래 padding 4 = 막대 위 약 29px) 윗줄 + 간격, 겹쳐 보여 27 → 41
 const costRatePlugin: Plugin<'bar'> = {
   id: 'costRate',
   afterDatasetsDraw(chart) {
@@ -397,24 +398,23 @@ const costRatePlugin: Plugin<'bar'> = {
     const metas = [0, 1, 2].map(i => chart.getDatasetMeta(i));
     if (!metas[0] || !metas[1] || !chart.isDatasetVisible(0) || !chart.isDatasetVisible(1)) return;
     const data = chart.data.datasets.map(d => d.data as number[]);
-    const showOverhead = !!metas[2] && chart.isDatasetVisible(2);
+    const showOverhead = chart.data.datasets.length > 2 && chart.isDatasetVisible(2);
     const { ctx } = chart;
     ctx.save();
     ctx.globalAlpha = getDatalabelAlpha();
     ctx.font = COST_RATE_FONT;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    metas[0].data.forEach((revEl, i) => {
+    metas[0].data.forEach((_revEl, i) => {
       const rev = Number(data[0]?.[i]) || 0;
       const cost = (Number(data[1]?.[i]) || 0) + (showOverhead ? Number(data[2]?.[i]) || 0 : 0);
       const costEl = (showOverhead ? metas[2] : metas[1]).data[i] as unknown as { x: number; y: number; base: number; width: number } | undefined;
-      const r = revEl as unknown as { x: number; width: number };
       if (!costEl || rev <= 0 || cost <= 0) return;
-      const text = `${Math.round((cost / rev) * 1000) / 10}%`;
-      const x = (r.x + r.width / 2 + costEl.x - costEl.width / 2) / 2;   // 두 막대 경계
-      // 위쪽 = y가 작은 쪽. 원가 꼭대기 = 위층(공통원가, 숨기면 직접원가) 막대의 y
-      const topY = Math.min((revEl as unknown as { y: number }).y, costEl.y);
-      const y = Math.max(topY - COST_RATE_LIFT, chart.chartArea.top - 38);   // 차트 위 여백 밖으로는 안 나가게
+      if (o.minBarWidth && costEl.width < o.minBarWidth) return;
+      const text = `(${Math.round((cost / rev) * 1000) / 10}%)`;
+      const x = costEl.x;   // 원가 막대 가운데
+      // 원가 꼭대기 = 위층(공통원가, 숨기면 직접원가) 막대의 y
+      const y = Math.max(costEl.y - (o.lift ?? COST_RATE_LIFT), chart.chartArea.top - 52);   // 차트 위 여백 밖으로는 안 나가게
       // 알약 테두리·배경은 뺌 — 원가색 테두리가 촌스럽다는 피드백, 수치만(2026-10-20)
       ctx.fillStyle = o.text;
       ctx.fillText(text, x, y + 0.5);
@@ -845,13 +845,15 @@ const PerformanceChartSection = () => {
     ...vm.monthly.options,
     // 세로 막대라 수치가 막대 '위'에 찍힘 — makeBarOptions 최소 여백의 right 58(가로 막대 수치용)은 여기선
     // 오른쪽만 텅 비게 해서 덮어씀. 막대도 기본(0.8×0.9)보다 굵게 해 양옆 빈 공간을 줄임(2026-10-20)
-    layout: { padding: { top: 30, right: 8, bottom: 4, left: 4 } },
+    layout: { padding: { top: 60, right: 8, bottom: 4, left: 4 } },   // 위 30 → 60: 원가 위 원가율 줄 자리
     datasets: { bar: { categoryPercentage: 0.88, barPercentage: 0.92 } },
+    // 원가 막대 위 원가율 "(54.8%)"(costRatePlugin, 2026-10-21 요청) — 막대가 글자보다 좁으면 생략
+    plugins: { ...vm.monthly.options.plugins, costRate: { show: vm.showLabels, text: dark ? 'rgb(0,170,210)' : 'rgb(0,119,147)', minBarWidth: 30 } },
     scales: {
       x: { ...scaleOverride.x },
       y: { ...scaleOverride.y, ticks: { ...scaleOverride.y.ticks, callback: (v: string | number) => v + '억' } },
     },
-  }), [vm.monthly.options, scaleOverride]);
+  }), [vm.monthly.options, scaleOverride, vm.showLabels, dark]);
 
   // 수치 글자색 = 그 막대 색(계획 회색 / 추정 실적 남색) — 공통 labelColor(남색)였을 땐 두 수치가
   // 같은 색이라 어느 막대 값인지 헷갈림(2026-09-29). 단 계획은 막대색(반투명 plan)이 글자로는 흐려서
@@ -913,7 +915,7 @@ const PerformanceChartSection = () => {
   // 표시(anchor/align 'end', 부호 분기 불필요). 그룹형 막대라 stacked 해제
   const partRevCostOptions = useMemo(() => {
    const base = withUnstackedTheme(makeBarOptions(vm.showLabels, labelColor, {
-      layout: { padding: { ...PROFIT_PADDING, top: 46 } },   // 원가율 줄 자리까지 36 → 46
+      layout: { padding: { ...PROFIT_PADDING, top: 60 } },   // 원가율 줄 자리까지 36 → 60
       plugins: {
         datalabels: {
           // makeBarOptions 기본(13px)보다 살짝만 작게 — 이전엔 10px로 너무 작게 오버라이드돼
@@ -942,7 +944,7 @@ const PerformanceChartSection = () => {
     // 매출·원가 막대 사이 원가율 칩(costRatePlugin) — makeBarOptions는 legend·datalabels 외 플러그인 옵션을 버려서 여기서 덧붙임
     plugins: {
       ...base.plugins,
-      costRate: { show: vm.showLabels, text: dark ? 'rgb(0,170,210)' : 'rgb(0,119,147)' },   // 합계 수치(labelColor)와 다른 색 — Active Blue(라이트는 검정 30% 섞어 진하게). 공통원가 회청색은 너무 연했음
+      costRate: { show: vm.showLabels, text: dark ? 'rgb(0,170,210)' : 'rgb(0,119,147)', lift: COST_RATE_LIFT - 2 },   // 이 차트만 2px 낮게(2026-10-21 요청). 합계 수치(labelColor)와 다른 색 — Active Blue(라이트는 검정 30% 섞어 진하게). 공통원가 회청색은 너무 연했음
       // 원가 층은 보기용 높이라 툴팁도 실제값(realData)으로
       tooltip: { callbacks: { label: (ctx: { dataIndex: number; dataset: unknown }) =>
         `${(ctx.dataset as { label?: string }).label}: ${realValue(ctx)}억` } },
@@ -1025,6 +1027,7 @@ const PerformanceChartSection = () => {
           labels={vm.monthly.labels}
           datasets={monthlyDatasets}
           options={monthlyOptions}
+          plugins={[costRatePlugin]}
         />
       );
       // 확대 모달 전용 — 그냥 크게 보이기만 하면 심심하다는 피드백에 따라 월별 매출/원가/손익 +
@@ -1049,7 +1052,11 @@ const PerformanceChartSection = () => {
       );
       return (
         <ChartCard modalContent={modalContent} modalHeight="86vh">
-          <ChartCard.Title><span className={styles.chartTitle}>월별 실적 추이<InfoButton>{INFO_MONTHLY}</InfoButton></span></ChartCard.Title>
+          <ChartCard.Title>
+            <span className={styles.chartTitle}>월별 실적 추이<InfoButton>{INFO_MONTHLY}</InfoButton></span>
+            {/* 원가 막대 위 %가 뭔지(2026-10-21) — 그래프 수치 켬일 때만(%가 보일 때) */}
+            {vm.showLabels && <span className={styles.titleNote}><b className={styles.titleNotePct}>%</b>원가율 = 원가 ÷ 매출</span>}
+          </ChartCard.Title>
           <ChartCard.Body>{chartEl}</ChartCard.Body>
         </ChartCard>
       );
@@ -1284,6 +1291,7 @@ const PerformanceChartSection = () => {
           <CostBreakdownModal
             total={vm.chartData?.costBreakdownTotal ?? { labels: [], values: [] }}
             byPart={vm.chartData?.costBreakdownByPart ?? {}}
+            byTeam={vm.chartData?.costBreakdownByTeam}
             partsRaw={vm.chartData?.partsRaw ?? []}
             teams={vm.teams}
             teamParts={vm.chartData?.teamParts ?? {}}
