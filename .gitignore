@@ -28,14 +28,8 @@ Thumbs.db
 data/**/*.xlsx
 data/**/*.xls
 data/**/*.csv
-data/ai_analysis_cache.json
-data/visibility.json
-data/access.json
-data/perf_update.json
-data/perf_col_maps.json
-data/perf_update_status.json
-data/health_ack.json
-data/extract_requests.json
+# 서버가 쓰는 설정·상태·기록 JSON 전부(하위 폴더 포함) — 새 파일이 생겨도 자동 제외. git pull이 각자 PC의 이 파일을 덮어쓰지 않게
+data/**/*.json
 
 # 로그
 *.log
@@ -49,4 +43,3 @@ frontend/public/fonts/*.ttf
 frontend/public/fonts/*.otf
 frontend/public/fonts/*.woff
 frontend/public/fonts/*.woff2
-data/secret_mail_sent.json
