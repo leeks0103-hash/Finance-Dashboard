@@ -174,7 +174,7 @@ const AdminModal = ({ extractJob, onClose, initialSelected }: Props) => {
     : '관리자로 등록된 사번만 로그인할 수 있습니다';
 
   return (
-    <Modal title="관리자 기능" sub={sub} width={extractJob.isAuthed ? 'min(860px, 94vw)' : 560} onClose={onClose}>
+    <Modal title="관리자 기능" sub={sub} width={extractJob.isAuthed ? 'min(1000px, 94vw)' : 560} onClose={onClose}>
       {!extractJob.isAuthed ? (
         <form className={styles.auth} onSubmit={handleLogin}>
           <input className={styles.authInput} placeholder="사번" autoComplete="username" autoFocus
@@ -191,7 +191,7 @@ const AdminModal = ({ extractJob, onClose, initialSelected }: Props) => {
         </form>
       ) : (
         <div className={styles.groups}>
-          {/* 공개 범위 두 개는 한 줄에 — 둘 다 짧은 세그먼트라. 바꾸면 모든 사람 화면에 적용 */}
+          {/* 공개 범위 네 개는 한 줄에 — 모두 짧은 세그먼트라. 바꾸면 모든 사람 화면에 적용 */}
           <div className={styles.twoCol}>
             {VISIBILITY_ITEMS.map(item => (
               <section key={item.key} className={styles.group}>

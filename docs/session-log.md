@@ -9,6 +9,7 @@
 - **업데이트 요청 부활**: 10-22 낮에 주석 처리했던 것 전부 해제(헤더 노란 "!", `useOpenFile.requestUpdate`, `request_bp` 등록, 관리자 토글). 공개 범위 `extractRequest` **기본 숨김**(`data/visibility.json`에 예전 기본값 all이 저장돼 있어 none으로 고침)
 - **시크릿 키 메일 템플릿**: 제목 "경영현황 통합 대시보드 개인별 시크릿키 전달 드립니다.", 본문 = 접속 주소(`DASHBOARD_URL` 10.206.33.120:5188)·ID(사번)·PW(시크릿 키)·문의 내선 8020 —
   `secret_mail.BODY_TEMPLATE`의 `{url}{emp}{key}` 변수를 사람마다 채움(미리보기는 키만 가림). 발송은 안 함
+- 관리자 기능 창 폭 860 → `min(1000px, 94vw)`, 공개 범위 카드(달성률·파일·폴더 바로가기·업데이트 요청) 4개가 한 줄로(`.twoCol` minmax 220 → 190). 또 `.gitignore`를 `data/**/*.json` 패턴으로(JSON 파일마다 한 줄 등록하던 것 — pull이 각자 PC 설정 파일을 덮어쓰지 않게)
 
 ## [2026-10-22 저녁] 로그인 다시 켬
 

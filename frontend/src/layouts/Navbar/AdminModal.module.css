@@ -31,10 +31,10 @@
   gap: 12px;
 }
 
-/* 공개 범위(달성률·파일·폴더 바로가기) — 짧은 설정은 한 줄에, 좁으면 줄바꿈(2026-10-20 세 개로) */
+/* 공개 범위(달성률·파일·폴더 바로가기·업데이트 요청) — 짧은 설정은 한 줄에, 좁으면 줄바꿈 */
 .twoCol {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));   /* 4개(달성률·파일·폴더·업데이트 요청)가 모달 폭 1000px에서 한 줄(2026-10-22) */
   gap: 12px;
 }
 
