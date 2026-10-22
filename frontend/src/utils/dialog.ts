@@ -30,6 +30,12 @@ interface ConfirmOptions {
   cancelText?:  string;
 }
 
+/** 메시지를 HTML로 — 전부 이스케이프한 뒤 **굵게** 표기만 <strong>으로(파일명의 &·< 같은 글자가 깨지지 않게, 줄바꿈은 CSS pre-line) */
+const toHtml = (message: string): string =>
+  message
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+
 /**
  * window.confirm 대체 — 사이트 톤(HyundaiSans·브랜드 색·radius)에 맞춘 확인 다이얼로그.
  * 메시지의 줄바꿈(\n)은 그대로 유지됨(white-space: pre-line).
@@ -37,7 +43,7 @@ interface ConfirmOptions {
 export const confirmDialog = async (message: string, opts: ConfirmOptions = {}): Promise<boolean> => {
   const res = await Swal.fire({
     title: opts.title,
-    text: message,
+    html: toHtml(message),   // **굵게** 지원(2026-10-22)
     icon: opts.danger ? 'warning' : 'question',
     showCancelButton: true,
     confirmButtonText: opts.confirmText ?? '확인',

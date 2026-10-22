@@ -170,8 +170,8 @@ const CopyText = ({ text, className, highlight, onSearch, onOpen, truncate, cent
         <Button
           unstyled
           className={`${styles.openBtn} ${opening ? styles.opening : ''}`}
-          title={opening ? '파일 여는 중…' : `원본 파일 열기(바로가기) — ${text}`}
-          aria-label={opening ? '파일 여는 중' : '바로가기'}
+          title={opening ? '파일 여는 중…' : `해당 파일 바로가기 (원본 PPT 열기) — ${text}`}
+          aria-label={opening ? '파일 여는 중' : '파일 바로가기'}
           aria-busy={opening}
           onClick={handleOpen}
         >
@@ -181,8 +181,8 @@ const CopyText = ({ text, className, highlight, onSearch, onOpen, truncate, cent
       {showFolder && onOpen?.openFolder && (
         <Button unstyled
           className={`${styles.openBtn} ${styles.folderBtn} ${folderState === 'busy' ? styles.opening : ''} ${folderState === 'done' ? styles.folderDone : ''}`}
-          title={folderState === 'busy' ? '폴더 여는 중…' : folderState === 'done' ? '폴더를 열었습니다' : `파일이 있는 폴더 열기 — ${text}`}
-          aria-label={folderState === 'done' ? '폴더 열림' : '폴더 열기'} aria-busy={folderState === 'busy'}
+          title={folderState === 'busy' ? '폴더 여는 중…' : folderState === 'done' ? '폴더를 열었습니다' : `해당 파일 폴더 바로가기 (탐색기에서 파일 선택) — ${text}`}
+          aria-label={folderState === 'done' ? '폴더 열림' : '폴더 바로가기'} aria-busy={folderState === 'busy'}
           onClick={handleOpenFolder}>
           {folderState === 'busy' ? <span className={styles.openSpinner} aria-hidden="true" />
             : folderState === 'done' ? <DoneIcon /> : <FolderIcon />}
@@ -191,7 +191,7 @@ const CopyText = ({ text, className, highlight, onSearch, onOpen, truncate, cent
       {showRequest && onOpen?.requestUpdate && (
         <Button unstyled
           className={`${styles.openBtn} ${styles.folderBtn} ${requestState === 'busy' ? styles.opening : ''} ${requestState === 'done' ? styles.folderDone : ''}`}
-          title={requestState === 'busy' ? '확인 중…' : requestState === 'done' ? '요청했습니다' : `원본을 고쳤으면 업데이트(다시 추출) 요청 — ${text}`}
+          title={requestState === 'busy' ? '확인 중…' : requestState === 'done' ? '요청했습니다' : `업데이트 요청 (원본을 고쳤다면 관리자에게 다시 추출 요청) — ${text}`}
           aria-label={requestState === 'done' ? '요청함' : '업데이트 요청'} aria-busy={requestState === 'busy'}
           onClick={handleRequest}>
           {requestState === 'busy' ? <span className={styles.openSpinner} aria-hidden="true" />

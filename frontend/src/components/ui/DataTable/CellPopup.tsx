@@ -59,7 +59,7 @@ export const CellPopup = ({ title, popup, copied, onClose, onCopy }: Props) => {
                   unstyled
                   className={`${styles.iconBtn} ${copied ? styles.iconBtnDone : ''}`}
                   onClick={onCopy}
-                  title={copied ? '복사됨' : '복사'}
+                  title={copied ? '복사됨' : '내용 복사'}
                   aria-label={copied ? '복사됨' : '복사'}
                 >
                   {copied ? (
@@ -70,7 +70,7 @@ export const CellPopup = ({ title, popup, copied, onClose, onCopy }: Props) => {
                 </Button>
               )}
               {onOpen && (
-                <Button unstyled className={styles.iconBtn} onClick={onOpen} title="원본 파일 열기(바로가기)" aria-label="바로가기">
+                <Button unstyled className={styles.iconBtn} onClick={onOpen} title="해당 파일 바로가기 (원본 PPT 열기)" aria-label="파일 바로가기">
                   <svg viewBox="0 0 16 16" aria-hidden><path d="M9 2.5h4.5V7" /><path d="M13.5 2.5 7 9" /><path d="M11.5 9.5v3a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1h3" /></svg>
                 </Button>
               )}
@@ -85,8 +85,8 @@ export const CellPopup = ({ title, popup, copied, onClose, onCopy }: Props) => {
                     setFolderState(r?.ok ? 'done' : 'idle');
                     if (r?.ok) setTimeout(() => setFolderState('idle'), 1500);
                   }}
-                  title={folderState === 'busy' ? '폴더 여는 중…' : folderState === 'done' ? '폴더를 열었습니다' : '파일이 있는 폴더 열기'}
-                  aria-label={folderState === 'done' ? '폴더 열림' : '폴더 열기'} aria-busy={folderState === 'busy'}>
+                  title={folderState === 'busy' ? '폴더 여는 중…' : folderState === 'done' ? '폴더를 열었습니다' : '해당 파일 폴더 바로가기 (탐색기에서 파일 선택)'}
+                  aria-label={folderState === 'done' ? '폴더 열림' : '폴더 바로가기'} aria-busy={folderState === 'busy'}>
                   {folderState === 'busy' ? <span className={styles.spinner} aria-hidden />
                     : folderState === 'done' ? <svg viewBox="0 0 16 16" aria-hidden><path d="M3 8.5l3 3 7-7" /></svg>
                     : <svg viewBox="0 0 16 16" aria-hidden><path d="M2 4.2v7.6a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1H8L6.6 3.2H3a1 1 0 0 0-1 1Z" /></svg>}
@@ -103,7 +103,7 @@ export const CellPopup = ({ title, popup, copied, onClose, onCopy }: Props) => {
                     setRequestState(r?.ok ? 'done' : 'idle');
                     if (r?.ok) setTimeout(() => setRequestState('idle'), 1500);
                   }}
-                  title={requestState === 'busy' ? '확인 중…' : requestState === 'done' ? '요청했습니다' : '원본을 고쳤으면 업데이트(다시 추출) 요청'}
+                  title={requestState === 'busy' ? '확인 중…' : requestState === 'done' ? '요청했습니다' : '업데이트 요청 (원본을 고쳤다면 관리자에게 다시 추출 요청)'}
                   aria-label={requestState === 'done' ? '요청함' : '업데이트 요청'} aria-busy={requestState === 'busy'}>
                   {requestState === 'busy' ? <span className={styles.spinner} aria-hidden />
                     : requestState === 'done' ? <svg viewBox="0 0 16 16" aria-hidden><path d="M3 8.5l3 3 7-7" /></svg>

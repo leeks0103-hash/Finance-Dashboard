@@ -74,7 +74,8 @@ const requestUpdate = async (filename: string): Promise<{ ok: boolean }> => {
   const state = s.changed === true
     ? `원본이 마지막 추출 뒤에 수정됐습니다.\n(${last} · 원본 수정 ${s.modified})`
     : s.changed === false
-      ? `⚠ 마지막 추출 뒤로 원본이 바뀌지 않았습니다 — PPT를 저장하셨나요?\n(${last} · 원본 수정 ${s.modified})`
+      // 앞의 "⚠ 마지막 추출 뒤로 원본이 바뀌지 않았습니다 —"는 뺌, 이 한 줄만 굵게(2026-10-22 요청). 저장만 하고 열어 둔 채면 안 바뀐 걸로 보일 수 있어 '닫기'까지 묻는 문구
+      ? `**PPT 파일을 저장 후 닫으셨나요?**\n(${last} · 원본 수정 ${s.modified})`
       : `원본 수정 시각을 확인하지 못했습니다. (${last})`;
   const already = s.requested ? `\n\n이미 요청돼 있습니다 — ${s.requested.at}${s.requested.by ? ` · ${s.requested.by}` : ''}` : '';
   const ok = await confirmDialog(`${filename}\n\n${state}${already}\n\n관리자에게 다시 추출을 요청할까요?`, {

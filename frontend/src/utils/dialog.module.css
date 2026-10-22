@@ -9,6 +9,8 @@
   box-shadow: var(--shadow-lg) !important;
   font-family: 'Pretendard', 'Malgun Gothic', sans-serif !important;
   padding: 22px 22px 20px !important;
+  /* 기본 32em(512px)이면 긴 파일명·안내 문장이 어중간하게 개행돼서 조금만 넓힘(2026-10-22). 크면 어색해 580px 상한, 좁은 화면은 92vw */
+  width: min(580px, 92vw) !important;
 }
 
 .title {
@@ -24,6 +26,8 @@
   font-size: 0.86rem !important;
   line-height: 1.55 !important;
   white-space: pre-line;
+  overflow-wrap: anywhere;   /* 공백 없는 긴 파일명이 칸을 밀지 않고 줄바꿈 */
+  text-wrap: pretty;         /* 마지막 줄에 한두 글자만 남는 어색한 개행 줄임 */
 }
 
 .actions {
