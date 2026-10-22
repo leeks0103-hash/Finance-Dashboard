@@ -52,7 +52,11 @@ const ExtractRequestBadge = ({ onExtract }: Props) => {
                 <li key={it.file} className={styles.healthItem}>
                   <div className={styles.healthFileRow}>
                     <CopyText text={it.file} className={styles.healthFile} />
-                    <Button variant="ghost" size="sm" onClick={() => dismiss(it.file)} title="추출 없이 이 요청 지우기">지우기</Button>
+                    {/* 글자 버튼 대신 작은 둥근 ×(2026-10-22 — "지우기" 버튼이 투박하다는 의견) */}
+                    <Button unstyled className={styles.requestDismiss} onClick={() => dismiss(it.file)}
+                      title="추출 없이 이 요청 지우기" aria-label="이 요청 지우기">
+                      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" /></svg>
+                    </Button>
                   </div>
                   <div className={styles.healthCodes}>
                     <span className={styles.healthDesc}>
