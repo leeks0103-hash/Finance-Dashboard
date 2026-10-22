@@ -1,5 +1,10 @@
 # 세션 진행 기록
 
+## [2026-10-22 저녁] 로그인 다시 켬
+
+- `authMode.ts LOGIN_REQUIRED = true` + `app.py app.before_request(login_required_for_api)` 주석 해제, Flask 재시작. 로그인 화면·관리자 창 분기·계정 칸은 모두 `LOGIN_REQUIRED` 플래그를 따라가서 따로 해제할 UI 없음
+- 확인: 토큰 없이 `/api/summary` 401(`/auth/me` 200), 헤드리스 Edge에서 비밀번호 입력칸 있는 로그인 화면, 4xx 0건
+
 ## [2026-10-22 오후] 미수주 프로젝트 2뎁스를 프로젝트 상세 2뎁스와 같은 모양으로
 
 - 미수주 프로젝트 행 펼침(`FinanceDetailPanel`)이 key-value 카드라 프로젝트 상세의 "재무 이력"(DataTable)과 모양이 달랐고 값 보기도 힘들었음 →

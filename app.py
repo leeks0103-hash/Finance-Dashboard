@@ -43,7 +43,7 @@ app.json = NumpyJSONProvider(app)
 
 # 들어가자마자 로그인(2026-10-13) — 10-14 잠깐 껐다가 10-15 다시 켬. 끌 땐 아래 줄 주석 +
 # frontend/src/utils/authMode.ts LOGIN_REQUIRED = false. 관리자 API(@admin_required·_extract_key_valid)는 그대로 403
-# app.before_request(login_required_for_api)   # 2026-10-19 회의용으로 잠깐 끔 — 다시 켤 땐 주석 해제 + authMode.ts
+app.before_request(login_required_for_api)   # 2026-10-22 다시 켬(10-19 회의용으로 껐던 것) — 끌 땐 이 줄 주석 + authMode.ts
 app.register_blueprint(finance_bp)
 app.register_blueprint(perf_bp)
 app.register_blueprint(kpi_bp)
