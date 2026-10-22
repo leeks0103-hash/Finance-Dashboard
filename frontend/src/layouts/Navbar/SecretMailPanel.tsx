@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
-import { Button, confirmDialog } from '@/components/ui';
+import { Button, CopyText, confirmDialog } from '@/components/ui';
 import { usePresence } from '@/components/ui/useAnimatedClose';
-import { useSecretMail } from '@/hooks/useSecretMail';
+import { useSecretMail, useSecretMailAccountDiff } from '@/hooks/useSecretMail';
 import type { SecretMailRow } from '@/types/secretMail.types';
 import SecretMailPreviewModal from './SecretMailPreviewModal';
 import styles from './SecretMailPanel.module.css';
@@ -10,6 +10,7 @@ const COLLAPSE_MS = 240;   // .closing 애니메이션 길이와 맞출 것
 
 const shortTime = (s: string) => s.slice(5, 16);   // "MM-DD HH:MM"
 const nameOf = (r: SecretMailRow) => r.name || r.emp;
+const personText = (p: { emp: string; name: string }) => (p.name ? `${p.name}(${p.emp})` : p.emp);
 
 /** 확인창용 명단 — 8명까지 + 외 N명 */
 const listText = (rows: SecretMailRow[]) =>
@@ -32,6 +33,7 @@ const SecretMailPanel = () => {
   const { mounted, closing } = usePresence(open, COLLAPSE_MS);
   const [settled, setSettled] = useState(false);
   const mail = useSecretMail(mounted);
+  const diff = useSecretMailAccountDiff(open);
   const rows = useMemo(() => mail.data?.rows ?? [], [mail.data]);
   const job = mail.job;
   const locked = mail.running || mail.isStarting;
@@ -122,6 +124,37 @@ const SecretMailPanel = () => {
               <dd>{mail.data.file ?? '-'} <span className={styles.muted}>· {rows.length}명 · 보냄 {sentCount}명</span></dd>
             </dl>
           )}
+
+          {/* 명단 엑셀 vs .env 일반 회원 — 보여 주기만, 반영은 터미널에서 직접(계정 정보는 화면 버튼으로 안 바꿈) */}
+          {diff.isLoading && <span className={styles.muted}>명단 엑셀과 로그인 계정(.env) 대조 중…</span>}
+          {diff.error && <span className={styles.error}>계정 대조 실패 — {diff.error}</span>}
+          {diff.data?.ok && (() => {
+            const d = diff.data;
+            const groups = [
+              { label: '추가(명단에 새로 있음)', items: d.added },
+              { label: '키 바뀜(다시 보내야 함)', items: d.key_changed },
+              { label: '삭제(명단에서 빠짐)', items: d.removed },
+            ].filter(g => g.items.length);
+            if (!groups.length) {
+              return <span className={styles.muted}>로그인 계정(.env) {d.users}명 — 명단 엑셀과 같음 ({shortTime(d.checked_at)} 확인)</span>;
+            }
+            return (
+              <div className={styles.diffBox}>
+                <div className={styles.diffHead}>
+                  <span>명단 엑셀이 로그인 계정(.env)과 다릅니다 — {groups.map(g => `${g.label.split('(')[0]} ${g.items.length}명`).join(' · ')}</span>
+                  <Button variant="ghost" size="sm" loading={diff.isFetching} onClick={diff.refetch}>다시 확인</Button>
+                </div>
+                {groups.map(g => (
+                  <div key={g.label} className={styles.diffGroup}>
+                    <span className={styles.diffLabel}>{g.label}</span>
+                    <span className={styles.diffNames}>{g.items.map(personText).join(', ')}</span>
+                  </div>
+                ))}
+                <span className={styles.muted}>반영하려면 서버 PC 터미널에서 아래 명령(클릭하면 복사) → Flask 재시작(python dashboard_manager.py --start). 키가 바뀐 사람은 반영 뒤 다시 보내세요.</span>
+                <CopyText text={d.command} className={styles.diffCmd} />
+              </div>
+            );
+          })()}
 
           {/* 진행 상황 — 보내는 동안 / 끝난 뒤 결과 */}
           {job?.running && (

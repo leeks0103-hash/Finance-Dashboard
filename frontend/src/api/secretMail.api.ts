@@ -1,5 +1,5 @@
 import client from './client';
-import type { SecretMailJob, SecretMailPreview, SecretMailRoster, SecretMailSendBody } from '@/types/secretMail.types';
+import type { SecretMailAccountDiff, SecretMailJob, SecretMailPreview, SecretMailRoster, SecretMailSendBody } from '@/types/secretMail.types';
 
 /** 관리자 — 명단·보낸 기록·보내는 계정(Outlook 확인이 있어 조금 걸릴 수 있음) */
 export const getSecretMailRoster = (): Promise<SecretMailRoster> =>
@@ -19,3 +19,7 @@ export const cancelSecretMail = (): Promise<{ ok: boolean; job: SecretMailJob }>
 /** 관리자 — 그 사람에게 갈 메일 그대로(키만 가림) */
 export const getSecretMailPreview = (emp: string): Promise<SecretMailPreview> =>
   client.get('/secret-mail/preview', { params: { emp } }).then(r => r.data);
+
+/** 관리자 — 명단 엑셀 vs .env 일반 회원(읽기만, .env는 안 고침) */
+export const getSecretMailAccountDiff = (): Promise<SecretMailAccountDiff> =>
+  client.get('/secret-mail/account-diff').then(r => r.data);

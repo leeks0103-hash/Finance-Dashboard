@@ -49,3 +49,17 @@ export interface SecretMailPreview {
   /** 실제 키 글자 수 — 가린 글자 수와 다를 수 있어 따로 */
   key_length: number;
 }
+
+/** 명단 엑셀 vs .env 일반 회원 대조(읽기만) — 반영은 command를 터미널에서 직접 + Flask 재시작 */
+export interface SecretMailAccountDiff {
+  ok: boolean;
+  error?: string;
+  file?: string;
+  added: { emp: string; name: string }[];
+  removed: { emp: string; name: string }[];
+  key_changed: { emp: string; name: string }[];
+  /** 지금 .env 일반 회원 수 */
+  users: number;
+  command: string;
+  checked_at: string;
+}

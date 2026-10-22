@@ -139,6 +139,29 @@ def mark_sent(emp: str) -> str:
     return at
 
 
+# ── 명단 ↔ .env 일반 회원 대조(읽기만, 2026-10-22) ──────────
+# 명단 보기를 누를 때 엑셀(최신 명단)과 .env USER_ACCOUNTS가 어떻게 다른지 보여 주기만 함 — .env는 안 고침.
+# 반영은 사람이 직접 scripts/fill_user_accounts.py --apply + Flask 재시작(계정 정보를 화면 버튼으로 바꾸지 않음).
+# 기준은 그 스크립트와 같음: 명단 = 일반 회원 전체, ADMIN_ACCOUNTS 사번만 뺌
+
+def account_diff(roster: list[dict]) -> dict:
+    """{added, removed, key_changed} — 사번·이름만(키 없음)"""
+    users, admins = env_accounts("USER_ACCOUNTS"), set(env_accounts("ADMIN_ACCOUNTS"))
+    want = {r["emp"]: r for r in roster if r["emp"] not in admins}
+    return {
+        "added": [{"emp": e, "name": r["name"]} for e, r in want.items() if e not in users],
+        "removed": [{"emp": e, "name": ""} for e in users if e not in want],
+        "key_changed": [{"emp": e, "name": r["name"]} for e, r in want.items()
+                        if e in users and users[e] != r["key"]],
+        "users": len(users),
+    }
+
+
+def apply_command(path: str) -> str:
+    """반영할 때 터미널에 칠 명령 — 지금 .env가 이름 없이 사번:키라 --no-name"""
+    return f'python scripts/fill_user_accounts.py "{os.path.relpath(path, ROOT).replace(os.sep, "/")}" --no-name --apply'
+
+
 # ── Outlook ─────────────────────────────────────────────────
 
 def outlook_app():
@@ -283,6 +306,18 @@ def api_roster():
              "excluded": r["emp"] in excl, "key_ok": r["emp"] not in bad,
              "sent_at": sent.get(r["emp"])} for r in roster]
     return jsonify({**base, "rows": rows})
+
+
+@secret_mail_bp.route("/api/secret-mail/account-diff", methods=["GET"])
+@admin_required
+def api_account_diff():
+    """명단 엑셀 vs .env 일반 회원 — 다른 사람 목록 + 반영 명령(읽기만)"""
+    path, roster, err = _load_for_api()
+    if err:
+        return jsonify({"ok": False, "error": err})
+    return jsonify({"ok": True, "file": os.path.basename(path), **account_diff(roster),
+                    "command": apply_command(path),
+                    "checked_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
 
 
 @secret_mail_bp.route("/api/secret-mail/send", methods=["POST"])

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { cancelSecretMail, getSecretMailPreview, getSecretMailRoster, getSecretMailStatus, startSecretMail } from '@/api/secretMail.api';
+import { cancelSecretMail, getSecretMailAccountDiff, getSecretMailPreview, getSecretMailRoster, getSecretMailStatus, startSecretMail } from '@/api/secretMail.api';
 import type { SecretMailSendBody } from '@/types/secretMail.types';
 
 const ROSTER_KEY = ['secret-mail-roster'];
@@ -76,4 +76,23 @@ export const useSecretMailPreview = (emp: string | null) => {
     retry: 0,
   });
   return { data: q.data, isLoading: q.isLoading, error: q.isError ? errorText(q.error) : null };
+};
+
+/** 명단 보기를 펼칠 때마다 명단 엑셀 vs .env 일반 회원 대조(읽기만) — 반영은 사람이 터미널에서 */
+export const useSecretMailAccountDiff = (enabled: boolean) => {
+  const q = useQuery({
+    queryKey: ['secret-mail-account-diff'],
+    queryFn: getSecretMailAccountDiff,
+    enabled,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    retry: 0,
+  });
+  return {
+    data: q.data,
+    isLoading: q.isLoading,
+    isFetching: q.isFetching,
+    error: q.isError ? errorText(q.error) : q.data?.error ?? null,
+    refetch: () => void q.refetch(),
+  };
 };
