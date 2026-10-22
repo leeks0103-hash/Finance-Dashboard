@@ -1,5 +1,12 @@
 # 세션 진행 기록
 
+## [2026-10-22 오후] 미수주 프로젝트 2뎁스를 프로젝트 상세 2뎁스와 같은 모양으로
+
+- 미수주 프로젝트 행 펼침(`FinanceDetailPanel`)이 key-value 카드라 프로젝트 상세의 "재무 이력"(DataTable)과 모양이 달랐고 값 보기도 힘들었음 →
+  같은 셸(`PerformanceTable/FinancePanelShell` — 헤더·프로젝트코드·× + 부모 가로 스크롤 따라가기, `FinanceCrossCheckPanel`에서 뽑아 공용화)과
+  같은 컬럼 정의(`buildFinanceColumns('', { detail: true })`)로 한 건짜리 DataTable. 미수사유 컬럼(클릭 시 전체 팝업) 추가, 처리일·반영일은 기본 숨김(컬럼 메뉴로 켬). 파일명 컬럼은 뺌(바로 위 1뎁스 행에 있음) — 빈 폭은 미수사유 컬럼이 채움
+- 옛 `FinanceDetailPanel.module.css` 삭제. 확인: tsc(기존 `rates` 오류 2개 그대로), Edge 헤드리스 캡처(미수주 첫 행 더블클릭 → 표 모양 확인)
+
 ## [2026-10-22] 드릴다운 모달 프로젝트명 한 줄 + 업데이트 요청 기능 통째로 주석 처리
 
 - **드릴다운 모달**(월별 실적 추이·전체 평균 원가 비율·파트별 추정 매출/원가 — `PerfBreakdownModal` 값 표): 프로젝트명 줄바꿈(`wrap`) 뺌, 모달 폭 920 → `min(1360px, 96vw)`(`WIDE_MODAL_W`).

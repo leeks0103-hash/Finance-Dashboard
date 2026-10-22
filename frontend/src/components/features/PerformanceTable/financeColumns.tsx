@@ -19,7 +19,10 @@ const isFinishedEmpty = (row: Project, key: keyof Project) => row.stage === '완
 
 const muted = <span style={{ color: 'var(--text-muted)' }}>-</span>;
 
-export const buildFinanceColumns = (searchTerm: string) => [
+/** 미수주 2뎁스(재무 PPT에만 있는 프로젝트)용 추가 컬럼 — 미수사유·처리일·반영일(2026-10-22). 기본 재무 이력 표엔 없음 */
+export interface FinanceColumnOptions { detail?: boolean }
+
+export const buildFinanceColumns = (searchTerm: string, { detail = false }: FinanceColumnOptions = {}) => [
   ch.accessor('project_code', {
     header: '프로젝트코드', size: 150,
     cell: i => <CopyText text={i.getValue()} highlight={searchTerm} />,
@@ -58,6 +61,12 @@ export const buildFinanceColumns = (searchTerm: string) => [
       return v ? <HighlightText text={v} query={searchTerm} /> : muted;
     },
   }),
+  // 미수사유는 PPT 텍스트박스 원문이라 길어서(줄바꿈 포함) 클릭 시 전체 내용 팝업(복사 가능)
+  ...(detail ? [ch.accessor('missed_bid_reason', {
+    header: '미수사유', size: 440,   // 파일명 뺀 자리까지 채움(미수주 2뎁스 전용 컬럼이라 다른 표엔 영향 없음)
+    meta: { cellPopup: true },
+    cell: i => i.getValue() || muted,
+  })] : []),
   ch.accessor('filename', {
     header: '파일명', size: 260,
     // 파일명이 길어서(20자↑) 클릭 시 DataTable 기본 팝업(복사 + 이 meta로 "바로가기" 버튼 추가)이 뜬다
@@ -67,6 +76,10 @@ export const buildFinanceColumns = (searchTerm: string) => [
     },
     meta: { onOpenFile: openFile, cellPopup: true },
   }),
+  ...(detail ? [
+    ch.accessor('processed_at', { header: '처리일', size: 100, cell: i => i.getValue() || muted }),
+    ch.accessor('reflected_at', { header: '반영일', size: 100, cell: i => i.getValue() || muted }),
+  ] : []),
 ];
 
 // 지금 화면에 뜬 행(로우데이터)을 그대로 CSV로 — 재무데이터 다운로드(원본 엑셀 전체)와는

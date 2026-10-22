@@ -1,10 +1,9 @@
-import { Button, CopyText } from '@/components/ui';
-import { formatBillion, formatRate } from '@/utils';
+import { useMemo } from 'react';
+import { DataTable } from '@/components/ui';
+import { useUiStore } from '@/store';
+import { buildFinanceColumns } from '@/components/features/PerformanceTable/financeColumns';
+import FinancePanelShell from '@/components/features/PerformanceTable/FinancePanelShell';
 import type { Project } from '@/types';
-import styles from './FinanceDetailPanel.module.css';
-import { openFinanceFileOrAlert } from '@/hooks/useOpenFile';
-
-const openFile = openFinanceFileOrAlert;
 
 interface Props {
   project: Project;
@@ -13,44 +12,38 @@ interface Props {
 
 /**
  * 미수주는 실적현황에는 없고 재무(PPT)에만 존재하는 데이터라 교차조회할 대상이 없음 —
- * 목록에서 안 보여주던 나머지 재무 필드(연도/단계/원가 구성/처리일 등)를 그대로 펼쳐서 보여줌.
- * 이미 fetch된 Project 객체를 그대로 쓰므로 별도 API 호출 없음.
+ * 이미 fetch된 Project 한 건을 프로젝트 상세의 "재무 이력"(FinanceCrossCheckPanel)과 같은 셸·표·컬럼으로 보여줌
+ * (예전 key-value 카드는 모양이 달라 값을 한눈에 보기 힘들었음, 2026-10-22). 별도 API 호출 없음.
+ * 미수사유·처리일·반영일은 이 패널 전용 컬럼(`detail`).
  */
-const FinanceDetailPanel = ({ project: p, onClose }: Props) => {
-  const missedBidReason = p.missed_bid_reason || '-';
+const FinanceDetailPanel = ({ project, onClose }: Props) => {
+  // 프로젝트코드는 패널 헤더, 파일명은 바로 위 1뎁스 행에 이미 있어 뺌(2026-10-22 요청)
+  const columns = useMemo(
+    () => buildFinanceColumns('', { detail: true }).filter(c => c.accessorKey !== 'project_code' && c.accessorKey !== 'filename'),
+    [],
+  );
+  const data = useMemo(() => [project], [project]);
+  const rawValues = useUiStore(s => s.showRawValues);
 
   return (
-    <div className={styles.panel}>
-      <div className={styles.header}>
-        <span className={styles.title}>재무 데이터(PPT) 상세 — <CopyText text={p.project_code} /></span>
-        <Button unstyled className={styles.closeBtn} onClick={onClose} aria-label="닫기">✕</Button>
-      </div>
-
-      <div className={styles.rows}>
-        <div className={styles.row}><span className={styles.key}>연도</span><span className={styles.val}>{p.year}</span></div>
-        <div className={styles.row}><span className={styles.key}>보고단계</span><span className={styles.val}>{p.stage}</span></div>
-        <div className={styles.row}><span className={styles.key}>매출</span><span className={styles.val}>{formatBillion(p.revenue)}</span></div>
-        <div className={styles.row}><span className={styles.key}>지출</span><span className={styles.val}>{formatBillion(p.expenditure)}</span></div>
-        <div className={styles.row}><span className={styles.key}>직접원가</span><span className={styles.val}>{formatBillion(p.direct_cost)}</span></div>
-        <div className={styles.row}><span className={styles.key}>인건비</span><span className={styles.val}>{formatBillion(p.labor_cost)}</span></div>
-        <div className={styles.row}><span className={styles.key}>공통원가</span><span className={styles.val}>{formatBillion(p.overhead)}</span></div>
-        <div className={styles.row}>
-          <span className={styles.key}>경상이익</span>
-          <span className={`${styles.val}${p.operating_profit < 0 ? ` ${styles.loss}` : ''}`}>
-            {formatBillion(p.operating_profit)}
-          </span>
-        </div>
-        <div className={styles.row}><span className={styles.key}>처리일</span><span className={styles.val}>{p.processed_at || '-'}</span></div>
-        <div className={styles.row}><span className={styles.key}>반영일</span><span className={styles.val}>{p.reflected_at || '-'}</span></div>
-
-        {/* 이익율 | 비고(미수사유) | 파일명 — 한 행 */}
-        <div className={styles.triRow}>
-          <div className={styles.row}><span className={styles.key}>이익율</span><span className={styles.val}>{formatRate(p.profit_rate)}</span></div>
-          <div className={styles.row}><span className={styles.key}>미수사유</span><span className={styles.val} title={missedBidReason}>{missedBidReason}</span></div>
-          <div className={styles.row}><span className={styles.key}>파일명</span><span className={styles.val}><CopyText text={p.filename} onOpen={openFile} /></span></div>
-        </div>
-      </div>
-    </div>
+    <FinancePanelShell title="재무 데이터(PPT) 상세" code={project.project_code} onClose={onClose}>
+      <DataTable<Project>
+        data={data}
+        columns={columns as never}
+        getRowId={row => String(row._row_num)}
+        meta={{ rawValues }}
+        defaultPageSize={10}
+        pageSizeOptions={[10]}
+        minRows={1}
+        // 처리일·반영일은 기본 숨김(컬럼 메뉴로 켬)
+        initialColumnVisibility={{ processed_at: false, reflected_at: false }}
+        emptyIcon="list"
+        emptyTitle="재무 데이터 없음"
+        emptyDescription="PPT에서 추출된 재무 데이터가 없습니다"
+        storageKey="missed-bid-finance-detail"
+        scrollable={false}
+      />
+    </FinancePanelShell>
   );
 };
 
