@@ -12,7 +12,7 @@ import { BreakdownGate, BreakdownExplain, BreakdownFoot } from '@/components/fea
 import styles from './PerfBreakdownModal.module.css';
 
 /** 프로젝트명이 줄바꿈 없이 들어가는 폭(기본 920px) — 화면이 좁으면 화면 폭의 96%까지만 */
-const WIDE_MODAL_W = 'min(1360px, 96vw)';
+const WIDE_MODAL_W = 'min(1200px, 96vw)';
 
 interface Props {
   target:  PerfBreakdownTarget;
@@ -54,7 +54,7 @@ const PerfBreakdownModal = ({ target, onClose }: Props) => {
       const cols: BreakdownColumn<PerfBreakdownCompareRow>[] = [
         {
           // 좁게(코드 16자 폭) — "프로젝트 통합 (E08…)" 같은 긴 값은 말줄임, 마우스오버로 전체·클릭 복사
-          key: 'code', header: '프로젝트코드', truncate: true, maxWidth: 148,
+          key: 'code', header: '프로젝트코드', align: 'center', truncate: true, maxWidth: 148,   // 본문(td)만 가운데 — 머리글은 늘 가운데
           sortValue: r => r.project_code,
           render: r => r.project_code ? <CopyText text={r.project_code} truncate /> : '—',
         },
@@ -116,7 +116,7 @@ const PerfBreakdownModal = ({ target, onClose }: Props) => {
       {
         // 코드만 보이게 좁게 — 프로젝트명까지 붙이면 컬럼이 넓어져 가로스크롤 유발 (KPI 드릴다운
         // 모달과 동일 이유로 통일)
-        key: 'code', header: '프로젝트코드',
+        key: 'code', header: '프로젝트코드', align: 'center',   // 본문(td)만 가운데 — 머리글은 늘 가운데
         sortValue: r => r.project_code,
         render: r => r.project_code ? <CopyText text={r.project_code} /> : '—',
       },
