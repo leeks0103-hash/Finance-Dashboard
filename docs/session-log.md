@@ -1,5 +1,17 @@
 # 세션 진행 기록
 
+## [2026-10-22] 드릴다운 모달 프로젝트명 한 줄 + 업데이트 요청 기능 통째로 주석 처리
+
+- **드릴다운 모달**(월별 실적 추이·전체 평균 원가 비율·파트별 추정 매출/원가 — `PerfBreakdownModal` 값 표): 프로젝트명 줄바꿈(`wrap`) 뺌, 모달 폭 920 → `min(1360px, 96vw)`(`WIDE_MODAL_W`).
+  나머지 컬럼 폭은 그대로. 계획·실적 비교표(파트별 계획 vs 추정 실적)는 기존 폭·줄바꿈 유지
+- **업데이트 요청 기능 전부 주석 처리**(검색어 `업데이트 요청 — 주석 처리`): 헤더 노란 "!"(Navbar import·렌더), `useOpenFile.requestUpdate`(+ opener 연결·import) → 파일명 옆 요청 아이콘·셀 팝업 버튼도 같이 사라짐,
+  관리자 기능 공개 범위 토글, 서버 `app.py` `request_bp` 등록(요청 API 전체 404). 파일(`extract_requests.py`·`ExtractRequestBadge`·`useExtractRequests`·`extractRequest.api`)은 그대로 둠
+- 주석 처리 전에 고쳐 둔 것(복구하면 적용됨): ① 다른 PC 요청이 새로고침해야 뜨던 것 — 폴링 60초 + 창이 뒷전이면 브라우저가 멈춤 + `refetchOnWindowFocus` 꺼짐이 원인 →
+  10초 + `refetchIntervalInBackground` + 창 복귀 시 즉시 ② 공개 범위 `extractRequest`(전체/관리자/숨김, 기본 전체 = 예전 동작) — 서버 기본값·허용값, `VisibilitySettings`,
+  `FileOpenVisibleContext.request`(CopyText·CellPopup이 읽음), App 연결
+- 복구: 위 주석 해제 후 Flask 재시작. AdminModal 토글 항목도 주석 해제
+- 확인: tsc(기존 `rates` 오류 2개 그대로), app.py 문법. 화면 확인은 아직. ⚠️ Flask 재시작 필요
+
 ## [2026-10-21] 원가 비율 깔때기 빨간색 오판 + 도넛 좌우 라벨 잘림 + README 정리
 
 - 원가 비율 카드 깔때기(상단 필터와 범위 다르면 빨강)가 팀·파트 둘 다 "전체"인데 빨갛던 것 — 필터바 store는 원문자 뗀 파트명, 비교는 서버 원문(① …)이라 항상 "다름" → 원문자 떼고 비교(`costFilterDiffers`)

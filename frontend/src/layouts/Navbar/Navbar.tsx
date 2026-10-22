@@ -13,7 +13,7 @@ import ChartColorModal from './ChartColorModal';
 import { useTheme } from '@/hooks';
 import { useDataHealth, useDataHealthAck } from '@/hooks/useDataHealth';
 import HealthAckButton from './HealthAckButton';
-import ExtractRequestBadge from './ExtractRequestBadge';
+// [업데이트 요청 — 주석 처리 2026-10-22] import ExtractRequestBadge from './ExtractRequestBadge';
 import { useChartLabelToggle } from '@/hooks/useChartLabelToggle';
 import { useKeyShortcuts } from '@/hooks/useKeyShortcuts';
 import { toast } from '@/utils/dialog';
@@ -41,7 +41,7 @@ const SunIcon = () => (
 const Navbar = () => {
   const { theme, toggle: toggleTheme } = useTheme();
   const { showRawValues, toggleRawValues, showFinCompare, toggleFinCompare } = useUiStore();
-  const adminAuthed = useUiStore(s => s.adminAuthed);
+  // [업데이트 요청 — 주석 처리 2026-10-22] const adminAuthed = useUiStore(s => s.adminAuthed);
   // 그래프 수치 — 켤 때/끌 때 페이드(끌 때는 투명해진 뒤 숨김)
   const chartLabels = useChartLabelToggle();
 
@@ -142,7 +142,7 @@ const Navbar = () => {
         {/* 우측 — (KPI/실적현황 탭) 다운로드 + 설정 */}
         <div className={styles.right}>
           {/* 업데이트 요청 노란 "!" — 관리자만(조회 자체가 관리자일 때만), 2026-10-21 */}
-          {adminAuthed && <ExtractRequestBadge onExtract={files => { setAdminPreset(files); setAdminOpen(true); }} />}
+          {/* [업데이트 요청 — 주석 처리 2026-10-22] {adminAuthed && <ExtractRequestBadge onExtract={files => { setAdminPreset(files); setAdminOpen(true); }} />} */}
           {/* 빨간 "!"(데이터 이상) — 0건이면 아예 안 그림(2026-10-21). 예전엔 자리를 비워 둬서(visibility)
               옆 버튼이 안 밀리게 했는데, 이상이 없을 때 노란 "!"가 빈칸 하나 떨어져 보였음. 나타날 땐 .health 등장 애니메이션 */}
           {healthTotal > 0 ? (

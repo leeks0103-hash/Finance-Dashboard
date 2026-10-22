@@ -68,6 +68,16 @@ const VISIBILITY_ITEMS: { key: keyof VisibilitySettings; label: string; options:
       { value: 'none',  label: '숨김',   title: '아무에게도 표시 안 함' },
     ],
   },
+  // [업데이트 요청 — 주석 처리 2026-10-22] 업데이트 요청 버튼 공개 범위(전체/관리자/숨김). 복구: 아래 주석 해제 +
+  // useOpenFile.requestUpdate·Navbar ExtractRequestBadge·app.py request_bp 등록 주석 해제(검색어: '업데이트 요청 — 주석 처리')
+  // {
+  //   key: 'extractRequest', label: '업데이트 요청',
+  //   options: [
+  //     { value: 'all',   label: '전체',   title: '모든 사람에게 업데이트 요청 버튼 표시' },
+  //     { value: 'admin', label: '관리자', title: '관리자 인증한 브라우저에만 표시' },
+  //     { value: 'none',  label: '숨김',   title: '아무에게도 표시 안 함' },
+  //   ],
+  // },
 ];
 
 interface Props {

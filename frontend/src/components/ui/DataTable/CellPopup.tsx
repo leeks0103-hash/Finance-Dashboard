@@ -39,7 +39,7 @@ export const CellPopup = ({ title, popup, copied, onClose, onCopy }: Props) => {
   if (!popup) return null;
   const onOpen = canOpen.file ? popup.onOpen : undefined;
   const onOpenFolder = canOpen.folder ? popup.onOpenFolder : undefined;
-  const onRequest = popup.onRequest;   // 업데이트 요청은 공개 범위와 무관하게 누구나
+  const onRequest = canOpen.request ? popup.onRequest : undefined;   // 업데이트 요청 — 공개 범위(extractRequest)를 따름(2026-10-22)
 
   return createPortal(
     <div className={`${styles.popupOverlay} ${closing ? 'closingOverlay' : ''}`} onClick={close}>

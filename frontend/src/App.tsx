@@ -13,7 +13,11 @@ import styles from './App.module.css';
 const Dashboard = () => {
   const fileVisible = useVisible('fileOpen');
   const folderVisible = useVisible('folderOpen');
-  const fileOpenVisible = useMemo(() => ({ file: fileVisible, folder: folderVisible }), [fileVisible, folderVisible]);
+  const requestVisible = useVisible('extractRequest');
+  const fileOpenVisible = useMemo(
+    () => ({ file: fileVisible, folder: folderVisible, request: requestVisible }),
+    [fileVisible, folderVisible, requestVisible],
+  );
   return (
     <FileOpenVisibleContext.Provider value={fileOpenVisible}>
       <div className={styles.root}>

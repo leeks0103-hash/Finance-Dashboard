@@ -17,7 +17,7 @@ from performance import perf_bp
 from kpi import kpi_bp, get_kpi_df, _real_code, KPI_EXCEL_PATH, load_kpi_excel, _kpi_cache_lock
 from downloads import download_bp
 from ai_insight import ai_bp
-from extract_requests import request_bp
+# [업데이트 요청 — 주석 처리 2026-10-22] from extract_requests import request_bp
 from secret_mail import secret_mail_bp
 from auth import is_admin, current_admin, current_user, login as admin_login, login_required_for_api
 
@@ -49,7 +49,7 @@ app.register_blueprint(perf_bp)
 app.register_blueprint(kpi_bp)
 app.register_blueprint(download_bp)
 app.register_blueprint(ai_bp)
-app.register_blueprint(request_bp)
+# [업데이트 요청 — 주석 처리 2026-10-22] app.register_blueprint(request_bp)
 app.register_blueprint(secret_mail_bp)
 
 
@@ -662,11 +662,13 @@ def api_extract_coverage():
 _VISIBILITY_PATH = Path(__file__).parent / "data" / "visibility.json"
 # folderOpen: 폴더 바로가기 — 파일 바로가기(↗)와 따로(2026-10-20). 기본값은 저장값이 없을 때 예전과 같게 fileOpen 따라감(_read_visibility)
 # aiInsight: AI 인사이트 버튼 — 관리자 기능 토글로 켜고 끔(전체/숨김, 2026-10-20). 기본 숨김(10-02부터 숨겨 둔 상태 유지)
-_VISIBILITY_DEFAULTS = {"fileOpen": "admin", "folderOpen": "admin", "achieveRate": "none", "aiInsight": "none"}
+_VISIBILITY_DEFAULTS = {"fileOpen": "admin", "folderOpen": "admin", "achieveRate": "none", "aiInsight": "none",
+                       "extractRequest": "all"}   # extractRequest: 업데이트 요청 버튼 — 전체/관리자/숨김(2026-10-22, 기본 전체 = 예전 동작)
 # 달성률은 처음엔 '전체'를 막았다가(저조한 팀이 모두에게 드러나지 않게, 2026-09-29) 관리자가 고를 수 있게 열어 둠(2026-10-14 요청).
 # 기본값은 그대로 숨김
 _VISIBILITY_CHOICES = {"fileOpen": {"all", "admin", "none"}, "folderOpen": {"all", "admin", "none"},
-                       "achieveRate": {"all", "admin", "none"}, "aiInsight": {"all", "admin", "none"}}
+                       "achieveRate": {"all", "admin", "none"}, "aiInsight": {"all", "admin", "none"},
+                       "extractRequest": {"all", "admin", "none"}}
 _visibility_lock = threading.Lock()
 
 

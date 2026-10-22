@@ -11,6 +11,9 @@ import BreakdownTable, { type BreakdownColumn } from '@/components/features/Brea
 import { BreakdownGate, BreakdownExplain, BreakdownFoot } from '@/components/features/BreakdownModal/BreakdownParts';
 import styles from './PerfBreakdownModal.module.css';
 
+/** 프로젝트명이 줄바꿈 없이 들어가는 폭(기본 920px) — 화면이 좁으면 화면 폭의 96%까지만 */
+const WIDE_MODAL_W = 'min(1360px, 96vw)';
+
 interface Props {
   target:  PerfBreakdownTarget;
   onClose: () => void;
@@ -117,6 +120,8 @@ const PerfBreakdownModal = ({ target, onClose }: Props) => {
         sortValue: r => r.project_code,
         render: r => r.project_code ? <CopyText text={r.project_code} /> : '—',
       },
+      // 프로젝트명 — 코드만으론 어떤 프로젝트인지 몰라서. 줄바꿈 없이 한 줄로 보이게 모달 폭을 넓혀 둠(WIDE_MODAL_W)
+      { key: 'name', header: '프로젝트명', sortValue: r => r.project_name, render: r => r.project_name || '—' },
       { key: 'part', header: '파트', align: 'center', sortValue: r => stripPartPrefix(r.part), render: r => stripPartPrefix(r.part) || '—' },
       { key: 'team', header: '팀',   align: 'center', sortValue: r => r.team, render: r => r.team || '—' },
       {
@@ -140,7 +145,7 @@ const PerfBreakdownModal = ({ target, onClose }: Props) => {
           rows={vm.rows}
           totalLabel={`합계 (${vm.count}건)`}
           totalValue={vm.totalStr}
-          totalSpan={3}
+          totalSpan={4}
         />
 
         <BreakdownFoot placement="bottom" note="매출/원가 행 기준 합산 · 막대값과 동일" onCsv={handleCsv} />
@@ -179,6 +184,8 @@ const PerfBreakdownModal = ({ target, onClose }: Props) => {
   return (
     <Modal
       onClose={onClose}
+      // 프로젝트명 한 줄 표시용으로 넓힘(월별 실적 추이·원가 비율·파트별 추정 매출/원가). 계획·실적 비교표는 기존 폭
+      width={compare ? undefined : WIDE_MODAL_W}
       // 파트는 이름만으로 충분해 "파트 · " 머리말 생략(2026-09-30) — 월·원가 항목은 유지
       title={vm.dimLabel === '파트' ? vm.keyLabel : `${vm.dimLabel} · ${vm.keyLabel}`}
       sub={<>

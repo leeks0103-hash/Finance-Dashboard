@@ -140,8 +140,8 @@ const CopyText = ({ text, className, highlight, onSearch, onOpen, truncate, cent
   // 복사한 직후의 ✓만 ↗ 뒤 자리에 잠깐 표시. 전체 폭은 그대로라 표 컬럼 폭은 안 바뀜
   const showOpen = !!onOpen && canOpen.file;
   const showFolder = !!onOpen?.openFolder && canOpen.folder;
-  // 업데이트 요청은 공개 범위와 무관하게 누구나(원본을 고친 사람이 누름, 2026-10-21)
-  const showRequest = !!onOpen?.requestUpdate;
+  // 업데이트 요청 — 관리자 기능의 공개 범위(extractRequest)를 따름(2026-10-22). 예전엔 누구나(2026-10-21)
+  const showRequest = !!onOpen?.requestUpdate && canOpen.request;
   const showAny = showOpen || showFolder || showRequest;
   // 복사 후: 텍스트 체크마크 / 복사 전: CSS로만 만든 아이콘(after면 호버 아이콘 없이 ✓만)
   const copyIcon = (after: boolean) => (

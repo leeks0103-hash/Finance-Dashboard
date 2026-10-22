@@ -11,6 +11,8 @@ export interface VisibilitySettings {
   achieveRate: Visibility;
   /** AI 인사이트 버튼 — 관리자 기능 토글(켬 = all / 끔 = none, 2026-10-20) */
   aiInsight: Visibility;
+  /** 업데이트(재추출) 요청 버튼 — 전체/관리자/숨김(2026-10-22) */
+  extractRequest: Visibility;
 }
 
 /** 실적 탭 필터바 오른쪽 "경영실적 현황 업데이트" 칸 — 서버(data/perf_update.json) 저장, 관리자만 고침 */
