@@ -281,6 +281,11 @@ const KpiPage = () => {
                 <FilterSelect value={rawStageVal} onChange={setRawStage} options={stageOptions} allLabel="보고단계 전체" />
               </div>
             );
+
+
+
+            console.log('vm.rawRows', vm.rawRows);
+
             // 목록 ↔ KPI 상세 전환 시 뚝 바뀌지 않게 — 기존 표 .swapOut → 새 표 .swapFadeIn(key로 재생, index.css).
             // 제목·토글 줄은 가만히 두고 그 아래(툴바+표)만 움직이도록 bodyClassName으로 건다
             const swapClass = viewLeaving ? 'swapOut' : 'swapFadeIn';

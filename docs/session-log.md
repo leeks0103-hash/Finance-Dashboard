@@ -1,5 +1,15 @@
 # 세션 진행 기록
 
+## [2026-10-22 밤] 로그인 요구 토글 + 업데이트 요청 부활 + 시크릿 키 메일 템플릿
+
+- **로그인 요구를 관리자 기능 토글로**(코드 주석 껐다 켜기 폐지): 서버 `data/access.json`(`auth.login_required()`, mtime 캐시, **없거나 깨지면 켜짐**), `GET /api/settings/access`(로그인 전에도 — `PUBLIC_API`)·`PUT`(관리자만).
+  `login_required_for_api`가 이 값을 봄(꺼져도 `@admin_required` API는 그대로 403). 프론트 `hooks/useLoginRequired`(30초·창 복귀 시 다시 받음, 서버 못 닿으면 '요구'), `authMode.ts` 상수 삭제,
+  `useAuthSession(loginRequired)`·`App`·`Navbar`가 이 값을 따름 — 켜지면 로그인 안 한 화면은 새로고침 없이 로그인 화면으로(받아 둔 데이터 비움), 꺼지면 로그인 화면 거둠.
+  AdminModal "로그인 요구" 토글(끌 땐 확인창). 확인: API(켜짐/꺼짐/잘못된 값/비관리자 PUT 403), 헤드리스로 열려 있는 화면이 33초 안에 dashboard ↔ login 전환
+- **업데이트 요청 부활**: 10-22 낮에 주석 처리했던 것 전부 해제(헤더 노란 "!", `useOpenFile.requestUpdate`, `request_bp` 등록, 관리자 토글). 공개 범위 `extractRequest` **기본 숨김**(`data/visibility.json`에 예전 기본값 all이 저장돼 있어 none으로 고침)
+- **시크릿 키 메일 템플릿**: 제목 "경영현황 통합 대시보드 개인별 시크릿키 전달 드립니다.", 본문 = 접속 주소(`DASHBOARD_URL` 10.206.33.120:5188)·ID(사번)·PW(시크릿 키)·문의 내선 8020 —
+  `secret_mail.BODY_TEMPLATE`의 `{url}{emp}{key}` 변수를 사람마다 채움(미리보기는 키만 가림). 발송은 안 함
+
 ## [2026-10-22 저녁] 로그인 다시 켬
 
 - `authMode.ts LOGIN_REQUIRED = true` + `app.py app.before_request(login_required_for_api)` 주석 해제, Flask 재시작. 로그인 화면·관리자 창 분기·계정 칸은 모두 `LOGIN_REQUIRED` 플래그를 따라가서 따로 해제할 UI 없음

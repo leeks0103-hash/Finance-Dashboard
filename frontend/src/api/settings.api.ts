@@ -15,3 +15,11 @@ export const getPerfUpdateNote = (): Promise<PerfUpdateNote> =>
 /** 관리자만 — 바꾼 항목만 보내면 됨. 응답은 저장된 전체 값 */
 export const putPerfUpdateNote = (patch: Partial<PerfUpdateNote>): Promise<PerfUpdateNote> =>
   client.put<PerfUpdateNote>('/settings/perf-update', patch, { headers: authHeaders() }).then(r => r.data);
+
+/** 로그인을 요구하는지 — 로그인 전에도 부를 수 있음(화면이 로그인 화면을 그릴지 정하려고). 서버 data/access.json */
+export const getLoginRequired = (): Promise<boolean> =>
+  client.get<{ loginRequired: boolean }>('/settings/access').then(r => r.data.loginRequired);
+
+/** 관리자만 — 로그인 요구 켜기/끄기. 응답은 저장된 값 */
+export const putLoginRequired = (loginRequired: boolean): Promise<boolean> =>
+  client.put<{ loginRequired: boolean }>('/settings/access', { loginRequired }, { headers: authHeaders() }).then(r => r.data.loginRequired);

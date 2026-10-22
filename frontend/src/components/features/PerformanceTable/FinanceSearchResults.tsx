@@ -31,6 +31,8 @@ const FinanceSearchResults = ({ open, results, searchTerm, info }: Props) => {
 
   if (!mounted) return null;
 
+  console.log('FinanceSearchResults render', { results });
+
   return (
     <div
       className={`${styles.wrap} ${closing ? styles.closing : ''} ${settled && !closing ? styles.settled : ''}`}

@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Button, Modal, ModalBadge, Toggle, confirmDialog } from '@/components/ui';
 import type { useExtractJob } from '@/hooks/useExtractJob';
 import { useVisibilitySettings } from '@/hooks/useVisibility';
+import { useLoginRequired, useSetLoginRequired } from '@/hooks/useLoginRequired';
 import type { Visibility, VisibilitySettings } from '@/types/settings.types';
 import type { ExtractTarget, ExtractMode } from '@/types/extract.types';
 import ExtractCoverage from './ExtractCoverage';
@@ -68,16 +69,16 @@ const VISIBILITY_ITEMS: { key: keyof VisibilitySettings; label: string; options:
       { value: 'none',  label: '숨김',   title: '아무에게도 표시 안 함' },
     ],
   },
-  // [업데이트 요청 — 주석 처리 2026-10-22] 업데이트 요청 버튼 공개 범위(전체/관리자/숨김). 복구: 아래 주석 해제 +
-  // useOpenFile.requestUpdate·Navbar ExtractRequestBadge·app.py request_bp 등록 주석 해제(검색어: '업데이트 요청 — 주석 처리')
-  // {
-  //   key: 'extractRequest', label: '업데이트 요청',
-  //   options: [
-  //     { value: 'all',   label: '전체',   title: '모든 사람에게 업데이트 요청 버튼 표시' },
-  //     { value: 'admin', label: '관리자', title: '관리자 인증한 브라우저에만 표시' },
-  //     { value: 'none',  label: '숨김',   title: '아무에게도 표시 안 함' },
-  //   ],
-  // },
+  {
+    // 업데이트(재추출) 요청 버튼 — 파일명 옆 아이콘·셀 팝업. 기본 숨김(2026-10-22), 관리자가 켜면 해당 범위에 보임.
+    // 요청이 쌓이면 관리자에게만 헤더 노란 "!"가 뜸(공개 범위와 무관)
+    key: 'extractRequest', label: '업데이트 요청',
+    options: [
+      { value: 'all',   label: '전체',   title: '모든 사람에게 업데이트 요청 버튼 표시' },
+      { value: 'admin', label: '관리자', title: '관리자 인증한 브라우저에만 표시' },
+      { value: 'none',  label: '숨김',   title: '아무에게도 표시 안 함' },
+    ],
+  },
 ];
 
 interface Props {
@@ -96,6 +97,8 @@ interface Props {
  */
 const AdminModal = ({ extractJob, onClose, initialSelected }: Props) => {
   const visibility = useVisibilitySettings();
+  const access = useLoginRequired();
+  const setLoginRequired = useSetLoginRequired();
 
   // 추출이 이미 돌고 있으면 그 작업의 대상·방식으로 시작 — 모달을 다시 열어도 실제 작업과 어긋나지 않게
   const running = extractJob.isRunning ? extractJob.status : undefined;
@@ -205,6 +208,29 @@ const AdminModal = ({ extractJob, onClose, initialSelected }: Props) => {
               </section>
             ))}
           </div>
+          {/* 로그인 요구 — 코드 주석 대신 여기서 켜고 끔(2026-10-22). 서버 data/access.json 저장 → 모든 접속자에게 적용.
+              끄면 로그인 화면 없이 누구나 조회(관리자 전용 기능은 그대로 관리자 로그인 필요) */}
+          <section className={`${styles.group} ${styles.toggleGroup}`}>
+            <div className={styles.toggleText}>
+              <span className={styles.label}>로그인 요구</span>
+              <span className={styles.toggleDesc}>
+                {access.loginRequired
+                  ? '켬 — 접속하면 먼저 로그인(사번·시크릿 키) 화면이 뜹니다'
+                  : '끔 — 로그인 없이 누구나 조회할 수 있습니다(관리자 기능은 관리자 로그인 필요)'}
+              </span>
+            </div>
+            <Toggle
+              checked={access.loginRequired}
+              onChange={async () => {
+                if (access.loginRequired && !await confirmDialog(
+                  '로그인 요구를 끄면 접속한 누구나 로그인 없이 모든 데이터를 볼 수 있습니다.\n계속할까요?',
+                  { title: '로그인 요구 끄기', confirmText: '끄기', danger: true },
+                )) return;
+                setLoginRequired.set(!access.loginRequired);
+              }}
+            />
+          </section>
+          {setLoginRequired.isError && <span className={styles.error}>로그인 설정을 저장하지 못했습니다 — 다시 눌러 주세요</span>}
           {/* 기능 켜기·끄기 — 주석 풀지 않고 여기서(2026-10-20 요청). 켬 = 모두에게 보임 */}
           <section className={`${styles.group} ${styles.toggleGroup}`}>
             <div className={styles.toggleText}>

@@ -2,7 +2,7 @@
 대시보드 로그인 시크릿 키 메일 — 2026-10-22
 
 명단(data/사용자 목록/현대엔지비사용자목록_*.xlsx 중 최신: 사용자명·사원번호·EMAIL·시크릿키)의 사람에게
-이 서버 PC Outlook 기본 계정으로 한 사람씩 차례로 보냄. 받는 사람 = 본인 한 명, 참조·숨은참조 없음, 본문 = 시크릿 키만.
+이 서버 PC Outlook 기본 계정으로 한 사람씩 차례로 보냄. 받는 사람 = 본인 한 명, 참조·숨은참조 없음, 본문 = 접속 주소·ID(사번)·PW(시크릿 키) 안내(BODY_TEMPLATE, 사람마다 변수로 채움).
 책임님은 본인 PC에서 서버를 띄워 본인 Outlook으로 보냄(서버 PC 계정이 곧 보내는 사람).
 
 - 화면: 관리자 기능 > 시크릿 키 메일(layouts/Navbar/SecretMailPanel) — 관리자만, 응답에 키는 절대 안 넣음
@@ -29,7 +29,20 @@ ENV_PATH = os.path.join(ROOT, ".env")
 ROSTER_GLOB = os.path.join(ROOT, "data", "사용자 목록", "현대엔지비사용자목록_*.xlsx")
 SENT_PATH = os.path.join(ROOT, "data", "secret_mail_sent.json")
 
-SUBJECT = "[경영현황 통합 대시보드] 로그인 시크릿 키 안내 test"
+SUBJECT = "경영현황 통합 대시보드 개인별 시크릿키 전달 드립니다."
+
+# 접속 주소 — 서버 PC 주소가 바뀌면 여기만 고침(2026-10-22 템플릿)
+DASHBOARD_URL = "10.206.33.120:5188"
+
+# 본문 템플릿 — {url} 접속 주소 · {emp} 받는 사람 사번(ID) · {key} 받는 사람 시크릿 키(PW). 사람마다 값이 달라 변수로 채움.
+# 시크릿 키는 이 변수 하나로만 들어가고, 미리보기는 가린 값을 넘김(build_message)
+BODY_TEMPLATE = """1. 통합 대시보드 URL : {url}
+2. ID : {emp}
+3. PW : {key}
+
+사이트 이용중 불편 및 문의 사항은 내선[8020]으로 연락 부탁 드립니다.
+
+감사합니다."""
 
 # 발송 담당(관리자) — 전체 보내기 대상에서 뺌. 비밀번호는 여기 두지 않음
 SENDER_IDS = {"9026704", "2016728"}   # 손호성, 이권성 책임
@@ -191,14 +204,14 @@ def mask_key(key: str) -> str:
 
 
 def build_message(person: dict, key: "str | None" = None) -> dict:
-    """한 사람에게 갈 메일 — 보내기와 미리보기가 같이 씀(템플릿이 오면 여기만 바꿈).
-    key를 주면 그 값으로(미리보기는 가린 키), 없으면 실제 키"""
+    """한 사람에게 갈 메일 — 보내기와 미리보기가 같이 씀(템플릿은 SUBJECT·BODY_TEMPLATE).
+    key를 주면 그 값으로(미리보기는 가린 키), 없으면 실제 키. ID는 그 사람 사번"""
     return {
         "to": person["mail"],
         "cc": "",
         "bcc": "",
         "subject": SUBJECT,
-        "body": person["key"] if key is None else key,
+        "body": BODY_TEMPLATE.format(url=DASHBOARD_URL, emp=person["emp"], key=person["key"] if key is None else key),
     }
 
 

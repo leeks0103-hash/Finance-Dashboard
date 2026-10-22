@@ -15,8 +15,11 @@
 import functools
 import hashlib
 import hmac
+import json
 import logging
 import os
+import threading
+from pathlib import Path
 
 from dotenv import load_dotenv
 from flask import jsonify, request
@@ -95,17 +98,56 @@ def is_admin(req=None) -> bool:
     return current_admin(req) is not None
 
 
-# 로그인 없이 부를 수 있는 API — 로그인 자체, 그리고 캐시 다시 읽기(데이터를 내보내지 않음.
-# 추출 스크립트·dashboard_update가 서버 PC에서 토큰 없이 부름)
+# ── 로그인 요구 켜고 끄기(2026-10-22) ─────────────────────────────────────────
+# 예전엔 코드 주석(app.py before_request + authMode.ts)으로 껐다 켰음 → 관리자 기능 토글로. 서버 파일 하나에 저장돼
+# 재시작해도 유지, 값이 없거나 깨졌으면 **켜짐**(안전한 쪽). 꺼져도 관리자 전용 API(@admin_required)는 그대로 403.
+_ACCESS_PATH = Path(__file__).parent / "data" / "access.json"
+_access_lock = threading.Lock()
+_access_cache: "tuple[float, bool] | None" = None   # (파일 mtime, 값) — 요청마다 파일을 다시 읽지 않게
+
+
+def login_required() -> bool:
+    """지금 로그인을 요구하는지. 파일이 없거나 못 읽으면 True(요구)."""
+    global _access_cache
+    try:
+        mtime = _ACCESS_PATH.stat().st_mtime
+    except OSError:
+        return True
+    with _access_lock:
+        if _access_cache and _access_cache[0] == mtime:
+            return _access_cache[1]
+        try:
+            val = json.loads(_ACCESS_PATH.read_text(encoding="utf-8")).get("loginRequired") is not False
+        except Exception:
+            logger.warning("로그인 설정 파일을 못 읽음 — 로그인 요구로 처리: %s", _ACCESS_PATH)
+            val = True
+        _access_cache = (mtime, val)
+        return val
+
+
+def set_login_required(value: bool) -> None:
+    global _access_cache
+    with _access_lock:
+        _ACCESS_PATH.parent.mkdir(exist_ok=True)
+        tmp = _ACCESS_PATH.with_suffix(".json.tmp")
+        tmp.write_text(json.dumps({"loginRequired": bool(value)}, ensure_ascii=False, indent=2), encoding="utf-8")
+        os.replace(tmp, _ACCESS_PATH)
+        _access_cache = None
+
+
+# 로그인 없이 부를 수 있는 API — 로그인 자체, 로그인 요구 여부(화면이 로그인 화면을 그릴지 정하려고), 그리고 캐시 다시 읽기
+# (데이터를 내보내지 않음. 추출 스크립트·dashboard_update가 서버 PC에서 토큰 없이 부름)
 PUBLIC_API = {
-    "/api/auth/login", "/api/auth/me",
+    "/api/auth/login", "/api/auth/me", "/api/settings/access",
     "/api/reload", "/api/kpi/reload", "/api/performance/reload",
 }
 
 
 def login_required_for_api():
-    """app.before_request — 들어가자마자 로그인(2026-10-13). 로그인 안 하면 모든 데이터 API 401."""
+    """app.before_request — 들어가자마자 로그인(2026-10-13). 로그인 요구가 켜져 있으면 로그인 안 한 요청은 모든 데이터 API 401."""
     if not request.path.startswith("/api/") or request.path in PUBLIC_API or request.method == "OPTIONS":
+        return None
+    if not login_required():   # 관리자 기능에서 로그인 요구를 꺼 둔 동안(2026-10-22)
         return None
     if not is_logged_in():
         return jsonify({"ok": False, "error": "로그인이 필요합니다"}), 401

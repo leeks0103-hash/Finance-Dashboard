@@ -5,7 +5,7 @@ import { setUnauthorizedHandler } from '@/api/client';
 import {
   loginAdmin, verifySession, getStoredExtractKey, getStoredRole, setStoredExtractAuth, clearStoredExtractAuth,
 } from '@/api/extract.api';
-import { LOGIN_REQUIRED } from '@/utils/authMode';
+import { clearDataCaches } from '@/hooks/useLoginRequired';
 
 type Status = 'checking' | 'out' | 'in';
 
@@ -17,12 +17,12 @@ type Status = 'checking' | 'out' | 'in';
  * - status: 'checking'(저장된 토큰 확인 중) → 'in' / 'out'
  * - showLogin: 로그인 화면을 그리는지 — 로그인 성공 뒤 화면이 걷히는 동안은 남아 있음(dismissLogin으로 끝)
  */
-export const useAuthSession = () => {
+export const useAuthSession = (loginRequired: boolean) => {
   const qc = useQueryClient();
   const authRole    = useUiStore(s => s.authRole);
   const setAuthRole = useUiStore(s => s.setAuthRole);
   const [status, setStatus]       = useState<Status>(() => (getStoredExtractKey() ? 'checking' : 'out'));
-  const [showLogin, setShowLogin] = useState(() => LOGIN_REQUIRED && !getStoredExtractKey());
+  const [showLogin, setShowLogin] = useState(() => loginRequired && !getStoredExtractKey());
 
   // 저장된 토큰이 아직 유효한지 처음 한 번 — 비밀번호가 바뀌었거나 계정이 빠졌으면 로그인 화면.
   // 역할도 서버 기준으로 다시 받음(.env에서 관리자 ↔ 일반이 바뀌었을 수 있어서).
@@ -32,7 +32,7 @@ export const useAuthSession = () => {
     verifySession().then(res => {
       if (res === false) {
         clearStoredExtractAuth();
-        setShowLogin(LOGIN_REQUIRED);
+        setShowLogin(loginRequired);
         setStatus('out');
         return;
       }
@@ -45,15 +45,25 @@ export const useAuthSession = () => {
   }, []);
 
   // 로그아웃·토큰 무효 → 로그인 화면. 다음 사람이 이전 화면 데이터를 못 보게 캐시도 비움
-  // (LOGIN_REQUIRED=false면 누구나 보는 화면이라 그대로 둠 — 관리자 전용 캐시는 extractJob.logout이 지움)
+  // (로그인 요구가 꺼져 있으면 누구나 보는 화면이라 그대로 둠 — 관리자 전용 캐시는 extractJob.logout이 지움)
   useEffect(() => {
-    if (!LOGIN_REQUIRED) return;
+    if (!loginRequired) return;
     if (status === 'in' && !authRole) {
       setStatus('out');
       setShowLogin(true);
-      qc.clear();
+      clearDataCaches(qc);
     }
-  }, [status, authRole, qc]);
+  }, [status, authRole, loginRequired, qc]);
+
+  // 관리자가 로그인 요구를 켜거나 끄면(2026-10-22) — 꺼지면 로그인 화면을 거두고, 켜졌는데 로그인 안 한 사람은
+  // 로그인 화면으로(그때까지 로그인 없이 받아 둔 데이터는 비움)
+  useEffect(() => {
+    if (!loginRequired) { setShowLogin(false); return; }
+    if (status === 'out') {
+      setShowLogin(true);
+      clearDataCaches(qc);
+    }
+  }, [loginRequired, status, qc]);
 
   useEffect(() => {
     setUnauthorizedHandler(() => {

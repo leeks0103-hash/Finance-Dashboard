@@ -13,7 +13,7 @@ import ChartColorModal from './ChartColorModal';
 import { useTheme } from '@/hooks';
 import { useDataHealth, useDataHealthAck } from '@/hooks/useDataHealth';
 import HealthAckButton from './HealthAckButton';
-// [업데이트 요청 — 주석 처리 2026-10-22] import ExtractRequestBadge from './ExtractRequestBadge';
+import ExtractRequestBadge from './ExtractRequestBadge';
 import { useChartLabelToggle } from '@/hooks/useChartLabelToggle';
 import { useKeyShortcuts } from '@/hooks/useKeyShortcuts';
 import { toast } from '@/utils/dialog';
@@ -21,7 +21,7 @@ import { useExtractJob } from '@/hooks/useExtractJob';
 import { useOpenFile } from '@/hooks/useOpenFile';
 import { useUiStore } from '@/store';
 import { pathToTab } from '@/utils/routing';
-import { LOGIN_REQUIRED } from '@/utils/authMode';
+import { useLoginRequired } from '@/hooks/useLoginRequired';
 import styles from './Navbar.module.css';
 
 /** 테마 아이콘 — 이모지(🌙☀) 대신 SVG. 글자색(currentColor)을 따름.
@@ -41,7 +41,8 @@ const SunIcon = () => (
 const Navbar = () => {
   const { theme, toggle: toggleTheme } = useTheme();
   const { showRawValues, toggleRawValues, showFinCompare, toggleFinCompare } = useUiStore();
-  // [업데이트 요청 — 주석 처리 2026-10-22] const adminAuthed = useUiStore(s => s.adminAuthed);
+  const adminAuthed = useUiStore(s => s.adminAuthed);
+  const { loginRequired } = useLoginRequired();
   // 그래프 수치 — 켤 때/끌 때 페이드(끌 때는 투명해진 뒤 숨김)
   const chartLabels = useChartLabelToggle();
 
@@ -142,7 +143,7 @@ const Navbar = () => {
         {/* 우측 — (KPI/실적현황 탭) 다운로드 + 설정 */}
         <div className={styles.right}>
           {/* 업데이트 요청 노란 "!" — 관리자만(조회 자체가 관리자일 때만), 2026-10-21 */}
-          {/* [업데이트 요청 — 주석 처리 2026-10-22] {adminAuthed && <ExtractRequestBadge onExtract={files => { setAdminPreset(files); setAdminOpen(true); }} />} */}
+          {adminAuthed && <ExtractRequestBadge onExtract={files => { setAdminPreset(files); setAdminOpen(true); }} />}
           {/* 빨간 "!"(데이터 이상) — 0건이면 아예 안 그림(2026-10-21). 예전엔 자리를 비워 둬서(visibility)
               옆 버튼이 안 밀리게 했는데, 이상이 없을 때 노란 "!"가 빈칸 하나 떨어져 보였음. 나타날 땐 .health 등장 애니메이션 */}
           {healthTotal > 0 ? (
@@ -392,8 +393,8 @@ const Navbar = () => {
               </div>
 
               {/* 관리자 기능 — 관리자 계정으로 로그인했을 때만(일반 회원에겐 칸 자체가 안 보임, 2026-10-13) */}
-              {/* 로그인 화면을 꺼 둔 동안(LOGIN_REQUIRED=false)엔 누구나 보임 — 관리자 로그인 입구가 이 창뿐이라 */}
-              {(extractJob.isAuthed || !LOGIN_REQUIRED) && <>
+              {/* 로그인 화면을 꺼 둔 동안(로그인 요구 꺼짐)엔 누구나 보임 — 관리자 로그인 입구가 이 창뿐이라 */}
+              {(extractJob.isAuthed || !loginRequired) && <>
               <div className={styles.divider} />
 
               {/* 관리자용 기능 — 달성률 / 파일 바로가기 공개 범위 / PPT 데이터 추출(인증 포함)은 모달에서.
@@ -416,7 +417,7 @@ const Navbar = () => {
 
               {/* 계정 — 들어가자마자 로그인(2026-10-13). 로그아웃하면 로그인 화면으로.
                   로그인 화면을 꺼 둔 동안엔 로그인했을 때만(로그아웃은 관리자 기능 창에도 있음) */}
-              {(LOGIN_REQUIRED || extractJob.authedName) && <>
+              {(loginRequired || extractJob.authedName) && <>
               <div className={styles.divider} />
               <div className={styles.section}>
                 <span className={styles.sectionLabel}>계정</span>
@@ -440,7 +441,7 @@ const Navbar = () => {
       {colorOpen && <ChartColorModal onClose={() => setColorOpen(false)} />}
       {financeModalOpen && <FinanceDataModal onClose={() => setFinanceModalOpen(false)} />}
       {/* 로그인 화면을 꺼 둔 동안엔 비관리자도 열림 — 창 안 로그인 폼으로 관리자 인증 */}
-      {adminOpen && (extractJob.isAuthed || !LOGIN_REQUIRED) && (
+      {adminOpen && (extractJob.isAuthed || !loginRequired) && (
         <AdminModal
           extractJob={extractJob}
           initialSelected={adminPreset}

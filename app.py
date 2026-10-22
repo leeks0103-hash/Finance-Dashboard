@@ -17,9 +17,12 @@ from performance import perf_bp
 from kpi import kpi_bp, get_kpi_df, _real_code, KPI_EXCEL_PATH, load_kpi_excel, _kpi_cache_lock
 from downloads import download_bp
 from ai_insight import ai_bp
-# [업데이트 요청 — 주석 처리 2026-10-22] from extract_requests import request_bp
+from extract_requests import request_bp
 from secret_mail import secret_mail_bp
-from auth import is_admin, current_admin, current_user, login as admin_login, login_required_for_api
+from auth import (
+    is_admin, current_admin, current_user, login as admin_login, login_required_for_api,
+    login_required as _login_required, set_login_required,
+)
 
 load_dotenv()
 
@@ -43,13 +46,13 @@ app.json = NumpyJSONProvider(app)
 
 # 들어가자마자 로그인(2026-10-13) — 10-14 잠깐 껐다가 10-15 다시 켬. 끌 땐 아래 줄 주석 +
 # frontend/src/utils/authMode.ts LOGIN_REQUIRED = false. 관리자 API(@admin_required·_extract_key_valid)는 그대로 403
-app.before_request(login_required_for_api)   # 2026-10-22 다시 켬(10-19 회의용으로 껐던 것) — 끌 땐 이 줄 주석 + authMode.ts
+app.before_request(login_required_for_api)   # 로그인 요구는 관리자 기능 토글(data/access.json)로 켜고 끔(2026-10-22) — 코드 주석 처리 불필요
 app.register_blueprint(finance_bp)
 app.register_blueprint(perf_bp)
 app.register_blueprint(kpi_bp)
 app.register_blueprint(download_bp)
 app.register_blueprint(ai_bp)
-# [업데이트 요청 — 주석 처리 2026-10-22] app.register_blueprint(request_bp)
+app.register_blueprint(request_bp)
 app.register_blueprint(secret_mail_bp)
 
 
@@ -663,7 +666,7 @@ _VISIBILITY_PATH = Path(__file__).parent / "data" / "visibility.json"
 # folderOpen: 폴더 바로가기 — 파일 바로가기(↗)와 따로(2026-10-20). 기본값은 저장값이 없을 때 예전과 같게 fileOpen 따라감(_read_visibility)
 # aiInsight: AI 인사이트 버튼 — 관리자 기능 토글로 켜고 끔(전체/숨김, 2026-10-20). 기본 숨김(10-02부터 숨겨 둔 상태 유지)
 _VISIBILITY_DEFAULTS = {"fileOpen": "admin", "folderOpen": "admin", "achieveRate": "none", "aiInsight": "none",
-                       "extractRequest": "all"}   # extractRequest: 업데이트 요청 버튼 — 전체/관리자/숨김(2026-10-22, 기본 전체 = 예전 동작)
+                       "extractRequest": "none"}   # extractRequest: 업데이트 요청 버튼 — 전체/관리자/숨김(2026-10-22, 기본 숨김 — 관리자 기능에서 켬)
 # 달성률은 처음엔 '전체'를 막았다가(저조한 팀이 모두에게 드러나지 않게, 2026-09-29) 관리자가 고를 수 있게 열어 둠(2026-10-14 요청).
 # 기본값은 그대로 숨김
 _VISIBILITY_CHOICES = {"fileOpen": {"all", "admin", "none"}, "folderOpen": {"all", "admin", "none"},
@@ -716,6 +719,25 @@ def api_put_visibility():
         os.replace(tmp, _VISIBILITY_PATH)
     logger.info("[공개 범위] 변경 %s -> %s", body, cur)
     return jsonify(cur)
+
+
+# ── 로그인 요구 켜기·끄기(관리자 기능 토글, 2026-10-22) ─────────────────────────
+# 읽기는 누구나(로그인 화면을 그릴지 정해야 해서 PUBLIC_API), 쓰기는 관리자만. 값이 없으면 켜짐(안전한 쪽)
+@app.route("/api/settings/access")
+def api_get_access():
+    return jsonify({"loginRequired": _login_required()})
+
+
+@app.route("/api/settings/access", methods=["PUT"])
+def api_put_access():
+    if not _extract_key_valid(request):
+        return jsonify({"ok": False, "error": "권한이 없습니다"}), 403
+    body = request.get_json(silent=True) or {}
+    if not isinstance(body.get("loginRequired"), bool):
+        return jsonify({"ok": False, "error": "loginRequired는 true/false여야 합니다"}), 400
+    set_login_required(body["loginRequired"])
+    logger.info("[로그인 요구] 변경 -> %s (%s)", body["loginRequired"], (current_admin(request) or {}).get("emp_no"))
+    return jsonify({"loginRequired": _login_required()})
 
 
 # ── 실적 탭 "경영실적 현황 업데이트" 칸(라벨·날짜) ───────────────────────────

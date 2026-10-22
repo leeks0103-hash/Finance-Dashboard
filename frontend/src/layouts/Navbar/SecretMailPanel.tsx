@@ -19,7 +19,7 @@ const listText = (rows: SecretMailRow[]) =>
 
 /**
  * 관리자 기능 > 시크릿 키 메일(2026-10-22) — 임직원에게 대시보드 로그인 시크릿 키를 Outlook으로 보냄.
- * 이 서버 PC Outlook 기본 계정으로, 한 사람씩 차례로(받는 사람 본인만·참조 없음·본문은 키만). 서버 secret_mail.py.
+ * 이 서버 PC Outlook 기본 계정으로, 한 사람씩 차례로(받는 사람 본인만·참조 없음·본문은 접속 주소·ID·PW 안내). 서버 secret_mail.py.
  * 전체 보내기 = 관리자·발송 담당 빼고 아직 안 보낸 사람 / 골라서 보내기 = 체크한 사람(이미 보냈어도 다시).
  * 같은 일을 send_user_secrets.bat으로도 할 수 있음
  */
@@ -94,7 +94,7 @@ const SecretMailPanel = () => {
       <div className={styles.top}>
         <div className={styles.titleBox}>
           <span className={styles.title}>시크릿 키 메일</span>
-          <span className={styles.sub}>임직원에게 로그인 시크릿 키를 Outlook으로 · 한 사람씩 차례로, 받는 사람은 본인만(참조 없음) · 본문은 키만</span>
+          <span className={styles.sub}>임직원에게 로그인 시크릿 키를 Outlook으로 · 한 사람씩 차례로, 받는 사람은 본인만(참조 없음) · 본문은 접속 주소·ID·PW 안내(사람마다 사번·키가 다름)</span>
         </div>
         <Button variant="primary" size="sm" onClick={() => { setSettled(false); setOpen(v => !v); }}>{open ? '접기' : '명단 보기'}</Button>
       </div>

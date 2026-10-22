@@ -1,8 +1,8 @@
 import { openFinanceFile, openKpiFile } from '@/api';
 import { openCoverageFile } from '@/api/extract.api';
-// [업데이트 요청 — 주석 처리 2026-10-22] import { checkExtractRequest, sendExtractRequest } from '@/api/extractRequest.api';
-import { alertDialog, confirmDialog } from '@/utils/dialog';   // [업데이트 요청 — 주석 처리 2026-10-22] 복구 시 toast 추가
-// [업데이트 요청 — 주석 처리 2026-10-22] import { queryClient } from './queryClient';
+import { checkExtractRequest, sendExtractRequest } from '@/api/extractRequest.api';
+import { alertDialog, confirmDialog, toast } from '@/utils/dialog';
+import { queryClient } from './queryClient';
 import type { FileOpener } from '@/types/fileOpen.types';
 
 interface OpenResult { ok: boolean; message?: string; locked?: boolean; blocked?: boolean; checked?: boolean }
@@ -62,38 +62,37 @@ const openFolderVia = async (filename: string, apis: OpenApi[]): Promise<OpenRes
   return last;
 };
 
-// [업데이트 요청 — 주석 처리 2026-10-22] 복구하려면 아래 블록 주석 해제 + 위 import·opener의 requestUpdate 줄 해제
-// /**
-//  * 업데이트(재추출) 요청(2026-10-21) — 원본 PPT를 고친 사람이 관리자에게 "다시 추출해 주세요"를 남김(메일 대신, 서버 저장).
-//  * 먼저 원본이 마지막 추출 뒤에 바뀌었는지 보여 줌 — 저장을 깜빡하고 요청하는 경우를 거르려고(안 바뀌어도 요청은 됨)
-//  */
-// const requestUpdate = async (filename: string): Promise<{ ok: boolean }> => {
-//   let s: Awaited<ReturnType<typeof checkExtractRequest>>;
-//   try { s = await checkExtractRequest(filename); }
-//   catch { alertDialog('요청 상태를 확인하지 못했습니다. 잠시 뒤 다시 시도해 주세요.', { error: true }); return { ok: false }; }
-//   const last = s.last_extracted ? `마지막 추출 ${s.last_extracted}` : '아직 추출된 적 없음';
-//   const state = s.changed === true
-//     ? `원본이 마지막 추출 뒤에 수정됐습니다.\n(${last} · 원본 수정 ${s.modified})`
-//     : s.changed === false
-//       ? `⚠ 마지막 추출 뒤로 원본이 바뀌지 않았습니다 — PPT를 저장하셨나요?\n(${last} · 원본 수정 ${s.modified})`
-//       : `원본 수정 시각을 확인하지 못했습니다. (${last})`;
-//   const already = s.requested ? `\n\n이미 요청돼 있습니다 — ${s.requested.at}${s.requested.by ? ` · ${s.requested.by}` : ''}` : '';
-//   const ok = await confirmDialog(`${filename}\n\n${state}${already}\n\n관리자에게 다시 추출을 요청할까요?`, {
-//     title: '업데이트 요청', confirmText: '요청', cancelText: '취소',
-//   });
-//   if (!ok) return { ok: false };
-//   try { await sendExtractRequest(filename); }
-//   catch { alertDialog('요청을 남기지 못했습니다.', { error: true }); return { ok: false }; }
-//   queryClient.invalidateQueries({ queryKey: ['extract-requests'] });
-//   toast('업데이트 요청을 남겼습니다 — 관리자가 확인 후 다시 추출합니다');
-//   return { ok: true };
-// };
+/**
+ * 업데이트(재추출) 요청(2026-10-21) — 원본 PPT를 고친 사람이 관리자에게 "다시 추출해 주세요"를 남김(메일 대신, 서버 저장).
+ * 먼저 원본이 마지막 추출 뒤에 바뀌었는지 보여 줌 — 저장을 깜빡하고 요청하는 경우를 거르려고(안 바뀌어도 요청은 됨)
+ */
+const requestUpdate = async (filename: string): Promise<{ ok: boolean }> => {
+  let s: Awaited<ReturnType<typeof checkExtractRequest>>;
+  try { s = await checkExtractRequest(filename); }
+  catch { alertDialog('요청 상태를 확인하지 못했습니다. 잠시 뒤 다시 시도해 주세요.', { error: true }); return { ok: false }; }
+  const last = s.last_extracted ? `마지막 추출 ${s.last_extracted}` : '아직 추출된 적 없음';
+  const state = s.changed === true
+    ? `원본이 마지막 추출 뒤에 수정됐습니다.\n(${last} · 원본 수정 ${s.modified})`
+    : s.changed === false
+      ? `⚠ 마지막 추출 뒤로 원본이 바뀌지 않았습니다 — PPT를 저장하셨나요?\n(${last} · 원본 수정 ${s.modified})`
+      : `원본 수정 시각을 확인하지 못했습니다. (${last})`;
+  const already = s.requested ? `\n\n이미 요청돼 있습니다 — ${s.requested.at}${s.requested.by ? ` · ${s.requested.by}` : ''}` : '';
+  const ok = await confirmDialog(`${filename}\n\n${state}${already}\n\n관리자에게 다시 추출을 요청할까요?`, {
+    title: '업데이트 요청', confirmText: '요청', cancelText: '취소',
+  });
+  if (!ok) return { ok: false };
+  try { await sendExtractRequest(filename); }
+  catch { alertDialog('요청을 남기지 못했습니다.', { error: true }); return { ok: false }; }
+  queryClient.invalidateQueries({ queryKey: ['extract-requests'] });
+  toast('업데이트 요청을 남겼습니다 — 관리자가 확인 후 다시 추출합니다');
+  return { ok: true };
+};
 
 /** 열기 함수에 폴더 바로가기·업데이트 요청 짝을 붙임 — CopyText·셀 팝업이 있으면 그 버튼도 그림 */
-const opener = (apis: OpenApi[] /* , withRequest = true */): FileOpener =>   // [업데이트 요청 — 주석 처리 2026-10-22] withRequest 인자
+const opener = (apis: OpenApi[], withRequest = true): FileOpener =>
   Object.assign((filename: string) => confirmAndOpen(filename, apis), {
     openFolder: (filename: string) => openFolderVia(filename, apis),
-    // [업데이트 요청 — 주석 처리 2026-10-22] ...(withRequest ? { requestUpdate } : {}),
+    ...(withRequest ? { requestUpdate } : {}),
   });
 
 /** 재무 처리이력 기준으로 원본 PPT 열기(확인창 포함). 표 컬럼 정의처럼 훅을 못 쓰는 곳용 */
@@ -101,7 +100,7 @@ export const openFinanceFileOrAlert = opener([openFinanceFile]);
 /** KPI 처리이력 기준으로 원본 PPT 열기(확인창 포함) */
 export const openKpiFileOrAlert = opener([openKpiFile]);
 /** 추출 현황 목록 기준(폴더에서 찾은 경로)으로 열기 — 처리이력에 없는 미처리·실패 파일도 열림 */
-export const openCoverageFileOrAlert = opener([openCoverageFile] /* , false */);   // 관리자 추출 현황 — 요청 버튼 필요 없음
+export const openCoverageFileOrAlert = opener([openCoverageFile], false);   // 관리자 추출 현황 — 요청 버튼 필요 없음
 const openAnyFile = opener([openFinanceFile, openKpiFile]);
 
 /**
