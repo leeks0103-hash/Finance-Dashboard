@@ -28,7 +28,7 @@
 }
 .list {
   list-style: none;
-  max-height: 240px;
+  height: 240px;   /* 고정 — 검색 결과 수에 따라 칸이 출렁이지 않게 */
   overflow-y: auto;
   border: 1px solid var(--border);
   border-radius: 6px;

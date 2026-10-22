@@ -48,3 +48,4 @@ frontend/public/fonts/*.ttf
 frontend/public/fonts/*.otf
 frontend/public/fonts/*.woff
 frontend/public/fonts/*.woff2
+data/secret_mail_sent.json

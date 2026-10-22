@@ -18,6 +18,7 @@ from kpi import kpi_bp, get_kpi_df, _real_code, KPI_EXCEL_PATH, load_kpi_excel, 
 from downloads import download_bp
 from ai_insight import ai_bp
 from extract_requests import request_bp
+from secret_mail import secret_mail_bp
 from auth import is_admin, current_admin, current_user, login as admin_login, login_required_for_api
 
 load_dotenv()
@@ -49,6 +50,7 @@ app.register_blueprint(kpi_bp)
 app.register_blueprint(download_bp)
 app.register_blueprint(ai_bp)
 app.register_blueprint(request_bp)
+app.register_blueprint(secret_mail_bp)
 
 
 @app.route("/api/data-health")

@@ -8,6 +8,7 @@ import ExtractCoverage from './ExtractCoverage';
 import ExtractFilePicker from './ExtractFilePicker';
 import FinMismatch from './FinMismatch';
 import PerfUpdatePanel from './PerfUpdatePanel';
+import SecretMailPanel from './SecretMailPanel';
 import styles from './AdminModal.module.css';
 
 const EXTRACT_TARGET_LABEL: Record<ExtractTarget, string> = { finance: '재무', kpi: 'KPI' };
@@ -318,6 +319,9 @@ const AdminModal = ({ extractJob, onClose, initialSelected }: Props) => {
 
           {/* 완료 프로젝트 재무 불일치 — 목록·CSV(2026-10-06) */}
           <FinMismatch />
+
+          {/* 임직원 로그인 시크릿 키 메일 — 이 서버 PC Outlook으로 한 사람씩(2026-10-22) */}
+          <SecretMailPanel />
 
           <Button variant="ghost" size="sm" className={styles.logoutBtn} onClick={extractJob.logout}>
             로그아웃
