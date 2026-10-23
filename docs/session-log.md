@@ -5,6 +5,16 @@
 
 ---
 
+## [2026-10-23 저녁] 파트별 인당 차트 · 파트 인원 수기 입력 · 확대 버튼 주석
+
+- **인당 매출/손익/관리비 차트**(계획 vs 추정 실적 아래 새 줄, 4칸×3): 인당 매출만 계획 vs 추정 2막대, 손익·관리비는 계획값이 원본에 없어 추정 1막대. 화면 억 둘째 자리 버림. 인원 미입력 파트는 제외(제목 옆 "N개 파트 제외", 하나도 없으면 안내 문구 — 관리자에게만 입력 위치 안내). 저장 키 `performance-chart-order-v4`(옛 순서 초기화).
+- **파트 인원**: 관리자 기능 > 파트별 인원(`PartHeadcountPanel`) → `PUT /api/settings/headcount` → 인원은 **정수**(명) `data/headcount.json`(git 제외, 서버 PC 한 곳). 저장하면 `['perf-summary']`를 다시 불러 차트 즉시 갱신. 읽기는 로그인한 누구나. 계산·검증은 `headcount.py`(테스트 `tests/test_headcount.py` 20개). ⚠️ Flask 재시작 필요. **팀 필터 + K뉴딜TF(세 팀에 걸침)는 인당 값 비움**(파트 전체 인원 ÷ 팀 몫 금액이 되어 틀림).
+- **시크릿 키 메일 문구 교체**(`secret_mail.SUBJECT`·`BODY_TEMPLATE`): 제목 "경영현황 통합 대시보드 접속 안내", 보직자 이상 공유 안내 + URL·ID(사번)·PW(시크릿 키 변수 `{key}`). 내선 문의 줄과 "7일간 유지" 안내는 뺌 — ⚠️ 토큰엔 만료가 없음(`auth.py` 서명만, localStorage 유지; 비밀번호를 바꿔야 끊김). **발송은 안 함.**
+- **차트 배치 확정(10-23 요청)**: 1줄 진도율+파트별 매출 진행 현황, 2줄 원가분석+전체 평균 원가 비율, 3줄 인당 매출·손익·관리비, **4줄 파트별 계획 vs 추정 실적**. **줄 구성 고정** — 같은 줄 안에서 좌우 순서만 드래그로 바꿈, 카드가 다른 줄로 가거나 줄을 위아래로 옮기기(예전 핸들 더블클릭 줄 바꾸기 포함)는 불가(`isValidChartOrder`가 `DEFAULT_CHART_ROWS` 구성 검사, `swapChartRow` 삭제). 저장 키 `performance-chart-order-v5`.
+- **확대(⤢) 버튼 전부 주석 처리**(요청): ChartCard·CostBreakdownModal·FinMismatch·투어 문구·ChartCard 확대 테스트(skip). 복구 방법은 각 주석에.
+
+---
+
 ## [2026-10-23 오후] 범례 제목줄 이동 · 진도율 누계 실적 · 계획 공통원가
 
 - **파트별 매출 진행 현황 범례**를 막대 위가 아니라 ChartCard 제목줄(`titleCompact`)의 자식으로 — `ChartCard`에 `titleAside` prop, `PartAchievementLegend` 분리. `.titleCompact`의 `padding-right: 28px` 제거(확대 버튼 자리 — 확대 가능한 카드에서 겹치면 다시 볼 것).

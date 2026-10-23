@@ -1,6 +1,6 @@
 import client from './client';
 import { authHeaders } from './extract.api';
-import type { VisibilitySettings, PerfUpdateNote } from '@/types/settings.types';
+import type { VisibilitySettings, PerfUpdateNote, HeadcountSettings } from '@/types/settings.types';
 
 export const getVisibility = (): Promise<VisibilitySettings> =>
   client.get<VisibilitySettings>('/settings/visibility').then(r => r.data);
@@ -23,3 +23,11 @@ export const getLoginRequired = (): Promise<boolean> =>
 /** 관리자만 — 로그인 요구 켜기/끄기. 응답은 저장된 값 */
 export const putLoginRequired = (loginRequired: boolean): Promise<boolean> =>
   client.put<{ loginRequired: boolean }>('/settings/access', { loginRequired }, { headers: authHeaders() }).then(r => r.data.loginRequired);
+
+/** 파트별 인원 — 로그인한 누구나 읽음(인당 차트 분모는 요약 API가 이미 계산해 내려주고, 이 값은 관리자 입력창이 씀) */
+export const getHeadcount = (): Promise<HeadcountSettings> =>
+  client.get<HeadcountSettings>('/settings/headcount').then(r => r.data);
+
+/** 관리자만 — 파트 인원 전체를 통째로 교체. 빈 값·0은 '미입력'. 응답은 저장된 값 */
+export const putHeadcount = (parts: Record<string, number | string>): Promise<HeadcountSettings> =>
+  client.put<HeadcountSettings>('/settings/headcount', { parts }, { headers: authHeaders() }).then(r => r.data);

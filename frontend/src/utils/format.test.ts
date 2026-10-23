@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatWon, formatBillion, formatRate, formatCount, formatEok, formatPctRaw, formatNum } from './format';
+import { formatWon, formatBillion, formatRate, formatCount, formatEok, formatPctRaw, formatNum, toEokNum2 } from './format';
 
 describe('formatWon', () => {
   it('formats with 원 suffix and locale grouping', () => {
@@ -98,5 +98,16 @@ describe('formatNum', () => {
 
   it('returns - for zero', () => {
     expect(formatNum(0)).toBe('-');
+  });
+});
+
+describe('toEokNum2 (천원 → 억, 소수 둘째 자리 버림)', () => {
+  it('truncates instead of rounding', () => {
+    expect(toEokNum2(583_700)).toBe(5.83);
+    expect(toEokNum2(-583_700)).toBe(-5.83);
+  });
+  it('returns 0 for null/NaN', () => {
+    expect(toEokNum2(null)).toBe(0);
+    expect(toEokNum2(undefined)).toBe(0);
   });
 });

@@ -1,0 +1,35 @@
+.panel { display: flex; flex-direction: column; gap: 8px; }
+
+.head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.title { font-size: 0.82rem; font-weight: 700; color: var(--text-primary); }
+.meta { font-size: 0.72rem; color: var(--text-sub); white-space: nowrap; }
+.muted { font-size: 0.72rem; color: var(--text-muted); }
+.error { font-size: 0.74rem; color: var(--danger); }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: 6px 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.item { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.78rem; color: var(--text-primary); }
+.input {
+  width: 64px;
+  padding: 3px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-header);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  text-align: right;
+}
+.input:focus { outline: none; border-color: var(--accent); }
+.changed { border-color: var(--accent); background: var(--accent-bg); }   /* 저장 전 바뀐 칸 */
+.unit { font-size: 0.74rem; color: var(--text-sub); }
+
+.foot { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.foot .muted { flex: 1; min-width: 0; }

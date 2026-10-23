@@ -13,6 +13,7 @@ from flask.json.provider import DefaultJSONProvider
 from openpyxl import load_workbook
 
 from finance import finance_bp, get_df, load_excel, _cache_lock, EXCEL_PATH, _read_excel_via_com
+import headcount
 from performance import perf_bp
 from kpi import kpi_bp, get_kpi_df, _real_code, KPI_EXCEL_PATH, load_kpi_excel, _kpi_cache_lock
 from downloads import download_bp
@@ -792,6 +793,25 @@ def api_put_perf_update():
         os.replace(tmp, _PERF_UPDATE_PATH)
     logger.info("[실적 업데이트 표시] 변경 %s", cur)
     return jsonify(cur)
+
+
+# ── 파트별 인원(관리자 수기 입력) — 실적 탭 인당 매출·손익·관리비 차트의 분모(2026-10-23) ──────
+# 읽기는 로그인한 누구나(공개 목록 PUBLIC_API에 없음), 쓰기는 관리자만. 저장·검증·계산은 headcount.py
+@app.route("/api/settings/headcount")
+def api_get_headcount():
+    return jsonify(headcount.read_headcount())
+
+
+@app.route("/api/settings/headcount", methods=["PUT"])
+def api_put_headcount():
+    admin = current_admin(request)
+    if not admin:
+        return jsonify({"ok": False, "error": "권한이 없습니다"}), 403
+    body = request.get_json(silent=True) or {}
+    parts, err = headcount.validate_parts(body.get("parts"))
+    if err:
+        return jsonify({"ok": False, "error": err}), 400
+    return jsonify(headcount.write_headcount(parts, admin["emp_no"]))
 
 
 @app.route("/api/extract/open-file", methods=["POST"])

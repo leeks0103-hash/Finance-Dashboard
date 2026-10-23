@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { cancelSecretMail, getSecretMailAccountDiff, getSecretMailPreview, getSecretMailRoster, getSecretMailStatus, startSecretMail } from '@/api/secretMail.api';
 import type { SecretMailSendBody } from '@/types/secretMail.types';
 
@@ -72,6 +72,8 @@ export const useSecretMailPreview = (emp: string | null) => {
     queryKey: ['secret-mail-preview', emp],
     queryFn: () => getSecretMailPreview(emp!),
     enabled: !!emp,
+    // 받는 사람을 바꾸는 동안 이전 메일을 그대로 두고 새 값이 오면 교체 — 안 그러면 data가 비는 순간 메일 칸이 사라져 모달 높이가 줄었다 늘었다 함(2026-10-23)
+    placeholderData: keepPreviousData,
     staleTime: 30_000,
     retry: 0,
   });

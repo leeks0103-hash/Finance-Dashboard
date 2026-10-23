@@ -52,9 +52,10 @@ const FinMismatch = () => {
         <div className={styles.titleBox}>
           <span className={styles.title}>
             완료 프로젝트 재무 불일치
-            {/* ⤢ 확대 — 넓은 창에서 표로(정렬·검색·컬럼 조절) */}
+            {/* [⤢ 확대 버튼 주석 처리 — 2026-10-23 요청, 복구하려면 아래 블록을 풀 것] 넓은 창에서 표로(정렬·검색·컬럼 조절)
             <Button unstyled className={styles.expandBtn} disabled={!total} onClick={() => setExpanded(true)}
               aria-label="표로 크게 보기" title="표로 크게 보기">⤢</Button>
+            */}
           </span>
           <span className={styles.sub}>완료인데 실적현황 매출·직접원가가 재무 이력(완료 보고)과 다름 · 1,000원 미만 차이는 제외</span>
         </div>

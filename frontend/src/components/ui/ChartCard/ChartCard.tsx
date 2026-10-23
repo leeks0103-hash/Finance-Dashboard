@@ -47,17 +47,21 @@ const Root = ({ children, compact = true, expandable = true, modalContent, modal
   );
 
   // 확대 버튼 — 제목줄이 아니라 카드(.root) 우측 상단에 절대배치
-  const expandButton = expandable && (
-    <Button
-      unstyled
-      className={styles.expandBtn}
-      onClick={() => setExpanded(true)}
-      aria-label="차트 확대"
-      title="크게 보기"
-    >
-      ⤢
-    </Button>
-  );
+  // [확대 버튼 전부 주석 처리 — 2026-10-23 요청] 복구하려면 아래 주석 블록을 풀고 `const expandButton = null;` 줄을 지울 것
+  // (모달·expandable prop·CSS는 그대로 남김. 같은 이유로 CostBreakdownModal·FinMismatch의 ⤢ 버튼, ChartCard.test의 확대 테스트도 주석/skip)
+  const expandButton = null;
+  void expandable;
+  // const expandButton = expandable && (
+  //   <Button
+  //     unstyled
+  //     className={styles.expandBtn}
+  //     onClick={() => setExpanded(true)}
+  //     aria-label="차트 확대"
+  //     title="크게 보기"
+  //   >
+  //     ⤢
+  //   </Button>
+  // );
 
   // 카드와 같은 title/body를 그대로 재사용 — 모달 안에서는 더 큰 영역에 다시 그려진다
   const modal = expanded && createPortal(

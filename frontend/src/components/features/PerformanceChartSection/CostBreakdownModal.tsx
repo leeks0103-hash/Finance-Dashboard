@@ -62,7 +62,8 @@ function SortableCard({ cell, colors, showLabels, cols4, onExpand, index }: {
       // 차례대로 등장(staggerIn) — 드래그가 쓰는 transform·opacity 인라인과 안 겹치게 CSS 쪽 주석 참고
       className={`${styles.partCard} ${styles.staggerIn}`}
     >
-      {/* 드래그 센서가 pointerdown을 가로채지 않도록 stopPropagation — 클릭만 확대 토글 */}
+      {/* [⤢ 확대 버튼 주석 처리 — 2026-10-23 요청, 복구하려면 아래 블록을 풀 것]
+          드래그 센서가 pointerdown을 가로채지 않도록 stopPropagation — 클릭만 확대 토글
       <Button
         unstyled
         className={styles.expandBtn}
@@ -73,6 +74,7 @@ function SortableCard({ cell, colors, showLabels, cols4, onExpand, index }: {
       >
         ⤢
       </Button>
+      */}
       <span className={styles.partLabel}>{cell.label}</span>
       <div className={styles.smallChart}>
         <DoughnutChart

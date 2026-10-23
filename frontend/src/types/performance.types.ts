@@ -132,6 +132,19 @@ export interface PerfPartStats {
   achieve_rate?:    number;
   /** 추정 대비 누계 진행률(%) = 누계매출 ÷ 연간 추정매출 × 100. 백엔드 계산(파트별 매출 진행 현황) */
   est_progress_rate?: number;
+  // ── 인당 값(2026-10-23) — 파트 인원은 관리자 수기 입력(data/headcount.json). 천원, 인원 미입력·부분이면 null ──
+  /** 관리자가 입력한 파트 인원. 미입력이면 null */
+  headcount?:         number | null;
+  /** 팀 필터로 행이 잘린 다팀 파트(K뉴딜TF) — 인당 값을 못 구함 */
+  headcount_partial?: boolean;
+  /** 인당 계획 매출 = 계획 매출 ÷ 인원 */
+  rev_per_head_plan?: number | null;
+  /** 인당 추정 매출 = 연간 추정 매출 ÷ 인원 */
+  rev_per_head_est?:  number | null;
+  /** 인당 추정 경상손익 = 연간 경상손익 ÷ 인원 (계획 손익은 원본에 없음) */
+  profit_per_head?:   number | null;
+  /** 인당 추정 관리비 = 연간 관리비 ÷ 인원 (계획 관리비는 원본에 없음) */
+  mgmt_per_head?:     number | null;
 }
 
 export interface PerfTotal {

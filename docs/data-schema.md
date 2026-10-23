@@ -11,7 +11,7 @@
 | `KPI 지표 데이터 추출.xlsx` | `scripts/extract_kpi_ppt.py` | `kpi.py` |
 | `*사업계획 통합관리 파일*.xlsx` | 회사 파일을 `data/`에 넣기만 | `performance.py` + `perf_autoupdate.py` |
 | `사용자 목록/현대엔지비사용자목록_*.xlsx` | 직접 넣음(이름순 마지막 파일) | `secret_mail.py` · `scripts/fill_user_accounts.py` |
-| `*.json` (설정·상태·기록) | 서버 | 서버 — `access`(로그인 요구)·`visibility`(공개 범위)·`perf_update`·`perf_update_status`·`perf_col_maps`·`health_ack`·`extract_requests`·`secret_mail_sent`·`ai_analysis_cache` |
+| `*.json` (설정·상태·기록) | 서버 | 서버 — `headcount`(파트별 인원, 관리자 수기)·`access`(로그인 요구)·`visibility`(공개 범위)·`perf_update`·`perf_update_status`·`perf_col_maps`·`health_ack`·`extract_requests`·`secret_mail_sent`·`ai_analysis_cache` |
 
 ⚠ 재무·KPI 엑셀을 Excel로 열지 말 것(AIP 레이블이 붙어 암호화되면 openpyxl이 못 읽음) — CLAUDE.md 참고.
 

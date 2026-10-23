@@ -10,7 +10,8 @@ from dotenv import load_dotenv
 from flask import Blueprint, jsonify, request
 from markupsafe import escape as html_escape
 
-from shared import is_ranked_valid_code, safe_mtime, sort_frame, PART_PREFIX_RE
+import headcount
+from shared import is_ranked_valid_code, safe_mtime, sort_frame, strip_part_prefix, PART_PREFIX_RE
 from auth import admin_required
 
 load_dotenv()
@@ -1154,6 +1155,19 @@ def api_perf_summary():
             "cost_overhead": float(rev_grp["cost_overhead"].sum()),
             "cost_mgmt":     float(rev_grp["cost_mgmt"].sum()),
         }
+
+    # 파트별 인원(관리자 수기, data/headcount.json) → 인당 값(2026-10-23). 인원은 파트 전체 기준이라, 팀 필터로 행이 잘린
+    # 상태에서 여러 팀에 걸친 파트(K뉴딜TF)는 팀 몫 금액 ÷ 파트 전체 인원이 되어 틀림 → 인당 값 None + headcount_partial
+    _hc = headcount.read_headcount()["parts"]
+    _team_cut = bool(request.args.get("team"))
+    _full_rev = _full[_full["category"] == "매출"]
+    _multi_team = set(_full_rev.groupby("part")["team"].nunique().loc[lambda n: n > 1].index) if _team_cut else set()
+    for part_name, st in by_part.items():
+        hc = _hc.get(strip_part_prefix(part_name))
+        partial = part_name in _multi_team
+        st.update(headcount.per_head_fields(st, None if partial else hc))
+        st["headcount"] = hc
+        st["headcount_partial"] = partial
 
     # 팀별 원가 구성·경상손익 — 도넛 '팀' 보기용, 행의 팀 칸 기준(2026-10-21). 예전엔 프론트가 "팀 = 소속 파트 합"으로 더해
     # 팀이 여러 개인 파트(K뉴딜TF)가 세 팀에 통째로 들어갔음

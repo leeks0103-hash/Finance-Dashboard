@@ -29,18 +29,21 @@ ENV_PATH = os.path.join(ROOT, ".env")
 ROSTER_GLOB = os.path.join(ROOT, "data", "사용자 목록", "현대엔지비사용자목록_*.xlsx")
 SENT_PATH = os.path.join(ROOT, "data", "secret_mail_sent.json")
 
-SUBJECT = "경영현황 통합 대시보드 개인별 시크릿키 전달 드립니다."
+SUBJECT = "경영현황 통합 대시보드 접속 안내"   # 2026-10-23 문구 교체
 
 # 접속 주소 — 서버 PC 주소가 바뀌면 여기만 고침(2026-10-22 템플릿)
 DASHBOARD_URL = "10.206.33.120:5188"
 
 # 본문 템플릿 — {url} 접속 주소 · {emp} 받는 사람 사번(ID) · {key} 받는 사람 시크릿 키(PW). 사람마다 값이 달라 변수로 채움.
 # 시크릿 키는 이 변수 하나로만 들어가고, 미리보기는 가린 값을 넘김(build_message)
-BODY_TEMPLATE = """1. 통합 대시보드 URL : {url}
-2. ID : {emp}
-3. PW : {key}
+BODY_TEMPLATE = """안녕하십니까. 기술교육사업기획팀 이권성입니다.
+대표이사님 지침으로 경영현황 통합 대시보드는 보직자 이상에 한하여 공유하는 것으로 말씀 주셨습니다.
+개별 접속하실 수 있는 시크릿키를 전달 드립니다.
 
-사이트 이용중 불편 및 문의 사항은 내선[8020]으로 연락 부탁 드립니다.
+■ 경영현황 통합 대시보드 접속 안내
+  1. 대시보드 URL : {url}
+  2. ID : {emp}
+  3. PW : {key}
 
 감사합니다."""
 

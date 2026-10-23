@@ -336,3 +336,17 @@
 /* 카드 바깥에 투어 앵커용 래퍼를 둘 때 — 높이를 카드가 그대로 채우게 */
 .fillCard { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 .fillCard > * { flex: 1; }
+
+/* 파트 인원이 아직 없을 때 인당 차트 자리(2026-10-23) */
+.perCapitaEmpty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 160px;
+  padding: 0 16px;
+  text-align: center;
+  font-size: 0.84rem;
+  color: var(--text-muted);
+  word-break: keep-all;
+}

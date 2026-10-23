@@ -115,6 +115,10 @@ export const splitValueUnit = (value: string): { num: string; unit: string } => 
 export const toEokNum = (v: number | null | undefined) =>
   Number.isFinite(Number(v)) ? +(Number(v) / 100_000).toFixed(1) : 0;
 
+/** 천원 → 억원 숫자(소수 둘째 자리 버림) — 인당 값처럼 작은 금액용(0.1억 단위는 뭉개짐). 버림은 화면 억 표기 규칙(Math.trunc)과 같게 */
+export const toEokNum2 = (v: number | null | undefined) =>
+  Number.isFinite(Number(v)) ? Math.trunc(Number(v) / 1_000) / 100 : 0;
+
 /** OS "움직임 줄이기" 설정 — 켜져 있으면 애니메이션 없이 즉시 전환 */
 export const prefersReducedMotion = () =>
   typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;

@@ -10,6 +10,7 @@ import { getChartTheme } from '@/utils/chartColors';
 import { sortProgress } from '@/utils/progressOrder';
 import { sortTeams, sortParts } from '@/utils/partOrder';
 import { stripPartPrefix, toEokNum } from '@/utils';
+import { toEokNum2 } from '@/utils/format';
 import { usePerfPeriod } from '@/hooks/usePerfPeriod';
 import type { ChartOptions } from 'chart.js';
 
@@ -53,6 +54,24 @@ export interface PlanVsActualRow {
   rate:   number | null;
 }
 
+/**
+ * 파트별 인당 매출·손익·관리비 차트(2026-10-23). 값은 백엔드가 파트 인원(관리자 수기)으로 나눠 내려준 천원 → 억(소수 둘째 자리 버림).
+ * 인원 미입력·팀 필터로 잘린 다팀 파트는 막대에서 빼고 목록으로만 알림. 계획 값은 매출만 있음(손익·관리비 계획은 원본에 없음).
+ */
+export interface PerCapitaData {
+  labels:      string[];
+  headcounts:  number[];
+  revPlan:     number[];
+  revEst:      number[];
+  profit:      number[];
+  isProfit:    boolean[];
+  mgmt:        number[];
+  /** 인원이 입력되지 않아 빠진 파트 */
+  missingParts: string[];
+  /** 팀 필터로 행이 잘려 인당 값을 못 구해 빠진 파트(K뉴딜TF) */
+  partialParts: string[];
+}
+
 export interface PerformanceChartViewModel {
   isLoading:  boolean;
   isError:    boolean;
@@ -68,6 +87,7 @@ export interface PerformanceChartViewModel {
     cumulative: MonthlyCumulative | null;
     options:  ChartOptions<'bar'>;
   };
+  perCapita: PerCapitaData & { options: ChartOptions<'bar'> };
   planVsActual: {
     labels:        string[];
     planInitial:   number[];
@@ -207,6 +227,18 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
     },
   }), [showLabels, labelColor, showRate]);
 
+  // 인당 차트 공통 — 가로 막대, 억 둘째 자리. 손익은 마이너스 막대가 있어 왼쪽도 수치 자리 확보
+  const perCapitaOptions = useMemo(() => makeBarOptions(showLabels, labelColor, {
+    layout: { padding: { right: 64, left: 40 } },
+    plugins: {
+      datalabels: {
+        anchor: 'end',
+        align:  'end',
+        formatter: (v: number) => `${v.toFixed(2)}억`,
+      },
+    },
+  }), [showLabels, labelColor]);
+
   const profitRateOptions = useMemo(() => makeBarOptions(showLabels, labelColor, {
     // bottom — 마이너스 막대는 수치가 막대 아래에 찍히므로 잘리지 않게 여백 확보
     layout: { padding: { top: 24, bottom: 24 } },
@@ -310,6 +342,21 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
             toRow('합계', sum('plan_initial', hidden), sum('jun_check_total', hidden)),
         };
       })(),
+      perCapita: (() => {
+        const rows = parts.map(p => ({ name: stripPartPrefix(p), s: summary.by_part[p] }));
+        const ok = rows.filter(r => r.s.rev_per_head_est != null);
+        return {
+          labels:       ok.map(r => r.name),
+          headcounts:   ok.map(r => r.s.headcount ?? 0),
+          revPlan:      ok.map(r => toEokNum2(r.s.rev_per_head_plan)),
+          revEst:       ok.map(r => toEokNum2(r.s.rev_per_head_est)),
+          profit:       ok.map(r => toEokNum2(r.s.profit_per_head)),
+          isProfit:     ok.map(r => (r.s.profit_per_head ?? 0) >= 0),
+          mgmt:         ok.map(r => toEokNum2(r.s.mgmt_per_head)),
+          missingParts: rows.filter(r => r.s.rev_per_head_est == null && !r.s.headcount_partial).map(r => r.name),
+          partialParts: rows.filter(r => r.s.headcount_partial).map(r => r.name),
+        };
+      })(),
       profitRate: {
         labels:   parts.map(stripPartPrefix),
         rates:    parts.map(p => summary.by_part[p].avg_profit_rate),
@@ -388,6 +435,7 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
     return {
       isLoading, isError, isEmpty: false, showLabels, labelColor,
       monthly:          { labels: [], revenues: [], costs: [], isFuture: [], rows: [], cumulative: null, options: monthlyOptions },
+      perCapita:        { labels: [], headcounts: [], revPlan: [], revEst: [], profit: [], isProfit: [], mgmt: [], missingParts: [], partialParts: [], options: perCapitaOptions },
       planVsActual:     { labels: [], planInitial: [], junCheckTotal: [], rows: [], rates: [], totalFor: () => ({ part: '합계', plan: 0, actual: 0, diff: 0, rate: null }), showRate, options: planVsActualOptions },
       profitRate:       { labels: [], rates: [], profits: [], isProfit: [], revenues: [], costs: [], overheads: [], planRevenue: [], planCost: [], options: profitRateOptions },
       costBreakdown:    { labels: [], values: [] },
@@ -402,6 +450,7 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
   return {
     isLoading, isError, isEmpty: chartData.isEmpty, showLabels, labelColor,
     monthly:          { ...chartData.monthly,      options: monthlyOptions },
+    perCapita:        { ...chartData.perCapita,    options: perCapitaOptions },
     planVsActual:     { ...chartData.planVsActual, showRate, options: planVsActualOptions },
     profitRate:       { ...chartData.profitRate,   options: profitRateOptions },
     costBreakdown,

@@ -106,6 +106,21 @@ export const INFO_PLAN_VS_ACTUAL = (
   ]} />
 );
 
+/** 파트별 인당 매출·손익·관리비 차트 ⓘ(2026-10-23) — what: 매출 / 손익 / 관리비 */
+export const infoPerCapita = (what: 'revenue' | 'profit' | 'mgmt') => (
+  <InfoTable rows={[
+    ['출처',   '실적현황 엑셀 + 파트 인원(관리자가 관리자 기능에서 직접 입력)'],
+    what === 'revenue'
+      ? ['계산', `파트별 매출 ÷ 파트 인원 — 계획은 ${PERF_COL.planInitial}열(매출 계획), 추정은 ${PERF_COL.checkTotal}열(연간 추정 합계)`]
+      : what === 'profit'
+        ? ['계산', '파트별 연간 추정 경상손익 ÷ 파트 인원 — 계획 손익은 원본에 없어 추정만 표시']
+        : ['계산', `파트별 연간 추정 관리비(${PERF_COL.costMgmt}열) ÷ 파트 인원 — 계획 관리비는 원본에 없어 추정만 표시`],
+    ['단위',   '억원(소수 둘째 자리 버림)'],
+    ['제외',   '인원이 입력되지 않은 파트는 차트에서 빠짐 · 팀 필터를 걸면 여러 팀에 걸친 파트(K뉴딜TF)도 뺌'],
+    ['필터',   '파트 · 팀 필터 적용'],
+  ]} />
+);
+
 export const INFO_PROGRESS = (
   <InfoTable rows={[
     ['출처',   '실적현황 엑셀'],

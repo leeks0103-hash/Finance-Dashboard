@@ -9,6 +9,7 @@ import ExtractCoverage from './ExtractCoverage';
 import ExtractFilePicker from './ExtractFilePicker';
 import FinMismatch from './FinMismatch';
 import PerfUpdatePanel from './PerfUpdatePanel';
+import PartHeadcountPanel from './PartHeadcountPanel';
 import SecretMailPanel from './SecretMailPanel';
 import styles from './AdminModal.module.css';
 
@@ -252,6 +253,9 @@ const AdminModal = ({ extractJob, onClose, initialSelected }: Props) => {
           {/* 실적현황 파일 자동 반영 — data/에 넣거나 여기로 끌어다 놓으면 열 맞추기·검증 후 반영(2026-10-14, 10-15 켬).
               끄려면 이 줄 + 위 import 주석, 서버 performance.PERF_AUTO_UPDATE·paths.PERF_PICK_NEWEST False */}
           <PerfUpdatePanel />
+
+          {/* 파트별 인원(수기) — 실적 탭 인당 매출·손익·관리비 차트의 분모(2026-10-23) */}
+          <PartHeadcountPanel />
 
           <section className={styles.group}>
             {/* 제목 오른쪽 끝에 마지막 추출 시각(2026-10-06 요청) */}

@@ -13,6 +13,7 @@ import { useTheme } from '@/hooks';
 import { makeBarOptions, legendRadioClick } from '@/utils/chartOptions';
 import { getChartTheme } from '@/utils/chartColors';
 import { useChartPalette } from '@/hooks/useChartPalette';
+import { useUiStore } from '@/store';
 // Toggle — 파트별 경상이익 토글 비활성화로 미사용(주석 처리). 복구 시 함께 import
 import { createColumnHelper } from '@tanstack/react-table';
 import { ChartCard, BarChart, DoughnutChart, DataTable, useTableDndSensors, InfoButton, Button, LineIcon } from '@/components/ui';
@@ -24,7 +25,7 @@ import { canPerfBreakdown, type PerfBreakdownTarget } from '@/hooks/viewmodels/u
 import type { PerfBreakdownChart } from '@/api/performance.api';
 import {
   INFO_MONTHLY, INFO_PROFIT_RATE, INFO_COST_BREAKDOWN,
-  INFO_PLAN_VS_ACTUAL,
+  INFO_PLAN_VS_ACTUAL, infoPerCapita,
 } from '@/utils/infoTexts';
 import type { ChartOptions } from 'chart.js';
 import { stripPartPrefix, prefersReducedMotion } from '@/utils/format';
@@ -34,11 +35,13 @@ import styles from './PerformanceChartSection.module.css';
 
 // 레이아웃(2026-10-23 요청): 1줄 = 진도율(월별 실적 추이, 8칸) + 파트별 매출 진행 현황(4칸 — 예전엔 차트 아래 따로 있던 섹션)
 //                          2줄 = 원가분석(파트별 추정 매출/원가, 8칸) + 전체 평균 원가 비율 도넛(4칸) — 2줄은 더 높게
-//                          3줄 = 파트별 계획 vs 추정 실적(12칸, 위치 미정 — 일단 남는 한 줄)
+//                          3줄 = 파트별 인당 매출 · 인당 손익 · 인당 관리비(4칸×3 — 파트 인원은 관리자가 수기 입력)
+//                          4줄 = 파트별 계획 vs 추정 실적(12칸)
 // (2026-10-20엔 1줄 = 월별 8 + 도넛 4 / 2줄 = 파트별 매출/원가 8 + 계획 vs 추정 4). 'progress'(진행단계별)는 요청에 따라 비활성
-const DEFAULT_CHART_ORDER = ['monthly', 'achievement', 'profitRate', 'costBreakdown', 'planVsActual'];
+// 줄(행) 구성은 고정 — 같은 줄 안에서 좌우 순서만 바꿀 수 있고, 카드가 다른 줄로 가거나 줄 자체를 위아래로 옮길 수는 없음(2026-10-23 요청)
+const DEFAULT_CHART_ORDER = ['monthly', 'achievement', 'profitRate', 'costBreakdown', 'perCapitaRevenue', 'perCapitaProfit', 'perCapitaMgmt', 'planVsActual'];
 // 배치가 바뀌어 저장된 옛 순서로는 줄이 어긋나 키를 올림 — 한 번 기본 순서로 돌아감
-const LS_CHART_ORDER = 'performance-chart-order-v3';
+const LS_CHART_ORDER = 'performance-chart-order-v5';
 
 // 카드별 고정 폭(12칸 그리드 span) + 높이 — 슬롯이 아니라 '카드'에 붙어서 드래그로 순서를 바꿔도 크기 유지.
 // 한 줄 합 = 12. 높이는 같은 줄에서 큰 쪽에 맞춰 늘어남(grid stretch)
@@ -49,22 +52,14 @@ const SPAN_BY_ID: Record<string, readonly [SpanKey, 'rowShort' | 'rowTall']> = {
   profitRate:    ['span8', 'rowTall'],    // 원가분석(파트별 추정 매출/원가) — 크게
   costBreakdown: ['span4', 'rowTall'],    // 전체 평균 원가 비율 도넛 — 원가분석 옆(2026-10-23)
   planVsActual:  ['span12', 'rowShort'],  // 파트별 계획 vs 추정 실적 — 남는 한 줄
+  perCapitaRevenue: ['span4', 'rowShort'],  // 파트별 인당 매출(계획 vs 추정) — 그 아래 한 줄에 4칸 3개(2026-10-23)
+  perCapitaProfit:  ['span4', 'rowShort'],  // 파트별 인당 손익(추정)
+  perCapitaMgmt:    ['span4', 'rowShort'],  // 파트별 인당 관리비(추정)
 };
 const staticPreview: SortingStrategy = () => null;
 
-// 드래그로 바꾼 순서가 줄을 깨지 않는지 — 앞에서부터 한 줄(12칸)씩 채워 각 줄이 정확히 12가 되면 OK.
-// 넓은 카드 둘(8+8)이나 좁은 카드 둘(4+4)이 한 줄에 오면 칸이 비어 배치가 깨짐(2026-10-20)
+// 순서를 줄(합 12칸) 단위로 나눔
 const SPAN_COLS: Record<SpanKey, number> = { span12: 12, span9: 9, span8: 8, span4: 4, span3: 3 };
-const isValidChartOrder = (order: string[]) => {
-  let row = 0;
-  for (const id of order) {
-    row += SPAN_COLS[(SPAN_BY_ID[id] ?? ['span4'])[0]];
-    if (row > 12) return false;
-    if (row === 12) row = 0;
-  }
-  return row === 0;
-};
-// 순서를 줄(합 12칸) 단위로 나눔 — 줄 바꾸기(핸들 더블클릭)용
 const splitChartRows = (order: string[]) => {
   const rows: string[][] = [];
   let cur: string[] = [], sum = 0;
@@ -76,15 +71,13 @@ const splitChartRows = (order: string[]) => {
   if (cur.length) rows.push(cur);
   return rows;
 };
-// 그 카드가 있는 줄을 바로 아래 줄과 통째로 맞바꿈(마지막 줄이면 위 줄과) — 월별 9+도넛 3 ↔ 파트별 8+계획 vs 실적 4처럼
-// 칸 수가 다른 줄은 드래그로는 못 바꾸므로(2026-10-20)
-const swapChartRow = (order: string[], id: string) => {
+// 기본 배치의 줄 구성 — 이 줄 구성을 그대로 지키는 순서만 유효(2026-10-23: 같은 줄 안 좌우 교체만 허용).
+// 예전엔 합이 12칸이 되기만 하면 줄 간 이동·줄 통째 바꾸기(핸들 더블클릭)도 허용했음(2026-10-20)
+const DEFAULT_CHART_ROWS = splitChartRows(DEFAULT_CHART_ORDER);
+const isValidChartOrder = (order: string[]) => {
   const rows = splitChartRows(order);
-  const i = rows.findIndex(r => r.includes(id));
-  if (i < 0 || rows.length < 2) return order;
-  const j = i + 1 < rows.length ? i + 1 : i - 1;
-  [rows[i], rows[j]] = [rows[j], rows[i]];
-  return rows.flat();
+  return rows.length === DEFAULT_CHART_ROWS.length
+    && rows.every((r, i) => r.length === DEFAULT_CHART_ROWS[i].length && r.every(id => DEFAULT_CHART_ROWS[i].includes(id)));
 };
 // 드래그 중 커서를 따라다니는 작은 카드(DragOverlay)에 쓸 제목 — 큰 차트 카드를 통째로 끌면 크기가 달라
 // (9·8·4·3칸) 움직임이 어색하고 화면 밖으로 밀렸음. 원래 카드는 제자리에 흐리게 남고 이 미니 카드만 움직임(2026-10-20)
@@ -94,6 +87,9 @@ const CHART_TITLES: Record<string, string> = {
   costBreakdown: '전체 평균 원가 비율',
   profitRate: '원가분석(파트별 추정 매출/원가)',
   planVsActual: '파트별 계획 vs 추정 실적',
+  perCapitaRevenue: '파트별 인당 매출',
+  perCapitaProfit: '파트별 인당 손익',
+  perCapitaMgmt: '파트별 인당 관리비',
 };
 const OVERLAY_DROP_ANIMATION = { duration: 220, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' };
 
@@ -700,8 +696,8 @@ const withUnstackedTheme = (
 // 드래그 가능 차트 카드 래퍼 — 재무 ChartSection과 동일 패턴(카드 전체가 아닌 그립 아이콘만 드래그)
 // spanClassName: 2번째 줄 카드는 폭이 슬롯이 아니라 '카드' 기준(각 카드에 고정 span) —
 //   재배치해도 파트별 추정 매출/원가가 좁아지지 않게
-interface SortableChartProps { id: string; fullRow?: boolean; spanClassName?: string; dropState?: 'ok' | 'bad' | null; onHandleDoubleClick?: () => void; children: ReactNode; }
-function SortableChart({ id, fullRow, spanClassName, dropState, onHandleDoubleClick, children }: SortableChartProps) {
+interface SortableChartProps { id: string; fullRow?: boolean; spanClassName?: string; dropState?: 'ok' | 'bad' | null; children: ReactNode; }
+function SortableChart({ id, fullRow, spanClassName, dropState, children }: SortableChartProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, transition: SORTABLE_TRANSITION });
   return (
     <div
@@ -722,8 +718,8 @@ function SortableChart({ id, fullRow, spanClassName, dropState, onHandleDoubleCl
       }}
     >
       {/* 드래그는 몇 px 움직여야 시작(activationConstraint distance)이라 더블클릭과 안 겹침 */}
-      <div className={styles.dragHandle} {...attributes} {...listeners} onDoubleClick={onHandleDoubleClick}
-        aria-label="차트 순서 이동" title="드래그하여 순서 변경 · 더블클릭하면 위아래 줄 바꾸기">
+      <div className={styles.dragHandle} {...attributes} {...listeners}
+        aria-label="차트 순서 이동" title="드래그하여 같은 줄 안에서 순서 변경">
         ⠿
       </div>
       {children}
@@ -835,16 +831,8 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
     });
   }, []);
 
-  const handleSwapRow = useCallback((id: string) => {
-    setChartOrder(prev => {
-      const next = swapChartRow(prev, id);
-      if (next === prev || !isValidChartOrder(next)) return prev;
-      localStorage.setItem(LS_CHART_ORDER, JSON.stringify(next));
-      return next;
-    });
-  }, []);
-
   const palette = useChartPalette();
+  const isAdmin = useUiStore(s => s.adminAuthed);   // 인당 차트 빈 상태 안내 문구가 관리자에게만 입력 위치를 알려줌
 
   // "계획" 막대 — 중립색(실적/원가 계열과 겹치지 않게). KPI "26년 목표" 막대와 같은 값
   const planColor = palette.plan;
@@ -915,6 +903,22 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
       },
     };
   }, [vm.planVsActual.options, scaleOverride, palette.planLabel, vm.showLabels, vm.planVsActual.showRate]);
+
+  // 파트별 인당 차트 3개 공통 옵션(2026-10-23) — 가로 막대, 축 '억', 툴팁에 그 파트 인원
+  const perCapitaChartOptions = useMemo(() => {
+    const base = withUnstackedTheme(vm.perCapita.options, scaleOverride);
+    const xScale = base.scales?.x as { ticks?: object } | undefined;
+    return {
+      ...base,
+      scales: { ...base.scales, x: { ...xScale, ticks: { ...xScale?.ticks, callback: (v: string | number) => v + '억' } } },
+      plugins: {
+        ...base.plugins,
+        tooltip: { callbacks: {
+          afterLabel: (ctx: { dataIndex: number }) => `인원 ${vm.perCapita.headcounts[ctx.dataIndex] ?? '-'}명`,
+        } },
+      },
+    } as ChartOptions<'bar'>;
+  }, [vm.perCapita.options, vm.perCapita.headcounts, scaleOverride]);
 
   // 이익율/이익액 토글 비활성화로 미사용(주석 처리) — 복구 시 PROFIT_LABEL과 함께 해제
   // const profitRateOptions = useMemo(() => ({
@@ -1043,6 +1047,37 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
   //   [vm.progress.options, scaleOverride],
   // );
 
+  // 인당 차트 카드 공통 틀 — 인원이 하나도 없으면 안내, 일부만 없으면 제목 옆에 빠진 파트 수
+  const perCapitaCard = (id: string, info: ReactNode, datasets: { label: string; data: number[]; backgroundColor: string | string[] }[]) => {
+    const { labels, missingParts, partialParts } = vm.perCapita;
+    const skipped = [...missingParts, ...partialParts];
+    const skippedTip = [
+      missingParts.length ? `인원 미입력: ${missingParts.join(', ')}` : '',
+      partialParts.length ? `팀 필터로 인당 값을 못 구함: ${partialParts.join(', ')}` : '',
+    ].filter(Boolean).join(' / ');
+    return (
+      <ChartCard expandable={false}>
+        <ChartCard.Title>
+          <span className={styles.chartTitle}>{CHART_TITLES[id]}<InfoButton>{info}</InfoButton></span>
+          {skipped.length > 0 && labels.length > 0 && (
+            <span className={styles.titleNote} title={skippedTip}>{skipped.length}개 파트 제외</span>
+          )}
+        </ChartCard.Title>
+        <ChartCard.Body>
+          {labels.length === 0
+            ? <div className={styles.perCapitaEmpty}>
+                {partialParts.length > 0 && missingParts.length === 0
+                  ? '팀 필터 중에는 여러 팀에 걸친 파트의 인당 값을 구할 수 없습니다'
+                  : isAdmin
+                    ? '파트 인원이 아직 입력되지 않았습니다 — 관리자 기능 > 파트별 인원에서 입력하세요'
+                    : '파트 인원이 아직 입력되지 않았습니다'}
+              </div>
+            : <BarChart horizontal labels={labels} datasets={datasets} options={perCapitaChartOptions} />}
+        </ChartCard.Body>
+      </ChartCard>
+    );
+  };
+
   const chartRenderers: Record<string, () => ReactNode | null> = {
     // 파트별 매출 진행 현황 — 데이터가 아직 없으면 카드 없음. 투어 앵커(perf-achievement)는 이 래퍼에(예전엔 페이지 섹션에 있었음)
     achievement: () => achievement ? (
@@ -1116,6 +1151,18 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
         </ChartCard>
       );
     },
+    // 파트별 인당 매출·손익·관리비(2026-10-23) — 인원은 관리자 수기 입력(백엔드가 나눠서 내려줌). 계획은 매출만 있음
+    perCapitaRevenue: () => perCapitaCard('perCapitaRevenue', infoPerCapita('revenue'), [
+      { label: '계획(억)', data: vm.perCapita.revPlan, backgroundColor: planColor },
+      { label: '추정 매출(억)', data: vm.perCapita.revEst, backgroundColor: palette.revenue },
+    ]),
+    perCapitaProfit: () => perCapitaCard('perCapitaProfit', infoPerCapita('profit'), [
+      { label: '추정 경상손익(억)', data: vm.perCapita.profit,
+        backgroundColor: vm.perCapita.isProfit.map(ok => (ok ? palette.profit : palette.loss)) },
+    ]),
+    perCapitaMgmt: () => perCapitaCard('perCapitaMgmt', infoPerCapita('mgmt'), [
+      { label: '추정 관리비(억)', data: vm.perCapita.mgmt, backgroundColor: palette.costMgmt },
+    ]),
     planVsActual: () => {
       const makeChart = (hidden: ReadonlySet<string>) => {
         const idx = vm.planVsActual.labels.map((_, i) => i).filter(i => !hidden.has(vm.planVsActual.labels[i]));
@@ -1427,7 +1474,6 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
           id={c.id}
           spanClassName={cardClass(c.id)}
           dropState={dropTarget?.id === c.id ? (dropTarget.ok ? 'ok' : 'bad') : null}
-          onHandleDoubleClick={() => handleSwapRow(c.id)}
         >
           {c.node}
         </SortableChart>

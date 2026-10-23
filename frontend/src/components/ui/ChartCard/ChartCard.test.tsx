@@ -19,7 +19,8 @@ describe('ChartCard', () => {
     expect(screen.getByText('내용')).toBeInTheDocument();
   });
 
-  it('opens an enlarged modal with the same title/body when the expand button is clicked', async () => {
+  // 확대 버튼 주석 처리(2026-10-23)로 skip — 버튼을 되살리면 .skip 제거
+  it.skip('opens an enlarged modal with the same title/body when the expand button is clicked', async () => {
     render(
       <ChartCard>
         <ChartCard.Title>제목</ChartCard.Title>
