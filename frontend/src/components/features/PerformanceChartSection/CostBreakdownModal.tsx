@@ -42,7 +42,8 @@ const loadOrder = (key: string): string[] => {
 interface Cell { key: string; label: string; data: CostData }
 
 // ── 드래그 가능한 미니 카드 — 이 그리드 안에서만 순서 교체됨(다른 영역과 무관) ──
-function SortableCard({ cell, colors, showLabels, cols4, onExpand, index }: {
+// onExpand: ⤢ 버튼 주석 처리(2026-10-23)로 지금은 안 쓰지만 복구용으로 prop은 유지
+function SortableCard({ cell, colors, showLabels, cols4, index }: {
   cell: Cell; colors: string[]; showLabels: boolean; cols4: boolean;
   onExpand: (key: string) => void;
   /** 등장 순서 — 팀↔파트 전환 때 카드가 차례대로 다다닥 나타나게 */

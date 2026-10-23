@@ -6,7 +6,7 @@ import { useDismissExtractRequest, useExtractRequests } from '@/hooks/useExtract
 import styles from './Navbar.module.css';
 
 interface Props {
-  /** 요청 파일들을 미리 고른 채 관리자 기능 창(선택 추출)을 엶 */
+  /** 요청 파일들을 미리 고른 채 PPT 추출 창(선택 방식)을 엶 */
   onExtract: (files: string[]) => void;
 }
 

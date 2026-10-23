@@ -16,10 +16,12 @@ describe('PerfCompareCard 제목 아래 안내(labelNote)', () => {
     const note = label?.querySelector(`.${styles.labelNote}`);
     expect(note?.textContent).toBe('매출 - (직접원가 + 공통원가)');
     expect(label?.textContent).toBe('당해 연도 매출이익 (계획/추정)매출 - (직접원가 + 공통원가)');
+    expect(label?.classList.contains(styles.labelNoted)).toBe(true);   // 매출이익 카드 제목 전용 클래스
   });
 
   it('labelNote가 없으면 안내 줄을 그리지 않는다', () => {
     const { container } = render(<PerfCompareCard card={base} />);
     expect(container.querySelector(`.${styles.labelNote}`)).toBeNull();
+    expect(container.querySelector(`.${styles.label}`)?.classList.contains(styles.labelNoted)).toBe(false);
   });
 });

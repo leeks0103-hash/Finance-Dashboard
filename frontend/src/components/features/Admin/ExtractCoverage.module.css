@@ -1,4 +1,4 @@
-/* 관리자용 기능 > 추출 현황 — AdminModal .group과 같은 바탕 칸 */
+/* 관리자 페이지 > 추출 현황 — AdminSections .group과 같은 바탕 칸 */
 .wrap {
   display: flex;
   flex-direction: column;

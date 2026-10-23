@@ -212,7 +212,7 @@
   .picker { animation: none; }
 }
 
-/* 주간/야간 탭(2026-10-19) — AdminModal .segment와 같은 모양 */
+/* 주간/야간 탭(2026-10-19) — AdminSections .segment와 같은 모양 */
 .modeBar { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
 .modeBtn {
   display: inline-flex; align-items: center; gap: 6px;

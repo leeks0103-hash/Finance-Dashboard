@@ -27,7 +27,7 @@ import {
   INFO_MONTHLY, INFO_PROFIT_RATE, INFO_COST_BREAKDOWN,
   INFO_PLAN_VS_ACTUAL, infoPerCapita,
 } from '@/utils/infoTexts';
-import type { ChartOptions } from 'chart.js';
+import type { ChartDataset, ChartOptions } from 'chart.js';
 import { stripPartPrefix, prefersReducedMotion } from '@/utils/format';
 import { getDatalabelAlpha } from '@/utils/datalabelFade';
 import { SORTABLE_TRANSITION } from '@/components/ui/sortableMotion';
@@ -879,7 +879,7 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
       ...vm.monthly.options.plugins,
       datalabels: {
         ...vm.monthly.options.plugins?.datalabels,
-        font: { size: 13, weight: 'bold', family: "'Pretendard', 'Malgun Gothic', sans-serif" },
+        font: { size: 13, weight: 'bold' as const, family: "'Pretendard', 'Malgun Gothic', sans-serif" },
       },
       costRate: { show: vm.showLabels, text: dark ? 'rgb(0,170,210)' : 'rgb(0,119,147)', minBarWidth: 30, font: "bold 11px 'Pretendard', 'Malgun Gothic', sans-serif" },
       tightLabels: { spacing: '-0.4px' },
@@ -1085,7 +1085,7 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
                 {partialParts.length > 0 && missingParts.length === 0
                   ? '팀 필터 중에는 여러 팀에 걸친 파트의 인당 값을 구할 수 없습니다'
                   : isAdmin
-                    ? '파트 인원이 아직 입력되지 않았습니다 — 관리자 기능 > 파트별 인원에서 입력하세요'
+                    ? '파트 인원이 아직 입력되지 않았습니다 — 관리자 기능 > 파트별 인원 메뉴에서 입력하세요'
                     : '파트 인원이 아직 입력되지 않았습니다'}
               </div>
             : <BarChart horizontal labels={labels} datasets={datasets} options={perCapitaChartOptions} plugins={[fitBarLabelsPlugin, tightTicksPlugin]} />}
@@ -1190,8 +1190,9 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
             labels={pick(vm.planVsActual.labels)}
             datasets={[
               { label: '계획(억)', data: pick(vm.planVsActual.planInitial), backgroundColor: planColor },
+              // rates = 막대 끝 달성률(%) — ChartDataset 타입에 없는 사용자 필드라 단언(datalabels formatter가 읽음)
               { label: '추정 실적(억)', data: pick(vm.planVsActual.junCheckTotal), backgroundColor: palette.revenue,
-                rates: pick(vm.planVsActual.rates) },
+                rates: pick(vm.planVsActual.rates) } as ChartDataset<'bar'>,
             ]}
             options={planVsActualOptions}
             plugins={[fitBarLabelsPlugin, tightTicksPlugin]}

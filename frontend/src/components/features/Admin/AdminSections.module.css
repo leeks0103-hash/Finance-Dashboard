@@ -1,10 +1,21 @@
-/* ⚙ > 관리자용 기능 모달 — 예전 드롭다운(Navbar.module.css .subGroup 등)에 있던 스타일을 옮겨와
-   모달 폭(560px)에 맞게 여유를 준 것 */
+/* 관리자 페이지(#/admin) 섹션 공용 스타일 — 예전 AdminModal.module.css(2026-10-23 이름 변경·이동). 원래 드롭다운
+   (Navbar.module.css .subGroup 등)에 있던 스타일을 모달로, 다시 페이지로 옮겨 온 것 */
+
+/* 관리자 로그인 폼(로그인 요구가 꺼져 있을 때 #/admin에서) — 가운데 좁은 카드 */
+.loginWrap {
+  max-width: 420px;
+  margin: 80px auto 0;
+  padding: 0 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.loginTitle { margin: 0; font-size: 1.2rem; font-weight: 700; color: var(--text-primary); }
 
 .auth {
   display: flex;
   flex-direction: column;
-  align-items: stretch;   /* 관리자 인증 버튼을 모달 폭 가득(2026-10-02 요청) */
+  align-items: stretch;   /* 관리자 인증 버튼을 폼 폭 가득(2026-10-02 요청) */
   gap: 8px;
   padding: 6px 0 4px;
 }
@@ -34,7 +45,7 @@
 /* 공개 범위(달성률·파일·폴더 바로가기·업데이트 요청) — 짧은 설정은 한 줄에, 좁으면 줄바꿈 */
 .twoCol {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));   /* 4개(달성률·파일·폴더·업데이트 요청)가 모달 폭 1000px에서 한 줄(2026-10-22) */
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));   /* 4개(달성률·파일·폴더·업데이트 요청)가 한 줄(2026-10-22) — 페이지 내용 폭에서도 */
   gap: 12px;
 }
 
@@ -168,3 +179,9 @@
 }
 .toggleText { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .toggleDesc { font-size: 0.72rem; color: var(--text-muted); }
+
+/* PPT 추출 모달 — '선택'을 누르면 파일 표가 생겼다 사라져도 창 크기가 바뀌지 않게 높이 고정(넘치면 본문만 스크롤, 스크롤바 자리도 고정) */
+.extractModal {
+  --modal-h: min(820px, 90vh);
+  --modal-body-gutter: stable;
+}

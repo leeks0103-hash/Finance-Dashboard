@@ -8,3 +8,5 @@ export { usePerformanceChartViewModel } from './usePerformanceChartViewModel';
 export { usePerformanceInsightViewModel } from './usePerformanceInsightViewModel';
 export { useKpiPageViewModel }      from './useKpiPageViewModel';
 export { useFinanceCrossCheckViewModel } from './useFinanceCrossCheckViewModel';
+export { useAdminSettingsViewModel } from './useAdminSettingsViewModel';
+export { useAdminExtractViewModel }  from './useAdminExtractViewModel';

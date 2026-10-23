@@ -274,7 +274,7 @@ export interface FinMismatchRow {
   cost_mismatch: boolean;
 }
 
-/** 실적현황 파일 자동 반영 상태 — 서버 data/perf_update_status.json(관리자 기능 창, 2026-10-14) */
+/** 실적현황 파일 자동 반영 상태 — 서버 data/perf_update_status.json(관리자 페이지, 2026-10-14) */
 export interface PerfUpdateCheck { name: string; rate: number; ok: boolean }
 export interface PerfUpdateStatus {
   /** 마지막으로 확인한 파일(최신 파일)과 결과 */

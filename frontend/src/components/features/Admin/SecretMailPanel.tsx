@@ -1,12 +1,9 @@
 import { useMemo, useState } from 'react';
-import { Button, CopyText, confirmDialog } from '@/components/ui';
-import { usePresence } from '@/components/ui/useAnimatedClose';
+import { Button, CopyText, Modal, confirmDialog } from '@/components/ui';
 import { useSecretMail, useSecretMailAccountDiff } from '@/hooks/useSecretMail';
 import type { SecretMailRow } from '@/types/secretMail.types';
 import SecretMailPreviewModal from './SecretMailPreviewModal';
 import styles from './SecretMailPanel.module.css';
-
-const COLLAPSE_MS = 240;   // .closing 애니메이션 길이와 맞출 것
 
 const shortTime = (s: string) => s.slice(5, 16);   // "MM-DD HH:MM"
 const nameOf = (r: SecretMailRow) => r.name || r.emp;
@@ -29,10 +26,8 @@ const SecretMailPanel = () => {
   const [selected, setSelected] = useState<string[]>([]);
   // 미리보기 — 처음 보여 줄 사람(체크한 첫 사람, 없으면 목록 첫 사람)
   const [previewEmp, setPreviewEmp] = useState<string | null>(null);
-  // 펼침/접힘 — 위에서 아래로(0fr → 1fr), 접을 땐 애니메이션 끝난 뒤 제거(재무 검색 결과와 같은 방식)
-  const { mounted, closing } = usePresence(open, COLLAPSE_MS);
-  const [settled, setSettled] = useState(false);
-  const mail = useSecretMail(mounted);
+  // "명단 보기"는 인라인으로 펼치지 않고 모달로(2026-10-23 요청 — 명단·대조·보내기가 길어 페이지 안에서 펼치면 답답) — 열려 있을 때만 서버에서 읽음
+  const mail = useSecretMail(open);
   const diff = useSecretMailAccountDiff(open);
   const rows = useMemo(() => mail.data?.rows ?? [], [mail.data]);
   const job = mail.job;
@@ -96,13 +91,11 @@ const SecretMailPanel = () => {
           <span className={styles.title}>시크릿 키 메일</span>
           <span className={styles.sub}>임직원에게 로그인 시크릿 키를 Outlook으로 · 한 사람씩 차례로, 받는 사람은 본인만(참조 없음) · 본문은 접속 주소·ID·PW 안내(사람마다 사번·키가 다름)</span>
         </div>
-        <Button variant="primary" size="sm" onClick={() => { setSettled(false); setOpen(v => !v); }}>{open ? '접기' : '명단 보기'}</Button>
+        <Button variant="primary" size="sm" onClick={() => setOpen(true)}>명단 보기</Button>
       </div>
 
-      {mounted && (
-        <div className={`${styles.reveal} ${closing ? styles.closing : ''} ${settled && !closing ? styles.settled : ''}`}
-          onAnimationEnd={e => { if (e.target === e.currentTarget && !closing) setSettled(true); }}>
-        <div className={styles.revealInner}>
+      {open && (
+        <Modal title="시크릿 키 메일" sub="임직원 명단 · 계정 대조 · 보내기" width="min(1000px, 94vw)" onClose={() => setOpen(false)}>
         <div className={styles.body}>
           {mail.isLoading && <span className={styles.muted}>명단·Outlook 확인 중…</span>}
           {mail.loadError && (
@@ -165,7 +158,7 @@ const SecretMailPanel = () => {
                 <Button variant="danger" size="sm" loading={mail.isCancelling} onClick={handleCancel}>중지</Button>
               </div>
               <div className={styles.bar}><div className={styles.barFill} style={{ width: `${pct}%` }} /></div>
-              <span className={styles.muted}>이 창을 닫아도 서버에서 계속 보냅니다</span>
+              <span className={styles.muted}>이 창을 닫아도 서버에서 계속 보냅니다(다시 열면 진행 상황이 보입니다)</span>
             </div>
           )}
           {!job?.running && job?.finished_at && (
@@ -240,8 +233,7 @@ const SecretMailPanel = () => {
             </>
           )}
         </div>
-        </div>
-        </div>
+        </Modal>
       )}
       {previewEmp && (
         <SecretMailPreviewModal rows={rows} initialEmp={previewEmp} sender={mail.data?.sender ?? null}

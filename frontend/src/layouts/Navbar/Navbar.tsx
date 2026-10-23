@@ -8,11 +8,11 @@ import KpiActionBar from '@/components/features/KpiActionBar';
 import PerformanceActionBar from '@/components/features/PerformanceActionBar';
 import FinanceDataModal from '@/components/features/FinanceDataModal';
 import { useProductTour } from '@/components/features/ProductTour';
-import AdminModal from './AdminModal';
-import ChartColorModal from './ChartColorModal';
 import { useTheme } from '@/hooks';
 import { useDataHealth, useDataHealthAck } from '@/hooks/useDataHealth';
 import HealthAckButton from './HealthAckButton';
+import AdminExtractModal from '@/components/features/Admin/AdminExtractModal';
+import PartHeadcountModal from '@/components/features/Admin/PartHeadcountModal';
 import ExtractRequestBadge from './ExtractRequestBadge';
 import { useChartLabelToggle } from '@/hooks/useChartLabelToggle';
 import { useKeyShortcuts } from '@/hooks/useKeyShortcuts';
@@ -38,6 +38,24 @@ const SunIcon = () => (
   </svg>
 );
 
+/** 파트별 인원 바로 입력 아이콘(사람 여럿) — 글자색(currentColor)을 따름 */
+const GroupIcon = () => (
+  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+    <circle cx="9" cy="8.5" r="3.4" />
+    <path d="M2.5 19.5c0-3.5 2.9-5.9 6.5-5.9s6.5 2.4 6.5 5.9a.9.9 0 0 1-.9.9H3.4a.9.9 0 0 1-.9-.9Z" />
+    <circle cx="17" cy="9.5" r="2.7" opacity=".7" />
+    <path d="M16.6 13.9c2.9.1 5 2 5 4.9a.8.8 0 0 1-.8.8h-3.6c.2-1.9-.3-3.7-1.6-4.9.3-.5.7-.7 1-.8Z" opacity=".7" />
+  </svg>
+);
+
+/** 관리자 페이지 바로가기 아이콘(사람) — 글자색(currentColor)을 따름 */
+const PersonIcon = () => (
+  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+    <circle cx="12" cy="8" r="4" />
+    <path d="M4 20.5c0-4.1 3.6-7 8-7s8 2.9 8 7a.9.9 0 0 1-.9.9H4.9a.9.9 0 0 1-.9-.9Z" />
+  </svg>
+);
+
 const Navbar = () => {
   const { theme, toggle: toggleTheme } = useTheme();
   const { showRawValues, toggleRawValues, showFinCompare, toggleFinCompare } = useUiStore();
@@ -57,15 +75,16 @@ const Navbar = () => {
   const kbd = (key: string) => <kbd className={styles.kbd}>{key}</kbd>;
   const [open, setOpen] = useState(false);
   const [financeModalOpen, setFinanceModalOpen] = useState(false);
+  // 파트별 인원 바로 입력 창(관리자) — 관리자 페이지까지 안 가고 상단 바에서
+  const [headcountOpen, setHeadcountOpen] = useState(false);
+  // PPT 추출 창 — 노란 "!"의 "추출로 열기"·"추출 중…" 배지가 관리자 페이지로 넘어가지 않고 이 창을 연다(2026-10-23 요청)
+  const [extractOpen, setExtractOpen] = useState(false);
+  const [extractPreset, setExtractPreset] = useState<string[] | undefined>();
   // 사용법 투어 — 첫 방문 1회 자동 실행(localStorage 기준), 이후엔 아래 설정 메뉴에서
   const tour = useProductTour();
-  // 관리자용 기능(달성률·파일 바로가기·PPT 추출) — 모달로 분리(2026-09-30). 훅은 여기 하나만 두고
-  // 모달에 넘김 — 추출 중 배지도 같은 인증·진행 상태를 봐야 해서
+  // 관리자용 기능(공개 범위·PPT 추출·파트 인원 등)은 모달(2026-09-30)을 거쳐 관리자 페이지(#/admin)로(2026-10-23).
+  // 여기 훅은 추출 중 배지·⚙ 메뉴 표시용 — 페이지가 따로 만든 훅과 같은 TanStack Query 캐시·인증 상태를 봄
   const extractJob = useExtractJob();
-  const [adminOpen, setAdminOpen] = useState(false);
-  // 업데이트 요청 "!"에서 연 경우 미리 고를 파일들
-  const [adminPreset, setAdminPreset] = useState<string[] | undefined>();
-  const [colorOpen, setColorOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const { pathname } = useLocation();
   const navigate = useNavigate();
@@ -143,7 +162,7 @@ const Navbar = () => {
         {/* 우측 — (KPI/실적현황 탭) 다운로드 + 설정 */}
         <div className={styles.right}>
           {/* 업데이트 요청 노란 "!" — 관리자만(조회 자체가 관리자일 때만), 2026-10-21 */}
-          {adminAuthed && <ExtractRequestBadge onExtract={files => { setAdminPreset(files); setAdminOpen(true); }} />}
+          {adminAuthed && <ExtractRequestBadge onExtract={files => { setExtractPreset(files); setExtractOpen(true); }} />}
           {/* 빨간 "!"(데이터 이상) — 0건이면 아예 안 그림(2026-10-21). 예전엔 자리를 비워 둬서(visibility)
               옆 버튼이 안 밀리게 했는데, 이상이 없을 때 노란 "!"가 빈칸 하나 떨어져 보였음. 나타날 땐 .health 등장 애니메이션 */}
           {healthTotal > 0 ? (
@@ -277,11 +296,34 @@ const Navbar = () => {
           {extractBadge.mounted && (
             <Button unstyled
               className={`${styles.extractRunningBadge} ${extractBadge.closing ? 'closingDrop' : ''}`}
-              onClick={() => setAdminOpen(true)}
+              onClick={() => { setExtractPreset(undefined); setExtractOpen(true); }}
               title="PPT 데이터 추출이 진행 중입니다 — 클릭해서 자세히 보기"
             >
               <span className={styles.extractSpinner} aria-hidden />
               추출 중…
+            </Button>
+          )}
+
+          {/* 관리자 페이지 바로가기 — 관리자에게만 보임(2026-10-23, 예전 ⚙ 메뉴의 "관리자 기능" 자리). 일반 회원·로그인 요구가 꺼진
+              비로그인 상태엔 안 보임(로그인 요구가 꺼져 있을 땐 #/admin 주소로 직접 들어가 로그인 폼 사용) */}
+          {adminAuthed && (
+            <Button unstyled
+              className={`${styles.settingsBtn} ${styles.adminBtn}`}
+              onClick={() => setHeadcountOpen(true)}
+              aria-label="파트별 인원 입력"
+              title="파트별 인원 입력 (인당 차트 분모)"
+            >
+              <GroupIcon />
+            </Button>
+          )}
+          {adminAuthed && (
+            <Button unstyled
+              className={`${styles.settingsBtn} ${styles.adminBtn}`}
+              onClick={() => navigate('/admin')}
+              aria-label="관리자 페이지"
+              title={extractJob.isRunning ? '관리자 페이지 (PPT 추출 중…)' : '관리자 페이지'}
+            >
+              <PersonIcon />
             </Button>
           )}
 
@@ -379,44 +421,8 @@ const Navbar = () => {
 
               <div className={styles.divider} />
 
-              {/* 차트 색상 — 역할(매출·원가·계획…)별 색을 사용자가 고름(2026-10-08). 이 브라우저에만 저장 */}
-              <div className={styles.section}>
-                <span className={styles.sectionLabel}>차트 색상</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={styles.financeBtn}
-                  onClick={() => { setOpen(false); setColorOpen(true); }}
-                >
-                  색상 바꾸기
-                </Button>
-              </div>
-
-              {/* 관리자 기능 — 관리자 계정으로 로그인했을 때만(일반 회원에겐 칸 자체가 안 보임, 2026-10-13) */}
-              {/* 로그인 화면을 꺼 둔 동안(로그인 요구 꺼짐)엔 누구나 보임 — 관리자 로그인 입구가 이 창뿐이라 */}
-              {(extractJob.isAuthed || !loginRequired) && <>
-              <div className={styles.divider} />
-
-              {/* 관리자용 기능 — 달성률 / 파일 바로가기 공개 범위 / PPT 데이터 추출(인증 포함)은 모달에서.
-                  280px 드롭다운엔 비좁았고, 확인창 버튼을 누르면 바깥 클릭으로 드롭다운이 닫히던 문제도 있어
-                  분리(2026-09-30). 권한 없는 사람은 모달 안에서 인증 버튼만 보임 */}
-              <div className={styles.section}>
-                <span className={styles.sectionLabel}>관리자 기능</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={styles.financeBtn}
-                  icon={extractJob.isRunning ? <span className={styles.adminBusySpinner} aria-hidden /> : undefined}
-                  aria-busy={extractJob.isRunning}
-                  onClick={() => { setOpen(false); setAdminOpen(true); }}
-                >
-                  {extractJob.isRunning ? '관리자 기능 (추출 중…)' : '관리자 기능'}
-                </Button>
-              </div>
-              </>}
-
               {/* 계정 — 들어가자마자 로그인(2026-10-13). 로그아웃하면 로그인 화면으로.
-                  로그인 화면을 꺼 둔 동안엔 로그인했을 때만(로그아웃은 관리자 기능 창에도 있음) */}
+                  로그인 화면을 꺼 둔 동안엔 로그인했을 때만(로그아웃은 관리자 페이지에도 있음) */}
               {(loginRequired || extractJob.authedName) && <>
               <div className={styles.divider} />
               <div className={styles.section}>
@@ -438,15 +444,11 @@ const Navbar = () => {
         </div>
       </div>
 
-      {colorOpen && <ChartColorModal onClose={() => setColorOpen(false)} />}
       {financeModalOpen && <FinanceDataModal onClose={() => setFinanceModalOpen(false)} />}
-      {/* 로그인 화면을 꺼 둔 동안엔 비관리자도 열림 — 창 안 로그인 폼으로 관리자 인증 */}
-      {adminOpen && (extractJob.isAuthed || !loginRequired) && (
-        <AdminModal
-          extractJob={extractJob}
-          initialSelected={adminPreset}
-          onClose={() => { setAdminOpen(false); setAdminPreset(undefined); }}
-        />
+      {headcountOpen && adminAuthed && <PartHeadcountModal onClose={() => setHeadcountOpen(false)} />}
+      {extractOpen && adminAuthed && (
+        <AdminExtractModal extractJob={extractJob} initialSelected={extractPreset}
+          onClose={() => { setExtractOpen(false); setExtractPreset(undefined); }} />
       )}
     </header>
   );

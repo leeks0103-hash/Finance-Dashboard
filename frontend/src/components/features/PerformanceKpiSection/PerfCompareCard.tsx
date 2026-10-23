@@ -26,7 +26,7 @@ const PerfCompareCard = ({ card }: { card: PerfCompareCardData }) => {
   return (
     <div className={`${styles.card} ${styles[card.accent]}`}>
       <div className={styles.header}>
-        <span className={styles.label}>
+        <span className={`${styles.label} ${card.labelNote ? styles.labelNoted : ''}`}>
           {card.label}
           {card.labelNote && <span className={styles.labelNote}>{card.labelNote}</span>}
         </span>

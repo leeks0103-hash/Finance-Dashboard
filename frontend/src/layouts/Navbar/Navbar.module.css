@@ -242,6 +242,8 @@
   padding: 1px 0 0;
   line-height: 1;
 }
+.adminBtn svg { width: 15px; height: 15px; }
+
 .settingsBtn:hover {
   background: var(--header-ctl-bg-hover);
   border-color: var(--header-ctl-border);

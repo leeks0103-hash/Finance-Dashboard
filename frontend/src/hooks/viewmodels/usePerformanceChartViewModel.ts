@@ -219,8 +219,9 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
       datalabels: {
         anchor: 'end',
         align:  'end',
-        formatter: (v: number, ctx: { dataIndex: number; dataset: { rates?: (number | null)[] } }) => {
-          const rate = showRate ? ctx.dataset.rates?.[ctx.dataIndex] : null;
+        formatter: (v: number, ctx: { dataIndex: number; dataset: unknown }) => {
+          // rates = BarChart에 넘긴 데이터셋의 사용자 필드(달성률 %) — Chart.js 타입에 없어 좁혀서 읽음
+          const rate = showRate ? (ctx.dataset as { rates?: (number | null)[] }).rates?.[ctx.dataIndex] : null;
           return rate != null ? `${v}억 (${rate}%)` : `${v}억`;
         },
       },

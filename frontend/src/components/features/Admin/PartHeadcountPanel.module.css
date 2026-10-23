@@ -1,0 +1,98 @@
+.panel { display: flex; flex-direction: column; gap: 16px; }
+
+.head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.titleBox { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.title { font-size: 0.95rem; font-weight: 700; color: var(--text-primary); }
+.sub { font-size: 0.76rem; color: var(--text-muted); line-height: 1.5; }
+.meta { font-size: 0.72rem; color: var(--text-sub); white-space: nowrap; padding-top: 2px; }
+.muted { font-size: 0.74rem; color: var(--text-muted); }
+.error { font-size: 0.76rem; color: var(--danger); }
+
+/* 파트 카드들 — 이름 위·입력 아래가 아니라 한 줄 안에서 [이름 ........ − 값 + 명] */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px;
+}
+.item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  padding: 10px 12px 10px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+.item:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-bg); }
+/* 아직 입력 안 한 파트는 한 톤 흐리게 */
+.itemEmpty .name { color: var(--text-muted); font-weight: 500; }
+/* 저장 전에 바뀐 파트 */
+.itemChanged { border-color: var(--accent); background: var(--accent-bg); }
+
+.name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.ctrl { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.input {
+  width: 62px;
+  height: 30px;
+  padding: 0 8px;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-header);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  -moz-appearance: textfield;
+}
+.input::-webkit-outer-spin-button,
+.input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }   /* 기본 스핀 화살표 대신 − + 버튼 */
+.input::placeholder { font-weight: 500; font-size: 0.74rem; color: var(--text-muted); }
+.input:focus { outline: none; border-color: var(--accent); }
+
+.step {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--text-sub);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.step:hover:not(:disabled) { background: var(--accent-bg); border-color: var(--accent); color: var(--accent); }
+.step:disabled { opacity: 0.35; cursor: default; }
+.unit { font-size: 0.78rem; color: var(--text-sub); margin-left: 2px; }
+
+.foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.summary { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; min-width: 0; }
+.total { font-size: 0.9rem; color: var(--text-sub); }
+.total b { font-size: 1.15rem; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.footBtns { display: flex; align-items: center; gap: 8px; margin-left: auto; }

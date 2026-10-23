@@ -60,7 +60,7 @@ export const useExtractJob = () => {
   }, [status, qc]);
 
   const authMutation = useMutation({
-    // 관리자 기능 창의 로그인 — 관리자 계정만 통과(일반 회원 계정은 실패로)
+    // 관리자 페이지(#/admin)의 로그인 — 관리자 계정만 통과(일반 회원 계정은 실패로)
     mutationFn: ({ empNo, password }: { empNo: string; password: string }) =>
       loginAdmin(empNo, password).then(r => {
         if (!r.ok || !r.token || r.role !== 'admin') return { ok: false };

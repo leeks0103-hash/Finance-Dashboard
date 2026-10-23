@@ -43,7 +43,7 @@ interface Props {
   onClose: () => void;
 }
 
-/** 관리자 기능 > 완료 프로젝트 재무 불일치 — ⤢ 확대 보기(표). 관리자 기능 창 위에 한 겹 더 뜸(2026-10-06) */
+/** 관리자 기능 > 완료 프로젝트 재무 불일치 — ⤢ 확대 보기(표). 관리자 페이지 위에 한 겹 더 뜸(2026-10-06) */
 const FinMismatchTableModal = ({ rows, isLoading, onExportCsv, onClose }: Props) => (
   <Modal
     title="완료 프로젝트 재무 불일치"

@@ -1,16 +1,20 @@
-import { useMemo } from 'react';
+import { lazy, Suspense, useMemo } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Navbar } from '@/layouts';
 import { TabLayout } from '@/layouts';
 import { FileOpenVisibleContext } from '@/components/ui';
 import { LoginScreen } from '@/components/features/LoginScreen';
+import AdminRoute from '@/components/features/Admin/AdminRoute';
 import { useVisible } from '@/hooks/useVisibility';
 import { useAuthSession } from '@/hooks/useAuthSession';
 import { useLoginRequired } from '@/hooks/useLoginRequired';
 import styles from './App.module.css';
 
+// 관리자 페이지(#/admin) — 관리자만 쓰는 큰 화면이라 처음 열 때 불러옴(2026-10-23, 예전 ⚙ > 관리자 기능 모달)
+const AdminPage = lazy(() => import('@/pages/Admin'));
+
 // 로그인한 뒤에만 그림 — 조회 훅이 전부 여기 아래라 로그인 전엔 데이터 요청이 한 건도 안 나감
-const Dashboard = () => {
+const Dashboard = ({ authChecking }: { authChecking: boolean }) => {
   const fileVisible = useVisible('fileOpen');
   const folderVisible = useVisible('folderOpen');
   const requestVisible = useVisible('extractRequest');
@@ -24,6 +28,14 @@ const Dashboard = () => {
         <Navbar />
         <Routes>
           <Route path="/" element={<Navigate to="/performance" replace />} />
+          {/* 관리자 페이지 — TabLayout(필터 바·탭 페이지 유지)을 거치지 않게 /* 보다 앞에. 관리자가 아니면 AdminRoute가 막음.
+              한 페이지에 모든 섹션(메뉴는 스크롤만)이라 /admin 하나뿐 — 그 아래 주소는 /admin으로 */}
+          <Route path="/admin" element={
+            <AdminRoute authChecking={authChecking}>
+              <Suspense fallback={null}><AdminPage /></Suspense>
+            </AdminRoute>
+          } />
+          <Route path="/admin/*" element={<Navigate to="/admin" replace />} />
           <Route path="/*" element={<TabLayout />} />
         </Routes>
       </div>
@@ -40,7 +52,7 @@ const App = () => {
   return (
     <>
       {/* 로그인 요구가 꺼져 있으면 로그인 화면 없이 바로 대시보드 */}
-      {(!loginRequired || auth.status === 'in') && <Dashboard />}
+      {(!loginRequired || auth.status === 'in') && <Dashboard authChecking={auth.status === 'checking'} />}
       {loginRequired && auth.showLogin && <LoginScreen onLogin={auth.login} onDone={auth.dismissLogin} />}
     </>
   );

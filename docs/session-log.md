@@ -5,6 +5,20 @@
 
 ---
 
+## [2026-10-23 밤] 관리자 기능 모달 → 관리자 페이지(`#/admin`)
+
+- **왜**: 기능이 늘어(공개 범위·로그인 요구·AI·실적 파일·파트 인원·PPT 추출·추출 현황·재무 불일치·시크릿 키 메일) 모달(375줄·1000px, 세로 나열)이 답답해짐 → 전용 페이지. **한 페이지 `#/admin`에 6개 섹션을 세로로 전부 놓고**(화면 설정·실적현황 파일·파트별 인원·PPT 추출(+추출 현황)·재무 불일치·시크릿 키 메일), 왼쪽 메뉴는 **URL을 바꾸지 않고 그 섹션으로 부드럽게 스크롤만**(`scrollIntoView`, sticky navbar 높이만큼 `scroll-margin-top`). 지금 보는 섹션 표시는 **IntersectionObserver**(화면 위 15~35% 띠에 걸친 섹션, 맨 아래 센티널이 보이면 마지막 섹션, 메뉴 클릭 직후 700ms는 옵저버 무시) — scroll 이벤트 계산 없음. 처음엔 `/admin/<섹션>` 중첩 라우트로 만들었다가 이 방식으로 교체(`/admin/…`은 `/admin`으로).
+- **접근**: `AdminRoute`(App.tsx, `/*`보다 앞·TabLayout 밖) — 관리자면 페이지 / 로그인 확인 중이면 빈 화면 / **로그인 요구가 꺼져 있으면 관리자 로그인 폼**(그때 유일한 관리자 로그인 입구) / 그 외 `#/performance`로 돌려보냄. 서버 관리자 API는 그대로 403(화면 가드는 노출만). 진입: ⚙ 메뉴 "관리자 기능" → `/admin`, "추출 중…" 배지 → `/admin`+route state `{section:'extract'}`, 노란 "!" → `{section:'extract', files}`(열리자마자 그 섹션으로 스크롤, 선택 추출 미리 고름 — `AdminExtractSection`에 `key={location.key}`라 같은 페이지에서 다시 눌러도 새 파일로 시작).
+- **진입·정리(추가 요청)**: ⚙ 드롭다운에서 "관리자 기능"·"차트 색상" 항목 삭제 → 오른쪽 위 ⚙ **왼쪽에 사람 아이콘 버튼**(관리자에게만 보임, 클릭 → `#/admin`). 차트 색상은 "이제 관리자 기능"이라 관리자 페이지 섹션(`AdminChartColorSection` → `ChartColorModal` 재사용, 파일을 `components/features/Admin/`로 이동)으로. ⚠️ 색은 여전히 이 브라우저(localStorage)에만 저장 — 관리자가 바꿔도 다른 사람 화면엔 적용 안 됨(서버 저장은 안 함, 필요하면 별도 과업). ⚠️ 로그인 요구를 끈 상태에선 사람 아이콘이 안 보여(비관리자) 관리자 로그인은 `#/admin` 주소로 직접 들어가야 함(AdminRoute 로그인 폼). 관리자 페이지 오른쪽 내용 폭 제한(1100px) 해제.
+- **사이드바(추가 요청)**: 메뉴가 스크롤에 같이 밀려 다녀서(sticky) `position: fixed`(navbar 아래·왼쪽 끝·화면 끝까지)로 바꾸고, 아주 연한 하늘색 바탕(surface에 `rgb(0,170,210)` 9% 혼합 — 주간/야간 공통)·오른쪽 테두리로 내용 영역과 구분. 지금 보는 메뉴는 흰 칸+그림자+왼쪽 막대. **« 숨기기 / » 펼치기 버튼**(`admin-side-collapsed` localStorage 기억, 숨기면 내용이 전체 폭). 900px 이하는 사이드바가 위 가로 메뉴(고정·숨기기 없음).
+- **모달로 여는 항목(추가 요청)**: 관리자 페이지에서 실적현황 파일·PPT 추출·재무 불일치("N건 보기")·시크릿 키 메일("명단 보기")은 페이지에 펼치지 않고 카드의 버튼으로 모달에서 연다(`AdminActionCard`+`Modal`; 재무 불일치·시크릿 키 메일은 패널 안 목록을 모달로). 노란 "!"의 "추출로 열기"·"추출 중…" 배지는 **관리자 페이지로 안 넘어가고 PPT 추출 모달(`AdminExtractModal`)을 바로 연다**(route state 방식 폐기). 파트별 인원은 UI 개편(카드마다 [이름 … − 값 + 명], 합계·입력 파트 수) + **상단 바 사람들 아이콘(관리자만)으로 인원 모달 바로 열기**(`PartHeadcountModal`, 같은 패널 재사용).
+- ⚠️ **수정 중 개발 서버 오류**: 파일을 여러 번 나눠 저장하면 Vite HMR이 중간(깨진) 상태를 읽어 `… is not defined` 같은 오류가 남 — 한꺼번에 저장하고 `touch`. 로컬에서 실제 화면은 Playwright(msedge)로 개발 서버를 열어 `/api/**`만 가짜 응답으로 가로채 확인(주의: 라우트 패턴을 `**/api/**`로 쓰면 Vite의 `/src/api/*.ts` 모듈까지 가로챔, 첫 방문 투어가 `/performance`로 보내므로 `ui-store`에 `tourSeen` 지정).
+- **코드**: 패널 8개를 `layouts/Navbar/` → `components/features/Admin/`로 `git mv`(이력 보존), `AdminModal.tsx` 삭제 → `AdminSettingsSection`·`AdminExtractSection`·`AdminLogin`·`AdminRoute` + 뷰모델 `useAdminSettingsViewModel`·`useAdminExtractViewModel`(핸들러·확인창·`EXTRACT_MODE_INFO`·`VISIBILITY_ITEMS`), `pages/Admin/AdminPage`. `AdminRoute.test.tsx` 5개·`AdminPage.test.tsx` 5개(스크롤·옵저버·state.section).
+- ⚠️ **`npx tsc --noEmit -p .`는 루트 tsconfig가 `files: []`+references라 아무것도 검사하지 않음** — 타입 검사는 `npx tsc -b`(= `npm run build`)로. 이번에 `tsc -b`로 처음 돌려 기존·내 오류 4건(확대 버튼 주석 처리 후 미사용 prop, 월별 차트 datalabels font 타입, `rates` 사용자 필드 타입 2곳)을 고침.
+- **매출이익 카드 정렬**: 제목 아래 계산식 줄(`labelNote`)이 붙는 이 카드 때문에 폭이 보통일 때 수치가 밀리던 것 → 제목 전용 클래스 `.labelNoted` + 모든 비교 카드 머리글 `min-height: 2.6em`(두 줄 분량) 고정.
+
+---
+
 ## [2026-10-23 저녁] 파트별 인당 차트 · 파트 인원 수기 입력 · 확대 버튼 주석
 
 - **인당 매출/손익/관리비 차트**(계획 vs 추정 실적 아래 새 줄, 4칸×3): 인당 매출만 계획 vs 추정 2막대, 손익·관리비는 계획값이 원본에 없어 추정 1막대. 화면 억 둘째 자리 버림. 인원 미입력 파트는 제외(제목 옆 "N개 파트 제외", 하나도 없으면 안내 문구 — 관리자에게만 입력 위치 안내). 저장 키 `performance-chart-order-v4`(옛 순서 초기화).
