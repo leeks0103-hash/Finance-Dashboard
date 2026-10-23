@@ -87,9 +87,9 @@ const swapChartRow = (order: string[], id: string) => {
 // 드래그 중 커서를 따라다니는 작은 카드(DragOverlay)에 쓸 제목 — 큰 차트 카드를 통째로 끌면 크기가 달라
 // (9·8·4·3칸) 움직임이 어색하고 화면 밖으로 밀렸음. 원래 카드는 제자리에 흐리게 남고 이 미니 카드만 움직임(2026-10-20)
 const CHART_TITLES: Record<string, string> = {
-  monthly: '월별 실적 추이',
+  monthly: '진도율(월별 실적 추이)',
   costBreakdown: '전체 평균 원가 비율',
-  profitRate: '파트별 추정 매출/원가',
+  profitRate: '원가분석(파트별 추정 매출/원가)',
   planVsActual: '파트별 계획 vs 추정 실적',
 };
 const OVERLAY_DROP_ANIMATION = { duration: 220, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' };
@@ -1053,7 +1053,7 @@ const PerformanceChartSection = () => {
       return (
         <ChartCard modalContent={modalContent} modalHeight="86vh">
           <ChartCard.Title>
-            <span className={styles.chartTitle}>월별 실적 추이<InfoButton>{INFO_MONTHLY}</InfoButton></span>
+            <span className={styles.chartTitle}>진도율(월별 실적 추이)<InfoButton>{INFO_MONTHLY}</InfoButton></span>
             {/* 원가 막대 위 %가 뭔지(2026-10-21) — 그래프 수치 켬일 때만(%가 보일 때) */}
             {vm.showLabels && <span className={styles.titleNote}><b className={styles.titleNotePct}>%</b>원가율 = 원가 ÷ 매출</span>}
           </ChartCard.Title>
@@ -1268,7 +1268,7 @@ const PerformanceChartSection = () => {
       return (
         <ChartCard modalContent={modalContent} modalHeight="88vh">
           <ChartCard.Title>
-            <span className={styles.chartTitle}>파트별 추정 매출/원가<InfoButton>{INFO_PROFIT_RATE}</InfoButton></span>
+            <span className={styles.chartTitle}>원가분석(파트별 추정 매출/원가)<InfoButton>{INFO_PROFIT_RATE}</InfoButton></span>
             {/* 막대 발치 칩의 %가 뭔지 — 칩이 보일 때(그래프 수치)만 */}
             {vm.showLabels && (
               <span className={styles.titleNote}><b className={styles.titleNotePct}>%</b>원가율 = 원가(직접+공통) ÷ 매출</span>

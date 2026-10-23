@@ -37,6 +37,8 @@ export interface PerfCompareCardData {
   estNum:  number;
   diffStr: string;   // "+55.2억" / "-3.1억"
   diffUp:  boolean;
+  /** true면 "계획" 글자(제목·막대 캡션)를 빨간색 — 계획 값이 아직 정식 값이 아니라는 표시(매출이익 카드, 2026-10-23) */
+  planWarn?: boolean;
 }
 
 /** 단일 값 카드 (경상손익·누계 실적) — 기존 형태 유지 */
@@ -195,13 +197,16 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
   const isLoading = sumLoading || projLoading;
   const total     = summary?.total;
 
-  const junActualRaw = total?.jun_actual       ?? 0;
+  // [누계 실적 카드 — 주석 처리 2026-10-23] 그 수치는 "진도율(월별 실적 추이)" 옆에 보여줄 예정 — 복구/이전 시 아래 변수·카드 같이 해제
+  // const junActualRaw = total?.jun_actual       ?? 0;
+  // const planRaw      = total?.plan_initial     ?? 0;
   const profitRaw    = total?.operating_profit ?? 0;
-  const planRaw      = total?.plan_initial     ?? 0;
+  const mgmtRaw      = total?.cost_mgmt        ?? 0;
   const rateRaw      = total?.avg_profit_rate  ?? 0;
 
-  const animJun    = useCountUp(toEokNum(junActualRaw));
+  // const animJun    = useCountUp(toEokNum(junActualRaw));
   const animProfit = useCountUp(toEokNum(profitRaw));
+  const animMgmt   = useCountUp(toEokNum(mgmtRaw));
   const animRate   = useCountUp(rateRaw);
 
   const kpiCards: PerfKpiCard[] = useMemo(() => {
@@ -224,43 +229,58 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
 
     const compareCards = [
       mk('revenue',     '당해 연도 매출 (계획/추정)', 'brand',  total.plan_initial,   total.jun_check_total),
-      mk('cost',        '당해 연도 원가 (계획/추정)', 'purple', total.plan_cost,      total.jun_cost),
-      mk('grossProfit', '당해 연도 매출이익 (계획/추정)',
+      mk('cost',        '당해 연도 직접 원가 (계획/추정)', 'purple', total.plan_cost,      total.jun_cost),
+      // 계획 칸은 추정 공통원가를 대신 차감한 값(원본에 사업계획 기준 공통원가 열이 없음) — "계획" 글자를 빨갛게 표시, 추후 수정 필요(2026-10-23 요청)
+      { ...mk('grossProfit', '당해 연도 매출이익 (계획/추정)',
          total.est_gross >= 0 ? 'profit' : 'loss',
-         // 매출이익 = 매출 − 원가. 백엔드 계산값(performance.py plan_gross/est_gross) 그대로 사용
+         // 매출이익 = 매출 − (직접원가 + 공통원가)(2026-10-23 변경). 백엔드 계산값(performance.py plan_gross/est_gross) 그대로 사용
          total.plan_gross,
-         total.est_gross),
+         total.est_gross), planWarn: true },
     ];
 
     return [
       ...compareCards,
-      // ↓ 언급 안 한 2개 카드는 그대로 유지 (경상손익 · 누계 실적)
+      // 관리비 카드(2026-10-23) — 매출이익 카드와 경상손익 카드 사이. 관리비(매출행 BE)는 연간 추정 기준 값만 있어 계획 없이 추정 단일 카드
+      {
+        kind: 'single', id: 'mgmt', label: '당해 연도 추정 관리비',
+        value: `${animMgmt.toFixed(1)}억원`,
+        // 매출 대비 비율은 백엔드 est_mgmt_rate(관리비 ÷ 연간 추정 매출). Flask 재시작 전(필드 없음)만 같은 식으로 폴백
+        sub: (() => {
+          const r = total.est_mgmt_rate
+            ?? (total.jun_check_total > 0 ? Math.round(total.cost_mgmt / total.jun_check_total * 1000) / 10 : null);
+          return r == null ? '' : `매출 대비 ${r.toFixed(1)}%`;
+        })(),
+        accent: 'purple',
+        trendUp: true,
+      },
+      // ↓ 경상손익 카드 그대로 (누계 실적 카드는 아래에서 주석 처리 — 2026-10-23)
       {
         kind: 'single', id: 'profit', label: '당해 연도 추정 경상손익',
         value: `${animProfit.toFixed(1)}억원`, sub: `손익률 ${animRate.toFixed(1)}%`,
         accent: profitRaw >= 0 ? 'profit' : 'loss',
         trendUp: profitRaw >= 0,
       },
-      {
-        kind: 'single', id: 'junActual', label: `매출/원가 추정 누계 실적 (1~${period.month})`,
-        value: `${animJun.toFixed(1)}억원`,
-        // 진행률 = 누계 매출 ÷ 연간 추정 매출 × 100(백엔드 est_progress_rate). Flask 재시작 전(필드 없음)만 같은 식으로 폴백
-        valueNote: (() => {
-          const r = total.est_progress_rate
-            ?? (total.jun_check_total > 0 ? Math.round(total.jun_actual / total.jun_check_total * 1000) / 10 : null);
-          return r == null ? undefined : `(진행률 ${r.toFixed(1)}%)`;
-        })(),
-        // 원가도 진행률 = 누계 원가 ÷ 연간 추정 원가 × 100(백엔드 est_cost_progress_rate, 재시작 전 폴백)
-        sub: (() => {
-          const r = total.est_cost_progress_rate
-            ?? (total.jun_cost > 0 ? Math.round(total.jun_cost_actual / total.jun_cost * 1000) / 10 : null);
-          return `원가 ${formatEok(total.jun_cost_actual)}원${r == null ? '' : ` (진행률 ${r.toFixed(1)}%)`}`;
-        })(),
-        accent: junActualRaw >= planRaw ? 'profit' : 'warn',
-        trendUp: junActualRaw >= 0,
-      },
+      // [누계 실적 카드 — 주석 처리 2026-10-23] 수치는 "진도율(월별 실적 추이)" 옆에 보여줄 예정(복구 시 위 변수·PerformanceKpiSection DEFAULT_KPI_ORDER도 해제)
+      // {
+      //   kind: 'single', id: 'junActual', label: `매출/원가 추정 누계 실적 (1~${period.month})`,
+      //   value: `${animJun.toFixed(1)}억원`,
+      //   // 진행률 = 누계 매출 ÷ 연간 추정 매출 × 100(백엔드 est_progress_rate). Flask 재시작 전(필드 없음)만 같은 식으로 폴백
+      //   valueNote: (() => {
+      //     const r = total.est_progress_rate
+      //       ?? (total.jun_check_total > 0 ? Math.round(total.jun_actual / total.jun_check_total * 1000) / 10 : null);
+      //     return r == null ? undefined : `(진행률 ${r.toFixed(1)}%)`;
+      //   })(),
+      //   // 원가도 진행률 = 누계 원가 ÷ 연간 추정 원가 × 100(백엔드 est_cost_progress_rate, 재시작 전 폴백)
+      //   sub: (() => {
+      //     const r = total.est_cost_progress_rate
+      //       ?? (total.jun_cost > 0 ? Math.round(total.jun_cost_actual / total.jun_cost * 1000) / 10 : null);
+      //     return `원가 ${formatEok(total.jun_cost_actual)}원${r == null ? '' : ` (진행률 ${r.toFixed(1)}%)`}`;
+      //   })(),
+      //   accent: junActualRaw >= planRaw ? 'profit' : 'warn',
+      //   trendUp: junActualRaw >= 0,
+      // },
     ];
-  }, [total, animJun, animProfit, animRate, planRaw, junActualRaw, profitRaw, period.month]);
+  }, [total, animMgmt, animProfit, animRate, profitRaw]);   // 누계 실적 카드 주석 처리로 animJun·planRaw·junActualRaw·period.month 뺌(2026-10-23)
 
   const byPart = useMemo((): PerfPartRow[] => {
     if (!summary?.by_part) return [];

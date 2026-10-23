@@ -161,6 +161,8 @@ export interface PerfTotal {
   est_progress_rate?: number | null;
   /** 원가 진행률(%) = 누계원가 ÷ 연간 추정원가 × 100. 추정 0 이하면 null */
   est_cost_progress_rate?: number | null;
+  /** 관리비 ÷ 연간 추정 매출 × 100(매출행 BE ÷ BH) — 관리비 카드 보조값, 백엔드 계산 */
+  est_mgmt_rate?: number | null;
   /** 전월대비 매출 diff (천원). 전월 데이터 없으면 null */
   mom_revenue?:     number | null;
   /** 전월대비 매출이익 diff (천원). 전월 데이터 없으면 null */

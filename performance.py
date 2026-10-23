@@ -1060,9 +1060,13 @@ def api_perf_summary():
         "avg_profit_rate":  _weighted_profit_rate(rev),
         "count":            int(len(rev)),
         # ── 파생값(프론트 계산 이전) ──────────────────────────────
-        # 매출이익 = 매출 − 원가 (계획 기준 / 연간 추정 기준 각각)
-        "plan_gross":       _plan_rev - _plan_cost,
-        "est_gross":        _est_rev - _est_cost,
+        # '당해 연도 매출이익(계획/추정)' 카드 = 매출 − (직접원가 + 공통원가) — 2026-10-23 정의 변경(예전엔 매출 − 직접원가).
+        # 공통원가는 매출행 BD(연간 추정 기준)뿐이라 계획 칸에도 그 값을 차감(사업계획 기준 공통원가 열은 원본에 없음).
+        # ⚠️ 프로젝트 상세 표의 '매출 이익'(est_gross, 매출 − 직접원가)·경상손익 검증식(BA = BH − BB)은 그대로
+        "plan_gross":       _plan_rev - (_plan_cost + float(rev["cost_overhead"].sum())),
+        "est_gross":        _est_rev - (_est_cost + float(rev["cost_overhead"].sum())),
+        # '당해 연도 추정 관리비' 카드(2026-10-23) 보조값 — 관리비(매출행 BE, 연간 추정 기준) ÷ 연간 추정 매출 × 100
+        "est_mgmt_rate":    _ratio(float(rev["cost_mgmt"].sum()), _est_rev),
         # 계획 대비 누계 진행률 = 누계매출 ÷ 계획매출 × 100
         "achieve_rate":     _ratio(_acc_rev, _plan_rev),
         # 추정 대비 누계 진행률 = 누계매출 ÷ 연간 추정매출 × 100 — 누계 실적 카드 옆 표시(2026-10-02)

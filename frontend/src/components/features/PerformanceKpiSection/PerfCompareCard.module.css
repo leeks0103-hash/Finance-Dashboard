@@ -51,6 +51,21 @@
   flex: 1 1 auto;
 }
 
+/* 카드가 좁을 때(노트북 폭) "당해 연도 직접 원가 (계획/추정)"처럼 긴 제목이 배지에 밀려 "(계획/…"로 잘림 → 두 줄까지 허용.
+   머리글 높이를 모든 카드가 똑같이 두 줄로 잡아 값·막대 위치가 카드마다 어긋나지 않게 함(2026-10-23). 카드 폭 기준(container-type) */
+@container (max-width: 300px) {
+  .header { align-items: flex-start; }
+  .label {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    line-height: 1.3;
+    min-height: 2.6em;
+    word-break: keep-all;     /* "(계획/추정)" 안에서 끊기지 않고 공백에서만 줄바꿈 */
+    text-wrap: balance;
+  }
+}
+
 .body {
   --cmp-value-fs: clamp(0.95rem, calc((100cqw - 86px) / 7.4), 2.1rem);
   display: flex;
@@ -236,3 +251,7 @@
   .card { min-height: 108px; padding: 16px 18px 12px; }
   .bars { height: 44px; margin-top: 14px; }
 }
+
+/* 계획 값이 아직 정식 값이 아닌 카드(매출이익)의 "계획" 글자 — Active Red(2026-10-23) */
+.label .planWarn,
+.barCap.planWarn { color: var(--danger, #e63312); }
