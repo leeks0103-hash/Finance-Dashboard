@@ -47,6 +47,21 @@ _client = httpx.Client(verify=False, timeout=150)
 
 _CACHE_FILE = os.path.join(_paths.DATA_DIR, "ai_analysis_cache.json")
 _cache_lock = threading.Lock()
+# 분석 하나가 90~100초라(2026-10-22 실측) 화면이 실패로 보고 다시 누르면 같은 분석이 H-Chat에 겹쳐 나갔음 →
+# 항목별 잠금: 먼저 돈 분석이 끝나면 뒤에 온 요청은 그 결과를 그대로 받음
+_analysis_locks = {"finance": threading.Lock(), "kpi": threading.Lock()}
+
+
+def _fresh(entry, data_key: str, force: bool, started: datetime) -> bool:
+    """캐시를 그대로 쓸 수 있는지 — 같은 원본이고, 강제 재분석이면 이 요청이 시작된 뒤에 만들어진 것만"""
+    if not entry or entry.get("data_key") != data_key:
+        return False
+    if not force:
+        return True
+    try:
+        return datetime.strptime(entry["generated_at"], "%Y-%m-%d %H:%M:%S") >= started.replace(microsecond=0)
+    except Exception:
+        return False
 
 
 def _load_cache() -> dict:
@@ -339,28 +354,34 @@ _FINANCE_SYSTEM_PROMPT = """당신은 현대엔지비 기술교육 조직의 경
 
 
 def get_finance_analysis(force: bool = False) -> dict:
+    started = datetime.now()
     df = P.get_perf_df()
     data_key = str(P._perf_cached_mtime)
-    cache = _load_cache()
-    entry = cache.get("finance")
-    if not force and entry and entry.get("data_key") == data_key:
+    entry = _load_cache().get("finance")
+    if not force and _fresh(entry, data_key, False, started):
         return entry
 
-    metrics = _build_finance_metrics()
-    if not metrics:
-        return {"text": "실적 데이터가 없어 분석할 수 없습니다.", "generated_at": None, "data_key": data_key}
+    with _analysis_locks["finance"]:
+        # 잠금을 기다리는 사이 다른 요청이 같은 분석을 끝냈으면 그 결과를 씀
+        entry = _load_cache().get("finance")
+        if _fresh(entry, data_key, force, started):
+            return entry
 
-    user_message = "다음은 이번 회차 실적 데이터의 사전 계산 지표입니다(JSON):\n" + \
-        json.dumps(metrics, ensure_ascii=False, indent=2)
-    text = _call_hchat(_FINANCE_SYSTEM_PROMPT, user_message, max_tokens=7000)
+        metrics = _build_finance_metrics()
+        if not metrics:
+            return {"text": "실적 데이터가 없어 분석할 수 없습니다.", "generated_at": None, "data_key": data_key}
 
-    entry = {
-        "text": text,
-        "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "data_key": data_key,
-    }
-    _store_entry("finance", entry)
-    return entry
+        user_message = "다음은 이번 회차 실적 데이터의 사전 계산 지표입니다(JSON):\n" + \
+            json.dumps(metrics, ensure_ascii=False, indent=2)
+        text = _call_hchat(_FINANCE_SYSTEM_PROMPT, user_message, max_tokens=7000)
+
+        entry = {
+            "text": text,
+            "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "data_key": data_key,
+        }
+        _store_entry("finance", entry)
+        return entry
 
 
 # ──────────────────────────────────────────────────────────────
@@ -529,28 +550,33 @@ PPT목표와 사업계획목표의 괴리가 있는 항목은 목표 설정을 �
 
 
 def get_kpi_analysis(force: bool = False) -> dict:
+    started = datetime.now()
     df = K.get_kpi_df()
     data_key = str(K._kpi_cached_mtime)
-    cache = _load_cache()
-    entry = cache.get("kpi")
-    if not force and entry and entry.get("data_key") == data_key:
+    entry = _load_cache().get("kpi")
+    if not force and _fresh(entry, data_key, False, started):
         return entry
 
-    metrics = _build_kpi_metrics()
-    if not metrics:
-        return {"text": "KPI 데이터가 없어 분석할 수 없습니다.", "generated_at": None, "data_key": data_key}
+    with _analysis_locks["kpi"]:
+        entry = _load_cache().get("kpi")
+        if _fresh(entry, data_key, force, started):
+            return entry
 
-    user_message = "다음은 이번 회차 KPI 데이터의 사전 계산 지표입니다(JSON):\n" + \
-        json.dumps(metrics, ensure_ascii=False, indent=2)
-    text = _call_hchat(_KPI_SYSTEM_PROMPT, user_message, max_tokens=4000)
+        metrics = _build_kpi_metrics()
+        if not metrics:
+            return {"text": "KPI 데이터가 없어 분석할 수 없습니다.", "generated_at": None, "data_key": data_key}
 
-    entry = {
-        "text": text,
-        "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "data_key": data_key,
-    }
-    _store_entry("kpi", entry)
-    return entry
+        user_message = "다음은 이번 회차 KPI 데이터의 사전 계산 지표입니다(JSON):\n" + \
+            json.dumps(metrics, ensure_ascii=False, indent=2)
+        text = _call_hchat(_KPI_SYSTEM_PROMPT, user_message, max_tokens=4000)
+
+        entry = {
+            "text": text,
+            "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "data_key": data_key,
+        }
+        _store_entry("kpi", entry)
+        return entry
 
 
 # ──────────────────────────────────────────────────────────────
