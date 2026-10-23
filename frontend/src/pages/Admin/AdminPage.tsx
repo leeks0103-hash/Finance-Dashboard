@@ -72,6 +72,7 @@ const AdminPage = () => {
     const io = new IntersectionObserver(entries => {
       if (Date.now() < lockUntil.current) return;
       const hit = entries.filter(e => e.isIntersecting).map(e => (e.target as HTMLElement).dataset.adminSection as AdminSectionId | undefined);
+      console.log('hit', hit);
       const bottom = entries.some(e => e.isIntersecting && e.target === bottomRef.current);
       if (bottom) setActive(SECTIONS[SECTIONS.length - 1].id);
       else if (hit[0]) setActive(hit[0]);

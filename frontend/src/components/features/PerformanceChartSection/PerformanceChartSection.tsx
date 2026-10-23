@@ -86,7 +86,7 @@ const CHART_TITLES: Record<string, string> = {
   achievement: '파트별 매출 실적 진행 현황',
   costBreakdown: '전체 평균 원가 비율',
   profitRate: '원가분석(파트별 추정 매출/원가)',
-  planVsActual: '파트별 계획 vs 추정 실적',
+  planVsActual: '파트별 계획 매출 vs 추정 매출',
   perCapitaRevenue: '파트별 인당 매출',
   perCapitaProfit: '파트별 인당 손익',
   perCapitaMgmt: '파트별 인당 관리비',
@@ -1232,7 +1232,7 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
       return (
         <ChartCard modalContent={modalContent}>
           <ChartCard.Title>
-            <span className={styles.chartTitle}>파트별 계획 vs 추정 실적<InfoButton>{INFO_PLAN_VS_ACTUAL}</InfoButton></span>
+            <span className={styles.chartTitle}>파트별 계획 매출 vs 추정 매출<InfoButton>{INFO_PLAN_VS_ACTUAL}</InfoButton></span>
             {/* 막대 수치의 %가 뭔지 — 항상 표시(2026-10-21 요청, 예전엔 그래프 수치 + 달성률 공개 범위일 때만) */}
             {(
               <span className={styles.titleNote}><b className={styles.titleNotePct}>%</b>계획 대비 달성률 = 추정 실적 ÷ 계획</span>

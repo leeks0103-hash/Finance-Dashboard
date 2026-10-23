@@ -492,6 +492,7 @@
   border: none;
   padding: 0;
   flex: none;
+  margin-left: auto;   /* 파일명이 짧아도 × 는 줄 오른쪽 끝 */
   width: 22px;
   height: 22px;
   display: inline-flex;

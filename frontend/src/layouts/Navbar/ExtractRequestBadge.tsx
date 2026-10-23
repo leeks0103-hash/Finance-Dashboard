@@ -45,7 +45,6 @@ const ExtractRequestBadge = ({ onExtract }: Props) => {
             <div className={styles.healthHeader}>
               <span className={styles.healthIcon}>↻</span>
               업데이트 요청 · {items.length}건
-              <span className={styles.healthHeaderSub}>원본을 고쳤다며 다시 추출을 요청한 파일 — 다시 추출되면 저절로 빠짐</span>
             </div>
             <ul className={styles.healthList}>
               {items.map(it => (
