@@ -275,6 +275,35 @@ def perf_col_map(sheet: str) -> "dict | None":
     return _PERF_COL_MAPS.get(sheet) or _learned_col_maps().get(sheet)
 
 
+def _plan_overhead_from_block(raw: "pd.DataFrame", rev_plan_sum: float, cost_plan_sum: float) -> "float | None":
+    """사업계획(최초사업계획 열) 기준 공통원가 — 시트 맨 아래 합계 블록(구분 열에 매출 / 원가 / 공통원가 / 인건비 … 순)의
+    '공통원가' 줄 값(천원). 프로젝트 행엔 없는 값이라 거기서만 읽는다(2026-10-23, 9월 집계 924행 W열 = 2,033,364천원 = 20.33억).
+    행 위치는 시트마다 달라(9월 추정은 918행) 줄 번호가 아니라 라벨로 찾고, 같은 블록의 매출·원가 줄이
+    프로젝트 행 합과 같을 때만 믿음 — 아니면 None(= 호출쪽이 예전처럼 추정 공통원가로 대체)."""
+    try:
+        label = raw["part"].fillna("").astype(str).str.strip().tolist()
+        plan = pd.to_numeric(raw["plan_initial"], errors="coerce").tolist()
+        hits = [i for i, v in enumerate(label) if v == "공통원가"]
+        if len(hits) != 1 or hits[0] < 2:
+            logger.warning("계획 공통원가: 합계 블록의 '공통원가' 줄을 못 찾음(%d곳) — 추정 공통원가로 대체", len(hits))
+            return None
+        i = hits[0]
+        if label[i - 2] != "매출" or label[i - 1] != "원가":
+            logger.warning("계획 공통원가: 공통원가 줄 위가 매출/원가 줄이 아님 — 추정 공통원가로 대체")
+            return None
+        rev_v, cost_v, ov = plan[i - 2], plan[i - 1], plan[i]
+        if any(pd.isna(v) for v in (rev_v, cost_v, ov)) or ov <= 0:
+            return None
+        if abs(rev_v - rev_plan_sum) > 10 or abs(cost_v - cost_plan_sum) > 10:
+            logger.warning("계획 공통원가: 합계 블록 매출/원가(%.0f/%.0f)가 프로젝트 행 합(%.0f/%.0f)과 다름 — 추정 공통원가로 대체",
+                           rev_v, cost_v, rev_plan_sum, cost_plan_sum)
+            return None
+        return float(ov)
+    except Exception:
+        logger.warning("계획 공통원가 읽기 실패 — 추정 공통원가로 대체", exc_info=True)
+        return None
+
+
 def read_perf_frame(path: str, sheet: "str | None" = None, col_map: "dict | None" = None):
     """실적 엑셀 한 시트를 읽어 정리한 DataFrame + (시트명, 연, 월). 캐시·전역값은 안 건드림 —
     load_perf_excel(대시보드 캐시)과 업로드 검증(perf_upload)이 같은 규칙으로 읽게 공용(2026-10-14).
@@ -319,6 +348,7 @@ def read_perf_frame(path: str, sheet: "str | None" = None, col_map: "dict | None
         # part_txt = part_txt.replace({"nan": ""})
         # df.loc[blank_code, "project_code"] = (
         #     df.loc[blank_code, "project_name"] + part_txt.map(lambda v: f"_{v}" if v else ""))
+    raw_df = df   # 필터 전 — 시트 아래쪽 합계 블록(공통원가 계획값)을 찾는 데 씀(_plan_overhead_from_block)
     df["use_yn"] = df["use_yn"].astype(str).str.strip()
     df = df[df["use_yn"] == "사용"]
     df = df[df["category"].isin(["매출", "원가"])]
@@ -420,6 +450,12 @@ def read_perf_frame(path: str, sheet: "str | None" = None, col_map: "dict | None
 
     df = df.where(df.notna(), other=None)
     df["filename"] = os.path.basename(path)
+    # 사업계획 기준 공통원가(시트 합계 블록 W열) — 못 찾거나 검증 실패면 None(요약이 추정 공통원가로 대체)
+    df.attrs["plan_overhead"] = _plan_overhead_from_block(
+        raw_df,
+        float(df.loc[df["category"] == "매출", "plan_initial"].sum()),
+        float(df.loc[df["category"] == "원가", "plan_initial"].sum()),
+    )
     return df, resolved_sheet, current_year, current_month_num
 
 
@@ -1040,6 +1076,13 @@ def api_perf_summary():
     _acc_rev   = float(rev["jun_actual"].sum())
     _acc_cost  = float(cost["jun_check_total"].sum())
 
+    # 계획 칸 공통원가 — 시트 합계 블록의 사업계획 기준 값(전체 보기일 때만 유효). 팀·파트로 걸렀거나 못 읽으면
+    # 예전처럼 추정 공통원가(매출행 BD)로 대체하고 plan_overhead_source="estimate"로 알림(프론트가 계획 글자를 빨갛게)
+    _full = get_perf_df()
+    _blk  = _full.attrs.get("plan_overhead") if len(df) == len(_full) else None
+    _est_overhead  = float(rev["cost_overhead"].sum())
+    _plan_overhead = _blk if _blk is not None else _est_overhead
+
     total = {
         "plan_initial":     _plan_rev,
         "plan_cost":        _plan_cost,
@@ -1061,10 +1104,13 @@ def api_perf_summary():
         "count":            int(len(rev)),
         # ── 파생값(프론트 계산 이전) ──────────────────────────────
         # '당해 연도 매출이익(계획/추정)' 카드 = 매출 − (직접원가 + 공통원가) — 2026-10-23 정의 변경(예전엔 매출 − 직접원가).
-        # 공통원가는 매출행 BD(연간 추정 기준)뿐이라 계획 칸에도 그 값을 차감(사업계획 기준 공통원가 열은 원본에 없음).
+        # 추정 칸은 매출행 BD(연간 추정) 공통원가, 계획 칸은 시트 합계 블록의 사업계획 기준 공통원가(plan_overhead, 2026-10-23).
+        # 블록을 못 읽거나 팀·파트 필터 중이면 계획 칸도 추정 공통원가로 대체(plan_overhead_source="estimate").
         # ⚠️ 프로젝트 상세 표의 '매출 이익'(est_gross, 매출 − 직접원가)·경상손익 검증식(BA = BH − BB)은 그대로
-        "plan_gross":       _plan_rev - (_plan_cost + float(rev["cost_overhead"].sum())),
-        "est_gross":        _est_rev - (_est_cost + float(rev["cost_overhead"].sum())),
+        "plan_gross":       _plan_rev - (_plan_cost + _plan_overhead),
+        "est_gross":        _est_rev - (_est_cost + _est_overhead),
+        "plan_overhead":    _plan_overhead,
+        "plan_overhead_source": "sheet" if _blk is not None else "estimate",
         # '당해 연도 추정 관리비' 카드(2026-10-23) 보조값 — 관리비(매출행 BE, 연간 추정 기준) ÷ 연간 추정 매출 × 100
         "est_mgmt_rate":    _ratio(float(rev["cost_mgmt"].sum()), _est_rev),
         # 계획 대비 누계 진행률 = 누계매출 ÷ 계획매출 × 100

@@ -13,7 +13,7 @@ import type { PerfBreakdownTarget } from '@/hooks/viewmodels/usePerfBreakdownVie
 import PerformanceChartSection from '@/components/features/PerformanceChartSection/PerformanceChartSection';
 import PerformanceKpiSection from '@/components/features/PerformanceKpiSection/PerformanceKpiSection';
 import PerformanceInsightSection from '@/components/features/PerformanceInsightSection';
-import PartAchievementBars from '@/components/features/PartAchievementBars/PartAchievementBars';
+import PartAchievementBars, { PartAchievementLegend } from '@/components/features/PartAchievementBars/PartAchievementBars';
 import { perfColumnSet } from '@/components/features/PerformanceTable/columns';
 import FinanceCrossCheckPanel from '@/components/features/PerformanceTable/FinanceCrossCheckPanel';
 // FinanceSearchResults·INFO_FINANCE_SEARCH — 재무 검색 결과 섹션 비활성(아래 주석), 복구 시 함께 해제
@@ -93,20 +93,23 @@ const PerformancePage = () => {
 
       {/* 차트 섹션 */}
       <FadeInSection delay={100} tourId="perf-charts">
-        <PerformanceChartSection />
+        {/* 파트별 매출 진행 현황은 차트 영역의 한 칸으로(2026-10-23 요청 — 진도율(월별 실적 추이)와 한 줄). 예전엔 이 아래 따로 있던 섹션 */}
+        <PerformanceChartSection
+          achievement={vm.byPart.length > 0 ? {
+            title: `파트별 매출 진행 현황 (${vm.period.month}기준)`,
+            info:  infoAchievementBars(vm.period.actualRange),
+            legend: <PartAchievementLegend />,
+            body: (
+              <PartAchievementBars
+                bare
+                rows={vm.byPart}
+                month={vm.period.month}
+                onPartClick={part => setAchieveBreakdown({ chart: 'partAchievement', series: 0, key: part })}
+              />
+            ),
+          } : undefined}
+        />
       </FadeInSection>
-
-      {/* 파트별 달성 현황 진행바 */}
-      {vm.byPart.length > 0 && (
-        <FadeInSection delay={150} tourId="perf-achievement">
-          <PartAchievementBars
-            rows={vm.byPart}
-            month={vm.period.month}
-            info={infoAchievementBars(vm.period.actualRange)}
-            onPartClick={part => setAchieveBreakdown({ chart: 'partAchievement', series: 0, key: part })}
-          />
-        </FadeInSection>
-      )}
 
       {/* ── 파트별 실적 표 — 비활성(주석 처리, 담당자 지정) ──────────────────
           사유·복구 방법은 위 byPartColumns 주석 참고.

@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback, type ReactNode } from 'react';
+import { useMemo, useState, useCallback, type ReactNode, type CSSProperties } from 'react';
 import {
   DndContext, DragOverlay, closestCenter,
   type DragEndEvent, type DragOverEvent, type DragStartEvent,
@@ -32,27 +32,29 @@ import { getDatalabelAlpha } from '@/utils/datalabelFade';
 import { SORTABLE_TRANSITION } from '@/components/ui/sortableMotion';
 import styles from './PerformanceChartSection.module.css';
 
-// 레이아웃(2026-10-20 요청): 1줄 = 월별 실적 추이(8칸) + 전체 평균 원가 비율 도넛(4칸)
-//                          2줄 = 파트별 추정 매출/원가(8칸, 예전 월별만큼 크게) + 파트별 계획 vs 추정 실적(4칸) — 2줄은 더 높게
-// 예전엔 월별이 한 줄 전체, 2줄에 나머지 셋(5+3+4). 'progress'(진행단계별)는 요청에 따라 비활성
-const DEFAULT_CHART_ORDER = ['monthly', 'costBreakdown', 'profitRate', 'planVsActual'];
-// 배치가 바뀌어 저장된 옛 순서(월별 → 파트별 → 도넛 …)로는 줄이 어긋나 키를 올림 — 한 번 기본 순서로 돌아감
-const LS_CHART_ORDER = 'performance-chart-order-v2';
+// 레이아웃(2026-10-23 요청): 1줄 = 진도율(월별 실적 추이, 8칸) + 파트별 매출 진행 현황(4칸 — 예전엔 차트 아래 따로 있던 섹션)
+//                          2줄 = 원가분석(파트별 추정 매출/원가, 8칸) + 전체 평균 원가 비율 도넛(4칸) — 2줄은 더 높게
+//                          3줄 = 파트별 계획 vs 추정 실적(12칸, 위치 미정 — 일단 남는 한 줄)
+// (2026-10-20엔 1줄 = 월별 8 + 도넛 4 / 2줄 = 파트별 매출/원가 8 + 계획 vs 추정 4). 'progress'(진행단계별)는 요청에 따라 비활성
+const DEFAULT_CHART_ORDER = ['monthly', 'achievement', 'profitRate', 'costBreakdown', 'planVsActual'];
+// 배치가 바뀌어 저장된 옛 순서로는 줄이 어긋나 키를 올림 — 한 번 기본 순서로 돌아감
+const LS_CHART_ORDER = 'performance-chart-order-v3';
 
 // 카드별 고정 폭(12칸 그리드 span) + 높이 — 슬롯이 아니라 '카드'에 붙어서 드래그로 순서를 바꿔도 크기 유지.
 // 한 줄 합 = 12. 높이는 같은 줄에서 큰 쪽에 맞춰 늘어남(grid stretch)
-type SpanKey = 'span9' | 'span8' | 'span4' | 'span3';
+type SpanKey = 'span12' | 'span9' | 'span8' | 'span4' | 'span3';
 const SPAN_BY_ID: Record<string, readonly [SpanKey, 'rowShort' | 'rowTall']> = {
-  monthly:       ['span9', 'rowShort'],   // 월별 실적 추이 — 파트별 추정 매출/원가보다 넓게(2026-10-20)
-  costBreakdown: ['span3', 'rowShort'],   // 전체 평균 원가 비율 도넛
-  profitRate:    ['span8', 'rowTall'],    // 파트별 추정 매출/원가 — 크게
-  planVsActual:  ['span4', 'rowTall'],    // 파트별 계획 vs 추정 실적 — 높게
+  monthly:       ['span8', 'rowShort'],   // 진도율(월별 실적 추이)
+  achievement:   ['span4', 'rowShort'],   // 파트별 매출 진행 현황 — 월별 옆(2026-10-23)
+  profitRate:    ['span8', 'rowTall'],    // 원가분석(파트별 추정 매출/원가) — 크게
+  costBreakdown: ['span4', 'rowTall'],    // 전체 평균 원가 비율 도넛 — 원가분석 옆(2026-10-23)
+  planVsActual:  ['span12', 'rowShort'],  // 파트별 계획 vs 추정 실적 — 남는 한 줄
 };
 const staticPreview: SortingStrategy = () => null;
 
 // 드래그로 바꾼 순서가 줄을 깨지 않는지 — 앞에서부터 한 줄(12칸)씩 채워 각 줄이 정확히 12가 되면 OK.
 // 넓은 카드 둘(8+8)이나 좁은 카드 둘(4+4)이 한 줄에 오면 칸이 비어 배치가 깨짐(2026-10-20)
-const SPAN_COLS: Record<SpanKey, number> = { span9: 9, span8: 8, span4: 4, span3: 3 };
+const SPAN_COLS: Record<SpanKey, number> = { span12: 12, span9: 9, span8: 8, span4: 4, span3: 3 };
 const isValidChartOrder = (order: string[]) => {
   let row = 0;
   for (const id of order) {
@@ -88,6 +90,7 @@ const swapChartRow = (order: string[], id: string) => {
 // (9·8·4·3칸) 움직임이 어색하고 화면 밖으로 밀렸음. 원래 카드는 제자리에 흐리게 남고 이 미니 카드만 움직임(2026-10-20)
 const CHART_TITLES: Record<string, string> = {
   monthly: '진도율(월별 실적 추이)',
+  achievement: '파트별 매출 진행 현황',
   costBreakdown: '전체 평균 원가 비율',
   profitRate: '원가분석(파트별 추정 매출/원가)',
   planVsActual: '파트별 계획 vs 추정 실적',
@@ -387,7 +390,7 @@ const SIDE_LABEL = {
 // 원가 = 원가 막대 전체(직접원가 + 공통원가, 보이는 막대 높이 그대로). 데이터셋 순서: 0 매출 / 1 직접원가 / 2 공통원가.
 // 매출·원가 중 하나라도 숨기면(범례) 안 그림, '그래프 수치' 토글을 따름
 // 월별 실적 추이도 같은 플러그인(2026-10-21 요청) — 데이터셋 0 매출 / 1 원가(층 없음). 막대가 좁으면 안 그림(minBarWidth)
-interface CostRateOpts { show: boolean; text: string; minBarWidth?: number; lift?: number }   // lift: 차트별 높이(기본 COST_RATE_LIFT)
+interface CostRateOpts { show: boolean; text: string; minBarWidth?: number; lift?: number; font?: string }   // lift: 차트별 높이(기본 COST_RATE_LIFT), font: 차트별 글꼴(기본 COST_RATE_FONT)
 const COST_RATE_FONT = "bold 12px 'Pretendard', 'Malgun Gothic', sans-serif";
 const COST_RATE_LIFT = 41;   // 원가 막대 꼭대기에서 이만큼 위 — 원가 합계 수치 상자(offset 4 + 14px 글자 + 위아래 padding 4 = 막대 위 약 29px) 윗줄 + 간격, 겹쳐 보여 27 → 41
 const costRatePlugin: Plugin<'bar'> = {
@@ -402,7 +405,7 @@ const costRatePlugin: Plugin<'bar'> = {
     const { ctx } = chart;
     ctx.save();
     ctx.globalAlpha = getDatalabelAlpha();
-    ctx.font = COST_RATE_FONT;
+    ctx.font = o.font ?? COST_RATE_FONT;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     metas[0].data.forEach((_revEl, i) => {
@@ -420,6 +423,21 @@ const costRatePlugin: Plugin<'bar'> = {
       ctx.fillText(text, x, y + 0.5);
     });
     ctx.restore();
+  },
+};
+
+// 막대 위 수치 자간 좁히기(진도율 차트, 2026-10-23 요청) — chartjs-plugin-datalabels는 자간 옵션이 없어서,
+// 수치가 그려지기 직전(beforeDatasetsDraw)에 캔버스 letterSpacing을 걸고 그리기가 끝나면(afterDraw) 되돌림.
+// datalabels·costRate 둘 다 이 값을 물려받음. 축 눈금(그 전에 그려짐)엔 영향 없음
+type SpacedCtx = CanvasRenderingContext2D & { letterSpacing?: string };
+const tightLabelsPlugin: Plugin<'bar'> = {
+  id: 'tightLabels',
+  beforeDatasetsDraw(chart) {
+    const o = (chart.options.plugins as { tightLabels?: { spacing: string } } | undefined)?.tightLabels;
+    if (o?.spacing) (chart.ctx as SpacedCtx).letterSpacing = o.spacing;
+  },
+  afterDraw(chart) {
+    (chart.ctx as SpacedCtx).letterSpacing = '0px';
   },
 };
 
@@ -735,7 +753,16 @@ function ChartStateGrid({ variant, icon, message, ids }: ChartStateGridProps) {
   );
 }
 
-const PerformanceChartSection = () => {
+/** 차트 영역 안에 한 칸으로 들어가는 외부 카드 — 파트별 매출 진행 현황(PerformancePage가 막대·모달 연결을 들고 있어 내용만 받음) */
+export interface AchievementCardProps {
+  title: ReactNode;
+  info?: ReactNode;
+  /** 제목줄 오른쪽(titleCompact의 자식)에 놓을 범례 */
+  legend?: ReactNode;
+  body:  ReactNode;
+}
+
+const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCardProps }) => {
   const { theme } = useTheme();
   const dark = theme === 'dark';
 
@@ -848,7 +875,16 @@ const PerformanceChartSection = () => {
     layout: { padding: { top: 60, right: 8, bottom: 4, left: 4 } },   // 위 30 → 60: 원가 위 원가율 줄 자리
     datasets: { bar: { categoryPercentage: 0.88, barPercentage: 0.92 } },
     // 원가 막대 위 원가율 "(54.8%)"(costRatePlugin, 2026-10-21 요청) — 막대가 글자보다 좁으면 생략
-    plugins: { ...vm.monthly.options.plugins, costRate: { show: vm.showLabels, text: dark ? 'rgb(0,170,210)' : 'rgb(0,119,147)', minBarWidth: 30 } },
+    // 막대 위 수치(억·원가율)는 이 차트만 글자 1px 작게(14→13, 12→11) + 자간 좁게(tightLabelsPlugin) — 2026-10-23 요청
+    plugins: {
+      ...vm.monthly.options.plugins,
+      datalabels: {
+        ...vm.monthly.options.plugins?.datalabels,
+        font: { size: 13, weight: 'bold', family: "'Pretendard', 'Malgun Gothic', sans-serif" },
+      },
+      costRate: { show: vm.showLabels, text: dark ? 'rgb(0,170,210)' : 'rgb(0,119,147)', minBarWidth: 30, font: "bold 11px 'Pretendard', 'Malgun Gothic', sans-serif" },
+      tightLabels: { spacing: '-0.4px' },
+    },
     scales: {
       x: { ...scaleOverride.x },
       y: { ...scaleOverride.y, ticks: { ...scaleOverride.y.ticks, callback: (v: string | number) => v + '억' } },
@@ -1008,6 +1044,17 @@ const PerformanceChartSection = () => {
   // );
 
   const chartRenderers: Record<string, () => ReactNode | null> = {
+    // 파트별 매출 진행 현황 — 데이터가 아직 없으면 카드 없음. 투어 앵커(perf-achievement)는 이 래퍼에(예전엔 페이지 섹션에 있었음)
+    achievement: () => achievement ? (
+      <div data-tour="perf-achievement" className={styles.fillCard}>
+        <ChartCard expandable={false} titleAside={achievement.legend}>
+          <ChartCard.Title>
+            <span className={styles.chartTitle}>{achievement.title}{achievement.info && <InfoButton>{achievement.info}</InfoButton>}</span>
+          </ChartCard.Title>
+          <ChartCard.Body>{achievement.body}</ChartCard.Body>
+        </ChartCard>
+      </div>
+    ) : null,
     monthly: () => {
       const monthlyDatasets = [
         {
@@ -1027,7 +1074,7 @@ const PerformanceChartSection = () => {
           labels={vm.monthly.labels}
           datasets={monthlyDatasets}
           options={monthlyOptions}
-          plugins={[costRatePlugin]}
+          plugins={[costRatePlugin, tightLabelsPlugin]}
         />
       );
       // 확대 모달 전용 — 그냥 크게 보이기만 하면 심심하다는 피드백에 따라 월별 매출/원가/손익 +
@@ -1054,6 +1101,14 @@ const PerformanceChartSection = () => {
         <ChartCard modalContent={modalContent} modalHeight="86vh">
           <ChartCard.Title>
             <span className={styles.chartTitle}>진도율(월별 실적 추이)<InfoButton>{INFO_MONTHLY}</InfoButton></span>
+            {/* 매출/원가 추정 누계 실적 + 진행률(누계 ÷ 연간 추정) — 제목 바로 옆(2026-10-23 요청, 예전 KPI 카드 자리) */}
+            {vm.monthly.cumulative && (
+              <span className={styles.cumNote}>
+                <span className={styles.cumLabel}>{vm.monthly.cumulative.label}</span>
+                <span className={styles.cumItem} style={{ '--cum-color': palette.revenue } as CSSProperties}>매출 <b>{vm.monthly.cumulative.revenue}</b>{vm.monthly.cumulative.revenueRate && <i>(진행률 {vm.monthly.cumulative.revenueRate})</i>}</span>
+                <span className={styles.cumItem} style={{ '--cum-color': palette.cost } as CSSProperties}>원가 <b>{vm.monthly.cumulative.cost}</b>{vm.monthly.cumulative.costRate && <i>(진행률 {vm.monthly.cumulative.costRate})</i>}</span>
+              </span>
+            )}
             {/* 원가 막대 위 %가 뭔지(2026-10-21) — 그래프 수치 켬일 때만(%가 보일 때) */}
             {vm.showLabels && <span className={styles.titleNote}><b className={styles.titleNotePct}>%</b>원가율 = 원가 ÷ 매출</span>}
           </ChartCard.Title>

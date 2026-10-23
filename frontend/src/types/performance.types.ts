@@ -155,6 +155,10 @@ export interface PerfTotal {
   plan_gross:       number;
   /** 연간 추정 매출이익 = 추정매출 − 추정원가 (천원) */
   est_gross:        number;
+  /** 계획 칸에 쓴 공통원가(천원) — 시트 합계 블록의 사업계획 기준 값, 못 읽거나 필터 중이면 추정 공통원가 */
+  plan_overhead?:   number;
+  /** 'sheet' = 사업계획 기준 값(정확), 'estimate' = 추정 공통원가로 대체(Flask 재시작 전엔 필드 없음) */
+  plan_overhead_source?: 'sheet' | 'estimate';
   /** 계획 대비 누계 진행률(%) = 누계매출 ÷ 계획매출 × 100. 계획 0 이하면 null */
   achieve_rate?:    number | null;
   /** 추정 대비 누계 진행률(%) = 누계매출 ÷ 연간 추정매출 × 100. 추정 0 이하면 null */

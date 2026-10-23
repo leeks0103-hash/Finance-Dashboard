@@ -11,6 +11,8 @@ interface Props {
   info?: ReactNode;
   /** 파트 행 클릭 — 드릴다운 모달 열기. 전달 값은 접두 원문자 제거된 파트명 */
   onPartClick?: (part: string) => void;
+  /** true면 제목·범례·테두리 없이 막대만 — 차트 영역의 카드(ChartCard) 안에 넣을 때(2026-10-23, 월별 실적 추이와 한 줄). 범례는 PartAchievementLegend를 제목줄에 따로 */
+  bare?: boolean;
 }
 
 // 달성률 구간별 색 — 막대와 범례가 같은 정의를 쓰도록 한 곳에서 관리.
@@ -28,26 +30,33 @@ const barColor = (rate: number) => {
   return top.color;
 };
 
-const PartAchievementBars = ({ rows, month, info, onPartClick }: Props) => {
+/** 달성률 구간 색 범례 — bare 모드에선 막대 위가 아니라 ChartCard 제목줄(titleCompact)의 자식으로 따로 넣는다(2026-10-23) */
+export const PartAchievementLegend = () => (
+  <span className={styles.legend}>
+    {RATE_BANDS.map(b => (
+      <span key={b.label} className={styles.legendItem}>
+        <i className={styles.legendDot} style={{ background: b.color }} />
+        {b.label}
+      </span>
+    ))}
+  </span>
+);
+
+const PartAchievementBars = ({ rows, month, info, onPartClick, bare = false }: Props) => {
   const sorted = sortByPart(rows, r => r.part);   // 담당자 지정 고정 순서
 
 
   return (
-    <div className={styles.sectionGroup}>
-      <div className={styles.header}>
-        <span className={styles.title}>파트별 매출 진행 현황 ({month}기준)</span>
-        {info && <InfoButton>{info}</InfoButton>}
-        <span className={styles.legend}>
-          {RATE_BANDS.map(b => (
-            <span key={b.label} className={styles.legendItem}>
-              <i className={styles.legendDot} style={{ background: b.color }} />
-              {b.label}
-            </span>
-          ))}
-        </span>
-      </div>
+    <div className={`${styles.sectionGroup} ${bare ? styles.bare : ''}`}>
+      {!bare && (
+        <div className={styles.header}>
+          <span className={styles.title}>파트별 매출 진행 현황 ({month}기준)</span>
+          {info && <InfoButton>{info}</InfoButton>}
+          <PartAchievementLegend />
+        </div>
+      )}
 
-      <div className={`${styles.wrap} ${styles.wrapOpen}`}>
+      <div className={`${styles.wrap} ${styles.wrapOpen}`}>   {/* bare면 CSS로 테두리·배경 제거 */}
         <div className={styles.body}>
           {/* 기준 구간 수치(30/60/100%) — 행마다 반복하지 않고 맨 위에 한 번만, 막대 트랙 칸에 맞춰 정렬 */}
           <div className={`${styles.row} ${styles.headerRow}`} aria-hidden>

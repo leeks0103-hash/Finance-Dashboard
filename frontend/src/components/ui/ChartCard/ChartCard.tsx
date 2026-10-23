@@ -22,12 +22,14 @@ interface RootProps {
   /** 확대 모달 높이 직접 지정(예: "90vh") — 미지정 시 기본값(min(820px, 88vh)) 그대로.
    *  차트+표처럼 기본 모달이 좁아 스크롤이 생기는 특정 카드에서만 opt-in */
   modalHeight?: string;
+  /** 제목줄(titleCompact/title)에서 titleContent 옆(오른쪽)에 놓을 자식 — 예: 범례. 제목줄이 space-between이라 양 끝으로 갈라진다. 확대 모달 헤더에는 안 나옴 */
+  titleAside?: ReactNode;
 }
 
 // 확대 모달 퇴장 길이 — ChartCard.module.css .modalOverlay.closing과 맞출 것
 const CLOSE_MS = 240;
 
-const Root = ({ children, compact = true, expandable = true, modalContent, modalHeight }: RootProps) => {
+const Root = ({ children, compact = true, expandable = true, modalContent, modalHeight, titleAside }: RootProps) => {
   const [title, body] = Children.toArray(children);
   const [expanded, setExpanded] = useState(false);
 
@@ -40,6 +42,7 @@ const Root = ({ children, compact = true, expandable = true, modalContent, modal
   const titleRow = (className: string) => (
     <div className={className}>
       <div className={styles.titleContent}>{title}</div>
+      {titleAside}
     </div>
   );
 

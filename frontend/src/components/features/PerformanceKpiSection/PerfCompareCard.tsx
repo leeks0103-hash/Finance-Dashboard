@@ -26,13 +26,7 @@ const PerfCompareCard = ({ card }: { card: PerfCompareCardData }) => {
   return (
     <div className={`${styles.card} ${styles[card.accent]}`}>
       <div className={styles.header}>
-        <span className={styles.label}>
-          {card.planWarn
-            ? card.label.split('계획').map((part, i, arr) => (
-                <span key={i}>{part}{i < arr.length - 1 && <span className={styles.planWarn}>계획</span>}</span>
-              ))
-            : card.label}
-        </span>
+        <span className={styles.label}>{card.label}</span>
         <span className={`${styles.diff} ${card.diffUp ? styles.up : styles.down}`}>
           {card.diffUp ? '▲' : '▼'} {card.diffStr}
         </span>
@@ -55,7 +49,7 @@ const PerfCompareCard = ({ card }: { card: PerfCompareCardData }) => {
             <div className={styles.barTrack}>
               <div className={`${styles.bar} ${styles.barPlan}`} style={{ height: planH }} />
             </div>
-            <span className={`${styles.barCap} ${card.planWarn ? styles.planWarn : ''}`}>계획</span>
+            <span className={styles.barCap}>계획</span>
           </div>
           <div className={styles.barCol}>
             <div className={styles.barTrack}>

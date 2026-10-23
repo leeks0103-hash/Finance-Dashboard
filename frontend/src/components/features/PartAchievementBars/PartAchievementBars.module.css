@@ -168,20 +168,26 @@
   .vals { display: none; }
 }
 
-/* 달성률 구간 색 범례 */
+/* 달성률 구간 색 범례 — 표 제목줄(.header) 안, 또는 ChartCard 제목줄(titleCompact)의 오른쪽 자식(space-between으로 제목과 양 끝 배치) */
 .legend {
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  margin-block: 0;
   font-size: 0.72rem;
   color: var(--text-muted);
   white-space: nowrap;
+  text-transform: none;   /* ChartCard 제목줄의 uppercase·글자 간격 상속 차단 */
+  letter-spacing: normal;
 }
 .legendItem {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
+  margin: 0;
 }
 .legendDot {
   width: 9px;
@@ -194,3 +200,10 @@
 @media (max-width: 700px) {
   .legend { display: none; }
 }
+
+/* 차트 카드 안에 넣는 변형(bare, 2026-10-23) — 카드가 좁아(4칸) 열 폭을 줄이고 테두리·배경은 카드가 담당 */
+.bare { height: 100%; }
+.bare .wrap, .bare .wrapOpen { border-color: transparent; background: transparent; flex: 1; }
+.bare .body { padding: 6px 2px 4px; gap: 12px; justify-content: space-around; }
+.bare .row { grid-template-columns: 104px minmax(36px, 1fr) 46px auto; gap: 8px; }
+.bare .vals { font-size: 12px; }

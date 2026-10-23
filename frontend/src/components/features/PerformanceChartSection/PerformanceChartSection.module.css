@@ -58,6 +58,7 @@
 }
 
 /* 카드별 고정 폭(한 줄 합 = 12)·높이 — 1줄: 월별 8 + 도넛 4 / 2줄: 파트별 추정 매출/원가 8 + 계획 vs 추정 실적 4(2026-10-20) */
+.span12 { grid-column: span 12; }
 .span9 { grid-column: span 9; }   /* 월별 실적 추이 — 파트별 추정 매출/원가(8)보다 넓게 */
 .span8 { grid-column: span 8; }
 .span4 { grid-column: span 4; }
@@ -84,14 +85,14 @@
 /* 좁아지면 3열 → 2열 → 1열 (3열 유지하면 카드가 너무 눌림). 좁은 화면에선 카드별 span 무효화 */
 @media (max-width: 1280px) {
   .grid { grid-template-columns: repeat(2, 1fr); }
-  .span9, .span8 { grid-column: 1 / -1; }   /* 넓은 카드는 한 줄 전체, 좁은 카드는 반씩 */
+  .span12, .span9, .span8 { grid-column: 1 / -1; }   /* 넓은 카드는 한 줄 전체, 좁은 카드는 반씩 */
   .span4, .span3 { grid-column: span 1; }
   .rowShort, .rowTall { min-height: 470px; }
 }
 
 @media (max-width: 768px) {
   .grid { grid-template-columns: 1fr; }
-  .span9, .span8, .span4, .span3 { grid-column: span 1; }
+  .span12, .span9, .span8, .span4, .span3 { grid-column: span 1; }
 }
 
 .skeleton {
@@ -299,9 +300,39 @@
   text-transform: none;
   letter-spacing: normal;
 }
+/* 진도율 제목 옆 누계 실적(2026-10-23) — 제목·오른쪽 안내 사이 가운데(좌우 margin auto), 안내는 끝에 남음 */
+.cumNote {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  margin: 0 auto;   /* 좌우 auto — 제목과 오른쪽 안내 사이 가운데 */
+  min-width: 0;
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 500;
+}
+.cumLabel { color: var(--text-muted); white-space: nowrap; }
+.cumItem {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  color: var(--cum-color, var(--text-muted));   /* 매출=차트 매출 막대색(파랑 계열), 원가=차트 원가 막대색(갈색 계열) — 인라인 --cum-color */
+  white-space: nowrap;
+}
+.cumItem b { color: inherit; font-weight: 700; }
+.cumItem i { font-style: normal; color: var(--text-sub, var(--text-muted)); }
+
+/* 누계 실적이 있으면 남는 간격을 누계 좌우로만 나눔 — 안내는 바로 오른쪽 끝에 붙음 */
+.cumNote + .titleNote { margin-left: 0; }
+
 /* 차트의 원가율처럼 테두리 없이 굵은 글자만 */
 .titleNotePct {
   flex: none;
   color: var(--text-sub, var(--text-muted));
   font-weight: 700;
 }
+
+/* 카드 바깥에 투어 앵커용 래퍼를 둘 때 — 높이를 카드가 그대로 채우게 */
+.fillCard { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.fillCard > * { flex: 1; }

@@ -30,6 +30,18 @@ export interface MonthlyTableRow {
 }
 
 /**
+ * 진도율(월별 실적 추이) 제목줄 옆 "매출/원가 추정 누계 실적 (1~N월)" 표시값(2026-10-23, 예전 KPI 카드 junActual을 이쪽으로).
+ * 진행률 = 누계 ÷ 연간 추정(백엔드 est_progress_rate·est_cost_progress_rate). 값 없음은 null
+ */
+export interface MonthlyCumulative {
+  label:       string;
+  revenue:     string;
+  revenueRate: string | null;
+  cost:        string;
+  costRate:    string | null;
+}
+
+/**
  * "파트별 계획 vs 추정 실적" 확대 모달 표 한 행(억). 차이·달성률은 원금액(천원)으로 계산 후 변환.
  * 달성률(추정 실적 ÷ 계획)은 달성률 공개 범위와 무관하게 항상 표시(2026-10-21 요청)
  */
@@ -53,6 +65,7 @@ export interface PerformanceChartViewModel {
     costs:    number[];
     isFuture: boolean[];
     rows:     MonthlyTableRow[];
+    cumulative: MonthlyCumulative | null;
     options:  ChartOptions<'bar'>;
   };
   planVsActual: {
@@ -244,6 +257,20 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
         revenues: monthly.map(m => toEokNum(m.revenue)),
         costs:    monthly.map(m => toEokNum(m.cost)),
         isFuture: monthly.map(m => parseInt(m.month, 10) > period.monthNum),
+        cumulative: (() => {
+          const t = summary.total;
+          if (!t) return null;
+          // 진행률은 백엔드 값, Flask 재시작 전(필드 없음)만 같은 식으로 폴백
+          const pct = (v: number | null | undefined, num: number, den: number) =>
+            v != null ? `${v.toFixed(1)}%` : den > 0 ? `${(Math.round(num / den * 1000) / 10).toFixed(1)}%` : null;
+          return {
+            label:       `매출/원가 추정 누계 실적 (1~${period.month})`,
+            revenue:     `${toEokNum(t.jun_actual).toFixed(1)}억`,
+            revenueRate: pct(t.est_progress_rate, t.jun_actual, t.jun_check_total),
+            cost:        `${toEokNum(t.jun_cost_actual).toFixed(1)}억`,
+            costRate:    pct(t.est_cost_progress_rate, t.jun_cost_actual, t.jun_cost),
+          };
+        })(),
         rows: (() => {
           let cumRev = 0;
           let cumCost = 0;
@@ -340,7 +367,7 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
         expenditures: progressEntries.map(p => toEokNum(summary.by_progress[p].cost)),
       },
     };
-  }, [summary, summaryAll, isLoading, teams, teamParts, period.monthNum]);
+  }, [summary, summaryAll, isLoading, teams, teamParts, period.monthNum, period.month]);
 
   // 원가 비율 카드에서 고른 파트(접두어 뗀 이름) → 원본 파트명. 드릴다운 모달이 메인 필터
   // 대신 이 카드의 선택 기준으로만 조회하도록 넘겨주기 위함(partOverride)
@@ -360,7 +387,7 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
   if (!chartData || isLoading) {
     return {
       isLoading, isError, isEmpty: false, showLabels, labelColor,
-      monthly:          { labels: [], revenues: [], costs: [], isFuture: [], rows: [], options: monthlyOptions },
+      monthly:          { labels: [], revenues: [], costs: [], isFuture: [], rows: [], cumulative: null, options: monthlyOptions },
       planVsActual:     { labels: [], planInitial: [], junCheckTotal: [], rows: [], rates: [], totalFor: () => ({ part: '합계', plan: 0, actual: 0, diff: 0, rate: null }), showRate, options: planVsActualOptions },
       profitRate:       { labels: [], rates: [], profits: [], isProfit: [], revenues: [], costs: [], overheads: [], planRevenue: [], planCost: [], options: profitRateOptions },
       costBreakdown:    { labels: [], values: [] },

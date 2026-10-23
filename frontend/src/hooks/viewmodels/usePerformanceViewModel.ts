@@ -37,8 +37,6 @@ export interface PerfCompareCardData {
   estNum:  number;
   diffStr: string;   // "+55.2억" / "-3.1억"
   diffUp:  boolean;
-  /** true면 "계획" 글자(제목·막대 캡션)를 빨간색 — 계획 값이 아직 정식 값이 아니라는 표시(매출이익 카드, 2026-10-23) */
-  planWarn?: boolean;
 }
 
 /** 단일 값 카드 (경상손익·누계 실적) — 기존 형태 유지 */
@@ -230,12 +228,13 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
     const compareCards = [
       mk('revenue',     '당해 연도 매출 (계획/추정)', 'brand',  total.plan_initial,   total.jun_check_total),
       mk('cost',        '당해 연도 직접 원가 (계획/추정)', 'purple', total.plan_cost,      total.jun_cost),
-      // 계획 칸은 추정 공통원가를 대신 차감한 값(원본에 사업계획 기준 공통원가 열이 없음) — "계획" 글자를 빨갛게 표시, 추후 수정 필요(2026-10-23 요청)
+      // 계획 칸 공통원가 = 시트 합계 블록의 사업계획 기준 값(백엔드 plan_overhead, 2026-10-23) — 빨간 "계획" 표시(planWarn)는 뺌.
+      // 블록을 못 읽거나 팀·파트 필터 중이면 백엔드가 추정 공통원가로 대체(plan_overhead_source 'estimate')
       { ...mk('grossProfit', '당해 연도 매출이익 (계획/추정)',
          total.est_gross >= 0 ? 'profit' : 'loss',
          // 매출이익 = 매출 − (직접원가 + 공통원가)(2026-10-23 변경). 백엔드 계산값(performance.py plan_gross/est_gross) 그대로 사용
          total.plan_gross,
-         total.est_gross), planWarn: true },
+         total.est_gross) },
     ];
 
     return [
