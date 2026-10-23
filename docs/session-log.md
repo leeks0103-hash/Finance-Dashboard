@@ -12,6 +12,7 @@
 - 관리자 기능 창 폭 860 → `min(1000px, 94vw)`, 공개 범위 카드(달성률·파일·폴더 바로가기·업데이트 요청) 4개가 한 줄로(`.twoCol` minmax 220 → 190). 또 `.gitignore`를 `data/**/*.json` 패턴으로(JSON 파일마다 한 줄 등록하던 것 — pull이 각자 PC 설정 파일을 덮어쓰지 않게)
 - 업데이트 요청 목록(헤더 노란 "!")의 "지우기" 글자 버튼 → 작은 ×(`.requestDismiss`, 마우스 올리면 붉은 톤, 툴팁 "추출 없이 이 요청 지우기")
 - **경영실적 AI 인사이트가 계속 "분석 실패"로 뜨던 것**: 분석 1회가 92~97초(H-Chat, max_tokens 7000)인데 화면 대기 한도 `AI_TIMEOUT_MS`가 90초라 서버는 끝까지 분석·저장하는데 화면만 실패 → 200초로(서버 H-Chat 한도 150초보다 크게). 실패로 보고 다시 누르면 같은 분석이 겹쳐 나가던 것도 항목별 잠금(`_analysis_locks`, 기다린 요청은 먼저 끝난 결과를 받음)으로 막음. 확인: 재무 분석 2회 실측, 캐시 조회 1초 이내. Flask 재시작함
+- **안 쓰는 코드 정리**: 안 쓰는 CSS 클래스 약 53개 삭제(`ProjectTable`·`PerformancePage`·`KpiPage`·`KpiRawTable`·`PartAchievementBars` 모듈 css, 333줄 — postcss로 규칙 단위 제거, 삭제만·추가 0, 3개 탭 캡처·콘솔 오류 0 확인), `scripts/debug_*.py` 4개 삭제. `docs/api-spec.md`·`docs/data-schema.md`를 현재 구조(55개 API·16열)로 다시 씀, CLAUDE.md의 `load_excel` 설명(코드 빈 행만 제거) 정정. 남긴 것: 일회성 보고서 스크립트 8개(`quality_audit*` 등 — 품질 감사 규칙과 관련)·`주석 처리` 표시 코드(의도적)
 - 확인창(`utils/dialog`): 폭 기본 512 → `min(580px, 92vw)`(긴 파일명·안내가 어중간하게 개행되던 것, 크면 어색해 상한 580), `overflow-wrap:anywhere`·`text-wrap:pretty`, `confirmDialog`가 `**굵게**` 표기 지원(전부 이스케이프 후 `<strong>`만 허용). 업데이트 요청 확인창의 "⚠ 마지막 추출 뒤로 원본이 바뀌지 않았습니다 —"는 빼고 "**PPT 파일을 저장 후 닫으셨나요?**"만 굵게 남김
 - 셀 팝업·CopyText 아이콘 툴팁(title·aria-label) 문구 정리: 파일 "해당 파일 바로가기 (원본 PPT 열기)", 폴더 "해당 파일 폴더 바로가기 (탐색기에서 파일 선택)", 요청 "업데이트 요청 (원본을 고쳤다면 관리자에게 다시 추출 요청)", 복사 "내용 복사"
 

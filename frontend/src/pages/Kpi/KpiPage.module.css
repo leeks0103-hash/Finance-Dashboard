@@ -79,33 +79,6 @@
   height: 100% !important;
 }
 
-/* ── KPI 취합 섹션 (토글 포함) ─────────── */
-.rawSection {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
-  box-shadow: var(--shadow-sm);
-}
-
-:global([data-theme="dark"]) .rawSection {
-  border-color: var(--border);
-}
-
-.rawHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 16px;
-  border-bottom: 1px solid var(--border);
-}
-
-.rawTitle {
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
 /* 세그먼트 토글 — 라이트 모드 배경이 흰색이 되면서 기존 var(--bg) 바탕이
    흰 툴바 위에서 안 보이던 문제(누네 안 띔). 샌드 바탕 + 테두리로 '컨트롤'임을 드러낸다 */
 .viewToggle {
@@ -177,7 +150,6 @@
   color: var(--text);
   margin: 0;
 }
-.tableWrap { overflow-x: auto; }
 
 /* 테이블 */
 .table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -191,7 +163,6 @@
   white-space: nowrap;
 }
 .table th:first-child { text-align: left; }
-.thLeft { text-align: left !important; }
 .table td {
   padding: 9px 14px;
   text-align: right;
@@ -200,9 +171,6 @@
 }
 .table tbody tr:last-child td { border-bottom: none; }
 .table tbody tr:hover { background: var(--bg-subtle); }
-
-.cellProfit { color: var(--profit); font-weight: 600; }
-.cellWarn   { color: var(--warn); }
 
 /* 조기입력 의심 데이터 배너 — KPI 취합 표 위, 완료 전 단계인데 실적 채워진 행 안내 */
 .anomalyBanner {
@@ -232,85 +200,6 @@
   background: var(--danger) !important;
   color: #fff !important;
 }
-
-/* ── KPI 집계 카드 리스트 ─── */
-.kpiList {
-  display: flex;
-  flex-direction: column;
-}
-
-.kpiRow {
-  display: grid;
-  grid-template-columns: 1fr auto auto auto;
-  align-items: center;
-  gap: 16px;
-  padding: 13px 20px;
-  border-bottom: 1px solid var(--border);
-  transition: background 0.12s ease;
-}
-.kpiRow:last-child { border-bottom: none; }
-.kpiRow:hover { background: var(--bg-subtle); }
-
-.kpiName {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.83rem;
-  font-weight: 500;
-  color: var(--text-primary);
-}
-
-.kpiBadge {
-  font-size: 0.68rem;
-  font-weight: 700;
-  padding: 1px 6px;
-  border-radius: var(--radius-pill);
-  white-space: nowrap;
-  background: var(--brand-bg);
-  color: var(--brand-mid);
-}
-
-.kpiMeta {
-  text-align: right;
-  white-space: nowrap;
-}
-
-.kpiLabel {
-  font-size: 0.68rem;
-  color: var(--text-muted);
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin-bottom: 2px;
-}
-
-.kpiValue {
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.kpiAchieve {
-  min-width: 80px;
-  text-align: right;
-}
-
-.achieveBar {
-  height: 4px;
-  border-radius: 2px;
-  background: var(--border);
-  margin-top: 4px;
-  overflow: hidden;
-}
-
-.achieveFill {
-  height: 100%;
-  border-radius: 2px;
-  transition: width 0.4s ease;
-}
-
-.achieveGood { background: var(--profit); }
-.achievePoor { background: var(--warn); }
 
 /* ─ 태블릿 단계(2026-09-29 통일): 1280 / 1024 / 768. 768 미만(모바일)은 대상 아님 ─ */
 @media (max-width: 1024px) {

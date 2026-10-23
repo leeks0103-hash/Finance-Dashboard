@@ -258,18 +258,5 @@
 .pgItem:hover:not(:disabled) { background: var(--surface-raised, rgba(0,0,0,0.05)); }
 .pgItem:disabled { opacity: 0.4; cursor: default; }
 
-.pgActive {
-  background: var(--brand-mid) !important;
-  color: #fff !important;
-  border-color: transparent !important;
-}
-
-.pageLabel {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  min-width: 50px;
-  text-align: right;
-}
-
 /* ── 셀 내용 팝업 (파일명 복사) ─────────── */
 .clickable { cursor: pointer; }

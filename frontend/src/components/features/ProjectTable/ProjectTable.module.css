@@ -41,21 +41,6 @@
   align-items: center;
   gap: 8px;
 }
-
-/* 컬럼 가시성 토글 */
-.colToggle { position: relative; }
-.colToggleBtn {
-  font-size: 0.78rem;
-  color: var(--text-sub);
-  background: var(--bg-subtle);
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 4px 10px;
-  cursor: pointer;
-  transition: all var(--transition);
-  font-family: inherit;
-}
-.colToggleBtn:hover { border-color: var(--brand-mid); color: var(--brand-mid); }
 .colMenu {
   position: absolute;
   top: calc(100% + 4px);
@@ -111,13 +96,6 @@
 }
 .searchClear:hover { color: var(--text-primary); }
 
-/* 테이블 영역 — 남은 공간 모두 차지하고 세로 스크롤 */
-.tableWrap {
-  flex: 1;
-  overflow: auto;
-  min-height: 0;            /* flex child overflow 동작에 필수 */
-}
-
 /* min-width로 컬럼 압축 방지 → tableWrap의 overflow:auto가 가로스크롤 처리 */
 .table { width: 100%; border-collapse: collapse; font-size: 0.83rem; min-width: 920px; }
 .table th {
@@ -156,31 +134,6 @@
 .table tbody tr:hover td:first-child {
   box-shadow: inset 3px 0 0 var(--brand-mid);
 }
-
-/* Sticky 첫 번째 컬럼 — 가로 스크롤 시 프로젝트코드 고정 */
-.stickyCol {
-  position: sticky;
-  left: 0;
-  z-index: 2;
-  background: var(--bg-subtle);  /* th 기본 배경 */
-}
-.table td.stickyCol { background: var(--surface); }
-/* stickyCol은 항상 surface — box-shadow 인디케이터가 대신 역할 */
-.loss td.stickyCol { background: var(--surface) !important; }
-.warn td.stickyCol { background: var(--surface) !important; }
-
-/* 합계(tfoot) 행 */
-.summaryRow td {
-  padding: 7px 10px;
-  font-weight: 700;
-  font-size: 0.82rem;
-  color: var(--text-primary);
-  background: var(--bg-subtle);
-  border-top: 2px solid var(--border);
-  text-align: center;
-}
-.summaryLabel { color: var(--text-sub); font-size: 0.72rem; letter-spacing: 0.05em; }
-.lossText { color: var(--loss); }
 
 /* 손실 행 — 배경 + 좌측 인디케이터 */
 .loss { box-shadow: inset 3px 0 0 var(--loss) !important; }
@@ -242,45 +195,11 @@
   align-items: center;
   justify-content: center;
 }
-.pgItem:hover:not(:disabled):not(.pgActive) {
-  border-color: var(--brand-mid);
-  color: var(--brand-mid);
-  background: var(--brand-bg);
-}
 .pgItem:disabled { opacity: 0.35; cursor: not-allowed; }
-
-.pgActive {
-  background: var(--brand-mid);
-  border-color: transparent;
-  color: #fff;
-  font-weight: 700;
-  cursor: default;
-  box-shadow: 0 2px 8px rgba(0,44,95,0.30);
-}
-
-[data-theme="dark"] .pgActive {
-  background: var(--brand-mid);
-  box-shadow: 0 2px 8px rgba(0,170,210,0.35);
-}
 
 [data-theme="dark"] .pgItem {
   background: var(--bg-subtle);
   border-color: var(--border);
-}
-
-/* 아래 선언을 위해 dummy로 유지 */
-.arrowBtn { display: none; }
-.pageBtn {
-  display: none;
-  cursor: pointer;
-  transition: all var(--transition);
-  font-family: inherit;
-}
-.pageBtn:hover { color: var(--brand-mid); background: var(--brand-bg); }
-.pageBtnActive {
-  background: var(--brand-mid);
-  color: #fff;
-  font-weight: 700;
 }
 
 @media (max-width: 768px) {
@@ -290,9 +209,6 @@
 
 /* 백그라운드 리페치 중 살짝 희미하게 */
 .fetching { opacity: 0.7; transition: opacity 0.2s; }
-
-/* 로딩 스켈레톤 */
-.loadingRows { display: flex; flex-direction: column; gap: 8px; padding: 8px 0; flex: 1; }
 .skeletonRow {
   height: 36px;
   background: var(--bg-subtle);

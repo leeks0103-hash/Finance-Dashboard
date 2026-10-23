@@ -85,7 +85,7 @@ return <KpiCard value={vm.revenue} />;
 ## Backend 규칙 (app.py)
 
 - `EXCEL_PATH`: `os.environ.get("EXCEL_PATH", 기본값)` — 환경변수 우선
-- `load_excel()` 안에서 임시 코드 행(`_is_valid_code`) 제거 → 모든 API에서 일관성
+- `load_excel()`은 프로젝트코드가 **빈 값**인 행만 제거(임시·미배정 코드 제외는 이익율 랭킹 `shared.is_ranked_valid_code`에서만) → 모든 API에서 일관성
 - profit_rate 보정 시 logger.warning으로 추출 스크립트 디버깅 정보 남기기
 - `_cache_lock` 보유 상태에서만 `load_excel()` 호출
 
