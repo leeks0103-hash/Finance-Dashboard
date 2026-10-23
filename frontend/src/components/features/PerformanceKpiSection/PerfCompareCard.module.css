@@ -38,6 +38,16 @@
   gap: 8px;
 }
 
+/* 제목 아래 줄 계산식 안내 — 회색, 대문자·글자 간격 상속 차단(2026-10-23) */
+.labelNote {
+  display: block;
+  margin-top: 2px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: none;
+  letter-spacing: normal;
+}
+
 .label {
   font-size: 0.70rem;
   font-weight: 700;

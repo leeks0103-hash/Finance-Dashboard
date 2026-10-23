@@ -30,6 +30,8 @@ export interface PerfCompareCardData {
   kind:    'compare';
   id:      string;
   label:   string;
+  /** 제목 아래 줄(회색 작은 글씨) — 계산식 안내, 예: 매출이익 카드의 "매출 - (직접원가 + 공통원가)"(2026-10-23) */
+  labelNote?: string;
   accent:  PerfAccent;
   planStr: string;   // "321.3억"
   estStr:  string;   // "376.5억"
@@ -234,7 +236,7 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
          total.est_gross >= 0 ? 'profit' : 'loss',
          // 매출이익 = 매출 − (직접원가 + 공통원가)(2026-10-23 변경). 백엔드 계산값(performance.py plan_gross/est_gross) 그대로 사용
          total.plan_gross,
-         total.est_gross) },
+         total.est_gross), labelNote: '매출 - (직접원가 + 공통원가)' },
     ];
 
     return [

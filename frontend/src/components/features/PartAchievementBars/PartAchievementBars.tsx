@@ -50,7 +50,7 @@ const PartAchievementBars = ({ rows, month, info, onPartClick, bare = false }: P
     <div className={`${styles.sectionGroup} ${bare ? styles.bare : ''}`}>
       {!bare && (
         <div className={styles.header}>
-          <span className={styles.title}>파트별 매출 진행 현황 ({month}기준)</span>
+          <span className={styles.title}>파트별 매출 실적 진행 현황 ({month}기준)</span>
           {info && <InfoButton>{info}</InfoButton>}
           <PartAchievementLegend />
         </div>

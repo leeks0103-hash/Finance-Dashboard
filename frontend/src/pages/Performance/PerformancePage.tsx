@@ -96,7 +96,7 @@ const PerformancePage = () => {
         {/* 파트별 매출 진행 현황은 차트 영역의 한 칸으로(2026-10-23 요청 — 진도율(월별 실적 추이)와 한 줄). 예전엔 이 아래 따로 있던 섹션 */}
         <PerformanceChartSection
           achievement={vm.byPart.length > 0 ? {
-            title: `파트별 매출 진행 현황 (${vm.period.month}기준)`,
+            title: `파트별 매출 실적 진행 현황 (${vm.period.month}기준)`,
             info:  infoAchievementBars(vm.period.actualRange),
             legend: <PartAchievementLegend />,
             body: (

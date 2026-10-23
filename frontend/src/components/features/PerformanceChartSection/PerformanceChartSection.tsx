@@ -1,7 +1,7 @@
 import { useMemo, useState, useCallback, type ReactNode, type CSSProperties } from 'react';
 import {
-  DndContext, DragOverlay, closestCenter,
-  type DragEndEvent, type DragOverEvent, type DragStartEvent,
+  DndContext, DragOverlay, closestCenter, pointerWithin,
+  type CollisionDetection, type DragEndEvent, type DragOverEvent, type DragStartEvent,
 } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import {
@@ -35,13 +35,13 @@ import styles from './PerformanceChartSection.module.css';
 
 // 레이아웃(2026-10-23 요청): 1줄 = 진도율(월별 실적 추이, 8칸) + 파트별 매출 진행 현황(4칸 — 예전엔 차트 아래 따로 있던 섹션)
 //                          2줄 = 원가분석(파트별 추정 매출/원가, 8칸) + 전체 평균 원가 비율 도넛(4칸) — 2줄은 더 높게
-//                          3줄 = 파트별 인당 매출 · 인당 손익 · 인당 관리비(4칸×3 — 파트 인원은 관리자가 수기 입력)
-//                          4줄 = 파트별 계획 vs 추정 실적(12칸)
+//                          3줄 = 파트별 계획 vs 추정 실적 · 인당 매출 · 인당 손익 · 인당 관리비 — 한 줄에 4개(3칸×4, 2026-10-23 요청. 파트 인원은 관리자가 수기 입력)
+//                          (한 줄에 하나씩 12칸으로 쌓아 봤다가 한 줄 4개로 확정. 예전: 3줄 = 인당 3개(4칸×3) / 4줄 = 계획 vs 추정 실적)
 // (2026-10-20엔 1줄 = 월별 8 + 도넛 4 / 2줄 = 파트별 매출/원가 8 + 계획 vs 추정 4). 'progress'(진행단계별)는 요청에 따라 비활성
 // 줄(행) 구성은 고정 — 같은 줄 안에서 좌우 순서만 바꿀 수 있고, 카드가 다른 줄로 가거나 줄 자체를 위아래로 옮길 수는 없음(2026-10-23 요청)
-const DEFAULT_CHART_ORDER = ['monthly', 'achievement', 'profitRate', 'costBreakdown', 'perCapitaRevenue', 'perCapitaProfit', 'perCapitaMgmt', 'planVsActual'];
+const DEFAULT_CHART_ORDER = ['monthly', 'achievement', 'profitRate', 'costBreakdown', 'planVsActual', 'perCapitaRevenue', 'perCapitaProfit', 'perCapitaMgmt'];
 // 배치가 바뀌어 저장된 옛 순서로는 줄이 어긋나 키를 올림 — 한 번 기본 순서로 돌아감
-const LS_CHART_ORDER = 'performance-chart-order-v5';
+const LS_CHART_ORDER = 'performance-chart-order-v7';
 
 // 카드별 고정 폭(12칸 그리드 span) + 높이 — 슬롯이 아니라 '카드'에 붙어서 드래그로 순서를 바꿔도 크기 유지.
 // 한 줄 합 = 12. 높이는 같은 줄에서 큰 쪽에 맞춰 늘어남(grid stretch)
@@ -51,10 +51,10 @@ const SPAN_BY_ID: Record<string, readonly [SpanKey, 'rowShort' | 'rowTall']> = {
   achievement:   ['span4', 'rowShort'],   // 파트별 매출 진행 현황 — 월별 옆(2026-10-23)
   profitRate:    ['span8', 'rowTall'],    // 원가분석(파트별 추정 매출/원가) — 크게
   costBreakdown: ['span4', 'rowTall'],    // 전체 평균 원가 비율 도넛 — 원가분석 옆(2026-10-23)
-  planVsActual:  ['span12', 'rowShort'],  // 파트별 계획 vs 추정 실적 — 남는 한 줄
-  perCapitaRevenue: ['span4', 'rowShort'],  // 파트별 인당 매출(계획 vs 추정) — 그 아래 한 줄에 4칸 3개(2026-10-23)
-  perCapitaProfit:  ['span4', 'rowShort'],  // 파트별 인당 손익(추정)
-  perCapitaMgmt:    ['span4', 'rowShort'],  // 파트별 인당 관리비(추정)
+  planVsActual:  ['span3', 'rowShort'],   // 파트별 계획 vs 추정 실적 — 3줄 맨 앞(3칸, 한 줄 4개)
+  perCapitaRevenue: ['span3', 'rowShort'],  // 파트별 인당 매출(계획 vs 추정) — 3칸(한 줄 4개)
+  perCapitaProfit:  ['span3', 'rowShort'],  // 파트별 인당 손익(추정)
+  perCapitaMgmt:    ['span3', 'rowShort'],  // 파트별 인당 관리비(추정)
 };
 const staticPreview: SortingStrategy = () => null;
 
@@ -83,7 +83,7 @@ const isValidChartOrder = (order: string[]) => {
 // (9·8·4·3칸) 움직임이 어색하고 화면 밖으로 밀렸음. 원래 카드는 제자리에 흐리게 남고 이 미니 카드만 움직임(2026-10-20)
 const CHART_TITLES: Record<string, string> = {
   monthly: '진도율(월별 실적 추이)',
-  achievement: '파트별 매출 진행 현황',
+  achievement: '파트별 매출 실적 진행 현황',
   costBreakdown: '전체 평균 원가 비율',
   profitRate: '원가분석(파트별 추정 매출/원가)',
   planVsActual: '파트별 계획 vs 추정 실적',
@@ -808,6 +808,17 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
 
   const dndSensors = useTableDndSensors();
 
+  // 드롭 대상 판정 — 같은 줄 카드만 후보로 두고, 커서가 올라가 있는 카드를 우선(없으면 가장 가까운 중심).
+  // 예전엔 전체 카드 중 '끄는 카드 중심'에 가장 가까운 것(closestCenter)이라, 3칸짜리 좁은 카드가 한 줄에 4개인 파트 줄에서는
+  // 옆 카드로 끌어도 자기 자신이나 윗줄 카드가 잡혀 순서가 안 바뀌었음(2026-10-23)
+  const rowCollision = useCallback<CollisionDetection>(args => {
+    const activeId = String(args.active.id);
+    const row = splitChartRows(chartOrder).find(r => r.includes(activeId)) ?? [activeId];
+    const droppableContainers = args.droppableContainers.filter(c => row.includes(String(c.id)));
+    const within = pointerWithin({ ...args, droppableContainers });
+    return within.length ? within : closestCenter({ ...args, droppableContainers });
+  }, [chartOrder]);
+
   // 드래그 중 놓을 자리 안내 — 놓을 수 있으면 파란 점선, 줄이 깨지는 자리면 빨간 점선(그 자리엔 놓아도 안 바뀜)
   const [dropTarget, setDropTarget] = useState<{ id: string; ok: boolean } | null>(null);
   const [activeChartId, setActiveChartId] = useState<string | null>(null);
@@ -908,17 +919,22 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
   const perCapitaChartOptions = useMemo(() => {
     const base = withUnstackedTheme(vm.perCapita.options, scaleOverride);
     const xScale = base.scales?.x as { ticks?: object } | undefined;
+    // 계획 vs 추정 실적 차트와 같은 방식(2026-10-23 "캔버스 가로폭 늘려줘") — 수치 자리를 고정 여백이 아니라 축 끝을
+    // 막대별로 딱 맞게 늘려서(fitBarLabelsPlugin) 오른쪽 여백은 최소. 왼쪽은 마이너스 막대(손익)가 있을 때만 수치 자리 확보
+    const hasNegative = [...vm.perCapita.profit].some(v => v < 0);
     return {
       ...base,
-      scales: { ...base.scales, x: { ...xScale, ticks: { ...xScale?.ticks, callback: (v: string | number) => v + '억' } } },
+      layout: { padding: { ...(base.layout?.padding as object), right: 8, left: hasNegative ? 48 : 4 } },
+      scales: { ...base.scales, x: { ...xScale, grace: 0, ticks: { ...xScale?.ticks, callback: (v: string | number) => v + '억' } } },
       plugins: {
         ...base.plugins,
+        fitBarLabels: { show: vm.showLabels, showRate: false },
         tooltip: { callbacks: {
           afterLabel: (ctx: { dataIndex: number }) => `인원 ${vm.perCapita.headcounts[ctx.dataIndex] ?? '-'}명`,
         } },
       },
     } as ChartOptions<'bar'>;
-  }, [vm.perCapita.options, vm.perCapita.headcounts, scaleOverride]);
+  }, [vm.perCapita.options, vm.perCapita.headcounts, vm.perCapita.profit, vm.showLabels, scaleOverride]);
 
   // 이익율/이익액 토글 비활성화로 미사용(주석 처리) — 복구 시 PROFIT_LABEL과 함께 해제
   // const profitRateOptions = useMemo(() => ({
@@ -1072,7 +1088,7 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
                     ? '파트 인원이 아직 입력되지 않았습니다 — 관리자 기능 > 파트별 인원에서 입력하세요'
                     : '파트 인원이 아직 입력되지 않았습니다'}
               </div>
-            : <BarChart horizontal labels={labels} datasets={datasets} options={perCapitaChartOptions} />}
+            : <BarChart horizontal labels={labels} datasets={datasets} options={perCapitaChartOptions} plugins={[fitBarLabelsPlugin, tightTicksPlugin]} />}
         </ChartCard.Body>
       </ChartCard>
     );
@@ -1481,7 +1497,7 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
 
   return (
     <>
-      <DndContext sensors={dndSensors} collisionDetection={closestCenter}
+      <DndContext sensors={dndSensors} collisionDetection={rowCollision}
         onDragStart={handleChartDragStart} onDragOver={handleChartDragOver} onDragEnd={handleChartDragEnd}
         onDragCancel={() => { setDropTarget(null); setActiveChartId(null); }}
         // 가로 자동 스크롤 끔 — 오른쪽으로 끌면 무한 가로 스크롤 되던 것. 미니 카드(DragOverlay)는 position:fixed라
