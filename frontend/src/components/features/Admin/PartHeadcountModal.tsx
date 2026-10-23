@@ -6,7 +6,7 @@ import PartHeadcountPanel from './PartHeadcountPanel';
  * 안은 관리자 페이지 섹션과 같은 PartHeadcountPanel
  */
 const PartHeadcountModal = ({ onClose }: { onClose: () => void }) => (
-  <Modal title="파트별 인원" sub="실적 탭 인당 매출·손익·관리비 차트의 분모 — 저장하면 모든 사용자에게 바로 반영됩니다"
+  <Modal title="파트별 인원" sub="계획 인원·현재 인원 — 실적 탭 인당 차트의 분모, 저장하면 모든 사용자에게 바로 반영됩니다"
     width="min(960px, 94vw)" onClose={onClose}>
     <PartHeadcountPanel hideTitle />
   </Modal>

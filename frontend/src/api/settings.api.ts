@@ -28,6 +28,6 @@ export const putLoginRequired = (loginRequired: boolean): Promise<boolean> =>
 export const getHeadcount = (): Promise<HeadcountSettings> =>
   client.get<HeadcountSettings>('/settings/headcount').then(r => r.data);
 
-/** 관리자만 — 파트 인원 전체를 통째로 교체. 빈 값·0은 '미입력'. 응답은 저장된 값 */
-export const putHeadcount = (parts: Record<string, number | string>): Promise<HeadcountSettings> =>
-  client.put<HeadcountSettings>('/settings/headcount', { parts }, { headers: authHeaders() }).then(r => r.data);
+/** 관리자만 — 현재·계획 파트 인원 전체를 통째로 교체. 빈 값·0은 '미입력'. 응답은 저장된 값 */
+export const putHeadcount = (body: { parts: Record<string, number | string>; plan_parts: Record<string, number | string> }): Promise<HeadcountSettings> =>
+  client.put<HeadcountSettings>('/settings/headcount', body, { headers: authHeaders() }).then(r => r.data);

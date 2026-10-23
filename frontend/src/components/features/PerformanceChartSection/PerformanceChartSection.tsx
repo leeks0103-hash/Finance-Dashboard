@@ -35,22 +35,24 @@ import styles from './PerformanceChartSection.module.css';
 
 // 레이아웃(2026-10-23 요청): 1줄 = 진도율(월별 실적 추이, 8칸) + 파트별 매출 진행 현황(4칸 — 예전엔 차트 아래 따로 있던 섹션)
 //                          2줄 = 원가분석(파트별 추정 매출/원가, 8칸) + 전체 평균 원가 비율 도넛(4칸) — 2줄은 더 높게
+//                          (인원 줄) 파트별 인원 — 원가분석 줄과 계획 vs 추정 매출 줄 사이, 한 줄 전체(12칸, 낮게. 2026-10-23 요청)
 //                          3줄 = 파트별 계획 vs 추정 실적 · 인당 매출 · 인당 손익 · 인당 관리비 — 한 줄에 4개(3칸×4, 2026-10-23 요청. 파트 인원은 관리자가 수기 입력)
 //                          (한 줄에 하나씩 12칸으로 쌓아 봤다가 한 줄 4개로 확정. 예전: 3줄 = 인당 3개(4칸×3) / 4줄 = 계획 vs 추정 실적)
 // (2026-10-20엔 1줄 = 월별 8 + 도넛 4 / 2줄 = 파트별 매출/원가 8 + 계획 vs 추정 4). 'progress'(진행단계별)는 요청에 따라 비활성
 // 줄(행) 구성은 고정 — 같은 줄 안에서 좌우 순서만 바꿀 수 있고, 카드가 다른 줄로 가거나 줄 자체를 위아래로 옮길 수는 없음(2026-10-23 요청)
-const DEFAULT_CHART_ORDER = ['monthly', 'achievement', 'profitRate', 'costBreakdown', 'planVsActual', 'perCapitaRevenue', 'perCapitaProfit', 'perCapitaMgmt'];
+const DEFAULT_CHART_ORDER = ['monthly', 'achievement', 'profitRate', 'costBreakdown', 'headcount', 'planVsActual', 'perCapitaRevenue', 'perCapitaProfit', 'perCapitaMgmt'];
 // 배치가 바뀌어 저장된 옛 순서로는 줄이 어긋나 키를 올림 — 한 번 기본 순서로 돌아감
-const LS_CHART_ORDER = 'performance-chart-order-v7';
+const LS_CHART_ORDER = 'performance-chart-order-v8';
 
 // 카드별 고정 폭(12칸 그리드 span) + 높이 — 슬롯이 아니라 '카드'에 붙어서 드래그로 순서를 바꿔도 크기 유지.
 // 한 줄 합 = 12. 높이는 같은 줄에서 큰 쪽에 맞춰 늘어남(grid stretch)
 type SpanKey = 'span12' | 'span9' | 'span8' | 'span4' | 'span3';
-const SPAN_BY_ID: Record<string, readonly [SpanKey, 'rowShort' | 'rowTall']> = {
+const SPAN_BY_ID: Record<string, readonly [SpanKey, 'rowShort' | 'rowTall' | 'rowLow']> = {
   monthly:       ['span8', 'rowShort'],   // 진도율(월별 실적 추이)
   achievement:   ['span4', 'rowShort'],   // 파트별 매출 진행 현황 — 월별 옆(2026-10-23)
   profitRate:    ['span8', 'rowTall'],    // 원가분석(파트별 추정 매출/원가) — 크게
   costBreakdown: ['span4', 'rowTall'],    // 전체 평균 원가 비율 도넛 — 원가분석 옆(2026-10-23)
+  headcount:     ['span12', 'rowLow'],    // 파트별 인원 — 원가분석 줄 아래 한 줄(낮게)
   planVsActual:  ['span3', 'rowShort'],   // 파트별 계획 vs 추정 실적 — 3줄 맨 앞(3칸, 한 줄 4개)
   perCapitaRevenue: ['span3', 'rowShort'],  // 파트별 인당 매출(계획 vs 추정) — 3칸(한 줄 4개)
   perCapitaProfit:  ['span3', 'rowShort'],  // 파트별 인당 손익(추정)
@@ -86,6 +88,7 @@ const CHART_TITLES: Record<string, string> = {
   achievement: '파트별 매출 실적 진행 현황',
   costBreakdown: '전체 평균 원가 비율',
   profitRate: '원가분석(파트별 추정 매출/원가)',
+  headcount: '파트별 인원',
   planVsActual: '파트별 계획 매출 vs 추정 매출',
   perCapitaRevenue: '파트별 인당 매출',
   perCapitaProfit: '파트별 인당 손익',
@@ -930,11 +933,12 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
         ...base.plugins,
         fitBarLabels: { show: vm.showLabels, showRate: false },
         tooltip: { callbacks: {
-          afterLabel: (ctx: { dataIndex: number }) => `인원 ${vm.perCapita.headcounts[ctx.dataIndex] ?? '-'}명`,
+          afterLabel: (ctx: { dataIndex: number }) =>
+            `인원 계획 ${vm.perCapita.planHeadcounts[ctx.dataIndex] ?? '-'}명 · 현재 ${vm.perCapita.headcounts[ctx.dataIndex] ?? '-'}명`,
         } },
       },
     } as ChartOptions<'bar'>;
-  }, [vm.perCapita.options, vm.perCapita.headcounts, vm.perCapita.profit, vm.showLabels, scaleOverride]);
+  }, [vm.perCapita.options, vm.perCapita.headcounts, vm.perCapita.planHeadcounts, vm.perCapita.profit, vm.showLabels, scaleOverride]);
 
   // 이익율/이익액 토글 비활성화로 미사용(주석 처리) — 복구 시 PROFIT_LABEL과 함께 해제
   // const profitRateOptions = useMemo(() => ({
@@ -1064,7 +1068,7 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
   // );
 
   // 인당 차트 카드 공통 틀 — 인원이 하나도 없으면 안내, 일부만 없으면 제목 옆에 빠진 파트 수
-  const perCapitaCard = (id: string, info: ReactNode, datasets: { label: string; data: number[]; backgroundColor: string | string[] }[]) => {
+  const perCapitaCard = (id: string, info: ReactNode, datasets: { label: string; data: (number | null)[]; backgroundColor: string | string[] }[]) => {
     const { labels, missingParts, partialParts } = vm.perCapita;
     const skipped = [...missingParts, ...partialParts];
     const skippedTip = [
@@ -1085,7 +1089,7 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
                 {partialParts.length > 0 && missingParts.length === 0
                   ? '팀 필터 중에는 여러 팀에 걸친 파트의 인당 값을 구할 수 없습니다'
                   : isAdmin
-                    ? '파트 인원이 아직 입력되지 않았습니다 — 관리자 기능 > 파트별 인원 메뉴에서 입력하세요'
+                    ? '파트 인원이 아직 입력되지 않았습니다 — 관리자 페이지 > 파트별 인원에서 입력하세요'
                     : '파트 인원이 아직 입력되지 않았습니다'}
               </div>
             : <BarChart horizontal labels={labels} datasets={datasets} options={perCapitaChartOptions} plugins={[fitBarLabelsPlugin, tightTicksPlugin]} />}
@@ -1095,6 +1099,53 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
   };
 
   const chartRenderers: Record<string, () => ReactNode | null> = {
+    // 파트별 인원 — 관리자가 입력한 계획 인원·현재 인원(인당 차트의 분모). 위 줄 계획 / 아래 줄 현재, 왼쪽 정렬.
+    // 팀 필터와 무관하게 파트 전체 인원. 하나도 없으면 안내
+    headcount: () => {
+      const hc = vm.headcount;
+      const rows = [
+        { key: 'plan', label: '파트별 계획 인원', values: hc.plan, total: hc.totalPlan },
+        { key: 'cur', label: '파트별 현재 인원', values: hc.current, total: hc.totalCurrent },
+      ];
+      return (
+        <ChartCard expandable={false}>
+          {/* 카드 제목 없음(2026-10-23 요청) — 줄 라벨(파트별 계획 인원 / 파트별 현재 인원)이 제목 역할 */}
+          <ChartCard.Title>{null}</ChartCard.Title>
+          <ChartCard.Body>
+            {hc.labels.length === 0
+              ? <div className={styles.perCapitaEmpty}>
+                  {isAdmin
+                    ? '파트 인원이 아직 입력되지 않았습니다 — 관리자 페이지 > 파트별 인원에서 입력하세요'
+                    : '파트 인원이 아직 입력되지 않았습니다'}
+                </div>
+              : <div className={styles.headcountRows}>
+                  {rows.map(r => (
+                    <div key={r.key} className={styles.headcountRow}>
+                      <span className={styles.headcountRowLabel}>{r.label}</span>
+                      <ul className={styles.headcountList}>
+                        {hc.labels.map((name, i) => (
+                          <li key={name} className={styles.headcountItem}>
+                            <span className={styles.headcountName}>{name}</span>
+                            <span className={styles.headcountSep}>:</span>
+                            {r.values[i] != null
+                              ? <b className={styles.headcountVal}>{r.values[i]}명</b>
+                              : <span className={styles.headcountNone}>-</span>}
+                          </li>
+                        ))}
+                        <li className={`${styles.headcountItem} ${styles.headcountTotal}`}
+                          title={hc.missingParts.length > 0 ? `인원 미입력 파트: ${hc.missingParts.join(', ')}` : undefined}>
+                          <span className={styles.headcountName}>합계</span>
+                          <span className={styles.headcountSep}>:</span>
+                          <b className={styles.headcountVal}>{r.total}명</b>
+                        </li>
+                      </ul>
+                    </div>
+                  ))}
+                </div>}
+          </ChartCard.Body>
+        </ChartCard>
+      );
+    },
     // 파트별 매출 진행 현황 — 데이터가 아직 없으면 카드 없음. 투어 앵커(perf-achievement)는 이 래퍼에(예전엔 페이지 섹션에 있었음)
     achievement: () => achievement ? (
       <div data-tour="perf-achievement" className={styles.fillCard}>

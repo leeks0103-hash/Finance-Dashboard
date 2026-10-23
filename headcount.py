@@ -2,6 +2,8 @@
 
 원본 엑셀엔 파트 인원이 없고 자주 바뀌어서, 관리자가 입력한 값을 서버 파일(data/headcount.json)에 두고
 실적 요약(performance.api_perf_summary)이 인당 값을 계산해 내려준다. 키는 원문자 접두를 뗀 파트명("AIㆍDS").
+인원은 두 가지(2026-10-23): `parts` = 현재 인원(처음부터 있던 키 — 옛 파일 호환), `plan_parts` = 계획 인원.
+인당 계획 매출은 계획 인원으로, 인당 추정 매출·손익·관리비는 현재 인원으로 나눈다.
 설정 API(/api/settings/headcount)는 app.py, 계산은 여기 — 순환 import를 피하려 Flask 의존 없이 둠.
 """
 import json
@@ -34,8 +36,9 @@ def _num(v):
 
 
 def read_headcount() -> dict:
-    """{"parts": {파트명: 인원}, "updated_at": "", "updated_by": ""} — 파일이 없거나 깨지면 전부 미입력."""
-    out = {"parts": {}, "updated_at": "", "updated_by": ""}
+    """{"parts": {파트명: 현재 인원}, "plan_parts": {파트명: 계획 인원}, "updated_at": "", "updated_by": ""}
+    — 파일이 없거나 깨지면 전부 미입력. 옛 파일(plan_parts 없음)은 계획 인원이 전부 미입력."""
+    out = {"parts": {}, "plan_parts": {}, "updated_at": "", "updated_by": ""}
     try:
         saved = json.loads(HEADCOUNT_PATH.read_text(encoding="utf-8"))
     except FileNotFoundError:
@@ -43,13 +46,16 @@ def read_headcount() -> dict:
     except Exception:
         logger.warning("파트 인원 파일을 못 읽음 — 전부 미입력으로 처리: %s", HEADCOUNT_PATH)
         return out
-    parts = saved.get("parts") if isinstance(saved, dict) else None
-    if isinstance(parts, dict):
-        for k, v in parts.items():
-            n = _num(v)
-            name = strip_part_prefix(k)
-            if n and name:
-                out["parts"][name] = n
+    if not isinstance(saved, dict):
+        return out
+    for key in ("parts", "plan_parts"):
+        raw = saved.get(key)
+        if isinstance(raw, dict):
+            for k, v in raw.items():
+                n = _num(v)
+                name = strip_part_prefix(k)
+                if n and name:
+                    out[key][name] = n
     for k in ("updated_at", "updated_by"):
         if isinstance(saved.get(k), str):
             out[k] = saved[k]
@@ -75,15 +81,15 @@ def validate_parts(raw) -> "tuple[dict, str | None]":
     return clean, None
 
 
-def write_headcount(parts: dict, updated_by: str) -> dict:
-    """전체 맵을 통째로 교체(임시파일 → os.replace). 호출 전에 validate_parts를 거칠 것."""
-    data = {"parts": parts, "updated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "updated_by": updated_by}
+def write_headcount(parts: dict, plan_parts: dict, updated_by: str) -> dict:
+    """현재·계획 인원 전체 맵을 통째로 교체(임시파일 → os.replace). 호출 전에 validate_parts를 거칠 것."""
+    data = {"parts": parts, "plan_parts": plan_parts, "updated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "updated_by": updated_by}
     with lock:
         HEADCOUNT_PATH.parent.mkdir(exist_ok=True)
         tmp = HEADCOUNT_PATH.with_suffix(".json.tmp")
         tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
         os.replace(tmp, HEADCOUNT_PATH)
-    logger.info("[파트 인원] %s 변경 — %d개 파트", updated_by or "?", len(parts))
+    logger.info("[파트 인원] %s 변경 — 현재 %d개·계획 %d개 파트", updated_by or "?", len(parts), len(plan_parts))
     return data
 
 
@@ -94,11 +100,13 @@ def per_head(value, headcount):
     return float(value) / float(headcount)
 
 
-def per_head_fields(stats: dict, headcount) -> dict:
-    """by_part 한 파트의 인당 값(천원) — 계획 매출만 계획이 있고 손익·관리비는 추정(연간) 값만 있다."""
+def per_head_fields(stats: dict, headcount, plan_headcount=None) -> dict:
+    """by_part 한 파트의 인당 값(천원) — 계획 매출만 계획이 있고 손익·관리비는 추정(연간) 값만 있다.
+    인당 계획 매출은 계획 인원, 나머지는 현재 인원(headcount)으로 나눔."""
     return {
         "headcount":         headcount,
-        "rev_per_head_plan": per_head(stats.get("plan_initial"), headcount),
+        "plan_headcount":    plan_headcount,
+        "rev_per_head_plan": per_head(stats.get("plan_initial"), plan_headcount),
         "rev_per_head_est":  per_head(stats.get("jun_check_total"), headcount),
         "profit_per_head":   per_head(stats.get("operating_profit"), headcount),
         "mgmt_per_head":     per_head(stats.get("cost_mgmt"), headcount),

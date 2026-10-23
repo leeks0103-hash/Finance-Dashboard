@@ -811,7 +811,14 @@ def api_put_headcount():
     parts, err = headcount.validate_parts(body.get("parts"))
     if err:
         return jsonify({"ok": False, "error": err}), 400
-    return jsonify(headcount.write_headcount(parts, admin["emp_no"]))
+    # 계획 인원은 안 보내면(옛 화면) 저장돼 있던 값 유지
+    if "plan_parts" in body:
+        plan_parts, err = headcount.validate_parts(body.get("plan_parts"))
+        if err:
+            return jsonify({"ok": False, "error": err}), 400
+    else:
+        plan_parts = headcount.read_headcount()["plan_parts"]
+    return jsonify(headcount.write_headcount(parts, plan_parts, admin["emp_no"]))
 
 
 @app.route("/api/extract/open-file", methods=["POST"])

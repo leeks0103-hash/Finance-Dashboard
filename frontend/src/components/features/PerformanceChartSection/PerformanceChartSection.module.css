@@ -64,6 +64,7 @@
 .span4 { grid-column: span 4; }
 .span3 { grid-column: span 3; }
 .rowShort { min-height: 430px; }
+.rowLow   { min-height: 0; }   /* 파트별 인원(한 줄 전체, 내용만큼) */
 .rowTall  { min-height: 540px; }   /* 2줄(파트별 추정 매출/원가·계획 vs 추정 실적) — 500 → 540(2026-10-20) */
 
 /* 드래그 중 놓을 자리 안내(2026-10-20) — 놓을 수 있으면 파란 점선, 줄이 깨지는 자리면 빨간 점선 + 연한 빨강
@@ -350,3 +351,48 @@
   color: var(--text-muted);
   word-break: keep-all;
 }
+
+/* 파트별 인원 — 'PM : 7명' 식 간단 목록(2026-10-23). 칸 격자 대신 왼쪽부터 촘촘한 알약으로 */
+.headcountList {
+  list-style: none;
+  margin: 0;
+  padding: 6px 0 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.headcountItem {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 5px;
+  width: 158px;            /* 폭 고정 — 계획·현재 두 줄의 같은 파트가 값이 있든 없든 위아래 같은 자리에 오게 */
+  box-sizing: border-box;
+  padding: 4px 8px;
+  font-size: 0.76rem;
+  background: var(--bg-header);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.headcountName { color: var(--text-sub); }
+.headcountSep { color: var(--text-muted); }
+.headcountVal { color: var(--text-primary); font-variant-numeric: tabular-nums; }
+/* 합계 — 맨 끝, 브랜드색 */
+.headcountTotal { background: var(--accent-bg); border-color: var(--accent); }
+.headcountTotal .headcountName, .headcountTotal .headcountVal { color: var(--accent); font-weight: 700; }
+
+/* 파트별 인원 — 위 줄 계획 인원 / 아래 줄 현재 인원, 왼쪽 정렬(2026-10-23) */
+.headcountRows { display: flex; flex-direction: column; gap: 8px; }
+.headcountRow { display: flex; align-items: flex-start; gap: 14px; }
+.headcountRow + .headcountRow { padding-top: 8px; border-top: 1px dashed var(--border); }
+.headcountRowLabel {
+  flex: none;
+  width: 104px;
+  padding-top: 5px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.headcountRow .headcountList { flex: 1; min-width: 0; padding: 0; justify-content: flex-start; }
+.headcountNone { color: var(--text-muted); }

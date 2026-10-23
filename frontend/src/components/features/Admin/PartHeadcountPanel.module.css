@@ -96,3 +96,23 @@
 .total { font-size: 0.9rem; color: var(--text-sub); }
 .total b { font-size: 1.15rem; color: var(--text-primary); font-variant-numeric: tabular-nums; }
 .footBtns { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+
+/* 계획 인원 · 현재 인원 — 박스 두 개(2026-10-23). 박스마다 파트 목록 + 합계 */
+.boxes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
+@media (max-width: 760px) { .boxes { grid-template-columns: 1fr; } }
+.box {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-header);
+}
+.boxHead { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.boxTitleBox { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.boxTitle { font-size: 0.95rem; font-weight: 700; color: var(--text-primary); }
+.boxDesc { font-size: 0.72rem; color: var(--text-muted); }
+.boxTotal { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; flex-shrink: 0; }
+.list { display: flex; flex-direction: column; gap: 8px; }
