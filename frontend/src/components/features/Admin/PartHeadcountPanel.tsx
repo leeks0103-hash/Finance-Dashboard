@@ -3,7 +3,7 @@ import { Button } from '@/components/ui';
 import { useHeadcount } from '@/hooks/useHeadcount';
 import { usePerformanceOptions } from '@/hooks/usePerformanceData';
 import { sortParts } from '@/utils/partOrder';
-import { stripPartPrefix } from '@/utils';
+import { stripPartPrefix, roundHeadcount, formatHeadcount } from '@/utils';
 import styles from './PartHeadcountPanel.module.css';
 
 /** axios 오류 → 서버가 준 문구 */
@@ -12,14 +12,21 @@ const errText = (e: unknown): string => {
   return r || (e instanceof Error ? e.message : '알 수 없는 오류');
 };
 
-const MAX_HEADCOUNT = 999;
+// 파트 한 개당 상한(명) — 서버 headcount.HEADCOUNT_MAX와 같게(2026-10-27 999 → 100)
+const MAX_HEADCOUNT = 100;
+// ± 버튼 한 번에 움직이는 양(명) — 소수 첫째 자리 단위(2026-10-27, 예전 1명씩)
+const STEP = 0.1;
 
 // 계획 인원 입력 박스 주석 처리(2026-10-27) — 복구 시 Kind에 'plan' 추가, 아래 '계획 인원' 주석들을 해제
 // type Kind = 'plan' | 'cur';
 type Kind = 'cur';
 type Draft = Record<Kind, Record<string, string>>;
 
-const toNum = (v: string | undefined) => Math.trunc(Number(v)) || 0;
+// 인원은 소수 첫째 자리까지(2026-10-27 — 파트타임·겸임 0.5명 등). 둘째 자리 이하는 버림, 숫자가 아니면 0
+const toNum = (v: string | undefined) => {
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0 ? Math.trunc(n * 10 + 1e-9) / 10 : 0;
+};
 
 interface StepperProps {
   label: string;
@@ -28,17 +35,17 @@ interface StepperProps {
   onChange: (v: string) => void;
 }
 
-/** [계획] − 값 + 명 한 묶음 */
+/** [현재] − 값 + 명 한 묶음 — ± 버튼은 0.1씩, 입력칸에서도 소수 첫째 자리까지 직접 입력(상한 초과로 적으면 상한으로 맞춤) */
 const Stepper = ({ label, part, value, onChange }: StepperProps) => {
   const n = toNum(value);
   // − / + 버튼 — 0 아래로는 내려가지 않고, 0이 되면 '미입력'(빈 칸)으로
   const step = (delta: number) => {
-    const next = Math.min(MAX_HEADCOUNT, Math.max(0, n + delta));
+    const next = Math.min(MAX_HEADCOUNT, Math.max(0, roundHeadcount(n + delta)));
     onChange(next > 0 ? String(next) : '');
   };
   return (
     <div className={styles.ctrl}>
-      <Button unstyled className={styles.step} onClick={() => step(-1)} disabled={n <= 0}
+      <Button unstyled className={styles.step} onClick={() => step(-STEP)} disabled={n <= 0}
         aria-label={`${part} ${label} 인원 줄이기`}>−</Button>
       <input
         className={styles.input}
@@ -46,13 +53,13 @@ const Stepper = ({ label, part, value, onChange }: StepperProps) => {
         inputMode="numeric"
         min={0}
         max={MAX_HEADCOUNT}
-        step={1}
+        step={STEP}
         placeholder="미입력"
         value={value}
-        onChange={e => onChange(e.target.value)}
+        onChange={e => onChange(toNum(e.target.value) > MAX_HEADCOUNT ? String(MAX_HEADCOUNT) : e.target.value)}
         aria-label={`${part} ${label} 인원`}
       />
-      <Button unstyled className={styles.step} onClick={() => step(1)} disabled={n >= MAX_HEADCOUNT}
+      <Button unstyled className={styles.step} onClick={() => step(STEP)} disabled={n >= MAX_HEADCOUNT}
         aria-label={`${part} ${label} 인원 늘리기`}>+</Button>
       <span className={styles.unit}>명</span>
     </div>
@@ -88,7 +95,7 @@ const PartHeadcountPanel = ({ hideTitle = false }: { hideTitle?: boolean }) => {
   const isChanged = (k: Kind, p: string) => val(k, p) !== fromServer[k][p];
   // const dirty = partNames.some(p => isChanged('plan', p) || isChanged('cur', p));   // 계획 인원 주석 처리(2026-10-27)
   const dirty = partNames.some(p => isChanged('cur', p));
-  const sum = (k: Kind) => partNames.reduce((t, p) => t + toNum(val(k, p)), 0);
+  const sum = (k: Kind) => roundHeadcount(partNames.reduce((t, p) => t + toNum(val(k, p)), 0));
   const filled = (k: Kind) => partNames.filter(p => toNum(val(k, p)) > 0).length;
 
   const setValue = (k: Kind, p: string, v: string) => setDraft(d => ({ ...d, [k]: { ...d[k], [p]: v } }));
@@ -122,7 +129,7 @@ const PartHeadcountPanel = ({ hideTitle = false }: { hideTitle?: boolean }) => {
                   <span className={styles.boxDesc}>{box.desc}</span>
                 </div>
                 <div className={styles.boxTotal}>
-                  <span className={styles.total}>합계 <b>{sum(box.k)}</b>명</span>
+                  <span className={styles.total}>합계 <b>{formatHeadcount(sum(box.k))}</b>명</span>
                   <span className={styles.muted}>{filled(box.k)}/{partNames.length}개 입력</span>
                 </div>
               </div>

@@ -119,6 +119,13 @@ export const toEokNum = (v: number | null | undefined) =>
 export const toEokNum2 = (v: number | null | undefined) =>
   Number.isFinite(Number(v)) ? Math.trunc(Number(v) / 1_000) / 100 : 0;
 
+/** 파트 인원(명) 소수 첫째 자리 정리 — 4.5 + 0.1 같은 부동소수 오차를 없앨 때(합계·± 버튼) */
+export const roundHeadcount = (n: number) => Math.round(n * 10) / 10;
+
+/** 파트 인원 표시 — 정수는 "5", 소수는 "4.5"(소수 첫째 자리까지, 2026-10-27) */
+export const formatHeadcount = (n: number | null | undefined) =>
+  n != null && Number.isFinite(n) ? String(roundHeadcount(n)) : '-';
+
 /** OS "움직임 줄이기" 설정 — 켜져 있으면 애니메이션 없이 즉시 전환 */
 export const prefersReducedMotion = () =>
   typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;

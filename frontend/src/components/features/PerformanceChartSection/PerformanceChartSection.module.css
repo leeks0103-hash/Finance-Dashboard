@@ -396,5 +396,7 @@
   color: var(--text-sub);
   white-space: nowrap;
 }
+.headcountRow { align-items: center; }   /* 한 줄이라 라벨을 알약 높이에 맞춰 세로 가운데로 */
+.headcountRowLabel { padding-top: 0; }
 .headcountRow .headcountList { flex: 1; min-width: 0; padding: 0; justify-content: flex-start; }
 .headcountNone { color: var(--text-muted); }

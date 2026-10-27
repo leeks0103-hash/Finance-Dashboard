@@ -15,7 +15,7 @@ export const legendRadioClick = (_e: ChartEvent, legendItem: LegendItem, legend:
 // datalabels(막대 밖 수치)가 캔버스 가장자리에 잘리지 않도록 최소 확보할 여백.
 // ChartCard(.root)가 overflow:hidden이라 캔버스 밖으로 넘친 라벨은 그대로 잘리므로,
 // 차트별 extra.layout.padding 이 이 값보다 작으면 side별로 큰 쪽을 채택(축소는 안 함).
-const MIN_CHART_PADDING = { top: 30, right: 58, bottom: 4, left: 4 };
+const MIN_CHART_PADDING = { top: 3, right: 58, bottom: 4, left: 4 };
 
 const resolvePadding = (extra?: Partial<ChartOptions<'bar'>>) => {
   const given = extra?.layout && typeof extra.layout === 'object' ? extra.layout.padding : undefined;

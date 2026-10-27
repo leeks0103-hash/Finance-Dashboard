@@ -24,12 +24,14 @@ interface RootProps {
   modalHeight?: string;
   /** 제목줄(titleCompact/title)에서 titleContent 옆(오른쪽)에 놓을 자식 — 예: 범례. 제목줄이 space-between이라 양 끝으로 갈라진다. 확대 모달 헤더에는 안 나옴 */
   titleAside?: ReactNode;
+  /** true — 제목줄을 아예 안 그리고 안쪽 여백을 줄여 낮은 카드로(제목 없는 한 줄짜리 카드, 2026-10-27). compact일 때만 적용 */
+  dense?: boolean;
 }
 
 // 확대 모달 퇴장 길이 — ChartCard.module.css .modalOverlay.closing과 맞출 것
 const CLOSE_MS = 240;
 
-const Root = ({ children, compact = true, expandable = true, modalContent, modalHeight, titleAside }: RootProps) => {
+const Root = ({ children, compact = true, expandable = true, modalContent, modalHeight, titleAside, dense = false }: RootProps) => {
   const [title, body] = Children.toArray(children);
   const [expanded, setExpanded] = useState(false);
 
@@ -95,9 +97,9 @@ const Root = ({ children, compact = true, expandable = true, modalContent, modal
   if (compact) {
     return (
       <div className={styles.group}>
-        <div className={styles.root}>
+        <div className={dense ? `${styles.root} ${styles.rootDense}` : styles.root}>
           {expandButton}
-          {titleRow(styles.titleCompact)}
+          {!dense && titleRow(styles.titleCompact)}
           <div className={styles.body}>{body}</div>
         </div>
         {modal}

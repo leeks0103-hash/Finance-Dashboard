@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatWon, formatBillion, formatRate, formatCount, formatEok, formatPctRaw, formatNum, toEokNum2 } from './format';
+import { formatWon, formatBillion, formatRate, formatCount, formatEok, formatPctRaw, formatNum, toEokNum2, roundHeadcount, formatHeadcount } from './format';
 
 describe('formatWon', () => {
   it('formats with 원 suffix and locale grouping', () => {
@@ -109,5 +109,18 @@ describe('toEokNum2 (천원 → 억, 소수 둘째 자리 버림)', () => {
   it('returns 0 for null/NaN', () => {
     expect(toEokNum2(null)).toBe(0);
     expect(toEokNum2(undefined)).toBe(0);
+  });
+});
+
+describe('파트 인원 소수 첫째 자리(2026-10-27)', () => {
+  it('rounds float noise', () => {
+    expect(roundHeadcount(4.5 + 0.1 + 0.1 + 0.1)).toBe(4.8);
+    expect(roundHeadcount(0.1 + 0.2)).toBe(0.3);
+  });
+  it('shows integers without decimals and decimals to one place', () => {
+    expect(formatHeadcount(5)).toBe('5');
+    expect(formatHeadcount(4.5)).toBe('4.5');
+    expect(formatHeadcount(7.0)).toBe('7');
+    expect(formatHeadcount(null)).toBe('-');
   });
 });

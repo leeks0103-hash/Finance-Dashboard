@@ -3,6 +3,7 @@ import {
   DndContext, DragOverlay, closestCenter, pointerWithin,
   type CollisionDetection, type DragEndEvent, type DragOverEvent, type DragStartEvent,
 } from '@dnd-kit/core';
+import { createPortal } from 'react-dom';
 import { CSS } from '@dnd-kit/utilities';
 import {
   SortableContext, useSortable, arrayMove, type SortingStrategy,
@@ -28,8 +29,9 @@ import {
   INFO_PLAN_VS_ACTUAL, infoPerCapita,
 } from '@/utils/infoTexts';
 import type { ChartDataset, ChartOptions } from 'chart.js';
-import { stripPartPrefix, prefersReducedMotion } from '@/utils/format';
+import { stripPartPrefix, prefersReducedMotion, formatHeadcount } from '@/utils/format';
 import { getDatalabelAlpha } from '@/utils/datalabelFade';
+import { CHART_TUNING, tuningLabelFont, tuningBarSize, tuningTickFont, px } from './chartTuning';   // 차트별 여백·굵기·글자 조절표(2026-10-27)
 import { SORTABLE_TRANSITION } from '@/components/ui/sortableMotion';
 import styles from './PerformanceChartSection.module.css';
 
@@ -102,7 +104,7 @@ const cardClass = (id: string) => (SPAN_BY_ID[id] ?? ['span4', 'rowShort']).map(
 // makeBarOptions의 최소 여백(right 58 / top 30)은 가로 막대 차트가 막대 오른쪽에 수치를 찍기
 // 위한 값이라 세로 막대인 이 차트에서는 낭비된다. resolvePadding이 max()로만 키우므로 여기서 덮어씀.
 // bottom은 마이너스 막대의 수치가 막대 아래에 찍히는 것만 감당하면 되므로 최소로 둔다.
-const PROFIT_PADDING = { top: 22, right: 12, bottom: 12, left: 4 };
+// (PROFIT_PADDING은 chartTuning.ts의 profitRate.padding으로 이동 — 2026-10-27)
 
 // 이익율/이익액 토글 비활성화로 미사용(주석 처리) — 매출/원가는 항상 0 이상이라 부호 분기 불필요.
 // 복구 시 profitRateOptions/profitAmountOptions와 함께 해제
@@ -440,6 +442,13 @@ const tightLabelsPlugin: Plugin<'bar'> = {
   },
 };
 
+// 조절표(chartTuning.ts)의 costRate → costRatePlugin 옵션(위치 lift·글자 font·좁은 막대 생략 minBarWidth)
+const costRateTuning = (t: { costRate?: { lift: number; fontPx: number; minBarWidth?: number } }) => t.costRate ? {
+  lift: t.costRate.lift,
+  font: `bold ${t.costRate.fontPx}px 'Pretendard', 'Malgun Gothic', sans-serif`,
+  ...(t.costRate.minBarWidth != null ? { minBarWidth: t.costRate.minBarWidth } : {}),
+} : {};
+
 const overlaps = (a: Rect, b: Rect) => a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b;
 
 // 한 계열(점선 + 점)을 그림 — clipX가 있으면 차트 왼쪽 끝부터 거기까지만 보이게
@@ -638,26 +647,32 @@ const planLinePlugin: Plugin<'bar'> = {
 // 예전엔 오른쪽 여백 104px 고정 + 축 grace 15%로 빈 공간을 두 번 잡아 그래프가 좁았음 — 막대마다
 // "막대 끝 + 글자 폭 ≤ 그래프 오른쪽"이 되는 최소 축 끝을 계산(짧은 막대 수치는 원래 빈 공간을 씀).
 // 그래프 폭은 직전 배치값을 쓰고, 처음 한 번은 어림값 — 다음 그리기에서 맞춰짐. 글자는 makeBarOptions datalabels와 같게
-interface FitBarLabelsOpts { show: boolean; showRate: boolean }
+interface FitBarLabelsOpts { show: boolean; showRate: boolean; fontPx?: number; spacing?: number }   // fontPx·spacing: 수치 글자 크기·자간(px, chartTuning.ts) — 폭 재기를 실제 글자와 맞춤
 const FIT_LABEL_FONT = "bold 14px 'Pretendard', 'Malgun Gothic', sans-serif";
 // 세로축(파트명) 글자 자간 좁히기(2026-10-21) — "전동화&차량개발"처럼 긴 파트명이 축 칸을 다 잡아먹어서.
 // Chart.js 눈금엔 자간 옵션이 없어 y축의 update(글자 폭 재기·칸 맞추기)·drawLabels(그리기)를 감싸 canvas letterSpacing을 그동안만 켬.
 // 폭 재기도 같은 자간으로 해야 축 칸이 실제로 줄어듦(measureText가 letterSpacing을 반영)
 const TICK_LETTER_SPACING = '-1px';
+// 옵션 plugins.tightTicks = { spacing: '-1px', axes: ['y'] } — 자간(기본 -1px)·적용 축(기본 y = 가로 막대의 왼쪽 파트명, 세로 막대는 ['x']).
+// 값은 chartTuning.ts의 tickSpacing에서 옴. 폭 재기·그리기 때 옵션을 그때그때 읽어서 값을 바꿔도 바로 반영
+interface TightTicksOpts { spacing?: string; axes?: ('x' | 'y')[] }
 const tightTicksPlugin: Plugin<'bar'> = {
   id: 'tightTicks',
   beforeLayout(chart) {
-    const sc = chart.scales.y as unknown as { update: (...a: unknown[]) => void; drawLabels: (a: unknown) => void; _tight?: boolean } | undefined;
-    if (!sc || sc._tight) return;
-    sc._tight = true;
-    const ctx = chart.ctx as CanvasRenderingContext2D & { letterSpacing?: string };
-    const wrap = <A extends unknown[]>(fn: (...a: A) => void) => (...a: A) => {
-      const prev = ctx.letterSpacing;
-      ctx.letterSpacing = TICK_LETTER_SPACING;
-      try { fn(...a); } finally { ctx.letterSpacing = prev ?? '0px'; }
-    };
-    sc.update = wrap(sc.update.bind(sc));
-    sc.drawLabels = wrap(sc.drawLabels.bind(sc));
+    const readOpts = () => (chart.options.plugins as { tightTicks?: TightTicksOpts } | undefined)?.tightTicks;
+    (readOpts()?.axes ?? ['y']).forEach(axis => {
+      const sc = chart.scales[axis] as unknown as { update: (...a: unknown[]) => void; drawLabels: (a: unknown) => void; _tight?: boolean } | undefined;
+      if (!sc || sc._tight) return;
+      sc._tight = true;
+      const ctx = chart.ctx as CanvasRenderingContext2D & { letterSpacing?: string };
+      const wrap = <A extends unknown[]>(fn: (...a: A) => void) => (...a: A) => {
+        const prev = ctx.letterSpacing;
+        ctx.letterSpacing = readOpts()?.spacing ?? TICK_LETTER_SPACING;
+        try { fn(...a); } finally { ctx.letterSpacing = prev ?? '0px'; }
+      };
+      sc.update = wrap(sc.update.bind(sc));
+      sc.drawLabels = wrap(sc.drawLabels.bind(sc));
+    });
   },
 };
 
@@ -670,7 +685,8 @@ const fitBarLabelsPlugin: Plugin<'bar'> = {
     const w = chart.chartArea ? chart.chartArea.right - chart.chartArea.left : chart.width * 0.7;
     const { ctx } = chart;
     ctx.save();
-    ctx.font = FIT_LABEL_FONT;
+    ctx.font = o.fontPx ? `bold ${o.fontPx}px 'Pretendard', 'Malgun Gothic', sans-serif` : FIT_LABEL_FONT;
+    (ctx as CanvasRenderingContext2D & { letterSpacing?: string }).letterSpacing = px(o.spacing ?? 0);
     let need = scale.max;
     chart.data.datasets.forEach((ds, di) => {
       if (!chart.isDatasetVisible(di)) return;
@@ -719,6 +735,7 @@ function SortableChart({ id, fullRow, spanClassName, dropState, noHandle, childr
         flexDirection: 'column',
         minWidth: 0,
         position: 'relative',
+        minHeight: CHART_TUNING[id]?.minHeight,   // 카드 높이 — chartTuning.ts의 minHeight(비우면 CSS 기본)
       }}
     >
       {/* 드래그는 몇 px 움직여야 시작(activationConstraint distance)이라 더블클릭과 안 겹침 */}
@@ -877,22 +894,24 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
     ...vm.monthly.options,
     // 세로 막대라 수치가 막대 '위'에 찍힘 — makeBarOptions 최소 여백의 right 58(가로 막대 수치용)은 여기선
     // 오른쪽만 텅 비게 해서 덮어씀. 막대도 기본(0.8×0.9)보다 굵게 해 양옆 빈 공간을 줄임(2026-10-20)
-    layout: { padding: { top: 60, right: 8, bottom: 4, left: 4 } },   // 위 30 → 60: 원가 위 원가율 줄 자리
-    datasets: { bar: { categoryPercentage: 0.88, barPercentage: 0.92 } },
+    // ★ 여백·막대 굵기·글자 크기·자간 값은 chartTuning.ts의 CHART_TUNING.monthly 에서 고친다(2026-10-27 이동)
+    layout: { padding: CHART_TUNING.monthly.padding },
+    datasets: tuningBarSize(CHART_TUNING.monthly),
     // 원가 막대 위 원가율 "(54.8%)"(costRatePlugin, 2026-10-21 요청) — 막대가 글자보다 좁으면 생략
     // 막대 위 수치(억·원가율)는 이 차트만 글자 1px 작게(14→13, 12→11) + 자간 좁게(tightLabelsPlugin) — 2026-10-23 요청
     plugins: {
       ...vm.monthly.options.plugins,
       datalabels: {
         ...vm.monthly.options.plugins?.datalabels,
-        font: { size: 13, weight: 'bold' as const, family: "'Pretendard', 'Malgun Gothic', sans-serif" },
+        font: tuningLabelFont(CHART_TUNING.monthly),
       },
-      costRate: { show: vm.showLabels, text: dark ? 'rgb(0,170,210)' : 'rgb(0,119,147)', minBarWidth: 30, font: "bold 11px 'Pretendard', 'Malgun Gothic', sans-serif" },
-      tightLabels: { spacing: '-0.4px' },
+      costRate: { show: vm.showLabels, text: dark ? 'rgb(0,170,210)' : 'rgb(0,119,147)', ...costRateTuning(CHART_TUNING.monthly) },
+      tightLabels: { spacing: px(CHART_TUNING.monthly.labelSpacing) },
+      tightTicks: { spacing: px(CHART_TUNING.monthly.tickSpacing), axes: ['x'] as ('x' | 'y')[] },   // 세로 막대 — 아래 월 글자 자간
     },
     scales: {
-      x: { ...scaleOverride.x },
-      y: { ...scaleOverride.y, ticks: { ...scaleOverride.y.ticks, callback: (v: string | number) => v + '억' } },
+      x: { ...scaleOverride.x, ticks: { ...scaleOverride.x.ticks, ...tuningTickFont(CHART_TUNING.monthly) } },
+      y: { ...scaleOverride.y, ticks: { ...scaleOverride.y.ticks, ...tuningTickFont(CHART_TUNING.monthly), callback: (v: string | number) => v + '억' } },
     },
   }), [vm.monthly.options, scaleOverride, vm.showLabels, dark]);
 
@@ -904,13 +923,22 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
     return {
       ...base,
       // 수치 자리는 여백 대신 축 끝을 막대별로 딱 맞게 늘려서(fitBarLabelsPlugin) — 오른쪽 여백은 최소
-      layout: { padding: { ...(base.layout?.padding as object), right: 8 } },
-      scales: { ...base.scales, x: { ...base.scales?.x, grace: 0 } },
+      // ★ 여백·막대 굵기·글자 크기·자간 값은 chartTuning.ts의 CHART_TUNING.planVsActual 에서 고친다(2026-10-27)
+      layout: { padding: CHART_TUNING.planVsActual.padding },
+      datasets: tuningBarSize(CHART_TUNING.planVsActual),
+      scales: {
+        ...base.scales,
+        x: { ...base.scales?.x, grace: 0, ticks: { ...(base.scales?.x as { ticks?: object } | undefined)?.ticks, ...tuningTickFont(CHART_TUNING.planVsActual) } },
+        y: { ...base.scales?.y, ticks: { ...(base.scales?.y as { ticks?: object } | undefined)?.ticks, ...tuningTickFont(CHART_TUNING.planVsActual) } },
+      },
       plugins: {
         ...base.plugins,
-        fitBarLabels: { show: vm.showLabels, showRate: vm.planVsActual.showRate },
+        fitBarLabels: { show: vm.showLabels, showRate: vm.planVsActual.showRate, fontPx: CHART_TUNING.planVsActual.labelFontPx, spacing: CHART_TUNING.planVsActual.labelSpacing },
+        tightLabels: { spacing: px(CHART_TUNING.planVsActual.labelSpacing) },
+        tightTicks: { spacing: px(CHART_TUNING.planVsActual.tickSpacing), axes: ['y'] as ('x' | 'y')[] },
         datalabels: {
           ...base.plugins?.datalabels,
+          font: tuningLabelFont(CHART_TUNING.planVsActual),
           color: (ctx: { datasetIndex: number; dataset: { backgroundColor?: unknown }; dataIndex: number }) => {
             if (ctx.datasetIndex === 0) return palette.planLabel;
             const bg = ctx.dataset.backgroundColor;
@@ -921,28 +949,46 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
     };
   }, [vm.planVsActual.options, scaleOverride, palette.planLabel, vm.showLabels, vm.planVsActual.showRate]);
 
-  // 파트별 인당 차트 3개 공통 옵션(2026-10-23) — 가로 막대, 축 '억', 툴팁에 그 파트 인원
+  // 파트별 인당 차트 3개 옵션(2026-10-23) — 가로 막대, 축 '억', 툴팁에 그 파트 인원. 차트마다 따로 조절(2026-10-27):
+  // ★ 여백·막대 굵기·글자 크기·자간 값은 chartTuning.ts의 CHART_TUNING.perCapitaRevenue / perCapitaProfit / perCapitaMgmt 에서 고친다
   const perCapitaChartOptions = useMemo(() => {
-    const base = withUnstackedTheme(vm.perCapita.options, scaleOverride);
-    const xScale = base.scales?.x as { ticks?: object } | undefined;
-    // 계획 vs 추정 실적 차트와 같은 방식(2026-10-23 "캔버스 가로폭 늘려줘") — 수치 자리를 고정 여백이 아니라 축 끝을
-    // 막대별로 딱 맞게 늘려서(fitBarLabelsPlugin) 오른쪽 여백은 최소. 왼쪽은 마이너스 막대(손익)가 있을 때만 수치 자리 확보
-    const hasNegative = [...vm.perCapita.profit].some(v => v < 0);
+    const build = (id: 'perCapitaRevenue' | 'perCapitaProfit' | 'perCapitaMgmt', values: number[]): ChartOptions<'bar'> => {
+      const t = CHART_TUNING[id];
+      const base = withUnstackedTheme(vm.perCapita.options, scaleOverride);
+      const xScale = base.scales?.x as { ticks?: object } | undefined;
+      const yScale = base.scales?.y as { ticks?: object } | undefined;
+      // 계획 vs 추정 실적 차트와 같은 방식(2026-10-23 "캔버스 가로폭 늘려줘") — 수치 자리를 고정 여백이 아니라 축 끝을
+      // 막대별로 딱 맞게 늘려서(fitBarLabelsPlugin) 오른쪽 여백은 최소. 왼쪽은 마이너스 막대가 그 차트에 있을 때만(leftIfNegative) 수치 자리 확보
+      const hasNegative = values.some(v => v < 0);
+      return {
+        ...base,
+        layout: { padding: { ...t.padding, left: hasNegative && t.leftIfNegative != null ? t.leftIfNegative : t.padding.left } },
+        datasets: tuningBarSize(t),
+        scales: {
+          ...base.scales,
+          x: { ...xScale, grace: 0, ticks: { ...xScale?.ticks, ...tuningTickFont(t), callback: (v: string | number) => v + '억' } },
+          y: { ...yScale, ticks: { ...yScale?.ticks, ...tuningTickFont(t) } },
+        },
+        plugins: {
+          ...base.plugins,
+          fitBarLabels: { show: vm.showLabels, showRate: false, fontPx: t.labelFontPx, spacing: t.labelSpacing },
+          tightLabels: { spacing: px(t.labelSpacing) },
+          tightTicks: { spacing: px(t.tickSpacing), axes: ['y'] },
+          datalabels: { ...base.plugins?.datalabels, font: tuningLabelFont(t) },
+          tooltip: { callbacks: {
+            afterLabel: (ctx: { dataIndex: number }) =>
+              // `인원 계획 ${vm.perCapita.planHeadcounts[ctx.dataIndex] ?? '-'}명 · 현재 ${vm.perCapita.headcounts[ctx.dataIndex] ?? '-'}명`,   // 계획 인원 주석 처리(2026-10-27)
+              `현재 인원 ${formatHeadcount(vm.perCapita.headcounts[ctx.dataIndex])}명`,
+          } },
+        },
+      } as ChartOptions<'bar'>;
+    };
     return {
-      ...base,
-      layout: { padding: { ...(base.layout?.padding as object), right: 8, left: hasNegative ? 48 : 4 } },
-      scales: { ...base.scales, x: { ...xScale, grace: 0, ticks: { ...xScale?.ticks, callback: (v: string | number) => v + '억' } } },
-      plugins: {
-        ...base.plugins,
-        fitBarLabels: { show: vm.showLabels, showRate: false },
-        tooltip: { callbacks: {
-          afterLabel: (ctx: { dataIndex: number }) =>
-            // `인원 계획 ${vm.perCapita.planHeadcounts[ctx.dataIndex] ?? '-'}명 · 현재 ${vm.perCapita.headcounts[ctx.dataIndex] ?? '-'}명`,   // 계획 인원 주석 처리(2026-10-27)
-            `현재 인원 ${vm.perCapita.headcounts[ctx.dataIndex] ?? '-'}명`,
-        } },
-      },
-    } as ChartOptions<'bar'>;
-  }, [vm.perCapita.options, vm.perCapita.headcounts, vm.perCapita.profit, vm.showLabels, scaleOverride]);
+      perCapitaRevenue: build('perCapitaRevenue', vm.perCapita.revEst),
+      perCapitaProfit:  build('perCapitaProfit',  vm.perCapita.profit),
+      perCapitaMgmt:    build('perCapitaMgmt',    vm.perCapita.mgmt),
+    };
+  }, [vm.perCapita.options, vm.perCapita.headcounts, vm.perCapita.revEst, vm.perCapita.profit, vm.perCapita.mgmt, vm.showLabels, scaleOverride]);
 
   // 이익율/이익액 토글 비활성화로 미사용(주석 처리) — 복구 시 PROFIT_LABEL과 함께 해제
   // const profitRateOptions = useMemo(() => ({
@@ -979,7 +1025,8 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
   // 표시(anchor/align 'end', 부호 분기 불필요). 그룹형 막대라 stacked 해제
   const partRevCostOptions = useMemo(() => {
    const base = withUnstackedTheme(makeBarOptions(vm.showLabels, labelColor, {
-      layout: { padding: { ...PROFIT_PADDING, top: 60 } },   // 원가율 줄 자리까지 36 → 60
+      // ★ 여백·막대 굵기·글자 크기·자간·원가율 위치 값은 chartTuning.ts의 CHART_TUNING.profitRate 에서 고친다(2026-10-27)
+      layout: { padding: CHART_TUNING.profitRate.padding },
       plugins: {
         datalabels: {
           // makeBarOptions 기본(13px)보다 살짝만 작게 — 이전엔 10px로 너무 작게 오버라이드돼
@@ -988,7 +1035,7 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
           // 원가 수치만 오른쪽으로 COST_LABEL_SHIFT px(위 costLabelAlign) — 메인 카드만, 확대 모달은 'end'로 되돌림
           align: costLabelAlign,
           offset: REV_COST_LABEL_OFFSET,
-          font: { size: 12, weight: 'bold', family: "'Pretendard', 'Malgun Gothic', sans-serif" },
+          font: tuningLabelFont(CHART_TUNING.profitRate),
           formatter: (v: number) => `${v}억`,
           // padding은 planLinePlugin의 LABEL_H/LABEL_PAD_X(목표선 수치 겹침 판정용 크기)와 맞춰둘 것.
           // 배경 박스(backgroundColor)는 넣지 말 것 — 옆 막대를 파먹음(planLinePlugin 주석 참고)
@@ -1005,10 +1052,13 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
     }), scaleOverride);
    return {
     ...base,
+    datasets: tuningBarSize(CHART_TUNING.profitRate),
     // 매출·원가 막대 사이 원가율 칩(costRatePlugin) — makeBarOptions는 legend·datalabels 외 플러그인 옵션을 버려서 여기서 덧붙임
     plugins: {
       ...base.plugins,
-      costRate: { show: vm.showLabels, text: dark ? 'rgb(0,170,210)' : 'rgb(0,119,147)', lift: COST_RATE_LIFT - 2 },   // 이 차트만 2px 낮게(2026-10-21 요청). 합계 수치(labelColor)와 다른 색 — Active Blue(라이트는 검정 30% 섞어 진하게). 공통원가 회청색은 너무 연했음
+      costRate: { show: vm.showLabels, text: dark ? 'rgb(0,170,210)' : 'rgb(0,119,147)', ...costRateTuning(CHART_TUNING.profitRate) },
+      tightLabels: { spacing: px(CHART_TUNING.profitRate.labelSpacing) },
+      tightTicks: { spacing: px(CHART_TUNING.profitRate.tickSpacing), axes: ['x'] as ('x' | 'y')[] },   // 세로 막대 — 아래 파트명 자간   // 이 차트만 2px 낮게(2026-10-21 요청). 합계 수치(labelColor)와 다른 색 — Active Blue(라이트는 검정 30% 섞어 진하게). 공통원가 회청색은 너무 연했음
       // 원가 층은 보기용 높이라 툴팁도 실제값(realData)으로
       tooltip: { callbacks: { label: (ctx: { dataIndex: number; dataset: unknown }) =>
         `${(ctx.dataset as { label?: string }).label}: ${realValue(ctx)}억` } },
@@ -1016,10 +1066,10 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
     scales: {
       // x축 파트명 — 다크 모드에선 흰색(공통 tickColor Sand가 어두운 배경에서 흐려 보임), 라이트는 공통값 유지
       // 원가 막대 = 직접원가(아래) + 공통원가(위) 2층(2026-10-20) — 데이터셋 stack으로 매출 막대와 나란히, 원가끼리만 쌓음
-      x: { ...scaleOverride.x, stacked: true, offset: true, ticks: { ...scaleOverride.x.ticks, align: 'center' as const, color: dark ? '#FFFFFF' : tickColor,
+      x: { ...scaleOverride.x, stacked: true, offset: true, ticks: { ...scaleOverride.x.ticks, ...tuningTickFont(CHART_TUNING.profitRate), align: 'center' as const, color: dark ? '#FFFFFF' : tickColor,
         padding: 3 } },
       // 위 여유(grace) 15% → 8% — 막대 위 수치 자리는 layout padding top 36이 따로 잡고 있어 위가 많이 비었음(2026-10-20)
-      y: { ...scaleOverride.y, grace: '8%', stacked: true, ticks: { ...scaleOverride.y.ticks, callback: (v: string | number) => v + '억' } },
+      y: { ...scaleOverride.y, grace: '8%', stacked: true, ticks: { ...scaleOverride.y.ticks, ...tuningTickFont(CHART_TUNING.profitRate), callback: (v: string | number) => v + '억' } },
     },
    };
   }, [vm.showLabels, labelColor, scaleOverride, dark, tickColor]);
@@ -1096,7 +1146,7 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
                     ? '파트 인원이 아직 입력되지 않았습니다 — 관리자 페이지 > 파트별 인원에서 입력하세요'
                     : '파트 인원이 아직 입력되지 않았습니다'}
               </div>
-            : <BarChart horizontal labels={labels} datasets={datasets} options={perCapitaChartOptions} plugins={[fitBarLabelsPlugin, tightTicksPlugin]} />}
+            : <BarChart horizontal labels={labels} datasets={datasets} options={perCapitaChartOptions[id as keyof typeof perCapitaChartOptions]} plugins={[fitBarLabelsPlugin, tightTicksPlugin, tightLabelsPlugin]} />}
         </ChartCard.Body>
       </ChartCard>
     );
@@ -1116,8 +1166,8 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
       // ... <div className={styles.headcountRows}>{rows.map(r => (<div key={r.key} className={styles.headcountRow}>
       //       <span className={styles.headcountRowLabel}>{r.label}</span><ul className={styles.headcountList}>…파트 알약 + 합계…</ul></div>))}</div>
       return (
-        <ChartCard expandable={false}>
-          {/* 카드 제목 없음(2026-10-23 요청) — 목록 앞 라벨(파트별 인원)이 제목 역할 */}
+        <ChartCard expandable={false} dense>
+          {/* 카드 제목 없음(2026-10-23 요청) — 목록 앞 라벨(파트별 인원)이 제목 역할. dense = 빈 제목줄·큰 여백 제거(높이 축소, 2026-10-27) */}
           <ChartCard.Title>{null}</ChartCard.Title>
           <ChartCard.Body>
             {hc.labels.length === 0
@@ -1133,14 +1183,14 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
                       <li key={name} className={styles.headcountItem}>
                         <span className={styles.headcountName}>{name}</span>
                         <span className={styles.headcountSep}>:</span>
-                        <b className={styles.headcountVal}>{hc.current[i]}명</b>
+                        <b className={styles.headcountVal}>{formatHeadcount(hc.current[i])}명</b>
                       </li>
                     ))}
                     <li className={`${styles.headcountItem} ${styles.headcountTotal}`}
                       title={hc.missingParts.length > 0 ? `인원 미입력 파트: ${hc.missingParts.join(', ')}` : undefined}>
                       <span className={styles.headcountName}>합계</span>
                       <span className={styles.headcountSep}>:</span>
-                      <b className={styles.headcountVal}>{hc.totalCurrent}명</b>
+                      <b className={styles.headcountVal}>{formatHeadcount(hc.totalCurrent)}명</b>
                     </li>
                   </ul>
                 </div>}
@@ -1178,7 +1228,7 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
           labels={vm.monthly.labels}
           datasets={monthlyDatasets}
           options={monthlyOptions}
-          plugins={[costRatePlugin, tightLabelsPlugin]}
+          plugins={[costRatePlugin, tightLabelsPlugin, tightTicksPlugin]}
         />
       );
       // 확대 모달 전용 — 그냥 크게 보이기만 하면 심심하다는 피드백에 따라 월별 매출/원가/손익 +
@@ -1248,7 +1298,7 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
                 rates: pick(vm.planVsActual.rates) } as ChartDataset<'bar'>,
             ]}
             options={planVsActualOptions}
-            plugins={[fitBarLabelsPlugin, tightTicksPlugin]}
+            plugins={[fitBarLabelsPlugin, tightTicksPlugin, tightLabelsPlugin]}
           />
         );
       };
@@ -1342,7 +1392,7 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
           labels={visibleLabels}
           datasets={baseDatasets}
           options={partRevCostOptions}
-          plugins={[costRatePlugin, layerBoostPlugin]}
+          plugins={[costRatePlugin, layerBoostPlugin, tightLabelsPlugin, tightTicksPlugin]}
         />
       );
       // 확대 모달 전용 — 목표선(매출/원가 계획)을 캔버스 플러그인으로 겹쳐 그려서 계획 대비
@@ -1402,7 +1452,7 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
           labels={visibleLabels}
           datasets={baseDatasets}
           options={modalOptions}
-          plugins={[planLinePlugin, costRatePlugin, layerBoostPlugin]}
+          plugins={[planLinePlugin, costRatePlugin, layerBoostPlugin, tightLabelsPlugin, tightTicksPlugin]}
         />
       );
       const modalContent = (
@@ -1565,14 +1615,19 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
             {content}
           </div>
         </SortableContext>
-        <DragOverlay dropAnimation={prefersReducedMotion() ? null : OVERLAY_DROP_ANIMATION}>
-          {activeChartId ? (
-            <div className={styles.dragGhost}>
-              <span className={styles.dragGhostGrip}>⠿</span>
-              {CHART_TITLES[activeChartId] ?? activeChartId}
-            </div>
-          ) : null}
-        </DragOverlay>
+        {/* body로 포털(2026-10-27) — 페이지 래퍼(.fadeUp)의 transform 때문에 position:fixed가 화면이 아니라 그 래퍼 기준이 돼,
+            스크롤을 내린 상태(아래쪽 파트별 차트 줄)에서 끄면 미니 카드가 화면 위 밖에 그려져 "뭐가 옮겨지는지" 안 보였음 */}
+        {createPortal(
+          <DragOverlay dropAnimation={prefersReducedMotion() ? null : OVERLAY_DROP_ANIMATION}>
+            {activeChartId ? (
+              <div className={styles.dragGhost}>
+                <span className={styles.dragGhostGrip}>⠿</span>
+                {CHART_TITLES[activeChartId] ?? activeChartId}
+              </div>
+            ) : null}
+          </DragOverlay>,
+          document.body,
+        )}
       </DndContext>
 
       {breakdown && (

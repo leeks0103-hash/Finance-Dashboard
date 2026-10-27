@@ -18,21 +18,25 @@ from shared import strip_part_prefix
 logger = logging.getLogger(__name__)
 
 HEADCOUNT_PATH = Path(__file__).parent / "data" / "headcount.json"   # 테스트는 이 값을 바꿔 끼움
-HEADCOUNT_MAX = 999
+HEADCOUNT_MAX = 100   # 파트 한 개당 상한(명) — 2026-10-27 999 → 100(오입력 방지). 프론트 PartHeadcountPanel MAX_HEADCOUNT와 같게
 lock = threading.Lock()
 
 
 def _num(v):
-    """입력값 → 0~999 정수(명). 소수·숫자가 아닌 값은 None. "12"·12·12.0은 12."""
+    """입력값 → 0~HEADCOUNT_MAX(100) 인원(명), 소수 첫째 자리까지(2026-10-27 — 파트타임·겸임 0.5명 같은 값). 둘째 자리 이상·숫자가 아닌 값은 None.
+    정수면 int("12"·12·12.0은 12), 소수면 float(4.5)."""
     if isinstance(v, bool) or not isinstance(v, (int, float, str)):
         return None
     try:
         n = float(str(v).strip())
     except ValueError:
         return None
-    if n != n or n < 0 or n > HEADCOUNT_MAX or n != int(n):   # NaN·음수·상한 초과·소수
+    if n != n or n < 0 or n > HEADCOUNT_MAX:   # NaN·음수·상한 초과
         return None
-    return int(n)
+    tenths = round(n * 10)
+    if abs(n * 10 - tenths) > 1e-6:            # 소수 둘째 자리 이상(7.55)
+        return None
+    return tenths // 10 if tenths % 10 == 0 else tenths / 10
 
 
 def read_headcount() -> dict:
@@ -75,7 +79,7 @@ def validate_parts(raw) -> "tuple[dict, str | None]":
             continue
         n = _num(v)
         if n is None:
-            return {}, f"인원 값이 잘못됨: {name} (0~{HEADCOUNT_MAX} 정수)"
+            return {}, f"인원 값이 잘못됨: {name} (0~{HEADCOUNT_MAX}, 소수 첫째 자리까지)"
         if n > 0:
             clean[name] = n
     return clean, None

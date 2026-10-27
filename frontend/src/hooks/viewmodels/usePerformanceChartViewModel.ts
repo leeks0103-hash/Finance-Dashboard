@@ -10,7 +10,7 @@ import { getChartTheme } from '@/utils/chartColors';
 import { sortProgress } from '@/utils/progressOrder';
 import { sortTeams, sortParts } from '@/utils/partOrder';
 import { stripPartPrefix, toEokNum } from '@/utils';
-import { toEokNum2 } from '@/utils/format';
+import { toEokNum2, roundHeadcount } from '@/utils/format';
 import { usePerfPeriod } from '@/hooks/usePerfPeriod';
 import type { ChartOptions } from 'chart.js';
 
@@ -386,7 +386,7 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
           // plan:         ok.map(r => r.plan),   // 계획 인원 주석 처리(2026-10-27)
           current:      ok.map(r => r.cur),
           // totalPlan:    ok.reduce((t, r) => t + (r.plan ?? 0), 0),
-          totalCurrent: ok.reduce((t, r) => t + (r.cur ?? 0), 0),
+          totalCurrent: roundHeadcount(ok.reduce((t, r) => t + (r.cur ?? 0), 0)),   // 소수 첫째 자리 인원(2026-10-27) — 부동소수 오차 정리
           missingParts: rows.filter(r => r.cur == null).map(r => r.name),
         };
       })(),

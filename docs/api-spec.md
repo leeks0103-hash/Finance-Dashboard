@@ -72,7 +72,7 @@
 | GET / PUT | `/api/settings/access` | 로그인 요구 켬/끔 `{loginRequired}` — GET은 누구나, PUT은 **관리자** |
 | GET / PUT | `/api/settings/visibility` | 기능별 공개 범위(all/admin/none): `fileOpen`·`folderOpen`·`achieveRate`·`aiInsight`·`extractRequest` — PUT은 **관리자** |
 | GET / PUT | `/api/settings/perf-update` | 실적 탭 "경영실적 현황 업데이트" 칸(라벨·날짜) — PUT은 **관리자** |
-| GET / PUT | `/api/settings/headcount` | 파트별 인원 `{parts:{파트명:현재 인원}, plan_parts:{파트명:계획 인원}, updated_at, updated_by}` — GET은 로그인한 누구나, PUT은 **관리자**(`{parts, plan_parts?}` 전체 교체, `plan_parts`를 안 보내면 저장된 계획 인원 유지, 0~999 정수, 빈 값/0 = 미입력). 계획 인원은 2026-10-27 화면에서 주석 처리(저장값만 유지). `/api/performance/summary`의 `by_part`가 이 값으로 `headcount`(현재)와 인당 필드(`rev_per_head_est`·`profit_per_head`·`mgmt_per_head`=추정÷현재 인원, 천원)를 채움 — `plan_headcount`·`rev_per_head_plan`은 주석 처리돼 응답에 없음 |
+| GET / PUT | `/api/settings/headcount` | 파트별 인원 `{parts:{파트명:현재 인원}, plan_parts:{파트명:계획 인원}, updated_at, updated_by}` — GET은 로그인한 누구나, PUT은 **관리자**(`{parts, plan_parts?}` 전체 교체, `plan_parts`를 안 보내면 저장된 계획 인원 유지, 0~100 · 소수 첫째 자리까지(4.5명 등), 빈 값/0 = 미입력). 계획 인원은 2026-10-27 화면에서 주석 처리(저장값만 유지). `/api/performance/summary`의 `by_part`가 이 값으로 `headcount`(현재)와 인당 필드(`rev_per_head_est`·`profit_per_head`·`mgmt_per_head`=추정÷현재 인원, 천원)를 채움 — `plan_headcount`·`rev_per_head_plan`은 주석 처리돼 응답에 없음 |
 
 ## PPT 추출·데이터 이상 (`app.py`, `extract_coverage.py`, `extract_requests.py`)
 

@@ -23,6 +23,11 @@
   box-shadow: var(--shadow-sm);
 }
 
+/* dense — 제목 없는 한 줄짜리 카드(파트별 인원)용 낮은 여백 */
+.rootDense {
+  padding: 10px 16px;
+}
+
 :global([data-theme="dark"]) .root:hover {
   box-shadow: var(--shadow-md);
 }

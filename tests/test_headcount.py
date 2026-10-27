@@ -25,12 +25,24 @@ class TestValidateParts:
         assert err is None
         assert parts == {"AIㆍDS": 12, "SW": 7}
 
+    def test_accepts_one_decimal_place(self):
+        # 파트타임·겸임 인원(2026-10-27) — 소수 첫째 자리까지, 정수로 떨어지면 int
+        parts, err = headcount.validate_parts({"AIㆍDS": "4.5", "SW": 0.5, "PM": 7.0, "EM": "12.0", "미모": 2.3})
+        assert err is None
+        assert parts == {"AIㆍDS": 4.5, "SW": 0.5, "PM": 7, "EM": 12, "미모": 2.3}
+        assert isinstance(parts["PM"], int)
+
+    def test_upper_limit_is_100_per_part(self):
+        parts, err = headcount.validate_parts({"AIㆍDS": 100})
+        assert err is None and parts == {"AIㆍDS": 100}
+        assert headcount.validate_parts({"AIㆍDS": 100.1})[1]
+
     def test_blank_and_zero_mean_not_entered(self):
         parts, err = headcount.validate_parts({"AIㆍDS": "", "SW": 0, "EM": None, "PM": 3})
         assert err is None
         assert parts == {"PM": 3}
 
-    @pytest.mark.parametrize("bad", [-1, 1000, "abc", True, [1], 7.5, "0.5"])
+    @pytest.mark.parametrize("bad", [-1, 101, 1000, "abc", True, [1], 7.55, "0.05"])
     def test_rejects_invalid_numbers(self, bad):
         _, err = headcount.validate_parts({"AIㆍDS": bad})
         assert err
