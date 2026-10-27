@@ -34,6 +34,10 @@ export interface CoverageItem {
   detail?: string;
   /** 마지막 처리 시각 */
   at:     string;
+  /** 마지막 추출 뒤에 원본 PPT가 수정됨(원본 수정 시각 > 처리 시각) — 내용은 안 열어보고 날짜만 비교 */
+  modified:    boolean;
+  /** 원본 수정 시각 — modified일 때만 */
+  modified_at: string;
 }
 
 export interface SourceCoverage {
@@ -47,6 +51,8 @@ export interface SourceCoverage {
   rows_total:      number;
   /** 하위 폴더 두 곳 이상에 같은 이름으로 있는 파일 수(결과 엑셀에선 구분 안 됨) */
   duplicate_names: number;
+  /** 추출 뒤에 원본이 수정된 파일 수(상태와 별개 표시 — counts엔 안 들어감) */
+  modified_count:  number;
   /** 결과 엑셀엔 있는데 폴더엔 없는 파일 */
   orphans:         string[];
   items:           CoverageItem[];

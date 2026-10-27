@@ -17,10 +17,10 @@ const SECTIONS: { id: AdminSectionId; label: string; desc: string }[] = [
   { id: 'settings',     label: '화면 설정',      desc: '공개 범위 · 로그인 요구 · AI 인사이트' },
   { id: 'chart-colors', label: '차트 색상',      desc: '막대·도넛 역할별 색 · 주간/야간' },
   { id: 'perf-file',    label: '실적현황 파일',  desc: '새 실적 엑셀 자동 반영' },
-  { id: 'headcount',    label: '파트별 인원',    desc: '인당 매출·손익·관리비 계산용' },
   { id: 'extract',      label: 'PPT 추출',       desc: '재무·KPI 추출 실행 · 추출 현황' },
   { id: 'fin-mismatch', label: '재무 불일치',    desc: '완료 프로젝트 실적↔재무 대조' },
   { id: 'secret-mail',  label: '시크릿 키 메일', desc: '임직원 로그인 키 발송' },
+  { id: 'headcount',    label: '파트별 인원',    desc: '인당 매출·손익·관리비 계산용' },
 ];
 
 const LS_SIDE_COLLAPSED = 'admin-side-collapsed';
@@ -127,9 +127,6 @@ const AdminPage = () => {
           <AdminActionCard title="실적현황 파일 자동 반영" desc="새 실적 엑셀을 끌어다 놓거나 선택 · 반영 상태·실패 이유 확인 · 다시 시도"
             buttonLabel="열기" onClick={() => setPerfFileOpen(true)} />
         </Block>
-        <Block id="headcount" label="파트별 인원" desc="실적 탭 인당 매출·손익·관리비 차트의 분모 — 저장하면 모든 사용자에게 반영">
-          <div className={styles.card}><PartHeadcountPanel /></div>
-        </Block>
         <Block id="extract" label="PPT 추출" desc="재무·KPI PPT를 다시 읽어 데이터에 반영 · 추출 현황">
           <AdminActionCard title="PPT 데이터 추출(파싱)" desc="대상·방식 고르기 · 실행/중지 · 추출 현황과 안 된 파일 이유"
             buttonLabel={extractJob.isRunning ? '추출 중… 보기' : '열기'} onClick={() => setExtractOpen(true)}
@@ -140,6 +137,9 @@ const AdminPage = () => {
         </Block>
         <Block id="secret-mail" label="시크릿 키 메일" desc="임직원에게 로그인 시크릿 키를 Outlook으로 한 사람씩 발송">
           <SecretMailPanel />
+        </Block>
+        <Block id="headcount" label="파트별 인원" desc="실적 탭 인당 매출·손익·관리비 차트의 분모 — 저장하면 모든 사용자에게 반영">
+          <div className={styles.card}><PartHeadcountPanel /></div>
         </Block>
         {/* 맨 아래 센티널 — 마지막 섹션이 짧아 위쪽 띠까지 못 올라와도 끝까지 내리면 마지막 메뉴가 켜지게 */}
         <div ref={bottomRef} className={styles.bottom} aria-hidden />

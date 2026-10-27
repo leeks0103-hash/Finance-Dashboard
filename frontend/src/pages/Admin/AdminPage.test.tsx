@@ -68,7 +68,7 @@ describe('AdminPage — 한 페이지 + 바로가기 메뉴', () => {
     const { container } = renderPage();
     const sentinel = container.querySelector('[aria-hidden="true"]:last-child') as Element;
     intersect(sentinel);
-    expect(menuItem('시크릿 키 메일')).toHaveAttribute('aria-current', 'true');
+    expect(menuItem('파트별 인원')).toHaveAttribute('aria-current', 'true');
   });
 
   it('사이드바 숨김 버튼으로 숨기고 다시 펼칠 수 있으며 선택을 기억한다', () => {

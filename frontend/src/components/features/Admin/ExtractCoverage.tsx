@@ -21,6 +21,10 @@ const STATUS_HINT: Record<CoverageStatus, string> = {
   pending:   '새로 들어와 아직 한 번도 읽지 않은 파일 — 다음 추출 때 읽음',
 };
 
+/** 상태와 별개 표시 — 마지막 추출 뒤에 원본 PPT가 수정된 파일(날짜 비교만, 내용은 안 열어봄) */
+const MODIFIED_LABEL = '원본 수정됨';
+const MODIFIED_HINT = '마지막으로 추출한 시각보다 원본 PPT의 수정 시각이 늦은 파일 — 내용은 열어 보지 않고 날짜만 비교. 대시보드 숫자가 옛 것일 수 있어 다시 추출 필요';
+
 // 막대·범례 순서 — 왼쪽부터 정상 → 확인 필요
 const ORDER: CoverageStatus[] = ['extracted', 'merged', 'no_table', 'pending', 'failed'];
 /** 바로 손봐야 하는 것(실패·미처리)은 펼쳐 두고, 정상일 수 있는 것(표 없음·합쳐짐)은 접어 둠 */
@@ -39,11 +43,16 @@ const ItemList = ({ items }: { items: CoverageItem[] }) => (
   <ul className={styles.list}>
     {items.map(it => (
       <li key={it.file} className={styles.item}>
-        <span className={`${styles.pill} ${styles[`pill_${it.status}`]}`}>{STATUS_LABEL[it.status]}</span>
+        {/* 추출 뒤에 수정된 파일은 상태 대신 '수정됨' 알약 — 반영된 숫자가 옛 것일 수 있음 */}
+        {it.modified
+          ? <span className={`${styles.pill} ${styles.pill_modified}`}>{MODIFIED_LABEL}</span>
+          : <span className={`${styles.pill} ${styles[`pill_${it.status}`]}`}>{STATUS_LABEL[it.status]}</span>}
         {/* 클릭 = 파일명 복사, ↗ = 원본 열기(폴더에서 찾은 경로라 미처리·실패 파일도 열림) */}
         <span className={styles.file}><CopyText text={it.file} onOpen={openCoverageFileOrAlert} /></span>
         {/* 원본 오류(com_error 등)는 알아보기 어려워 화면엔 안 보이고 마우스 올렸을 때만 */}
-        {it.reason && <span className={styles.reason} title={it.detail || undefined}>{it.reason}</span>}
+        {it.modified
+          ? <span className={styles.reason}>{`마지막 추출 ${it.at} → 원본 수정 ${it.modified_at} — 다시 추출하면 최신 숫자가 반영됨`}</span>
+          : it.reason && <span className={styles.reason} title={it.detail || undefined}>{it.reason}</span>}
       </li>
     ))}
   </ul>
@@ -63,13 +72,16 @@ const SourceCard = ({ src, onRetryFailed, retryDisabled }: SourceCardProps) => {
   const c = src.counts;
   const total = src.folder_files || 1;
   const pct = Math.round((c.extracted / total) * 1000) / 10;
-  const allOk = c.failed === 0 && c.pending === 0;
+  // 추출 뒤 원본이 수정된 파일 — 상태와 별개(실패·미처리는 제외하고 셈, 서버 modified_count와 같음)
+  const modifiedItems = src.items.filter(it => it.modified);
+  const needCheck = c.failed + c.pending + modifiedItems.length;
+  const allOk = needCheck === 0;
   return (
     <div className={styles.card}>
       <div className={styles.cardHead}>
         <span className={styles.srcLabel}>{src.label}</span>
         <span className={`${styles.stateBadge} ${allOk ? styles.stateOk : styles.stateWarn}`}>
-          {allOk ? '이상 없음' : `확인 필요 ${c.failed + c.pending}건`}
+          {allOk ? '이상 없음' : `확인 필요 ${needCheck}건`}
         </span>
         {onRetryFailed && retriable > 0 && (
           <Button variant="primary" size="sm" className={styles.retryBtn} disabled={retryDisabled} onClick={onRetryFailed}
@@ -99,6 +111,11 @@ const SourceCard = ({ src, onRetryFailed, retryDisabled }: SourceCardProps) => {
             {STATUS_LABEL[s]} <b>{c[s]}</b>
           </span>
         ))}
+        {/* 상태 막대와 별개 — 파일 수가 겹쳐 세지 않게 막대엔 안 넣고 범례 끝에만 */}
+        <span className={`${styles.legendItem} ${modifiedItems.length ? '' : styles.legendZero}`} title={MODIFIED_HINT}>
+          <i className={`${styles.dot} ${styles.seg_modified}`} />
+          {MODIFIED_LABEL} <b>{modifiedItems.length}</b>
+        </span>
       </div>
 
       <div className={styles.meta}>
@@ -111,14 +128,20 @@ const SourceCard = ({ src, onRetryFailed, retryDisabled }: SourceCardProps) => {
         <div className={styles.warn}>이름이 똑같은 파일이 다른 폴더에 또 있음 {src.duplicate_names}개 — 서로 구분이 안 돼 한쪽만 반영될 수 있음</div>
       )}
 
-      {OPEN_GROUPS.some(s => by(s).length > 0) && <ItemList items={OPEN_GROUPS.flatMap(by)} />}
-      {FOLDED_GROUPS.map(s => by(s).length > 0 && (
-        <details key={s} className={styles.details}>
-          <summary>{STATUS_LABEL[s]} {by(s).length}건 보기</summary>
-          <p className={styles.groupHint}>{STATUS_HINT[s]}</p>
-          <ItemList items={by(s)} />
-        </details>
-      ))}
+      {/* 펼쳐 두는 목록 = 실패·미처리 + 추출 뒤 수정된 파일(수정된 건 아래 접힌 목록엔 안 넣어 겹치지 않게) */}
+      {(OPEN_GROUPS.some(s => by(s).length > 0) || modifiedItems.length > 0) && (
+        <ItemList items={[...OPEN_GROUPS.flatMap(by), ...modifiedItems]} />
+      )}
+      {FOLDED_GROUPS.map(s => {
+        const rest = by(s).filter(it => !it.modified);
+        return rest.length > 0 && (
+          <details key={s} className={styles.details}>
+            <summary>{STATUS_LABEL[s]} {rest.length}건 보기</summary>
+            <p className={styles.groupHint}>{STATUS_HINT[s]}</p>
+            <ItemList items={rest} />
+          </details>
+        );
+      })}
       {src.orphans.length > 0 && (
         <details className={styles.details}>
           <summary>지워졌거나 이름이 바뀐 파일 {src.orphans.length}건</summary>

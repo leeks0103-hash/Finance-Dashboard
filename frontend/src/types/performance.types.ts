@@ -174,6 +174,14 @@ export interface PerfTotal {
   plan_overhead?:   number;
   /** 'sheet' = 사업계획 기준 값(정확), 'estimate' = 추정 공통원가로 대체(Flask 재시작 전엔 필드 없음) */
   plan_overhead_source?: 'sheet' | 'estimate';
+  /** 계획 관리비(천원) — 시트 합계 블록의 사업계획 기준. 팀·파트 필터 중이거나 못 읽으면 null(Flask 재시작 전엔 필드 없음) */
+  plan_mgmt?:             number | null;
+  /** 계획 경상손익(천원) — 같은 블록의 '손익' 줄. 없으면 null */
+  plan_operating_profit?: number | null;
+  /** 계획 인건비(천원) — 같은 블록의 '인건비' 줄. 없으면 null */
+  plan_labor?:            number | null;
+  /** 카드별 계획 대비 추정(%) = 추정 ÷ 계획 × 100 — 카드 id(revenue·cost·overhead·grossProfit·labor·mgmt·profit) → 값(계획 없음·0 이하면 null). Flask 재시작 전엔 필드 없음 */
+  est_plan_rate?:         Record<string, number | null>;
   /** 계획 대비 누계 진행률(%) = 누계매출 ÷ 계획매출 × 100. 계획 0 이하면 null */
   achieve_rate?:    number | null;
   /** 추정 대비 누계 진행률(%) = 누계매출 ÷ 연간 추정매출 × 100. 추정 0 이하면 null */

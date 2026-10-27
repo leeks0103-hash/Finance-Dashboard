@@ -62,7 +62,7 @@ export const CHART_TUNING: Record<string, ChartTuning> = {
   },
   planVsActual: {
     padding: { top: 8, right: 0, bottom: 4, left: 0 },
-    labelFontPx: 14,
+    labelFontPx: 12,
     labelSpacing: 0,
     tickSpacing: -1.6,
     bleedX: 14,
@@ -70,7 +70,7 @@ export const CHART_TUNING: Record<string, ChartTuning> = {
   },
   perCapitaRevenue: {
     padding: { top: 8, right: 0, bottom: 4, left: 0 },
-    labelFontPx: 14,
+    labelFontPx: 12,
     labelSpacing: 0,
     tickSpacing: -1.6,
     bleedX: 14,
@@ -79,7 +79,7 @@ export const CHART_TUNING: Record<string, ChartTuning> = {
   perCapitaProfit: {
     padding: { top: 8, right: 0, bottom: 4, left: 0 },
     leftIfNegative: 48,
-    labelFontPx: 14,
+    labelFontPx: 12,
     labelSpacing: 0,
     tickSpacing: -1.6,
     bleedX: 14,
@@ -87,7 +87,7 @@ export const CHART_TUNING: Record<string, ChartTuning> = {
   },
   perCapitaMgmt: {
     padding: { top: 8, right: 0, bottom: 4, left: 0 },
-    labelFontPx: 14,
+    labelFontPx: 12,
     labelSpacing: 0,
     tickSpacing: -1.6,
     bleedX: 14,

@@ -305,6 +305,41 @@ def _plan_overhead_from_block(raw: "pd.DataFrame", rev_plan_sum: float, cost_pla
         return None
 
 
+def _plan_mgmt_profit_from_block(raw: "pd.DataFrame", rev_plan_sum: float, cost_plan_sum: float) -> "dict[str, float] | None":
+    """사업계획(최초사업계획 열) 기준 관리비·경상손익·인건비 — _plan_overhead_from_block과 같은 합계 블록
+    (구분 열에 매출 / 원가 / 공통원가 / 인건비 / 자산 / 관리비 / 손익 순)의 '관리비'·'손익' 줄 값(천원). 2026-10-27.
+    9월 집계 실측: 관리비 4,430,525(44.31억) · 손익 953,426(9.53억). 손익 = 매출 − 원가 − 공통원가 − 인건비 − 관리비
+    (자산 줄은 손익 계산에 안 들어감 — 321.29 − 193.51 − 20.33 − 53.61 − 44.31 = 9.53억으로 대조).
+    블록 라벨 순서·매출/원가 합 일치·위 항등식이 모두 맞을 때만 믿음 — 아니면 None(= 호출쪽이 계획 칸을 비움).
+    계획 경상손익은 프로젝트 행에 없는 값이라 대체할 추정값이 없음(추정으로 채우면 계획=추정이 돼 오해)."""
+    try:
+        label = raw["part"].fillna("").astype(str).str.strip().tolist()
+        plan = pd.to_numeric(raw["plan_initial"], errors="coerce").tolist()
+        hits = [i for i, v in enumerate(label) if v == "공통원가"]
+        if len(hits) != 1 or hits[0] < 2 or hits[0] + 4 >= len(label):
+            logger.warning("계획 관리비·경상손익: 합계 블록의 '공통원가' 줄을 못 찾음(%d곳) — 계획 칸 비움", len(hits))
+            return None
+        i = hits[0]
+        if [label[i - 2], label[i - 1], label[i + 1], label[i + 2], label[i + 3], label[i + 4]] != ["매출", "원가", "인건비", "자산", "관리비", "손익"]:
+            logger.warning("계획 관리비·경상손익: 합계 블록 줄 순서가 다름 — 계획 칸 비움")
+            return None
+        rev_v, cost_v, ov, labor, _asset, mgmt, profit = plan[i - 2], plan[i - 1], plan[i], plan[i + 1], plan[i + 2], plan[i + 3], plan[i + 4]
+        if any(pd.isna(v) for v in (rev_v, cost_v, ov, labor, mgmt, profit)):
+            return None
+        if abs(rev_v - rev_plan_sum) > 10 or abs(cost_v - cost_plan_sum) > 10:
+            logger.warning("계획 관리비·경상손익: 합계 블록 매출/원가(%.0f/%.0f)가 프로젝트 행 합(%.0f/%.0f)과 다름 — 계획 칸 비움",
+                           rev_v, cost_v, rev_plan_sum, cost_plan_sum)
+            return None
+        if abs((rev_v - cost_v - ov - labor - mgmt) - profit) > 100:
+            logger.warning("계획 관리비·경상손익: 매출−원가−공통원가−인건비−관리비(%.0f)가 손익 줄(%.0f)과 다름 — 계획 칸 비움",
+                           rev_v - cost_v - ov - labor - mgmt, profit)
+            return None
+        return {"mgmt": float(mgmt), "profit": float(profit), "labor": float(labor)}
+    except Exception:
+        logger.warning("계획 관리비·경상손익 읽기 실패 — 계획 칸 비움", exc_info=True)
+        return None
+
+
 def read_perf_frame(path: str, sheet: "str | None" = None, col_map: "dict | None" = None):
     """실적 엑셀 한 시트를 읽어 정리한 DataFrame + (시트명, 연, 월). 캐시·전역값은 안 건드림 —
     load_perf_excel(대시보드 캐시)과 업로드 검증(perf_upload)이 같은 규칙으로 읽게 공용(2026-10-14).
@@ -452,11 +487,11 @@ def read_perf_frame(path: str, sheet: "str | None" = None, col_map: "dict | None
     df = df.where(df.notna(), other=None)
     df["filename"] = os.path.basename(path)
     # 사업계획 기준 공통원가(시트 합계 블록 W열) — 못 찾거나 검증 실패면 None(요약이 추정 공통원가로 대체)
-    df.attrs["plan_overhead"] = _plan_overhead_from_block(
-        raw_df,
-        float(df.loc[df["category"] == "매출", "plan_initial"].sum()),
-        float(df.loc[df["category"] == "원가", "plan_initial"].sum()),
-    )
+    _rev_plan_sum  = float(df.loc[df["category"] == "매출", "plan_initial"].sum())
+    _cost_plan_sum = float(df.loc[df["category"] == "원가", "plan_initial"].sum())
+    df.attrs["plan_overhead"] = _plan_overhead_from_block(raw_df, _rev_plan_sum, _cost_plan_sum)
+    # 사업계획 기준 관리비·경상손익(같은 블록, 2026-10-27) — 못 읽으면 None(계획 칸을 비움)
+    df.attrs["plan_block_extra"] = _plan_mgmt_profit_from_block(raw_df, _rev_plan_sum, _cost_plan_sum)
     return df, resolved_sheet, current_year, current_month_num
 
 
@@ -1083,6 +1118,31 @@ def api_perf_summary():
     _blk  = _full.attrs.get("plan_overhead") if len(df) == len(_full) else None
     _est_overhead  = float(rev["cost_overhead"].sum())
     _plan_overhead = _blk if _blk is not None else _est_overhead
+    # 계획 관리비·경상손익(2026-10-27) — 같은 합계 블록. 팀·파트로 걸렀거나 못 읽으면 None(프론트는 계획 칸을 '-'로).
+    # 공통원가와 달리 대체할 값이 없음 — 추정으로 채우면 계획=추정으로 보여 오해
+    _extra = _full.attrs.get("plan_block_extra") if len(df) == len(_full) else None
+
+    # 카드별 "계획 대비 추정" 비율(%) = 추정 ÷ 계획 × 100 (2026-10-27, 카드의 추정 값 위에 표시). 계획이 없거나(None) 0 이하면 None.
+    # 키 = 프론트 카드 id. 계획 칸 값은 위 카드 정의와 같은 것(plan_gross·plan_overhead·시트 블록의 관리비·인건비·경상손익)
+    _est_labor  = float(rev["cost_labor"].sum())
+    _est_mgmt   = float(rev["cost_mgmt"].sum())
+    _est_profit = float(rev["operating_profit"].sum())
+    _plan_gross = _plan_rev - (_plan_cost + _plan_overhead)
+    _est_gross  = _est_rev - (_est_cost + _est_overhead)
+
+    def _vs_plan(est: float, plan: "float | None") -> "float | None":
+        return None if plan is None else _ratio(est, plan)
+
+    est_plan_rate = {
+        "revenue":     _vs_plan(_est_rev, _plan_rev),
+        "cost":        _vs_plan(_est_cost, _plan_cost),
+        # 필터 중엔 계획 공통원가가 추정값으로 대체돼(_blk None) 100%가 나오므로 비움
+        "overhead":    _vs_plan(_est_overhead, _plan_overhead if _blk is not None else None),
+        "grossProfit": _vs_plan(_est_gross, _plan_gross),
+        "labor":       _vs_plan(_est_labor, _extra["labor"] if _extra else None),
+        "mgmt":        _vs_plan(_est_mgmt, _extra["mgmt"] if _extra else None),
+        "profit":      _vs_plan(_est_profit, _extra["profit"] if _extra else None),
+    }
 
     total = {
         "plan_initial":     _plan_rev,
@@ -1108,10 +1168,17 @@ def api_perf_summary():
         # 추정 칸은 매출행 BD(연간 추정) 공통원가, 계획 칸은 시트 합계 블록의 사업계획 기준 공통원가(plan_overhead, 2026-10-23).
         # 블록을 못 읽거나 팀·파트 필터 중이면 계획 칸도 추정 공통원가로 대체(plan_overhead_source="estimate").
         # ⚠️ 프로젝트 상세 표의 '매출 이익'(est_gross, 매출 − 직접원가)·경상손익 검증식(BA = BH − BB)은 그대로
-        "plan_gross":       _plan_rev - (_plan_cost + _plan_overhead),
-        "est_gross":        _est_rev - (_est_cost + _est_overhead),
+        "plan_gross":       _plan_gross,
+        "est_gross":        _est_gross,
         "plan_overhead":    _plan_overhead,
         "plan_overhead_source": "sheet" if _blk is not None else "estimate",
+        # 계획 관리비·경상손익(천원) — 시트 합계 블록의 사업계획 기준. 필터 중·못 읽음 = None
+        "plan_mgmt":             _extra["mgmt"]   if _extra else None,
+        "plan_operating_profit": _extra["profit"] if _extra else None,
+        # 계획 인건비(천원, 같은 블록의 '인건비' 줄 — 9월 집계 925행 W열 5,361,140 = 53.61억). 추정은 cost_labor(매출행 합)
+        "plan_labor":            _extra["labor"]  if _extra else None,
+        # 카드별 계획 대비 추정(%) — 카드 id → 값(없으면 None)
+        "est_plan_rate":         est_plan_rate,
         # '당해 연도 추정 관리비' 카드(2026-10-23) 보조값 — 관리비(매출행 BE, 연간 추정 기준) ÷ 연간 추정 매출 × 100
         "est_mgmt_rate":    _ratio(float(rev["cost_mgmt"].sum()), _est_rev),
         # 계획 대비 누계 진행률 = 누계매출 ÷ 계획매출 × 100

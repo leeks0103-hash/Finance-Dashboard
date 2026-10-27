@@ -42,7 +42,7 @@ import styles from './PerformanceChartSection.module.css';
 //                          (한 줄에 하나씩 12칸으로 쌓아 봤다가 한 줄 4개로 확정. 예전: 3줄 = 인당 3개(4칸×3) / 4줄 = 계획 vs 추정 실적)
 // (2026-10-20엔 1줄 = 월별 8 + 도넛 4 / 2줄 = 파트별 매출/원가 8 + 계획 vs 추정 4). 'progress'(진행단계별)는 요청에 따라 비활성
 // 줄(행) 구성은 고정 — 같은 줄 안에서 좌우 순서만 바꿀 수 있고, 카드가 다른 줄로 가거나 줄 자체를 위아래로 옮길 수는 없음(2026-10-23 요청)
-const DEFAULT_CHART_ORDER = ['monthly', 'achievement', 'profitRate', 'costBreakdown', 'headcount', 'planVsActual', 'perCapitaRevenue', 'perCapitaProfit', 'perCapitaMgmt'];
+const DEFAULT_CHART_ORDER = ['monthly', 'achievement', 'profitRate', 'costBreakdown', 'headcount', 'planVsActual', 'perCapitaRevenue', 'perCapitaMgmt', 'perCapitaProfit'];
 // 배치가 바뀌어 저장된 옛 순서로는 줄이 어긋나 키를 올림 — 한 번 기본 순서로 돌아감
 const LS_CHART_ORDER = 'performance-chart-order-v8';
 
@@ -1287,7 +1287,9 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
     ]),
     perCapitaProfit: () => perCapitaCard('perCapitaProfit', infoPerCapita('profit'), [
       { label: '추정 경상손익(억)', data: vm.perCapita.profit,
-        backgroundColor: vm.perCapita.isProfit.map(ok => (ok ? palette.profit : palette.loss)) },
+        // 경상손익 색(도넛의 costProfit — 기본 빨강)으로 통일(2026-10-27 요청). 예전: 플러스 palette.profit(파랑) / 마이너스 palette.loss(빨강)
+        // backgroundColor: vm.perCapita.isProfit.map(ok => (ok ? palette.profit : palette.loss)) },
+        backgroundColor: vm.perCapita.isProfit.map(() => palette.costProfit) },
     ]),
     perCapitaMgmt: () => perCapitaCard('perCapitaMgmt', infoPerCapita('mgmt'), [
       { label: '추정 관리비(억)', data: vm.perCapita.mgmt, backgroundColor: palette.costMgmt },

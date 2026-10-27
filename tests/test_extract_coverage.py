@@ -47,6 +47,43 @@ def test_statuses(monkeypatch, tmp_path):
     assert res["orphans"] == ["gone.pptx"]
 
 
+def test_modified_after_extract(monkeypatch, tmp_path):
+    """원본 수정 시각이 마지막 처리 시각보다 늦은 파일만 modified — 실패·미처리·이전에 수정된 파일은 아님"""
+    from datetime import datetime
+    excel = tmp_path / "out.xlsx"
+    excel.write_bytes(b"")
+    hist = pd.DataFrame([
+        ["a.pptx", "SUCCESS", "추출 1건", "2026-09-30 10:00:00", ""],   # 처리 뒤 수정 → modified
+        ["b.pptx", "SUCCESS", "추출 1건", "2026-09-30 10:00:00", ""],   # 처리 전 수정 → 아님
+        ["c.pptx", "FAIL", "com_error", "2026-09-30 10:00:00", ""],     # 실패는 따로 표시
+        ["d.pptx", "SUCCESS", "조건에 맞는 표 데이터 없음", "2026-09-30 10:00:00", ""],   # 표 없음이어도 수정되면 modified
+    ], columns=["파일명", "처리상태", "메시지", "처리일시", "전체경로"])
+    sheets = {"처리이력": hist, "취합": pd.DataFrame({"원본파일명": ["a.pptx", "b.pptx"]})}
+    monkeypatch.setitem(ec.SOURCES["finance"], "excel", str(excel))
+    monkeypatch.setattr(ec, "read_sheet_cached", lambda path, sheet: sheets.get(sheet))
+    later, earlier = datetime(2026, 10, 1, 9, 0, 0), datetime(2026, 9, 29, 9, 0, 0)
+    res = ec._source_coverage(
+        "finance", ["a.pptx", "b.pptx", "c.pptx", "d.pptx", "new.pptx"],
+        {"a.pptx": later, "b.pptx": earlier, "c.pptx": later, "d.pptx": later, "new.pptx": later},
+    )
+    by = {it["file"]: it for it in res["items"]}
+    assert by["a.pptx"]["modified"] and by["a.pptx"]["modified_at"] == "2026-10-01 09:00:00"
+    assert not by["b.pptx"]["modified"]
+    assert not by["c.pptx"]["modified"] and by["c.pptx"]["status"] == "failed"
+    assert by["d.pptx"]["modified"] and by["d.pptx"]["status"] == "no_table"
+    assert not by["new.pptx"]["modified"] and by["new.pptx"]["status"] == "pending"
+    assert res["modified_count"] == 2
+    # 상태 집계(counts)는 수정 여부와 무관
+    assert res["counts"]["extracted"] == 2 and res["counts"]["no_table"] == 1
+
+
+def test_file_mtimes_reads_files_only(tmp_path):
+    f = tmp_path / "x.pptx"
+    f.write_bytes(b"x")
+    out = ec._file_mtimes([str(f), str(tmp_path / "missing.pptx")])
+    assert list(out) == ["x.pptx"]   # 못 읽는 파일은 건너뜀
+
+
 def test_duplicate_names_counted(monkeypatch, tmp_path):
     res = _run(monkeypatch, tmp_path, hist_rows=[], data_files=[], folder_files=["x.pptx", "x.pptx", "y.pptx"])
     assert res["duplicate_names"] == 1

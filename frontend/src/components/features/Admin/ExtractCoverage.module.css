@@ -117,6 +117,7 @@
 .seg_no_table  { background: var(--text-muted); opacity: 0.45; }
 .seg_pending   { background: var(--warn); }
 .seg_failed    { background: var(--danger); }
+.seg_modified  { background: var(--warn); }   /* 막대엔 안 그리고 범례 점만 */
 
 .legend {
   display: flex;
@@ -195,6 +196,7 @@
 }
 .pill_failed  { background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger); }
 .pill_pending { background: color-mix(in srgb, var(--warn) 14%, transparent); color: var(--warn); }
+.pill_modified { background: color-mix(in srgb, var(--warn) 14%, transparent); color: var(--warn); }
 .file {
   color: var(--text-primary);
   word-break: break-all;

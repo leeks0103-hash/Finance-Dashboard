@@ -312,6 +312,7 @@
   text-transform: none;
   letter-spacing: normal;
   font-weight: 500;
+  font-size: 1rem;   /* 너무 작다는 요청으로 키움(2026-10-27) — 이전엔 제목줄 기본(작은 글씨) */
 }
 .cumLabel { color: var(--text-muted); white-space: nowrap; }
 .cumItem {

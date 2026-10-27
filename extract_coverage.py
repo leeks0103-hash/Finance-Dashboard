@@ -114,12 +114,41 @@ def _explain_failure(path: str) -> str:
     return "PowerPoint로 열다가 실패 — 일시 오류일 수 있으니 다시 추출해 보세요"
 
 
-def _source_coverage(key: str, folder_files: list[str]) -> dict:
+_TS_FORMATS = ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M")
+
+
+def _parse_ts(s: str) -> datetime | None:
+    for fmt in _TS_FORMATS:
+        try:
+            return datetime.strptime(s.strip(), fmt)
+        except ValueError:
+            continue
+    return None
+
+
+def _file_mtimes(file_paths: list[str]) -> dict[str, datetime]:
+    """파일명 → 원본 PPT 수정 시각(같은 이름이 여러 곳이면 가장 늦은 것). 파일의 수정 시각만 읽음 —
+    폴더 날짜는 안 봄(폴더는 파일이 오가면 계속 바뀌어 수정 여부와 무관, 2026-10-27). 못 읽는 파일은 건너뜀"""
+    out: dict[str, datetime] = {}
+    for p in file_paths:
+        try:
+            m = datetime.fromtimestamp(os.stat(p).st_mtime)
+        except OSError:
+            continue
+        name = os.path.basename(p)
+        if name not in out or m > out[name]:
+            out[name] = m
+    return out
+
+
+def _source_coverage(key: str, folder_files: list[str], mtimes: dict[str, datetime] | None = None) -> dict:
+    """mtimes(파일명 → 원본 수정 시각)가 있으면 '마지막 추출 뒤에 수정된 파일'(modified)도 표시 —
+    상태(extracted 등)와 별개의 표시라 counts엔 안 넣고 modified_count로 따로 셈"""
     cfg = SOURCES[key]
     result = {
         "label": cfg["label"], "excel_ok": True, "folder_files": len(folder_files),
         "counts": {"extracted": 0, "merged": 0, "no_table": 0, "failed": 0, "pending": 0}, "rows_total": 0,
-        "duplicate_names": 0, "orphans": [], "items": [],
+        "duplicate_names": 0, "orphans": [], "items": [], "modified_count": 0,
     }
     hist = read_sheet_cached(cfg["excel"], cfg["history_sheet"]) if os.path.exists(cfg["excel"]) else None
     data = read_sheet_cached(cfg["excel"], cfg["data_sheet"]) if os.path.exists(cfg["excel"]) else None
@@ -169,10 +198,18 @@ def _source_coverage(key: str, folder_files: list[str]) -> dict:
             reason = ("다음 단계 보고서(예: 제안 → 착수)의 표에도 이 단계 숫자가 같이 들어 있어, 대시보드엔 그 다음 보고서 쪽 숫자로 들어가 있음"
                       " — 빠진 데이터 아님(두 보고서 숫자가 다르면 다음 보고서 숫자가 쓰임)")
         result["counts"][status] += 1
+        # 마지막 처리 시각보다 원본 수정 시각이 늦으면 → 추출 뒤에 고쳐진 파일. 실패·미처리는 이미 따로 표시되니 제외
+        modified, modified_at = False, ""
+        if mtimes and h and status not in ("failed", "pending") and name in mtimes:
+            processed = _parse_ts(h["at"])
+            if processed and mtimes[name] > processed:
+                modified, modified_at = True, mtimes[name].strftime("%Y-%m-%d %H:%M:%S")
+                result["modified_count"] += 1
         result["items"].append({"file": name, "status": status, "rows": rows, "reason": reason,
                                 # 원본 처리 메시지(오류 코드 등) — 실패일 때만, 화면엔 마우스 올렸을 때만
                                 "detail": h["message"] if status == "failed" else "",
-                                "at": h["at"] if h else ""})
+                                "at": h["at"] if h else "",
+                                "modified": modified, "modified_at": modified_at})
 
     # 결과 엑셀엔 있는데 폴더엔 없는 파일 — 다음 추출 때 정리되지만, 그 전까진 숫자가 안 맞는 원인
     result["orphans"] = sorted(n for n in rows_by_file if n not in seen)
@@ -207,12 +244,13 @@ def coverage(force: bool = False) -> dict:
     kpi_paths = _list_kpi_files(root)
     finance_files = [os.path.basename(p) for p in finance_paths]
     kpi_files = [os.path.basename(p) for p in kpi_paths]
+    mtimes = _file_mtimes(list(dict.fromkeys(finance_paths + kpi_paths)))   # 재무·KPI가 겹치는 파일은 한 번만
     data = {
         "ok": True,
         "folder": root,
         "scanned_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "finance": _source_coverage("finance", finance_files),
-        "kpi": _source_coverage("kpi", kpi_files),
+        "finance": _source_coverage("finance", finance_files, mtimes),
+        "kpi": _source_coverage("kpi", kpi_files, mtimes),
     }
     logger.info("추출 현황 계산 %.1f초 (재무 %d개 · KPI %d개)", time.time() - t0, len(finance_files), len(kpi_files))
     with _cache_lock:
