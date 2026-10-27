@@ -101,12 +101,12 @@ def per_head(value, headcount):
 
 
 def per_head_fields(stats: dict, headcount, plan_headcount=None) -> dict:
-    """by_part 한 파트의 인당 값(천원) — 계획 매출만 계획이 있고 손익·관리비는 추정(연간) 값만 있다.
-    인당 계획 매출은 계획 인원, 나머지는 현재 인원(headcount)으로 나눔."""
+    """by_part 한 파트의 인당 값(천원) — 추정(연간) 값만 현재 인원(headcount)으로 나눔.
+    인당 계획 매출(계획 인원 기준)은 2026-10-27 주석 처리 — plan_headcount 인자는 호환용으로만 남김(안 씀)."""
     return {
         "headcount":         headcount,
-        "plan_headcount":    plan_headcount,
-        "rev_per_head_plan": per_head(stats.get("plan_initial"), plan_headcount),
+        # "plan_headcount":    plan_headcount,                                              # 주석 처리(2026-10-27)
+        # "rev_per_head_plan": per_head(stats.get("plan_initial"), plan_headcount),
         "rev_per_head_est":  per_head(stats.get("jun_check_total"), headcount),
         "profit_per_head":   per_head(stats.get("operating_profit"), headcount),
         "mgmt_per_head":     per_head(stats.get("cost_mgmt"), headcount),

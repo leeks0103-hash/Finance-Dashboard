@@ -12,9 +12,9 @@ import type { PerfKpiCard } from '@/hooks/viewmodels/usePerformanceViewModel';
 import { SORTABLE_TRANSITION, sortableItemStyle } from '@/components/ui/sortableMotion';
 import styles from './PerformanceKpiSection.module.css';
 
-// usePerformanceViewModel의 카드 id와 동일해야 함 — 매출 → 원가 → 매출이익 (계획→추정 비교) → 관리비 → 경상손익
+// usePerformanceViewModel의 카드 id와 동일해야 함 — 매출 → 직접원가 → 공통원가 → 매출이익 (계획→추정 비교) → 관리비 → 경상손익
 // ('junActual' 누계 실적 카드는 2026-10-23 주석 처리 — 수치는 진도율(월별 실적 추이) 옆으로 옮길 예정, 복구 시 여기 마지막에 추가)
-const DEFAULT_KPI_ORDER = ['revenue', 'cost', 'grossProfit', 'mgmt', 'profit'];
+const DEFAULT_KPI_ORDER = ['revenue', 'cost', 'overhead', 'grossProfit', 'mgmt', 'profit'];
 // v3 — 매출/원가 분리 + 계획→추정 비교 카드로 재편, 기존 저장값 무효화
 const LS_KPI_ORDER = 'performance-kpi-order-v3';
 

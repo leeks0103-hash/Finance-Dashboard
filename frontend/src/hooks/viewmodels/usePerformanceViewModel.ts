@@ -230,6 +230,10 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
     const compareCards = [
       mk('revenue',     '당해 연도 매출 (계획/추정)', 'brand',  total.plan_initial,   total.jun_check_total),
       mk('cost',        '당해 연도 직접 원가 (계획/추정)', 'purple', total.plan_cost,      total.jun_cost),
+      // 공통원가 카드(2026-10-27) — 직접 원가와 매출이익 카드 사이. 계획 = 시트 합계 블록의 사업계획 기준 값(plan_overhead),
+      // 추정 = 매출행 BD 합(cost_overhead). 팀·파트 필터 중엔 계획도 추정 공통원가로 대체됨(plan_overhead_source 'estimate').
+      // plan_overhead는 Flask 재시작 전엔 없을 수 있어 추정 값으로 폴백
+      mk('overhead',    '당해 연도 공통원가 (계획/추정)', 'purple', total.plan_overhead ?? total.cost_overhead, total.cost_overhead),
       // 계획 칸 공통원가 = 시트 합계 블록의 사업계획 기준 값(백엔드 plan_overhead, 2026-10-23) — 빨간 "계획" 표시(planWarn)는 뺌.
       // 블록을 못 읽거나 팀·파트 필터 중이면 백엔드가 추정 공통원가로 대체(plan_overhead_source 'estimate')
       { ...mk('grossProfit', '당해 연도 매출이익 (계획/추정)',

@@ -47,17 +47,24 @@ class TestPerHead:
     def test_divides(self):
         assert headcount.per_head(1000, 4) == 250
 
-    def test_fields_use_plan_only_for_revenue(self):
+    def test_fields_use_current_headcount(self):
         f = headcount.per_head_fields(
             {"plan_initial": 600, "jun_check_total": 800, "operating_profit": 40, "cost_mgmt": 80}, 4, 5)
-        # 계획 매출은 계획 인원(5명), 나머지는 현재 인원(4명)으로 나눔
-        assert f["rev_per_head_plan"] == 120 and f["rev_per_head_est"] == 200
+        # 추정 매출·손익·관리비는 현재 인원(4명)으로 나눔. 계획 인원·인당 계획 매출은 2026-10-27 주석 처리돼 응답에 없음
+        assert f["rev_per_head_est"] == 200
         assert f["profit_per_head"] == 10 and f["mgmt_per_head"] == 20
-        assert f["headcount"] == 4 and f["plan_headcount"] == 5
+        assert f["headcount"] == 4
+        assert "plan_headcount" not in f and "rev_per_head_plan" not in f
 
-    def test_plan_revenue_blank_without_plan_headcount(self):
-        f = headcount.per_head_fields({"plan_initial": 600, "jun_check_total": 800}, 4)
-        assert f["rev_per_head_plan"] is None and f["rev_per_head_est"] == 200
+    # 계획 인원 주석 처리(2026-10-27) — 복구 시 headcount.per_head_fields의 plan 줄과 함께 해제
+    # def test_fields_use_plan_only_for_revenue(self):
+    #     f = headcount.per_head_fields(
+    #         {"plan_initial": 600, "jun_check_total": 800, "operating_profit": 40, "cost_mgmt": 80}, 4, 5)
+    #     assert f["rev_per_head_plan"] == 120 and f["plan_headcount"] == 5
+    #
+    # def test_plan_revenue_blank_without_plan_headcount(self):
+    #     f = headcount.per_head_fields({"plan_initial": 600, "jun_check_total": 800}, 4)
+    #     assert f["rev_per_head_plan"] is None
 
 
 class TestHeadcountApi:
@@ -138,8 +145,8 @@ class TestSummaryPerCapita:
 
     def test_per_head_values_in_thousand_won(self, summary):
         p = summary()["① AIㆍDS"]
-        assert p["headcount"] == 4 and p["plan_headcount"] == 5
-        assert p["rev_per_head_plan"] == 120 and p["rev_per_head_est"] == 200
+        assert p["headcount"] == 4 and "plan_headcount" not in p   # 계획 인원 주석 처리(2026-10-27)
+        assert "rev_per_head_plan" not in p and p["rev_per_head_est"] == 200
         assert p["profit_per_head"] == 10 and p["mgmt_per_head"] == 20
         assert p["headcount_partial"] is False
 
@@ -156,4 +163,4 @@ class TestSummaryPerCapita:
     def test_multi_team_part_uses_headcount_when_not_filtered(self, summary):
         k = summary()["⑦ K뉴딜TF"]
         assert k["rev_per_head_est"] == pytest.approx(360 / 6)
-        assert k["rev_per_head_plan"] == pytest.approx(300 / 8)
+        # assert k["rev_per_head_plan"] == pytest.approx(300 / 8)   # 계획 인원 주석 처리(2026-10-27)

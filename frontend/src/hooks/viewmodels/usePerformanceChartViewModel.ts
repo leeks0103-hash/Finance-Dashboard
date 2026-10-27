@@ -61,10 +61,10 @@ export interface PlanVsActualRow {
 export interface PerCapitaData {
   labels:      string[];
   headcounts:  number[];
-  /** 계획 인원(툴팁용) — 미입력이면 null */
-  planHeadcounts: (number | null)[];
-  /** 인당 계획 매출(억) — 계획 인원 미입력이면 null(막대 없음) */
-  revPlan:     (number | null)[];
+  // /** 계획 인원(툴팁용) — 미입력이면 null */   // 계획 인원 주석 처리(2026-10-27)
+  // planHeadcounts: (number | null)[];
+  // /** 인당 계획 매출(억) — 계획 인원 미입력이면 null(막대 없음) */
+  // revPlan:     (number | null)[];
   revEst:      number[];
   profit:      number[];
   isProfit:    boolean[];
@@ -75,14 +75,14 @@ export interface PerCapitaData {
   partialParts: string[];
 }
 
-/** 파트별 인원 카드(2026-10-23) — 계획 인원·현재 인원 두 줄. 둘 중 하나라도 입력된 파트만, 한쪽만 입력이면 다른 쪽은 null */
+/** 파트별 인원 카드(2026-10-23) — 현재 인원 한 줄(계획 인원 줄은 2026-10-27 주석 처리). 입력된 파트만 */
 export interface HeadcountChartData {
   labels:       string[];
-  plan:         (number | null)[];
+  // plan:         (number | null)[];   // 계획 인원 주석 처리(2026-10-27)
   current:      (number | null)[];
-  totalPlan:    number;
+  // totalPlan:    number;
   totalCurrent: number;
-  /** 계획·현재 둘 다 미입력이라 빠진 파트 */
+  /** 현재 인원 미입력이라 빠진 파트 */
   missingParts: string[];
 }
 
@@ -250,7 +250,7 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
       datalabels: {
         anchor: 'end',
         align:  'end',
-        formatter: (v: number | null) => (v == null ? null : `${v.toFixed(2)}억`),   // 계획 인원 미입력 파트의 계획 막대(null)는 수치도 없음
+        formatter: (v: number | null) => (v == null ? null : `${v.toFixed(2)}억`),
       },
     },
   }), [showLabels, labelColor]);
@@ -364,8 +364,8 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
         return {
           labels:       ok.map(r => r.name),
           headcounts:   ok.map(r => r.s.headcount ?? 0),
-          planHeadcounts: ok.map(r => r.s.plan_headcount ?? null),
-          revPlan:      ok.map(r => (r.s.rev_per_head_plan == null ? null : toEokNum2(r.s.rev_per_head_plan))),
+          // planHeadcounts: ok.map(r => r.s.plan_headcount ?? null),   // 계획 인원 주석 처리(2026-10-27)
+          // revPlan:      ok.map(r => (r.s.rev_per_head_plan == null ? null : toEokNum2(r.s.rev_per_head_plan))),
           revEst:       ok.map(r => toEokNum2(r.s.rev_per_head_est)),
           profit:       ok.map(r => toEokNum2(r.s.profit_per_head)),
           isProfit:     ok.map(r => (r.s.profit_per_head ?? 0) >= 0),
@@ -377,16 +377,17 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
       headcount: (() => {
         const rows = parts.map(p => {
           const st = summary.by_part[p];
-          return { name: stripPartPrefix(p), plan: (st.plan_headcount ?? 0) > 0 ? st.plan_headcount! : null, cur: (st.headcount ?? 0) > 0 ? st.headcount! : null };
+          // return { name: stripPartPrefix(p), plan: (st.plan_headcount ?? 0) > 0 ? st.plan_headcount! : null, cur: (st.headcount ?? 0) > 0 ? st.headcount! : null };   // 계획 인원 주석 처리(2026-10-27)
+          return { name: stripPartPrefix(p), cur: (st.headcount ?? 0) > 0 ? st.headcount! : null };
         });
-        const ok = rows.filter(r => r.plan != null || r.cur != null);
+        const ok = rows.filter(r => r.cur != null);
         return {
           labels:       ok.map(r => r.name),
-          plan:         ok.map(r => r.plan),
+          // plan:         ok.map(r => r.plan),   // 계획 인원 주석 처리(2026-10-27)
           current:      ok.map(r => r.cur),
-          totalPlan:    ok.reduce((t, r) => t + (r.plan ?? 0), 0),
+          // totalPlan:    ok.reduce((t, r) => t + (r.plan ?? 0), 0),
           totalCurrent: ok.reduce((t, r) => t + (r.cur ?? 0), 0),
-          missingParts: rows.filter(r => r.plan == null && r.cur == null).map(r => r.name),
+          missingParts: rows.filter(r => r.cur == null).map(r => r.name),
         };
       })(),
       profitRate: {
@@ -467,8 +468,8 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
     return {
       isLoading, isError, isEmpty: false, showLabels, labelColor,
       monthly:          { labels: [], revenues: [], costs: [], isFuture: [], rows: [], cumulative: null, options: monthlyOptions },
-      perCapita:        { labels: [], headcounts: [], planHeadcounts: [], revPlan: [], revEst: [], profit: [], isProfit: [], mgmt: [], missingParts: [], partialParts: [], options: perCapitaOptions },
-      headcount:        { labels: [], plan: [], current: [], totalPlan: 0, totalCurrent: 0, missingParts: [] },
+      perCapita:        { labels: [], headcounts: [], revEst: [], profit: [], isProfit: [], mgmt: [], missingParts: [], partialParts: [], options: perCapitaOptions },
+      headcount:        { labels: [], current: [], totalCurrent: 0, missingParts: [] },
       planVsActual:     { labels: [], planInitial: [], junCheckTotal: [], rows: [], rates: [], totalFor: () => ({ part: '합계', plan: 0, actual: 0, diff: 0, rate: null }), showRate, options: planVsActualOptions },
       profitRate:       { labels: [], rates: [], profits: [], isProfit: [], revenues: [], costs: [], overheads: [], planRevenue: [], planCost: [], options: profitRateOptions },
       costBreakdown:    { labels: [], values: [] },

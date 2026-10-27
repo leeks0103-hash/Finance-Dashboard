@@ -135,12 +135,12 @@ export interface PerfPartStats {
   // ── 인당 값(2026-10-23) — 파트 인원은 관리자 수기 입력(data/headcount.json). 천원, 인원 미입력·부분이면 null ──
   /** 관리자가 입력한 파트 현재 인원. 미입력이면 null */
   headcount?:         number | null;
-  /** 관리자가 입력한 파트 계획 인원. 미입력이면 null */
-  plan_headcount?:    number | null;
+  // /** 관리자가 입력한 파트 계획 인원. 미입력이면 null */   // 계획 인원 주석 처리(2026-10-27)
+  // plan_headcount?:    number | null;
   /** 팀 필터로 행이 잘린 다팀 파트(K뉴딜TF) — 인당 값을 못 구함 */
   headcount_partial?: boolean;
-  /** 인당 계획 매출 = 계획 매출 ÷ 계획 인원 */
-  rev_per_head_plan?: number | null;
+  // /** 인당 계획 매출 = 계획 매출 ÷ 계획 인원 */   // 주석 처리(2026-10-27)
+  // rev_per_head_plan?: number | null;
   /** 인당 추정 매출 = 연간 추정 매출 ÷ 현재 인원 */
   rev_per_head_est?:  number | null;
   /** 인당 추정 경상손익 = 연간 경상손익 ÷ 인원 (계획 손익은 원본에 없음) */

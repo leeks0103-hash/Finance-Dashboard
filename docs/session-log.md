@@ -5,6 +5,15 @@
 
 ---
 
+## [2026-10-27] 공통원가 카드 추가 · 계획 인원 전부 주석 처리
+
+- **공통원가 카드**(`overhead`, 계획/추정 비교형): 직접 원가와 매출이익 카드 사이(`DEFAULT_KPI_ORDER` = revenue·cost·overhead·grossProfit·mgmt·profit). 추정 = `total.cost_overhead`(매출행 BD 합), 계획 = `total.plan_overhead`(시트 합계 블록 사업계획 기준, Flask 재시작 전엔 추정값으로 폴백). 팀·파트 필터 중엔 계획도 추정 공통원가로 대체(`plan_overhead_source`). 저장된 카드 순서는 기존 병합 로직이 `cost` 뒤에 끼워 넣음. 카드가 6개가 돼 한 줄이 빡빡하면 폭을 다시 볼 것.
+- **계획 인원 전부 주석 처리**(요청): 관리자 > 파트별 인원(페이지 섹션·모달 공용 `PartHeadcountPanel`)의 계획 인원 박스, 실적 탭 파트별 인원 카드의 계획 줄, **인당 매출 차트의 계획(억) 막대**(계획 인원이 분모라 같이 뺌 — 추정 1막대만), 인당 차트 툴팁의 "인원 계획 N명", ⓘ 문구, 백엔드 응답 `plan_headcount`·`rev_per_head_plan`(`headcount.per_head_fields`, `performance.py`). 저장은 `parts`만 보냄 — 서버는 `plan_parts`를 안 받으면 저장돼 있던 값을 유지하므로(`app.py`) `data/headcount.json`의 계획 인원은 그대로 남음. 복구하려면 각 주석("계획 인원 주석 처리(2026-10-27)")을 해제. 테스트 `tests/test_headcount.py` 계획 관련 단언은 "응답에 없음"으로 바꾸고 원래 케이스는 주석으로 보존.
+- **UI 단순화**: 계획 인원 박스가 빠져 모달·관리자 섹션의 `.boxes`를 2열 → 1칸 전체 폭, 파트 항목 `.list`를 `repeat(auto-fill, minmax(260px,1fr))` 다열로(오른쪽 빈 여백 해소). 실적 탭 파트별 인원 카드는 두 줄 묶음(`headcountRows`)·고정 폭 라벨·"-" 분기를 걷어내고 "파트별 인원 + 알약 목록 + 합계" 한 줄로. 줄에 혼자라 순서를 바꿀 일이 없는 `headcount` 카드는 **드래그 핸들을 안 그림**(`SortableChart noHandle`). 원래 구조는 주석으로 보존.
+- ⚠️ Flask 재시작 필요(`headcount.py`·`performance.py`). 검증: `pytest tests/test_headcount.py` 25개, `npx tsc -b`, `vitest` 98개 통과.
+
+---
+
 ## [2026-10-23 밤 2] 파트별 인원 카드 · 계획 인원/현재 인원 분리
 
 - **실적 탭에 "파트별 인원" 카드**(원가분석 줄과 계획 vs 추정 매출 줄 사이, 12칸 낮은 카드): 처음엔 막대 차트 → "PM : 7명 식으로 간단하게" 요청으로 알약 목록으로. 이어서 **계획 인원/현재 인원 분리** — 위 줄 계획, 아래 줄 현재, 왼쪽 정렬, 한쪽만 입력된 파트의 빈 쪽은 '-', 맨 끝 합계 알약.

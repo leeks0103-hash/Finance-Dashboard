@@ -97,9 +97,11 @@
 .total b { font-size: 1.15rem; color: var(--text-primary); font-variant-numeric: tabular-nums; }
 .footBtns { display: flex; align-items: center; gap: 8px; margin-left: auto; }
 
-/* 계획 인원 · 현재 인원 — 박스 두 개(2026-10-23). 박스마다 파트 목록 + 합계 */
-.boxes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
-@media (max-width: 760px) { .boxes { grid-template-columns: 1fr; } }
+/* 계획 인원 · 현재 인원 — 박스 두 개(2026-10-23). 박스마다 파트 목록 + 합계
+   계획 인원 박스 주석 처리(2026-10-27)로 박스가 하나 → 한 칸 전체 폭. 복구 시 아래 한 줄 대신 두 줄 주석을 쓸 것 */
+/* .boxes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
+@media (max-width: 760px) { .boxes { grid-template-columns: 1fr; } } */
+.boxes { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; align-items: start; }
 .box {
   display: flex;
   flex-direction: column;
@@ -115,4 +117,6 @@
 .boxTitle { font-size: 0.95rem; font-weight: 700; color: var(--text-primary); }
 .boxDesc { font-size: 0.72rem; color: var(--text-muted); }
 .boxTotal { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; flex-shrink: 0; }
-.list { display: flex; flex-direction: column; gap: 8px; }
+/* 파트 항목 — 박스가 넓어져(계획 인원 박스 주석 처리, 2026-10-27) 한 줄에 하나씩 놓으면 오른쪽이 비므로 폭에 맞춰 여러 열로 */
+/* .list { display: flex; flex-direction: column; gap: 8px; } */
+.list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; }

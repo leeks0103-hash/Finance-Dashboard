@@ -14,7 +14,9 @@ const errText = (e: unknown): string => {
 
 const MAX_HEADCOUNT = 999;
 
-type Kind = 'plan' | 'cur';
+// 계획 인원 입력 박스 주석 처리(2026-10-27) — 복구 시 Kind에 'plan' 추가, 아래 '계획 인원' 주석들을 해제
+// type Kind = 'plan' | 'cur';
+type Kind = 'cur';
 type Draft = Record<Kind, Record<string, string>>;
 
 const toNum = (v: string | undefined) => Math.trunc(Number(v)) || 0;
@@ -59,7 +61,7 @@ const Stepper = ({ label, part, value, onChange }: StepperProps) => {
 
 /**
  * 관리자 > 파트별 인원(2026-10-23). 인원이 자주 바뀌어 원본 엑셀에 없으므로 관리자가 손으로 적는다 —
- * 계획 인원(인당 계획 매출의 분모)과 현재 인원(인당 추정 매출·손익·관리비의 분모) 두 가지.
+ * 현재 인원(인당 추정 매출·손익·관리비의 분모). 계획 인원 입력은 2026-10-27 주석 처리(서버에 저장된 계획 인원은 그대로 유지).
  * 저장하면 서버(data/headcount.json)에 올라가고 모든 사용자에게 보인다. 비워 두면 '미입력'.
  * 관리자 페이지 섹션과 상단 바 바로가기(모달) 둘 다에서 같은 패널을 씀 — 모달은 제목을 자기가 갖고 있어 hideTitle
  */
@@ -70,19 +72,22 @@ const PartHeadcountPanel = ({ hideTitle = false }: { hideTitle?: boolean }) => {
   // 파트 목록 = 실적 파일의 파트 + 이미 저장된 파트(파일에서 사라진 파트도 지우거나 확인할 수 있게)
   const partNames = useMemo(() => {
     const fromFile = (options?.parts ?? []).map(stripPartPrefix);
-    return sortParts([...new Set([...fromFile, ...Object.keys(settings.parts), ...Object.keys(settings.plan_parts)])]);
-  }, [options, settings.parts, settings.plan_parts]);
+    // return sortParts([...new Set([...fromFile, ...Object.keys(settings.parts), ...Object.keys(settings.plan_parts ?? {})])]);   // 계획 인원 주석 처리(2026-10-27)
+    return sortParts([...new Set([...fromFile, ...Object.keys(settings.parts)])]);
+  }, [options, settings.parts]);
 
   const fromServer = useMemo<Draft>(() => {
     const str = (m: Record<string, number>) => Object.fromEntries(partNames.map(p => [p, m[p] != null ? String(m[p]) : '']));
-    return { plan: str(settings.plan_parts), cur: str(settings.parts) };
-  }, [partNames, settings.parts, settings.plan_parts]);
+    // return { plan: str(settings.plan_parts ?? {}), cur: str(settings.parts) };   // 계획 인원 주석 처리(2026-10-27)
+    return { cur: str(settings.parts) };
+  }, [partNames, settings.parts]);
   const [draft, setDraft] = useState<Draft>(fromServer);
   useEffect(() => { setDraft(fromServer); }, [fromServer]);   // 서버 값이 바뀌면(저장·다른 관리자) 입력칸을 맞춤
 
   const val = (k: Kind, p: string) => draft[k][p] ?? '';
   const isChanged = (k: Kind, p: string) => val(k, p) !== fromServer[k][p];
-  const dirty = partNames.some(p => isChanged('plan', p) || isChanged('cur', p));
+  // const dirty = partNames.some(p => isChanged('plan', p) || isChanged('cur', p));   // 계획 인원 주석 처리(2026-10-27)
+  const dirty = partNames.some(p => isChanged('cur', p));
   const sum = (k: Kind) => partNames.reduce((t, p) => t + toNum(val(k, p)), 0);
   const filled = (k: Kind) => partNames.filter(p => toNum(val(k, p)) > 0).length;
 
@@ -94,7 +99,7 @@ const PartHeadcountPanel = ({ hideTitle = false }: { hideTitle?: boolean }) => {
         {!hideTitle && (
           <div className={styles.titleBox}>
             <span className={styles.title}>파트별 인원</span>
-            <span className={styles.sub}>계획 인원은 인당 계획 매출, 현재 인원은 인당 추정 매출·손익·관리비의 분모입니다 — 저장하면 모든 사용자에게 바로 반영돼요</span>
+            <span className={styles.sub}>현재 인원은 인당 추정 매출·손익·관리비의 분모입니다 — 저장하면 모든 사용자에게 바로 반영돼요</span>
           </div>
         )}
         {settings.updated_at && (
@@ -107,7 +112,7 @@ const PartHeadcountPanel = ({ hideTitle = false }: { hideTitle?: boolean }) => {
       {isLoading ? <span className={styles.muted}>불러오는 중…</span> : (
         <div className={styles.boxes}>
           {([
-            { k: 'plan' as Kind, title: '계획 인원', desc: '인당 계획 매출의 분모' },
+            // { k: 'plan' as Kind, title: '계획 인원', desc: '인당 계획 매출의 분모' },   // 주석 처리(2026-10-27)
             { k: 'cur' as Kind, title: '현재 인원', desc: '인당 추정 매출·손익·관리비의 분모' },
           ]).map(box => (
             <div key={box.k} className={styles.box}>
@@ -139,12 +144,13 @@ const PartHeadcountPanel = ({ hideTitle = false }: { hideTitle?: boolean }) => {
 
       <div className={styles.foot}>
         <div className={styles.summary}>
-          <span className={styles.muted}>현재 인원을 비운 파트는 인당 차트에서 빠지고, 계획 인원을 비운 파트는 인당 계획 매출 막대만 빠집니다</span>
+          <span className={styles.muted}>현재 인원을 비운 파트는 인당 차트에서 빠집니다</span>
         </div>
         <div className={styles.footBtns}>
           <Button variant="ghost" size="sm" disabled={!dirty || isSaving} onClick={() => setDraft(fromServer)}>되돌리기</Button>
           <Button variant="primary" size="sm" loading={isSaving} disabled={!dirty}
-            onClick={() => void save({ parts: draft.cur, plan_parts: draft.plan }).catch(() => undefined)}>저장</Button>
+            // plan_parts를 안 보내면 서버가 저장돼 있던 계획 인원을 그대로 유지함(app.py) — 계획 인원 주석 처리(2026-10-27)
+            onClick={() => void save({ parts: draft.cur }).catch(() => undefined)}>저장</Button>
         </div>
       </div>
       {error ? <span className={styles.error}>저장 실패: {errText(error)}</span> : null}

@@ -699,8 +699,9 @@ const withUnstackedTheme = (
 // 드래그 가능 차트 카드 래퍼 — 재무 ChartSection과 동일 패턴(카드 전체가 아닌 그립 아이콘만 드래그)
 // spanClassName: 2번째 줄 카드는 폭이 슬롯이 아니라 '카드' 기준(각 카드에 고정 span) —
 //   재배치해도 파트별 추정 매출/원가가 좁아지지 않게
-interface SortableChartProps { id: string; fullRow?: boolean; spanClassName?: string; dropState?: 'ok' | 'bad' | null; children: ReactNode; }
-function SortableChart({ id, fullRow, spanClassName, dropState, children }: SortableChartProps) {
+// noHandle: 줄에 혼자라 순서를 바꿀 일이 없는 카드(파트별 인원, 2026-10-27)는 드래그 핸들을 안 그림
+interface SortableChartProps { id: string; fullRow?: boolean; spanClassName?: string; dropState?: 'ok' | 'bad' | null; noHandle?: boolean; children: ReactNode; }
+function SortableChart({ id, fullRow, spanClassName, dropState, noHandle, children }: SortableChartProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, transition: SORTABLE_TRANSITION });
   return (
     <div
@@ -721,10 +722,12 @@ function SortableChart({ id, fullRow, spanClassName, dropState, children }: Sort
       }}
     >
       {/* 드래그는 몇 px 움직여야 시작(activationConstraint distance)이라 더블클릭과 안 겹침 */}
-      <div className={styles.dragHandle} {...attributes} {...listeners}
-        aria-label="차트 순서 이동" title="드래그하여 같은 줄 안에서 순서 변경">
-        ⠿
-      </div>
+      {!noHandle && (
+        <div className={styles.dragHandle} {...attributes} {...listeners}
+          aria-label="차트 순서 이동" title="드래그하여 같은 줄 안에서 순서 변경">
+          ⠿
+        </div>
+      )}
       {children}
     </div>
   );
@@ -934,11 +937,12 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
         fitBarLabels: { show: vm.showLabels, showRate: false },
         tooltip: { callbacks: {
           afterLabel: (ctx: { dataIndex: number }) =>
-            `인원 계획 ${vm.perCapita.planHeadcounts[ctx.dataIndex] ?? '-'}명 · 현재 ${vm.perCapita.headcounts[ctx.dataIndex] ?? '-'}명`,
+            // `인원 계획 ${vm.perCapita.planHeadcounts[ctx.dataIndex] ?? '-'}명 · 현재 ${vm.perCapita.headcounts[ctx.dataIndex] ?? '-'}명`,   // 계획 인원 주석 처리(2026-10-27)
+            `현재 인원 ${vm.perCapita.headcounts[ctx.dataIndex] ?? '-'}명`,
         } },
       },
     } as ChartOptions<'bar'>;
-  }, [vm.perCapita.options, vm.perCapita.headcounts, vm.perCapita.planHeadcounts, vm.perCapita.profit, vm.showLabels, scaleOverride]);
+  }, [vm.perCapita.options, vm.perCapita.headcounts, vm.perCapita.profit, vm.showLabels, scaleOverride]);
 
   // 이익율/이익액 토글 비활성화로 미사용(주석 처리) — 복구 시 PROFIT_LABEL과 함께 해제
   // const profitRateOptions = useMemo(() => ({
@@ -1099,17 +1103,21 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
   };
 
   const chartRenderers: Record<string, () => ReactNode | null> = {
-    // 파트별 인원 — 관리자가 입력한 계획 인원·현재 인원(인당 차트의 분모). 위 줄 계획 / 아래 줄 현재, 왼쪽 정렬.
+    // 파트별 인원 — 관리자가 입력한 현재 인원(인당 차트의 분모), 왼쪽 정렬. 계획 인원 줄은 2026-10-27 주석 처리.
     // 팀 필터와 무관하게 파트 전체 인원. 하나도 없으면 안내
     headcount: () => {
       const hc = vm.headcount;
-      const rows = [
-        { key: 'plan', label: '파트별 계획 인원', values: hc.plan, total: hc.totalPlan },
-        { key: 'cur', label: '파트별 현재 인원', values: hc.current, total: hc.totalCurrent },
-      ];
+      // [계획/현재 두 줄 구조 — 주석 처리 2026-10-27] 계획 인원이 빠져 줄이 하나라 줄 묶음·반복문·고정 폭 라벨을 걷어냄.
+      // 복구하려면 아래 한 줄 구조 대신 이 블록을 쓰고 vm.headcount의 plan/totalPlan, CSS .headcountRows/.headcountRow도 같이 해제
+      // const rows = [
+      //   { key: 'plan', label: '파트별 계획 인원', values: hc.plan, total: hc.totalPlan },
+      //   { key: 'cur', label: '파트별 현재 인원', values: hc.current, total: hc.totalCurrent },
+      // ];
+      // ... <div className={styles.headcountRows}>{rows.map(r => (<div key={r.key} className={styles.headcountRow}>
+      //       <span className={styles.headcountRowLabel}>{r.label}</span><ul className={styles.headcountList}>…파트 알약 + 합계…</ul></div>))}</div>
       return (
         <ChartCard expandable={false}>
-          {/* 카드 제목 없음(2026-10-23 요청) — 줄 라벨(파트별 계획 인원 / 파트별 현재 인원)이 제목 역할 */}
+          {/* 카드 제목 없음(2026-10-23 요청) — 목록 앞 라벨(파트별 인원)이 제목 역할 */}
           <ChartCard.Title>{null}</ChartCard.Title>
           <ChartCard.Body>
             {hc.labels.length === 0
@@ -1118,29 +1126,23 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
                     ? '파트 인원이 아직 입력되지 않았습니다 — 관리자 페이지 > 파트별 인원에서 입력하세요'
                     : '파트 인원이 아직 입력되지 않았습니다'}
                 </div>
-              : <div className={styles.headcountRows}>
-                  {rows.map(r => (
-                    <div key={r.key} className={styles.headcountRow}>
-                      <span className={styles.headcountRowLabel}>{r.label}</span>
-                      <ul className={styles.headcountList}>
-                        {hc.labels.map((name, i) => (
-                          <li key={name} className={styles.headcountItem}>
-                            <span className={styles.headcountName}>{name}</span>
-                            <span className={styles.headcountSep}>:</span>
-                            {r.values[i] != null
-                              ? <b className={styles.headcountVal}>{r.values[i]}명</b>
-                              : <span className={styles.headcountNone}>-</span>}
-                          </li>
-                        ))}
-                        <li className={`${styles.headcountItem} ${styles.headcountTotal}`}
-                          title={hc.missingParts.length > 0 ? `인원 미입력 파트: ${hc.missingParts.join(', ')}` : undefined}>
-                          <span className={styles.headcountName}>합계</span>
-                          <span className={styles.headcountSep}>:</span>
-                          <b className={styles.headcountVal}>{r.total}명</b>
-                        </li>
-                      </ul>
-                    </div>
-                  ))}
+              : <div className={styles.headcountRow}>
+                  <span className={styles.headcountRowLabel}>파트별 인원</span>
+                  <ul className={styles.headcountList}>
+                    {hc.labels.map((name, i) => (
+                      <li key={name} className={styles.headcountItem}>
+                        <span className={styles.headcountName}>{name}</span>
+                        <span className={styles.headcountSep}>:</span>
+                        <b className={styles.headcountVal}>{hc.current[i]}명</b>
+                      </li>
+                    ))}
+                    <li className={`${styles.headcountItem} ${styles.headcountTotal}`}
+                      title={hc.missingParts.length > 0 ? `인원 미입력 파트: ${hc.missingParts.join(', ')}` : undefined}>
+                      <span className={styles.headcountName}>합계</span>
+                      <span className={styles.headcountSep}>:</span>
+                      <b className={styles.headcountVal}>{hc.totalCurrent}명</b>
+                    </li>
+                  </ul>
                 </div>}
           </ChartCard.Body>
         </ChartCard>
@@ -1218,9 +1220,9 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
         </ChartCard>
       );
     },
-    // 파트별 인당 매출·손익·관리비(2026-10-23) — 인원은 관리자 수기 입력(백엔드가 나눠서 내려줌). 계획은 매출만 있음
+    // 파트별 인당 매출·손익·관리비(2026-10-23) — 인원은 관리자 수기 입력(백엔드가 나눠서 내려줌). 인당 계획 매출은 2026-10-27 주석 처리(추정만)
     perCapitaRevenue: () => perCapitaCard('perCapitaRevenue', infoPerCapita('revenue'), [
-      { label: '계획(억)', data: vm.perCapita.revPlan, backgroundColor: planColor },
+      // { label: '계획(억)', data: vm.perCapita.revPlan, backgroundColor: planColor },   // 인당 계획 매출 막대 주석 처리(2026-10-27) — 계획 인원이 없어 분모 없음
       { label: '추정 매출(억)', data: vm.perCapita.revEst, backgroundColor: palette.revenue },
     ]),
     perCapitaProfit: () => perCapitaCard('perCapitaProfit', infoPerCapita('profit'), [
@@ -1541,6 +1543,7 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
           key={c.id}
           id={c.id}
           spanClassName={cardClass(c.id)}
+          noHandle={c.id === 'headcount'}
           dropState={dropTarget?.id === c.id ? (dropTarget.ok ? 'ok' : 'bad') : null}
         >
           {c.node}

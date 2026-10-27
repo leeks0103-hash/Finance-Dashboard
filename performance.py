@@ -1169,7 +1169,7 @@ def api_perf_summary():
         partial = part_name in _multi_team
         st.update(headcount.per_head_fields(st, None if partial else hc, None if partial else hc_plan))
         st["headcount"] = hc
-        st["plan_headcount"] = hc_plan
+        # st["plan_headcount"] = hc_plan   # 계획 인원 주석 처리(2026-10-27)
         st["headcount_partial"] = partial
 
     # 팀별 원가 구성·경상손익 — 도넛 '팀' 보기용, 행의 팀 칸 기준(2026-10-21). 예전엔 프론트가 "팀 = 소속 파트 합"으로 더해
