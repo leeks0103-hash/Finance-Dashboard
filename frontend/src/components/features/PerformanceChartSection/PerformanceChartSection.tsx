@@ -449,6 +449,15 @@ const costRateTuning = (t: { costRate?: { lift: number; fontPx: number; minBarWi
   ...(t.costRate.minBarWidth != null ? { minBarWidth: t.costRate.minBarWidth } : {}),
 } : {};
 
+// 파트명 축 글자를 가운데점(ㆍ)에서 두 줄로 — Chart.js 눈금 callback이 배열을 돌려주면 여러 줄로 그림. 라벨 데이터는 그대로라 클릭·툴팁은 원래 이름
+// (조절표 breakTickAtDot, 2026-10-27). 점이 없거나 짧은 이름("AIㆍDS" 5자)은 그대로 한 줄 — 이 글자 수 이상일 때만 나눔
+const BREAK_AT_DOT_MIN_LEN = 7;
+const breakAtDotTick = function (this: { getLabelForValue: (v: number) => string }, v: string | number) {
+  const label = this.getLabelForValue(Number(v));
+  const at = label.indexOf('ㆍ');
+  return label.length >= BREAK_AT_DOT_MIN_LEN && at > 0 && at < label.length - 1 ? [label.slice(0, at + 1), label.slice(at + 1)] : label;
+};
+
 const overlaps = (a: Rect, b: Rect) => a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b;
 
 // 한 계열(점선 + 점)을 그림 — clipX가 있으면 차트 왼쪽 끝부터 거기까지만 보이게
@@ -929,7 +938,8 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
       scales: {
         ...base.scales,
         x: { ...base.scales?.x, grace: 0, ticks: { ...(base.scales?.x as { ticks?: object } | undefined)?.ticks, ...tuningTickFont(CHART_TUNING.planVsActual) } },
-        y: { ...base.scales?.y, ticks: { ...(base.scales?.y as { ticks?: object } | undefined)?.ticks, ...tuningTickFont(CHART_TUNING.planVsActual) } },
+        y: { ...base.scales?.y, ticks: { ...(base.scales?.y as { ticks?: object } | undefined)?.ticks, ...tuningTickFont(CHART_TUNING.planVsActual),
+          ...(CHART_TUNING.planVsActual.breakTickAtDot ? { callback: breakAtDotTick } : {}) } },
       },
       plugins: {
         ...base.plugins,
@@ -967,7 +977,7 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
         scales: {
           ...base.scales,
           x: { ...xScale, grace: 0, ticks: { ...xScale?.ticks, ...tuningTickFont(t), callback: (v: string | number) => v + '억' } },
-          y: { ...yScale, ticks: { ...yScale?.ticks, ...tuningTickFont(t) } },
+          y: { ...yScale, ticks: { ...yScale?.ticks, ...tuningTickFont(t), ...(t.breakTickAtDot ? { callback: breakAtDotTick } : {}) } },
         },
         plugins: {
           ...base.plugins,
@@ -1130,7 +1140,7 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
       partialParts.length ? `팀 필터로 인당 값을 못 구함: ${partialParts.join(', ')}` : '',
     ].filter(Boolean).join(' / ');
     return (
-      <ChartCard expandable={false}>
+      <ChartCard expandable={false} bodyBleedX={CHART_TUNING[id]?.bleedX}>
         <ChartCard.Title>
           <span className={styles.chartTitle}>{CHART_TITLES[id]}<InfoButton>{info}</InfoButton></span>
           {skipped.length > 0 && labels.length > 0 && (
@@ -1333,7 +1343,7 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
         </div>
       );
       return (
-        <ChartCard modalContent={modalContent}>
+        <ChartCard modalContent={modalContent} bodyBleedX={CHART_TUNING.planVsActual.bleedX}>
           <ChartCard.Title>
             <span className={styles.chartTitle}>파트별 계획 매출 vs 추정 매출<InfoButton>{INFO_PLAN_VS_ACTUAL}</InfoButton></span>
             {/* 막대 수치의 %가 뭔지 — 항상 표시(2026-10-21 요청, 예전엔 그래프 수치 + 달성률 공개 범위일 때만) */}

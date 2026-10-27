@@ -26,12 +26,14 @@ interface RootProps {
   titleAside?: ReactNode;
   /** true — 제목줄을 아예 안 그리고 안쪽 여백을 줄여 낮은 카드로(제목 없는 한 줄짜리 카드, 2026-10-27). compact일 때만 적용 */
   dense?: boolean;
+  /** 그래프(body)만 카드 좌우 안쪽 여백(24px) 쪽으로 이만큼(px) 넓힘 — 제목은 그대로, 그래프가 카드 가장자리에 더 붙음(2026-10-27). compact일 때만 */
+  bodyBleedX?: number;
 }
 
 // 확대 모달 퇴장 길이 — ChartCard.module.css .modalOverlay.closing과 맞출 것
 const CLOSE_MS = 240;
 
-const Root = ({ children, compact = true, expandable = true, modalContent, modalHeight, titleAside, dense = false }: RootProps) => {
+const Root = ({ children, compact = true, expandable = true, modalContent, modalHeight, titleAside, dense = false, bodyBleedX = 0 }: RootProps) => {
   const [title, body] = Children.toArray(children);
   const [expanded, setExpanded] = useState(false);
 
@@ -100,7 +102,7 @@ const Root = ({ children, compact = true, expandable = true, modalContent, modal
         <div className={dense ? `${styles.root} ${styles.rootDense}` : styles.root}>
           {expandButton}
           {!dense && titleRow(styles.titleCompact)}
-          <div className={styles.body}>{body}</div>
+          <div className={styles.body} style={bodyBleedX ? { marginLeft: -bodyBleedX, marginRight: -bodyBleedX } : undefined}>{body}</div>
         </div>
         {modal}
       </div>

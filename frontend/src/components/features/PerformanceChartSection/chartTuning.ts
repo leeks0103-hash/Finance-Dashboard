@@ -16,6 +16,12 @@ export interface ChartTuning {
   /** 캔버스 안쪽 여백(px) — 카드 테두리 안쪽에서 그래프까지. 막대 위·옆에 찍히는 수치가 잘리지 않을 만큼은 남길 것
    *  (막대 위에 수치가 찍히는 세로 막대는 top, 막대 옆에 찍히는 가로 막대는 right). 카드 자체 안쪽 여백(20/24/16)은 별도 */
   padding: { top: number; right: number; bottom: number; left: number };
+  /** 카드 좌우 안쪽 여백(기본 24px)을 이만큼(px) 줄여 그래프를 카드 가장자리 쪽으로 넓힘 — 제목은 그대로. 비우면 0.
+   *  (padding.left/right는 그래프 안쪽 여백이고, 이건 그 바깥 카드 여백. 너무 키우면 축 글자가 카드 테두리에 닿음) */
+  bleedX?: number;
+  /** 파트명 축 글자에 가운데점(ㆍ)이 있으면 그 자리에서 두 줄로 나눠 표시("전동화ㆍ" / "차량개발") — 긴 이름이 축 칸을 덜 차지해 그래프가 넓어짐.
+   *  표시만 바뀌고 데이터·클릭(드릴다운)은 그대로. 가로 막대(파트명이 왼쪽 축)에서만 의미 있음 */
+  breakTickAtDot?: boolean;
   /** 마이너스 막대가 있을 때만 쓰는 왼쪽 여백(px) — 막대 왼쪽에 수치 자리 확보(인당 손익). 없으면 padding.left */
   leftIfNegative?: number;
   /** 막대 굵기 — categoryPercentage: 카테고리 한 칸 중 막대 묶음이 차지하는 비율(0~1, 클수록 칸 사이 간격이 좁아짐),
@@ -55,29 +61,37 @@ export const CHART_TUNING: Record<string, ChartTuning> = {
     costRate: { lift: 39, fontPx: 12 },
   },
   planVsActual: {
-    padding: { top: 30, right: 0, bottom: 4, left: 4 },
+    padding: { top: 8, right: 0, bottom: 4, left: 0 },
     labelFontPx: 14,
     labelSpacing: 0,
-    tickSpacing: -1,
+    tickSpacing: -1.6,
+    bleedX: 14,
+    breakTickAtDot: true,
   },
   perCapitaRevenue: {
-    padding: { top: 30, right: 0, bottom: 4, left: 4 },
+    padding: { top: 8, right: 0, bottom: 4, left: 0 },
     labelFontPx: 14,
     labelSpacing: 0,
-    tickSpacing: -1,
+    tickSpacing: -1.6,
+    bleedX: 14,
+    breakTickAtDot: true,
   },
   perCapitaProfit: {
-    padding: { top: 30, right: 0, bottom: 4, left: 4 },
+    padding: { top: 8, right: 0, bottom: 4, left: 0 },
     leftIfNegative: 48,
     labelFontPx: 14,
     labelSpacing: 0,
-    tickSpacing: -1,
+    tickSpacing: -1.6,
+    bleedX: 14,
+    breakTickAtDot: true,
   },
   perCapitaMgmt: {
-    padding: { top: 30, right: 0, bottom: 4, left: 4 },
+    padding: { top: 8, right: 0, bottom: 4, left: 0 },
     labelFontPx: 14,
     labelSpacing: 0,
-    tickSpacing: -1,
+    tickSpacing: -1.6,
+    bleedX: 14,
+    breakTickAtDot: true,
   },
 };
 
