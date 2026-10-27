@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/Button';
 import { useScrollLock } from '@/components/ui/useScrollLock';
@@ -28,6 +28,15 @@ export const ModalShell = ({ onClose, width, className, overlayClassName, closeO
   const { closing, close } = useAnimatedClose(onClose);
   useEscToClose(close);
 
+  // 열릴 때 포커스를 모달 패널로 옮김(2026-10-27) — 안 그러면 모달을 연 버튼(예: 파트별 매출 진행 현황 행)에 포커스가 남아,
+  // ESC로 닫는 순간 브라우저가 키보드 사용으로 보고 그 버튼에 전역 :focus-visible 테두리(남색 2px, 검정처럼 보임)를 그림.
+  // 마우스 × 로 닫을 땐 안 보이던 이유도 같음. 모달 안 입력칸이 이미 포커스를 가졌으면(autoFocus 등) 건드리지 않음
+  const panelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const panel = panelRef.current;
+    if (panel && !panel.contains(document.activeElement)) panel.focus({ preventScroll: true });
+  }, []);
+
   return createPortal(
     <div
       className={`${styles.overlay} ${overlayClassName ?? ''} ${closing ? 'closingOverlay' : ''}`}
@@ -35,6 +44,8 @@ export const ModalShell = ({ onClose, width, className, overlayClassName, closeO
       role="presentation"
     >
       <div
+        ref={panelRef}
+        tabIndex={-1}
         className={`${styles.modal} ${className ?? ''} ${closing ? 'closingPanel' : ''}`}
         style={width !== undefined ? { width } : undefined}
         role="dialog"

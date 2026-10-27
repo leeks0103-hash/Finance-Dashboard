@@ -18,6 +18,10 @@
   animation: fadeIn 0.16s ease;
 }
 
+/* 패널 자체가 프로그램으로 포커스를 받으므로(ModalShell) 전역 :focus-visible 테두리는 그리지 않음 — 안쪽 버튼·입력칸의 포커스 표시는 그대로 */
+.modal:focus,
+.modal:focus-visible { outline: none; }
+
 .modal {
   background: var(--surface);
   border: 1px solid var(--border);
