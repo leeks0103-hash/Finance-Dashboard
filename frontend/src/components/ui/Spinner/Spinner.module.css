@@ -1,4 +1,7 @@
+/* 0.12초 뒤에 부드럽게 나타남(2026-10-28) — 캐시로 금방 끝나는 로딩엔 스피너가 번쩍이지 않게 */
+@keyframes spinnerIn { from { opacity: 0; } to { opacity: 1; } }
 .wrap {
+  animation: spinnerIn var(--dur-base) var(--ease-out) 0.12s both;
   display: flex;
   flex-direction: column;
   align-items: center;

@@ -354,6 +354,10 @@
 /* 큰 숫자 첫 글자 앞 글꼴 여백(약 0.1em)을 상쇄 — 제목·값·값 아래 문구(.sub)의 왼쪽 선이 같아짐(2026-10-27 "문구가 수치값보다 앞에 튀어나옴") */
 .valuesWrap .values { margin-left: calc(var(--cmp-value-fs) * -0.1); }
 
+/* 값이 바뀔 때 배지·계획 대비 %·보조 줄이 짧게 페이드인(2026-10-28) — 컴포넌트가 key를 값으로 줘서 값이 바뀔 때만 다시 재생. 레이아웃은 안 움직임 */
+@keyframes valueFade { from { opacity: 0; } to { opacity: 1; } }
+.diff, .rate, .sub { animation: valueFade var(--dur-base) var(--ease-out) both; }
+
 :global([data-theme="dark"]) .card { border-color: var(--border); }
 :global([data-theme="dark"]) .card:hover { box-shadow: var(--shadow-md); }
 

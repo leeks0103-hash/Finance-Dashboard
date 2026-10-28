@@ -1,3 +1,4 @@
+import { prefersReducedMotion } from '@/utils/format';
 import { useRef, useState } from 'react';
 import { Doughnut } from 'react-chartjs-2';
 import { Chart, ArcElement, Tooltip, Legend } from 'chart.js';
@@ -85,7 +86,7 @@ const DoughnutChart = ({
           options={{
             responsive: true,
             maintainAspectRatio: false,
-            animation: { duration: 700, easing: 'easeInOutQuart' },
+            animation: { duration: prefersReducedMotion() ? 0 : 700, easing: 'easeInOutQuart' },
             onClick: onSliceClick
               ? (_e, elements) => {
                   const i = elements[0]?.index;

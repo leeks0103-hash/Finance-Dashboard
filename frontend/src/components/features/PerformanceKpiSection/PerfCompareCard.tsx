@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react';
 import type { PerfCompareCardData } from '@/hooks/viewmodels/usePerformanceViewModel';
 // import { Sparkline } from '@/components/ui/Sparkline';   // 스파크라인 주석 처리(2026-10-27 "곡선 이미지 삭제")
 import { useChartPalette } from '@/hooks/useChartPalette';
+import { useCompareCardViewModel } from '@/hooks/viewmodels/useCompareCardViewModel';
 import { splitValueUnit } from '@/utils/format';
 import styles from './PerfCompareCard.module.css';
 
@@ -21,6 +22,7 @@ const ValueUnit = ({ value, className }: { value: string; className: string }) =
 const PerfCompareCard = ({ card }: { card: PerfCompareCardData }) => {
   // 상단 바 색 = 차트 색상 역할(2026-10-27) — 설정에서 바꾼 차트 색·주간/야간이 같이 반영됨. 역할이 없으면 accent 색(CSS)
   const palette = useChartPalette();
+  const { planText, estText } = useCompareCardViewModel(card);   // 값이 바뀔 때 숫자가 이어서 움직임(2026-10-28)
   const barColor = card.colorRole ? palette[card.colorRole] : undefined;
   // 미니 2막대(.bars) 주석 처리(2026-10-27 요청) — 복구하려면 아래 JSX 주석과 이 변수들을 같이 해제
   // // 막대 높이 = 실제 비율 그대로. 큰 값 100%, 작은 값은 (작은값/큰값)*100%
@@ -50,7 +52,7 @@ const PerfCompareCard = ({ card }: { card: PerfCompareCardData }) => {
         </span>
         {/* 계획 값이 없으면(diffStr '') 차이 알약도 안 그림 */}
         {card.diffStr && (
-          <span className={`${styles.diff} ${card.diffUp ? styles.up : styles.down}`}>
+          <span key={card.diffStr} className={`${styles.diff} ${card.diffUp ? styles.up : styles.down}`}>
             {card.diffUp ? '▲' : '▼'} {card.diffStr}
           </span>
         )}
@@ -60,17 +62,17 @@ const PerfCompareCard = ({ card }: { card: PerfCompareCardData }) => {
         <div className={styles.valuesWrap}>
           {/* 추정 값 위 "계획 대비 추정" 비율(2026-10-27) — 값이 없어도 줄은 남겨 카드마다 값 높이를 맞춤 */}
           <div className={styles.rateRow}>
-            {card.rateStr && <span className={styles.rate} title="계획 대비 추정 비율 (추정 ÷ 계획)">계획 대비 {card.rateStr}</span>}
+            {card.rateStr && <span key={card.rateStr} className={styles.rate} title="계획 대비 추정 비율 (추정 ÷ 계획)">계획 대비 {card.rateStr}</span>}
           </div>
           <div className={styles.values}>
             <div className={styles.planRow}>
-              <ValueUnit value={card.planStr} className={styles.plan} />
+              <ValueUnit value={planText} className={styles.plan} />
               <span className={styles.slash}>/</span>
             </div>
-            <ValueUnit value={card.estStr} className={styles.est} />
+            <ValueUnit value={estText} className={styles.est} />
           </div>
           {/* 값 바로 아래 보조 줄(관리비 "매출 대비 N%" 등) — 값 위치는 다른 카드와 같게 두려고 아래로 매닮 */}
-          {card.sub && <div className={styles.sub}>{card.sub}</div>}
+          {card.sub && <div key={card.sub} className={styles.sub}>{card.sub}</div>}
         </div>
 
         {/* 미니 2막대(계획/추정) 주석 처리(2026-10-27 요청) — 복구하려면 이 주석을 풀고 위 변수도 해제

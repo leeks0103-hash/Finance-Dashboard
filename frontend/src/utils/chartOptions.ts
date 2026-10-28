@@ -1,4 +1,5 @@
 import type { ChartOptions, ChartEvent, LegendItem, LegendElement } from 'chart.js';
+import { prefersReducedMotion } from '@/utils/format';
 
 /** 범례 라디오 클릭 — 클릭한 시리즈만 단독 표시, 다시 클릭하면 전체 복원.
  *  기본 legend.onClick을 직접 커스텀해야 하는 차트(예: 합성 범례 항목을 섞는 경우)가
@@ -36,7 +37,8 @@ export const makeBarOptions = (
   labelColor: string,
   extra?: Partial<ChartOptions<'bar'>>,
 ): ChartOptions<'bar'> => ({
-  animation: { duration: 700, easing: 'easeInOutQuart' },
+  // OS "움직임 줄이기"가 켜져 있으면 막대가 즉시 그려짐(2026-10-28)
+  animation: { duration: prefersReducedMotion() ? 0 : 700, easing: 'easeInOutQuart' },
   layout: {
     ...(extra?.layout && typeof extra.layout === 'object' ? extra.layout : {}),
     padding: resolvePadding(extra),

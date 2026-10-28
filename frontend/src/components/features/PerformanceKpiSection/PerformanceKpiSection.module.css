@@ -64,3 +64,17 @@
 }
 .dragHandle:hover  { opacity: 0.9; background: var(--bg-subtle); }
 .dragHandle:active { cursor: grabbing; }
+
+/* ── 로딩 스켈레톤 / 도착 전환(2026-10-28) ── */
+.skeleton {
+  min-height: 140px;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-subtle);
+  animation: kpiSkeletonPulse 1.2s ease-in-out infinite;
+}
+@keyframes kpiSkeletonPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+/* 카드가 도착하면 스켈레톤→실제 카드가 투명도로 부드럽게 */
+.arrive { animation: kpiArrive var(--dur-base) var(--ease-out) both; }
+@keyframes kpiArrive { from { opacity: 0; } to { opacity: 1; } }

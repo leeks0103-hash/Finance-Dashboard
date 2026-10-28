@@ -97,6 +97,8 @@ export interface PerfPartRow {
 export interface PerformanceViewModel {
   isLoading:     boolean;
   isFetching:    boolean;
+  /** 요약(카드·차트)을 다시 불러오는 중 — 이전 값은 그대로 두고 섹션만 살짝 흐리게(2026-10-28) */
+  isSummaryFetching: boolean;
   isEmpty:       boolean;
   kpiCards:      PerfKpiCard[];
   byPart:        PerfPartRow[];
@@ -163,7 +165,7 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
     pagination.resetToFirstPage();
   };
 
-  const { data: summary,    isLoading: sumLoading } = usePerformanceSummary();
+  const { data: summary,    isLoading: sumLoading, isFetching: sumFetching } = usePerformanceSummary();
   const period = usePerfPeriod();
   const { data: paged,      isLoading: projLoading, isFetching } = usePerformanceData({
     page: pagination.page, pageSize: pagination.pageSize, search: search.debouncedValue, field: searchField,
@@ -373,6 +375,8 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
 
   return {
     isLoading, isFetching: isFetching ?? false,
+    // 처음 로딩(isLoading)은 스켈레톤이 맡으므로 재조회일 때만
+    isSummaryFetching: !!sumFetching && !sumLoading,
     isEmpty: !isLoading && !total,
     kpiCards, byPart,
     projects,

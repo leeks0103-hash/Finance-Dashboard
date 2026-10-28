@@ -142,6 +142,14 @@
   --radius-pill: 100px;
 
   --transition: 0.18s cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* 모션 토큰(2026-10-28) — 새로 만드는 전환·애니메이션은 이 값을 쓴다(기존 하드코딩은 점진 교체).
+     속도·느낌을 바꾸고 싶으면 여기 한곳만 */
+  --dur-fast: 0.15s;    /* 값 교체·배지·작은 상태 변화 */
+  --dur-base: 0.25s;    /* 카드·섹션 전환, 테마 색 전환 */
+  --dur-slow: 0.5s;     /* 큰 영역 등장 */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);       /* 등장·값 변화 — fadeUp과 같은 곡선 */
+  --ease-inout: cubic-bezier(0.45, 0, 0.25, 1);    /* 위치·크기가 바뀌는 전환 */
 }
 
 /* ─── Pretendard (본문·제목·수치 전부) ─────────
@@ -213,6 +221,38 @@ h1, h2, h3, h4, h5, h6 {
 .fadeUp { animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
 
 @media (prefers-reduced-motion: reduce) { .fadeUp { animation: none; } }
+
+/* ─── 테마(주간/야간) 전환 — theme.store가 전환 직후 450ms만 <html>에 붙이는 클래스(2026-10-28) ───
+   모든 요소의 색이 서서히 바뀜. 평소 hover·전환과 안 섞이도록 이 시간에만 덮어씀(캔버스 차트는 따로 다시 그려짐) */
+html.theme-switching,
+html.theme-switching *,
+html.theme-switching *::before,
+html.theme-switching *::after {
+  transition: background-color var(--dur-base) var(--ease-out),
+              border-color     var(--dur-base) var(--ease-out),
+              color            var(--dur-base) var(--ease-out),
+              fill             var(--dur-base) var(--ease-out),
+              stroke           var(--dur-base) var(--ease-out),
+              box-shadow       var(--dur-base) var(--ease-out) !important;
+}
+
+/* ─── 재조회 중(필터 변경 등) 섹션 살짝 흐림 — 표의 .fetching과 같은 느낌(2026-10-28).
+   금방 끝나는 재조회엔 깜빡이지 않게 흐려지기 시작을 0.15초 늦추고, 돌아올 땐 바로 ─── */
+.refreshable { transition: opacity var(--dur-base) var(--ease-out); }
+.refreshing  { opacity: 0.65; transition-delay: 0.15s; }
+
+/* 전역 안전망(2026-10-28) — OS "움직임 줄이기"가 켜져 있으면 개별 처리가 없던 곳까지 애니메이션·전환을 사실상 끔.
+   (0이 아니라 0.01ms인 건 animationend/transitionend를 기다리는 코드가 멈추지 않게) */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+}
 
 /* ─── 퇴장 애니메이션 — 모달 닫힐 때(useAnimatedClose가 붙임). 예전엔 전부 뚝 사라졌음(2026-09-29) ─── */
 @keyframes overlayOut { to { opacity: 0; } }

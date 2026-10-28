@@ -5,6 +5,14 @@
 
 ---
 
+- **화면 전환·값 변경 모션 정리**(요청 "애니메이션 없는 부분 없으면 좋겠다", 계획 `~/.claude/plans/generic-floating-taco.md`): 조사 결과 모달·드롭다운·표 페이지 전환·막대 차트는 이미 움직이고, 끊기던 곳을 메움.
+  - **토대**: `index.css`에 모션 토큰 `--dur-fast/base/slow`(0.15/0.25/0.5s)·`--ease-out`·`--ease-inout` — 새 코드는 이 값을 쓰고 기존 하드코딩은 점진 교체(속도 조절은 여기 한곳). 전역 reduced-motion 안전망(`*{animation/transition-duration:.01ms}`), `useCountUp`·Chart.js 막대/도넛 애니메이션에 `prefersReducedMotion` 가드.
+  - **카드 값**: `useCountUp`을 **지금 값 → 새 값**으로 이어 가게 재작성(예전엔 매번 0부터라 필터 바꿀 때 0으로 떨어졌다 올라옴; 첫 렌더만 0부터, 도중 변경은 그 값에서 이어감, 마지막 프레임은 정확히 target). 비교 카드는 `useCompareCardViewModel`(hooks/viewmodels)이 계획/추정 값을 카운트업, 끝난 프레임은 VM 문자열 그대로(표시 규칙 유지). 배지·"계획 대비 %"·보조 줄은 값이 바뀔 때 짧은 페이드(key). 카드 로딩 중엔 빈 영역 대신 스켈레톤 7개 → 도착 시 페이드.
+  - **테마 전환**: `theme.store` subscribe가 전환 직후 450ms만 `<html>`에 `theme-switching`을 붙이고 `index.css`가 그 동안 모든 요소의 색을 서서히 전환(예전엔 body 배경만). 상시 전환이 아니라 hover 등과 안 섞임.
+  - **탭 이중 재생 제거**: `FadeInSection`이 `fadeUp`을 **처음 한 번만**(animationend로 클래스 제거 — transform이 안 남아 fixed 기준도 안전). 탭 복귀 땐 `tabFadeIn`만.
+  - **재조회 흐림**: 요약(카드·차트)을 다시 불러오는 동안(`isSummaryFetching`, 첫 로딩 제외) 섹션이 0.65로 흐려졌다 돌아옴 — 흐려지기 시작을 0.15초 늦춰 캐시로 빨리 끝나는 건 깜빡이지 않음(`.refreshable/.refreshing`). 스피너도 0.12초 뒤 페이드인.
+  - **Playwright 실측**(msedge, `/api/**` 가짜): 첫 로딩 308→343→357→360, 필터 변경 360→277→234→206→…→180(이어서 변함), 탭 왕복 후 `.fadeUp` 0개, 테마 흰색→168→51→23→14(남색) 전환, reduced-motion에선 전부 즉시.
+  - **이번에 안 한 것**: 차트 그리드가 테마·상태 전환 때 `key`로 리마운트돼 재생되는 것(깨지진 않음), 탭 나가기 애니메이션, `QueryGate` 크로스페이드·`Suspense fallback={null}`, 표 정렬 전환(`usePageSwapClass` 키에 정렬 추가는 모든 표에 영향) — 필요하면 따로. 테스트 `useCountUp.test.ts`(5)·`FadeInSection.test.tsx`(3)·`theme.store.test.ts`(1).
 - **공통원가 카드 팀·파트 필터 시 계획 칸 '-'**(정정): 필터 중 계획 공통원가는 전사 값뿐이라 팀별 값이 없는데, 백엔드가 추정으로 대체한 값을 그대로 계획 칸에 보여 계획=추정·차이 +0.0으로 보였음("틀렸다고 해도 됨" — 처음 만든 방식이 오해 소지) → `plan_overhead_source === 'estimate'`면 계획 칸 '-'·차이 배지 없음·계획 대비 % 없음(백엔드는 이미 None). 매출이익 카드 계획 칸(`plan_gross`)은 여전히 추정 공통원가로 대체한 값이라 팀 선택 시 근사치 — 같은 방식으로 '-' 처리할지는 미결.
 - **모달 ESC 닫을 때 검은 테두리 수정**(파트별 매출 실적 진행 현황 행 → 드릴다운 모달): 원인 = 모달을 연 행 버튼에 포커스가 남아 있다가 ESC(키보드)로 닫으면 브라우저가 키보드 사용으로 보고 전역 `:focus-visible`(`index.css`, 2px `--brand-mid` = `#001D3F` 거의 검정)를 그 버튼에 그림. 마우스 ×로 닫으면 포인터 모드라 안 보였음. Playwright로 재현(ESC 후 `BUTTON.rowClickable`, outline `solid 2px rgb(0,29,63)`) → 수정 후 `BODY`·outline none. **수정**: 공용 `ModalShell`이 열릴 때 포커스를 패널로 옮김(`tabIndex=-1` + `.modal:focus-visible {outline:none}`, 모달 안 입력칸이 이미 포커스면 안 뺏음) — 같은 구조의 모든 모달에 적용. 포커스를 열었던 버튼으로 되돌리는 정석(a11y)은 일부러 안 함(되돌리면 ESC 뒤 같은 테두리가 다시 뜸). `Modal.focus.test.tsx` 2개.
 

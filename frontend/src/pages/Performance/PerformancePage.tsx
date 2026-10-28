@@ -87,12 +87,12 @@ const PerformancePage = () => {
     <main className={styles.main}>
 
       {/* KPI 카드 */}
-      <FadeInSection delay={0} tourId="perf-kpi">
+      <FadeInSection delay={0} tourId="perf-kpi" refreshing={vm.isSummaryFetching}>
         <PerformanceKpiSection cards={vm.kpiCards} />
       </FadeInSection>
 
       {/* 차트 섹션 */}
-      <FadeInSection delay={100} tourId="perf-charts">
+      <FadeInSection delay={100} tourId="perf-charts" refreshing={vm.isSummaryFetching}>
         {/* 파트별 매출 진행 현황은 차트 영역의 한 칸으로(2026-10-23 요청 — 진도율(월별 실적 추이)와 한 줄). 예전엔 이 아래 따로 있던 섹션 */}
         <PerformanceChartSection
           achievement={vm.byPart.length > 0 ? {

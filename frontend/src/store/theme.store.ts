@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { prefersReducedMotion } from '@/utils/format';
 
 type Theme = 'dark' | 'light';
 
@@ -24,8 +25,17 @@ export const useThemeStore = create<ThemeStore>(set => ({
 }));
 
 // DOM 동기화 — React 외부에서 CSS 변수 즉시 반영
+// 전환 순간에만 <html>에 theme-switching을 잠깐 붙여(index.css) 카드·테두리·글자색이 서서히 바뀌게 함(2026-10-28).
+// 예전엔 body 배경만 전환되고 나머지는 한 번에 바뀌었음. 상시 전환을 걸지 않는 건 hover 등 다른 전환과 안 섞이게 하려는 것
+let themeSwitchTimer: ReturnType<typeof setTimeout> | undefined;
 useThemeStore.subscribe(s => {
-  document.documentElement.setAttribute('data-theme', s.theme);
+  const root = document.documentElement;
+  if (!prefersReducedMotion()) {
+    root.classList.add('theme-switching');
+    clearTimeout(themeSwitchTimer);
+    themeSwitchTimer = setTimeout(() => root.classList.remove('theme-switching'), 450);
+  }
+  root.setAttribute('data-theme', s.theme);
 });
 
 // 초기 DOM 적용

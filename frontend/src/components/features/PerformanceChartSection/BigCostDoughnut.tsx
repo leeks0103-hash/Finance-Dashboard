@@ -1,3 +1,4 @@
+import { prefersReducedMotion } from '@/utils/format';
 import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { Doughnut } from 'react-chartjs-2';
 import { Chart, ArcElement, Tooltip, Legend } from 'chart.js';
@@ -59,7 +60,7 @@ const BigCostDoughnut = ({ labels, data, colors, showLabels, onSliceClick, showV
           options={{
             responsive: true,
             maintainAspectRatio: false,
-            animation: { duration: 700, easing: 'easeInOutQuart' },
+            animation: { duration: prefersReducedMotion() ? 0 : 700, easing: 'easeInOutQuart' },
             onClick: onSliceClick
               ? (_e, elements) => {
                   const i = elements[0]?.index;

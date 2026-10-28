@@ -81,10 +81,19 @@ const PerformanceKpiSection = ({ cards }: Props) => {
   const byId = new Map(cards.map(c => [c.id, c]));
   const sortedCards = order.map(id => byId.get(id)).filter((c): c is PerfKpiCard => !!c);
 
+  // 아직 카드가 없을 때(첫 로딩) 빈 영역 대신 카드 자리 스켈레톤 — 도착할 때 아래 내용이 튀지 않음(2026-10-28)
+  if (sortedCards.length === 0) {
+    return (
+      <div className={styles.kpiGrid} aria-busy="true" aria-label="카드 불러오는 중">
+        {DEFAULT_KPI_ORDER.map(id => <div key={id} className={`${styles.wide} ${styles.skeleton}`} />)}
+      </div>
+    );
+  }
+
   return (
     <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={sortedCards.map(c => c.id)} strategy={rectSortingStrategy}>
-        <div className={styles.kpiGrid}>
+        <div className={`${styles.kpiGrid} ${styles.arrive}`}>
           {sortedCards.map(card => (
             // 폭은 카드 종류(kind) 기준 — 드래그로 자리를 옮겨도 이 카드는 항상 같은 폭 유지
             <SortableCard key={card.id} id={card.id} wide={card.kind === 'compare'}>
