@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import { usePerformanceViewModel } from '@/hooks/viewmodels/usePerformanceViewModel';
 import { useFinanceCodes } from '@/hooks/useFinanceCodes';
-import { DataTable, InfoButton, FilterSelect, HrefDownloadButton } from '@/components/ui';
+import { DataTable, InfoButton, FilterSelect, HrefDownloadButton, RefreshSpinner } from '@/components/ui';
 // ErrorBoundary — 재무 검색 결과 섹션 비활성으로 미사용, 복구 시 함께 해제
 // import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { FadeInSection } from '@/components/FadeInSection';
@@ -240,6 +240,9 @@ const PerformancePage = () => {
       {achieveBreakdown && (
         <PerfBreakdownModal target={achieveBreakdown} onClose={() => setAchieveBreakdown(null)} />
       )}
+
+      {/* 상단 팀·파트 필터를 바꿔 요약을 다시 불러오는 동안 페이지 위 스피너(2026-10-28) — 위 두 섹션은 같은 신호로 흐려짐 */}
+      <RefreshSpinner active={vm.isSummaryFetching} />
 
     </main>
   );

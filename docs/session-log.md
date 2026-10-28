@@ -5,6 +5,13 @@
 
 ---
 
+- **재무 탭 필터 변경 시 스피너**(요청: 상단 헤더 필터를 바꾸면 비동기 재조회 동안 아무 표시가 없음 — "조금만 나올지라도 있는 게 낫다"): 원인 = `createDataHook`이 `keepPreviousData`라 이전 값이 그대로 남아 있어 로딩/재조회를 구분할 신호가 화면에 없었음(첫 로딩만 스켈레톤). KPI 탭은 첫 로딩 스피너(`QueryGate`)·표 `.fetching` 흐림이 있었음.
+  - **구조**: 공용 `components/ui/RefreshSpinner`(부모 전체를 덮는 투명 레이어 + sticky 스피너 카드 — 스크롤해도 화면 안에 머묾, 클릭 통과, 부모가 `position: relative`여야 함) + `hooks/viewmodels/useFinancePageViewModel`(`isRefreshing = useSummary().isFetching && !isLoading` — 같은 쿼리라 추가 요청 없음). `FinancePage`가 KPI 카드·차트·파트 표 섹션을 `FadeInSection refreshing`(살짝 흐림)으로, `<main>` 끝에 `RefreshSpinner`를 둠.
+  - **스피너 한 개만**: 섹션마다 `FadeInSection` 안에 넣으면 KPI 카드 줄(높이 ~100px)에서 스피너 카드가 넘치고 4개가 한꺼번에 떠서 페이지 단위 1개로 함. `Spinner`가 0.12초 뒤에 페이드인(`Spinner.module.css`)이라 캐시로 즉시 끝나는 조회엔 안 번쩍임 — "아주 짧아도 보이게"는 이 지연 때문에 120ms 미만 응답엔 안 뜸(원하면 지연 조정).
+  - ⚠️ **처음엔 엉뚱한 페이지에 붙였음**(3G 테스트에서 안 떠서 발견): 네비의 "경영실적/재무데이터" 탭 = `PerformancePage`이고, `FinancePage`는 네비에서 빠진 옛 탭(`/finance` 주소 직접 접근용)임. 헤더 필터(팀·파트)·"흐려짐"이 있던 곳도 실적 탭. → **`PerformancePage`에도 `<RefreshSpinner active={vm.isSummaryFetching} />`**(`.main`에 `position: relative`) 추가. `FinancePage` 쪽은 그대로 둠(무해). "재무 탭"이라고 하면 실적 탭을 뜻할 수 있으니 확인할 것.
+  - **범위**: 트리거는 요약(`/api/summary`)만 — 프로젝트 재무 상세 표의 페이지·정렬·검색·자체 셀렉트는 기존 표 흐림 그대로(페이지 넘길 때마다 전체 스피너가 뜨면 과함). 실적 탭(`FadeInSection refreshing`은 흐림만)·KPI 탭 필터 재조회는 이번에 안 건드림 — 같은 방식(`RefreshSpinner` + 해당 VM의 isFetching)으로 붙이면 됨.
+  - **검증**: `npx tsc -b` 통과, `RefreshSpinner.test.tsx` 2개·`FadeInSection.test.tsx` 3개 통과. ⚠️ **화면 확인은 못 함**(Playwright 미설치) — sticky 위치(`top: 38vh`)·카드 크기는 실제로 보고 조정 필요.
+
 - **화면 전환·값 변경 모션 정리**(요청 "애니메이션 없는 부분 없으면 좋겠다", 계획 `~/.claude/plans/generic-floating-taco.md`): 조사 결과 모달·드롭다운·표 페이지 전환·막대 차트는 이미 움직이고, 끊기던 곳을 메움.
   - **토대**: `index.css`에 모션 토큰 `--dur-fast/base/slow`(0.15/0.25/0.5s)·`--ease-out`·`--ease-inout` — 새 코드는 이 값을 쓰고 기존 하드코딩은 점진 교체(속도 조절은 여기 한곳). 전역 reduced-motion 안전망(`*{animation/transition-duration:.01ms}`), `useCountUp`·Chart.js 막대/도넛 애니메이션에 `prefersReducedMotion` 가드.
   - **카드 값**: `useCountUp`을 **지금 값 → 새 값**으로 이어 가게 재작성(예전엔 매번 0부터라 필터 바꿀 때 0으로 떨어졌다 올라옴; 첫 렌더만 0부터, 도중 변경은 그 값에서 이어감, 마지막 프레임은 정확히 target). 비교 카드는 `useCompareCardViewModel`(hooks/viewmodels)이 계획/추정 값을 카운트업, 끝난 프레임은 VM 문자열 그대로(표시 규칙 유지). 배지·"계획 대비 %"·보조 줄은 값이 바뀔 때 짧은 페이드(key). 카드 로딩 중엔 빈 영역 대신 스켈레톤 7개 → 도착 시 페이드.

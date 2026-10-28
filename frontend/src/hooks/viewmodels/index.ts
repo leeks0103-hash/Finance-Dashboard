@@ -2,6 +2,7 @@ export { useKpiViewModel }          from './useKpiViewModel';
 export { useChartViewModel }        from './useChartViewModel';
 export { useProjectTableViewModel } from './useProjectTableViewModel';
 export { usePartTableViewModel }    from './usePartTableViewModel';
+export { useFinancePageViewModel }  from './useFinancePageViewModel';
 export { useFilterPanelViewModel }  from './useFilterPanelViewModel';
 export { usePerformanceViewModel }  from './usePerformanceViewModel';
 export { usePerformanceChartViewModel } from './usePerformanceChartViewModel';

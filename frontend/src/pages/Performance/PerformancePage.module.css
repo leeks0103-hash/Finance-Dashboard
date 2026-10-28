@@ -1,5 +1,7 @@
 /* padding/max-width: TabLayout.pageContent */
 .main {
+  /* 재조회 스피너(RefreshSpinner)가 페이지 전체를 기준으로 뜨게 */
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 24px;

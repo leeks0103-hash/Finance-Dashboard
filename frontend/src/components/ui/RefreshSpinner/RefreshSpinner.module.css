@@ -1,0 +1,17 @@
+/* 부모 전체를 덮는 투명 레이어 — 클릭은 통과. 스피너 카드는 sticky라 페이지를 스크롤해도 화면 안쪽에 머뭄 */
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+}
+.box {
+  position: sticky;
+  top: 38vh;
+  width: fit-content;
+  margin: 0 auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md, 10px);
+  box-shadow: var(--shadow-lg);
+}
