@@ -1376,6 +1376,7 @@ def build_plan_summary():
         시트 합계 블록의 '2026년 연간 추정' 열에서 읽음 — 필터 중이거나 못 읽으면 None(화면은 '-'). 매출이익 = 매출 − (직접원가 + 공통원가)
       total.rate[카드 id] : 27 계획 ÷ 26 추정 × 100 (26 값이 없거나 0 이하면 None)
       total.cost_direct 등 : 27 계획 원가 구성(원가 도넛용), by_part·by_team : 파트·팀별 같은 구성 + rev26/rev27/cost26/cost27
+      by_part.rev_per_head·profit_per_head·mgmt_per_head : 27 계획 금액 ÷ 현재 인원(관리자 입력, 실적 보기와 같은 규칙·같은 제외 조건)
       monthly : 1~12월 **계획 분배**(실적 아님)"""
     full = get_perf_df("plan27")
     df = apply_perf_filters(full)
@@ -1453,6 +1454,25 @@ def build_plan_summary():
             "avg_profit_rate":  _weighted_profit_rate(rev_grp),
             "count":            int(len(rev_grp)),
         }
+
+    # 파트별 인당 값(2026-10-29 요청) — 실적 보기와 **같은 규칙**: 관리자가 수기 입력한 파트 인원(data/headcount.json의 현재 인원 = 실적 보기가
+    # 추정 금액을 나누는 그 인원)으로 나눔. 나누는 금액은 27 계획. 인원이 없거나(None), 팀 필터로 행이 잘린 상태에서 여러 팀에 걸친 파트(K뉴딜TF)는
+    # 인당 값 None + headcount_partial(파트 전체 인원 ÷ 팀 몫 금액이 되어 틀림). 계산은 headcount.per_head_fields를 그대로 씀
+    _hc = headcount.read_headcount()["parts"]
+    _team_cut = bool(request.args.get("team"))
+    _full_rev = full[full["category"] == "매출"]
+    _multi_team = set(_full_rev.groupby("part")["team"].nunique().loc[lambda n: n > 1].index) if _team_cut else set()
+    for part_name, st in by_part.items():
+        hc = _hc.get(strip_part_prefix(part_name))
+        partial = part_name in _multi_team
+        ph = headcount.per_head_fields(
+            {"jun_check_total": st["rev27"], "operating_profit": st["operating_profit"], "cost_mgmt": st["cost_mgmt"]},
+            None if partial else hc)
+        st["headcount"] = hc
+        st["headcount_partial"] = partial
+        st["rev_per_head"] = ph["rev_per_head_est"]     # 이름의 est는 실적 보기 기준 — 여기선 27 계획 금액 ÷ 인원
+        st["profit_per_head"] = ph["profit_per_head"]
+        st["mgmt_per_head"] = ph["mgmt_per_head"]
 
     by_team = {
         team_name: {

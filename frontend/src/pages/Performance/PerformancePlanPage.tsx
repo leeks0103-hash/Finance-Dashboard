@@ -37,7 +37,7 @@ const PerformancePlanPage = () => {
       </FadeInSection>
 
       <FadeInSection delay={100} tourId="perf-charts" refreshing={vm.isSummaryFetching}>
-        <PerformancePlanChartSection chart={vm.chart} />
+        <PerformancePlanChartSection chart={vm.chart} composition={vm.compositionView} />
       </FadeInSection>
 
       <FadeInSection delay={300} tourId="perf-projects">

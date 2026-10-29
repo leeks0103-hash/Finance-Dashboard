@@ -343,6 +343,14 @@ export interface PerfPlanPartStats {
   rev_rate: number | null;
   cost_direct: number; cost_labor: number; cost_overhead: number; cost_mgmt: number;
   operating_profit: number; avg_profit_rate: number; count: number;
+  /** 파트 인원(관리자 수기 입력 — 실적 보기의 "현재 인원"과 같은 값). 미입력이면 null */
+  headcount?: number | null;
+  /** 팀 필터로 행이 잘린 상태에서 여러 팀에 걸친 파트 — 인당 값을 못 구함 */
+  headcount_partial?: boolean;
+  /** 27 계획 금액 ÷ 인원(천원). 인원이 없거나 headcount_partial이면 null */
+  rev_per_head?: number | null;
+  profit_per_head?: number | null;
+  mgmt_per_head?: number | null;
 }
 
 export interface PerfPlanTotal {

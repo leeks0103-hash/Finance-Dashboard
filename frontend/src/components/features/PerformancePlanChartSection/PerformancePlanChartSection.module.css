@@ -8,6 +8,7 @@
 }
 
 .card { min-width: 0; display: flex; flex-direction: column; min-height: 430px; }
+.span3  { grid-column: span 3; }
 .span6  { grid-column: span 6; }
 .span12 { grid-column: span 12; }
 
@@ -18,6 +19,23 @@
   min-height: 200px; color: var(--text-muted); font-size: 0.9rem;
 }
 
+/* 구성 카드 제목줄 오른쪽 — 파이/막대 전환 칩 + (파이일 때) 전체·팀·파트 선택 */
+.compControls { display: inline-flex; align-items: center; gap: 10px; }
+.compChips { display: inline-flex; gap: 6px; }
+
+/* 파이는 전체 폭(12칸)으로 펴면 범례가 양끝으로 벌어져 읽기 어려움 — 폭을 제한하고 가운데로 */
+.pieWrap { width: 100%; max-width: 620px; height: 100%; margin: 0 auto; }
+
+/* 인당 차트 제목 옆 "N개 파트 제외" — 실적 보기와 같은 표시 */
+.titleNote { margin-left: 8px; font-size: 0.78rem; color: var(--text-muted); cursor: help; }
+
+/* 4칸 줄은 좁아지면 2열 → 1열 */
+@media (max-width: 1280px) {
+  .span3 { grid-column: span 6; }
+}
 @media (max-width: 1024px) {
   .span6 { grid-column: span 12; }
+}
+@media (max-width: 640px) {
+  .span3 { grid-column: span 12; }
 }
