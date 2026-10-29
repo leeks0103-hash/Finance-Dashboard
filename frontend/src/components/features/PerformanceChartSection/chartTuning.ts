@@ -32,6 +32,8 @@ export interface ChartTuning {
   labelFontPx: number;
   /** 막대 수치 글자 자간(px) — 음수일수록 촘촘. 0 = 기본 */
   labelSpacing: number;
+  /** 막대 **안쪽 흰색** 수치만의 자간(px, 원가분석의 층 안 숫자) — 비우면 labelSpacing을 같이 씀. 양수면 벌어짐 */
+  innerLabelSpacing?: number;
   /** 축 눈금(파트명·억 눈금) 글자 크기(px) — 비우면 전체 기본(14) */
   tickFontPx?: number;
   /** 파트명 축 눈금 자간(px) — 음수일수록 촘촘. 0 = 기본. 가로 막대는 왼쪽 파트명, 세로 막대는 아래 파트명 */
@@ -46,17 +48,18 @@ export interface ChartTuning {
 export const CHART_TUNING: Record<string, ChartTuning> = {
   monthly: {
     padding: { top: 6, right: 1, bottom: 1, left: 1 },
-    categoryPercentage: 0.92,
-    barPercentage: 0.92,
+    categoryPercentage: 0.89,   // 0.92 → 0.89, barPercentage도 0.92 → 0.89(2026-10-29 요청 "막대 폭 아주 미세하게"): 막대 폭 약 6% 감소. 이 값은 진도율·2027 월별 계획 분배 둘만 씀
+    barPercentage: 0.89,
     labelFontPx: 13,
-    labelSpacing: -0.3,
+    labelSpacing: -1,   // -0.3 → -1(2026-10-29): 원가율이 수치 아래 둘째 줄이 되면서 "(50.1%)"가 옆 막대에 닿아 자간을 좁힘. 2027 월별 차트도 이 값을 같이 씀
     tickSpacing: 0,
     costRate: { lift: 41, fontPx: 11, minBarWidth: 30 },
   },
   profitRate: {
     padding: { top: 20, right: 12, bottom: 12, left: 4 },
     labelFontPx: 12,
-    labelSpacing: 0,
+    labelSpacing: 0,   // 원래 값(0). 2026-10-29에 -0.8로 좁혔다가 "안 좁혀도 될 것 같다"는 요청으로 되돌림
+    // innerLabelSpacing: 0.5,   // 막대 안 흰색 수치만 자간을 따로 줄 때(양수 = 벌어짐) 주석 해제 — tightLabelsPlugin의 whiteSpacing. 지금은 안 씀
     tickSpacing: 0,
     costRate: { lift: 39, fontPx: 12 },
   },

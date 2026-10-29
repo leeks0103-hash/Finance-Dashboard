@@ -6,10 +6,11 @@ import { useServerSort } from '@/hooks/useServerSort';
 import { useReactPagination } from '@/lib/pagination';
 import { usePerfStore } from '@/store/perf.store';
 import { toEokNum, stripPartPrefix } from '@/utils';
-import { toEokNum2 } from '@/utils/format';
+import { toEokNum2, roundHeadcount } from '@/utils/format';
 import { sortParts, sortTeams } from '@/utils/partOrder';
 import { perfExportHref } from '@/api/performance.api';
 import type { PerfCompareCardData, PerfColorRole } from '@/hooks/viewmodels/usePerformanceViewModel';
+import type { HeadcountChartData } from '@/hooks/viewmodels/usePerformanceChartViewModel';
 import type { PerfProject, PerfPlanSummary } from '@/types/performance.types';
 import type { ServerPagination, ServerSearch, ServerSorting, ServerColumnFilters } from '@/components/ui/DataTable';
 import type { ColumnFilterValue } from '@/types/columnFilter.types';
@@ -31,6 +32,12 @@ export interface PlanChartData {
   revRates:    (number | null)[];
   /** 27 계획 구성(매출 = 직접원가 + 인건비 + 공통원가 + 관리비 + 경상손익) — 파트별 누적 막대 */
   composition: { direct: number[]; labor: number[]; overhead: number[]; mgmt: number[]; profit: number[] };
+  /** 구성 막대 칸마다 "27 계획 매출 대비 %"(백엔드 계산, 매출 0 이하면 null) — composition과 같은 순서 */
+  compositionRates: { direct: (number | null)[]; labor: (number | null)[]; overhead: (number | null)[]; mgmt: (number | null)[]; profit: (number | null)[] };
+  /** 파트별 원가율(%) = 원가(직접+공통) ÷ 매출 — 구성 막대 끝에 "(45.8%)" (백엔드 계산) */
+  partCostRates: (number | null)[];
+  /** 월별 차트 제목 옆 요약 — 27 계획 합계 매출·직접원가(억)와 원가율(%, 직접원가 ÷ 매출, 백엔드 계산) */
+  monthTotals: { revenue: number; cost: number; costRate: number | null };
   /** 1~12월 계획 분배(실적 아님) */
   monthLabels:  string[];
   monthRevenue: number[];
@@ -45,6 +52,8 @@ export interface PlanChartData {
     missingParts: string[];
     partialParts: string[];
   };
+  /** 파트별 인원 카드(2026 실적 보기와 같은 모양) — **2027 인원**(관리자 > 파트별 인원 > 2027년 인원). 입력된 파트만, 미입력 파트는 missingParts */
+  headcount: HeadcountChartData;
   /** 구성(직접원가·인건비·공통원가·관리비·경상손익) 파이용 — 전체 / 팀별 / 파트별(키 = 원문자 뗀 파트명), 억 단위 */
   compositionPies: {
     total:  CompositionSlices;
@@ -54,7 +63,11 @@ export interface PlanChartData {
   };
 }
 
-export interface CompositionSlices { labels: string[]; values: number[] }
+export interface CompositionSlices {
+  labels: string[]; values: number[];
+  /** 원가율(%) = 원가(직접+공통) ÷ 매출 — 이 범위(전체·팀·파트)의 값, 백엔드 계산 */
+  costRate: number | null;
+}
 
 /** 파이·누적 막대가 같이 쓰는 조각 이름 — 순서 고정(실적 보기 원가 도넛과 같음) */
 export const COMPOSITION_LABELS = ['직접원가', '인건비', '공통원가', '관리비', '경상손익'];
@@ -67,10 +80,12 @@ export const buildPlanChartData = (summary: PerfPlanSummary | undefined): PlanCh
   if (!summary || !summary.total?.y27) return null;
   const keys = sortParts(Object.keys(summary.by_part));
   const part = (k: string) => summary.by_part[k];
-  const slices = (v: { cost_direct: number; cost_labor: number; cost_overhead: number; cost_mgmt: number; operating_profit: number }): CompositionSlices => ({
+  const slices = (v: { cost_direct: number; cost_labor: number; cost_overhead: number; cost_mgmt: number; operating_profit: number; cost_rate?: number | null }): CompositionSlices => ({
     labels: COMPOSITION_LABELS,
     values: [v.cost_direct, v.cost_labor, v.cost_overhead, v.cost_mgmt, v.operating_profit].map(x => toEokNum(x ?? 0)),
+    costRate: v.cost_rate ?? null,
   });
+  const rates = (f: 'direct' | 'labor' | 'overhead' | 'mgmt' | 'profit') => keys.map(k => part(k).comp_rate?.[f] ?? null);
   const perHead = keys.filter(k => part(k).rev_per_head != null);
   return {
     partLabels: keys.map(stripPartPrefix),
@@ -84,6 +99,13 @@ export const buildPlanChartData = (summary: PerfPlanSummary | undefined): PlanCh
       mgmt:     keys.map(k => toEokNum(part(k).cost_mgmt)),
       profit:   keys.map(k => toEokNum(part(k).operating_profit)),
     },
+    compositionRates: { direct: rates('direct'), labor: rates('labor'), overhead: rates('overhead'), mgmt: rates('mgmt'), profit: rates('profit') },
+    partCostRates: keys.map(k => part(k).cost_rate ?? null),
+    monthTotals: {
+      revenue:  toEokNum(summary.total.y27.revenue),
+      cost:     toEokNum(summary.total.y27.cost),
+      costRate: summary.total.direct_rate ?? null,
+    },
     monthLabels:  summary.monthly.map(m => m.month),
     monthRevenue: summary.monthly.map(m => toEokNum(m.revenue)),
     monthCost:    summary.monthly.map(m => toEokNum(m.cost)),
@@ -95,11 +117,21 @@ export const buildPlanChartData = (summary: PerfPlanSummary | undefined): PlanCh
       missingParts: keys.filter(k => part(k).rev_per_head == null && !part(k).headcount_partial).map(stripPartPrefix),
       partialParts: keys.filter(k => part(k).headcount_partial).map(stripPartPrefix),
     },
+    headcount: (() => {
+      const rows = keys.map(k => ({ name: stripPartPrefix(k), cur: (part(k).headcount ?? 0) > 0 ? part(k).headcount! : null }));
+      const ok = rows.filter(r => r.cur != null);
+      return {
+        labels:       ok.map(r => r.name),
+        current:      ok.map(r => r.cur),
+        totalCurrent: roundHeadcount(ok.reduce((t, r) => t + (r.cur ?? 0), 0)),   // 소수 첫째 자리 인원 — 부동소수 오차 정리
+        missingParts: rows.filter(r => r.cur == null).map(r => r.name),
+      };
+    })(),
     compositionPies: {
       total: slices({
         cost_direct: summary.total.cost_direct ?? 0, cost_labor: summary.total.cost_labor ?? 0,
         cost_overhead: summary.total.cost_overhead ?? 0, cost_mgmt: summary.total.cost_mgmt ?? 0,
-        operating_profit: summary.total.operating_profit ?? 0,
+        operating_profit: summary.total.operating_profit ?? 0, cost_rate: summary.total.cost_rate ?? null,
       }),
       byTeam: Object.fromEntries(Object.entries(summary.by_team ?? {}).map(([t, v]) => [t, slices(v)])),
       byPart: Object.fromEntries(keys.map(k => [stripPartPrefix(k), slices(part(k))])),
@@ -241,7 +273,7 @@ export const usePerformancePlanViewModel = (): PerformancePlanViewModel => {
   const setCompPart = (v: string) => { setCompPartRaw(v); setCompTeamRaw(''); };
   const pies = chart?.compositionPies;
   const pie = useMemo((): CompositionSlices => {
-    if (!pies) return { labels: COMPOSITION_LABELS, values: COMPOSITION_LABELS.map(() => 0) };
+    if (!pies) return { labels: COMPOSITION_LABELS, values: COMPOSITION_LABELS.map(() => 0), costRate: null };
     if (compTeam) return pies.byTeam[compTeam] ?? pies.total;
     if (compPart !== '전체') return pies.byPart[compPart] ?? pies.total;
     return pies.total;

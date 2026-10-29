@@ -122,4 +122,7 @@
 .list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; }
 
 /* 2026 / 2027 인원 전환 칩(2026-10-29) */
-.yearTabs { display: flex; gap: 8px; margin-bottom: 4px; }
+.yearTabs { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+.yearChips { display: flex; gap: 8px; }
+/* 2026 탭에서 "2026 인원 불러오기" 자리만 남김 — 숨겨도 줄 높이·칩 위치가 안 변함(포커스·클릭도 안 됨) */
+.reserved { visibility: hidden; }

@@ -8,8 +8,11 @@
 }
 
 .card { min-width: 0; display: flex; flex-direction: column; min-height: 430px; }
+.cardLow { min-height: 0; }   /* 파트별 인원(한 줄 전체, 내용만큼) — 실적 보기 .rowLow와 같음 */
 .span3  { grid-column: span 3; }
+.span4  { grid-column: span 4; }
 .span6  { grid-column: span 6; }
+.span8  { grid-column: span 8; }
 .span12 { grid-column: span 12; }
 
 .chartTitle { display: inline-flex; align-items: center; gap: 4px; }
@@ -20,7 +23,7 @@
 }
 
 /* 구성 카드 제목줄 오른쪽 — 파이/막대 전환 칩 + (파이일 때) 전체·팀·파트 선택 */
-.compControls { display: inline-flex; align-items: center; gap: 10px; }
+.compControls { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 10px; }   /* 4칸 카드라 좁아지면 줄바꿈 */
 .compChips { display: inline-flex; gap: 6px; }
 
 /* 파이는 전체 폭(12칸)으로 펴면 범례가 양끝으로 벌어져 읽기 어려움 — 폭을 제한하고 가운데로 */
@@ -29,9 +32,39 @@
 /* 인당 차트 제목 옆 "N개 파트 제외" — 실적 보기와 같은 표시 */
 .titleNote { margin-left: 8px; font-size: 0.78rem; color: var(--text-muted); cursor: help; }
 
-/* 4칸 줄은 좁아지면 2열 → 1열 */
+/* 월별 차트 제목 옆 27 계획 합계(2026-10-29) — 실적 보기 진도율의 "매출/원가 추정 누계 실적"(.cumNote)과 같은 모양·크기 */
+.cumNote {
+  display: inline-flex; align-items: center; flex-wrap: wrap;
+  gap: 2px 10px; margin: 0 auto; min-width: 0;
+  text-transform: none; letter-spacing: normal; font-weight: 500; font-size: 1rem;
+}
+.cumLabel { color: var(--text-muted); white-space: nowrap; }
+.cumItem { display: inline-flex; align-items: baseline; gap: 4px; color: var(--cum-color, var(--text-muted)); white-space: nowrap; }
+.cumItem b { color: inherit; font-weight: 700; }
+.cumItem i { font-style: normal; color: var(--text-sub, var(--text-muted)); }
+
+/* 제목줄 오른쪽 끝 "% 원가율 = 원가 ÷ 매출" — 실적 보기 .titleNote/.titleNotePct와 같음 */
+.rateNote {
+  display: inline-flex; align-items: center; gap: 5px; margin-left: 0; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 0.75rem; font-weight: 500; color: var(--text-muted);
+  text-transform: none; letter-spacing: normal;
+}
+.rateNotePct { flex: none; color: var(--text-sub, var(--text-muted)); font-weight: 700; }
+
+/* 구성 카드(4칸) — 제목줄이 좁아 % 설명은 차트 위 캡션 한 줄. 캡션 + 차트를 세로로 나눠 차트가 남는 높이를 채움 */
+.bodyCol { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.bodyFill { flex: 1; min-height: 0; position: relative; }
+.caption {
+  display: flex; align-items: baseline; gap: 5px; flex: none; margin-bottom: 6px;
+  font-size: 0.75rem; font-weight: 500; line-height: 1.35; color: var(--text-muted);
+}
+.caption b { color: var(--text-sub, var(--text-muted)); font-weight: 700; }
+
+/* 4칸 줄은 좁아지면 2열 → 1열. 8:4 줄(월별·구성)은 실적 보기 2줄째와 같게 좁아지면 한 줄 전체씩 */
 @media (max-width: 1280px) {
   .span3 { grid-column: span 6; }
+  .span8, .span4 { grid-column: span 12; }
 }
 @media (max-width: 1024px) {
   .span6 { grid-column: span 12; }

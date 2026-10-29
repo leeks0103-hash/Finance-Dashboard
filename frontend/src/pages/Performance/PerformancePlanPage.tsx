@@ -1,5 +1,5 @@
 import { usePerformancePlanViewModel } from '@/hooks/viewmodels/usePerformancePlanViewModel';
-import { DataTable, FilterSelect, HrefDownloadButton, RefreshSpinner } from '@/components/ui';
+import { Button, DataTable, FilterSelect, HrefDownloadButton, RefreshSpinner } from '@/components/ui';
 import { FadeInSection } from '@/components/FadeInSection';
 import PerformanceKpiSection from '@/components/features/PerformanceKpiSection/PerformanceKpiSection';
 import PerformancePlanChartSection from '@/components/features/PerformancePlanChartSection/PerformancePlanChartSection';
@@ -22,15 +22,23 @@ const INFO_PLAN_TABLE =
 const PerformancePlanPage = () => {
   const vm = usePerformancePlanViewModel();
   const rawValues = useUiStore(s => s.showRawValues);
+  const noteDismissed = useUiStore(s => s.planNoteDismissed);
+  const dismissNote = useUiStore(s => s.dismissPlanNote);
   const planCols = perfPlanColumnSet();
 
   return (
     <main className={styles.main}>
-      <p className={styles.planNote}>
-        {vm.yearLabel ? `${vm.yearLabel} ` : ''}사업계획 시트 기준 — 27 사업계획을 이 시트의 "2026년 연간 추정" 열과 비교합니다.
-        월별 값은 계획 분배이며 실적·달성률은 없습니다.
-        이 "26 추정"은 시트에 입력된 값이라 2026 실적 보기의 추정과 다를 수 있습니다.
-      </p>
+      {/* 닫기 버튼 — 닫은 상태는 이 브라우저(localStorage, ui.store)에 기억해 다시 안 보임(2026-10-29 요청) */}
+      {!noteDismissed && (
+        <div className={styles.planNote} role="note">
+          <p className={styles.planNoteText}>
+            {vm.yearLabel ? `${vm.yearLabel} ` : ''}사업계획 시트 기준 — 27 사업계획을 이 시트의 "2026년 연간 추정" 열과 비교합니다.
+            월별 값은 계획 분배이며 실적·달성률은 없습니다.
+            이 "26 추정"은 시트에 입력된 값이라 2026 실적 보기의 추정과 다를 수 있습니다.
+          </p>
+          <Button unstyled className={styles.planNoteClose} onClick={dismissNote} aria-label="안내 닫기" title="닫기 (이 브라우저에선 다시 안 보입니다)">×</Button>
+        </div>
+      )}
 
       <FadeInSection delay={0} tourId="perf-kpi" refreshing={vm.isSummaryFetching}>
         <PerformanceKpiSection cards={vm.kpiCards} orderKey={PLAN_KPI_ORDER_KEY} />

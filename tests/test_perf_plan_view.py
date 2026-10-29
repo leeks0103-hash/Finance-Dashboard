@@ -275,6 +275,16 @@ class TestPlanSummaryEndpoint:
         assert all(p["rev_rate"] == 120.0 for p in s["by_part"].values())   # 120 ÷ 100 — 프론트는 계산 없이 표시만
         assert len(s["monthly"]) == 12 and sum(m["revenue"] for m in s["monthly"]) == 120 * N_PAIRS
 
+    def test_cost_rate_and_composition_shares_are_computed_by_backend(self, client):
+        """원가율 = 원가(직접+공통) ÷ 매출, 구성 비율 = 각 항목 ÷ 매출 — 파트·팀·전체 모두 백엔드 계산(2026-10-29).
+        합성 매출행: 매출 120 = 직접 50 + 인건비 10 + 공통 5 + 관리비 8 + 경상손익 47"""
+        s = client.get("/api/performance/summary?view=plan27").get_json()
+        assert s["total"]["cost_rate"] == 45.8 and s["total"]["direct_rate"] == 41.7   # (50+5)/120, 50/120
+        for p in s["by_part"].values():
+            assert p["cost_rate"] == 45.8
+            assert p["comp_rate"] == {"direct": 41.7, "labor": 8.3, "overhead": 4.2, "mgmt": 6.7, "profit": 39.2}
+        assert all(t["cost_rate"] == 45.8 for t in s["by_team"].values())
+
     def test_per_head_uses_2027_headcount_not_the_2026_one(self, client, monkeypatch):
         """인당 = 27 계획 금액 ÷ **2027 인원**(parts27, 같은 함수·같은 규칙) — 2026 인원(parts)은 빌려 쓰지 않음. 인원 없는 파트는 None"""
         monkeypatch.setattr(P.headcount, "read_headcount",

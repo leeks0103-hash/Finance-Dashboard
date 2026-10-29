@@ -1432,6 +1432,9 @@ def build_plan_summary():
         "cost_overhead":    y27["overhead"],
         "cost_mgmt":        y27["mgmt"],
         "operating_profit": y27["profit"],
+        # 원가율(%) 두 가지(2026-10-29): cost_rate = 원가(직접+공통) ÷ 매출(원가분석·구성 차트), direct_rate = 직접원가(원가행) ÷ 매출(월별 차트의 원가율)
+        "cost_rate":        _ratio(total_of(rev, "cost_direct") + y27["overhead"], y27["revenue"]),
+        "direct_rate":      _ratio(y27["cost"], y27["revenue"]),
         "avg_profit_rate":  _weighted_profit_rate(rev),
         "count":            int(len(rev)),
     }
@@ -1439,6 +1442,7 @@ def build_plan_summary():
     by_part = {}
     for part_name, rev_grp in rev.groupby("part"):
         cost_grp = cost[cost["part"] == part_name]
+        rev27_part = total_of(rev_grp, "jun_check_total")
         by_part[part_name] = {
             "rev26":  total_of(rev_grp, "plan_initial"),
             "rev27":  total_of(rev_grp, "jun_check_total"),
@@ -1451,6 +1455,16 @@ def build_plan_summary():
             "cost_overhead":    total_of(rev_grp, "cost_overhead"),
             "cost_mgmt":        total_of(rev_grp, "cost_mgmt"),
             "operating_profit": total_of(rev_grp, "operating_profit"),
+            # 27 계획 매출 대비 구성 비율(%) — 구성 막대 칸 수치 옆에 표시(2026-10-29). 매출이 0 이하면 None
+            "comp_rate": {
+                "direct":   _ratio(total_of(rev_grp, "cost_direct"), rev27_part),
+                "labor":    _ratio(total_of(rev_grp, "cost_labor"), rev27_part),
+                "overhead": _ratio(total_of(rev_grp, "cost_overhead"), rev27_part),
+                "mgmt":     _ratio(total_of(rev_grp, "cost_mgmt"), rev27_part),
+                "profit":   _ratio(total_of(rev_grp, "operating_profit"), rev27_part),
+            },
+            # 원가율 = 원가(직접+공통) ÷ 매출 × 100 — 실적 보기 원가분석과 같은 정의(2026-10-29). 매출이 0 이하면 None
+            "cost_rate": _ratio(total_of(rev_grp, "cost_direct") + total_of(rev_grp, "cost_overhead"), rev27_part),
             "avg_profit_rate":  _weighted_profit_rate(rev_grp),
             "count":            int(len(rev_grp)),
         }
@@ -1481,6 +1495,7 @@ def build_plan_summary():
             "cost_overhead":    total_of(g, "cost_overhead"),
             "cost_mgmt":        total_of(g, "cost_mgmt"),
             "operating_profit": total_of(g, "operating_profit"),
+            "cost_rate":        _ratio(total_of(g, "cost_direct") + total_of(g, "cost_overhead"), total_of(g, "jun_check_total")),
         }
         for team_name, g in rev.dropna(subset=["team"]).groupby("team")
     }

@@ -1,10 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { confirmDialog } from '@/components/ui';
 import PartHeadcountPanel from './PartHeadcountPanel';
 
 // 서버·쿼리 없이 패널만 — 훅은 가짜로(저장 함수 호출 내용을 검사)
 const save = vi.fn().mockResolvedValue({});
 const settings = { parts: { PM: 6.6, SW: 9 }, parts27: {} as Record<string, number>, updated_at: '', updated_by: '' };
+
+// 공용 확인창(SweetAlert2)은 가짜로 — 덮어쓰기 확인을 눌렀을 때/취소했을 때를 각각 검사
+vi.mock('@/components/ui', async importOriginal => ({
+  ...(await importOriginal<typeof import('@/components/ui')>()),
+  confirmDialog: vi.fn(),
+}));
 
 vi.mock('@/hooks/useHeadcount', () => ({
   useHeadcount: () => ({ settings, isLoading: false, save, isSaving: false, error: null }),
@@ -17,7 +24,7 @@ vi.mock('@/hooks/usePerformanceData', () => ({
 }));
 
 describe('PartHeadcountPanel 2026 / 2027 인원 따로(2026-10-29)', () => {
-  beforeEach(() => { save.mockClear(); });
+  beforeEach(() => { save.mockClear(); vi.mocked(confirmDialog).mockReset(); });
 
   it('처음엔 2026년 인원 — 저장된 값이 보이고, 2027 칩을 누르면 비어 있는 2027 입력칸이 나온다', () => {
     render(<PartHeadcountPanel hideTitle />);
@@ -45,6 +52,22 @@ describe('PartHeadcountPanel 2026 / 2027 인원 따로(2026-10-29)', () => {
     fireEvent.change(screen.getByLabelText('SW 2027년 인원'), { target: { value: '3' } });
     expect(screen.getByText('2027년 인원 ●')).toBeTruthy();
     expect(screen.queryByText('2026년 인원 ●')).toBeNull();
+  });
+
+  it('2027 칸에 이미 적은 값이 있으면 사이트 확인창으로 묻고, 확인하면 덮어쓰고 취소하면 그대로 둔다', async () => {
+    render(<PartHeadcountPanel hideTitle />);
+    fireEvent.click(screen.getByText('2027년 인원'));
+    fireEvent.change(screen.getByLabelText('PM 2027년 인원'), { target: { value: '3' } });
+
+    vi.mocked(confirmDialog).mockResolvedValueOnce(false);                       // 취소
+    fireEvent.click(screen.getByText('2026 인원 불러오기'));
+    await waitFor(() => expect(confirmDialog).toHaveBeenCalledTimes(1));
+    expect((screen.getByLabelText('PM 2027년 인원') as HTMLInputElement).value).toBe('3');
+
+    vi.mocked(confirmDialog).mockResolvedValueOnce(true);                        // 확인
+    fireEvent.click(screen.getByText('2026 인원 불러오기'));
+    await waitFor(() => expect((screen.getByLabelText('PM 2027년 인원') as HTMLInputElement).value).toBe('6.6'));
+    expect(vi.mocked(confirmDialog).mock.calls[0][1]).toMatchObject({ title: '2026 인원을 불러올까요?' });
   });
 
   it('"2026 인원 불러오기"는 2026 값을 2027 입력칸에 복사만 한다(저장은 따로)', () => {

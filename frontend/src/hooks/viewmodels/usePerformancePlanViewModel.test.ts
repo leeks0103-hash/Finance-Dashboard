@@ -60,6 +60,43 @@ describe('buildPlanChartData 구성 파이(전체·팀·파트)', () => {
   });
 });
 
+describe('buildPlanChartData 원가율·구성 비율은 백엔드 값을 그대로(프론트 계산 없음)', () => {
+  const s = summary({
+    '① AIㆍDS': part({ cost_rate: 45.8, comp_rate: { direct: 41.7, labor: 8.3, overhead: 4.2, mgmt: 6.7, profit: 39.2 } }),
+    '② SW':     part({}),                                                    // 비율 필드가 없는 응답 → null
+  });
+  s.total = { ...s.total, cost_rate: 46.1, direct_rate: 41.7 };
+  s.by_team['SW 기술교육팀'].cost_rate = 44.4;
+  const data = buildPlanChartData(s)!;
+
+  it('구성 막대: 칸별 비율·파트별 원가율을 파트 순서대로, 없으면 null', () => {
+    expect(data.compositionRates.direct).toEqual([null, 41.7]);   // 화면 고정 순서(sortParts): SW → AIㆍDS
+    expect(data.compositionRates.profit).toEqual([null, 39.2]);
+    expect(data.partCostRates).toEqual([null, 45.8]);
+  });
+
+  it('파이: 전체·팀 범위의 원가율, 월별 제목 옆 합계(억)와 원가율', () => {
+    expect(data.compositionPies.total.costRate).toBe(46.1);
+    expect(data.compositionPies.byTeam['SW 기술교육팀'].costRate).toBe(44.4);
+    expect(data.monthTotals).toEqual({ revenue: 24, cost: 10, costRate: 41.7 });
+  });
+});
+
+describe('buildPlanChartData 파트별 인원 카드(2027 인원, 2026 카드와 같은 규칙)', () => {
+  const data = buildPlanChartData(summary({
+    '① AIㆍDS': part({ headcount: 8.8 }),
+    '② SW':     part({ headcount: 9 }),
+    '③ PM':     part({ headcount: null }),    // 2027 인원 미입력
+  }))!;
+
+  it('입력된 파트만 화면 순서대로, 합계는 소수 첫째 자리, 미입력은 이름만 알려 준다', () => {
+    expect(data.headcount.labels).toEqual(['SW', 'AIㆍDS']);       // 화면 고정 순서(sortParts)
+    expect(data.headcount.current).toEqual([9, 8.8]);
+    expect(data.headcount.totalCurrent).toBe(17.8);
+    expect(data.headcount.missingParts).toEqual(['PM']);
+  });
+});
+
 describe('buildPlanChartData 데이터가 없을 때', () => {
   it('요약이 없거나 y27이 없으면 null(화면은 빈 안내)', () => {
     expect(buildPlanChartData(undefined)).toBeNull();

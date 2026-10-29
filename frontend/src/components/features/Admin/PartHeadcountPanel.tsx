@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Button, FilterChip } from '@/components/ui';
+import { Button, FilterChip, confirmDialog } from '@/components/ui';
 import { useHeadcount } from '@/hooks/useHeadcount';
 import { usePerformanceOptions } from '@/hooks/usePerformanceData';
 import { sortParts } from '@/utils/partOrder';
@@ -128,10 +128,28 @@ const PartHeadcountPanel = ({ hideTitle = false }: { hideTitle?: boolean }) => {
       </div>
 
       {/* 연도 전환 — 2026 / 2027 인원은 따로 입력(저장은 두 연도를 같이). 저장 안 한 변경이 있는 연도엔 ● */}
-      <div className={styles.yearTabs} role="group" aria-label="인원 연도">
-        {(['cur', 'y27'] as Kind[]).map(k => (
-          <FilterChip key={k} label={`${KIND_INFO[k].chip}${kindDirty(k) ? ' ●' : ''}`} checked={kind === k} onChange={() => setKind(k)} />
-        ))}
+      <div className={styles.yearTabs}>
+        <div className={styles.yearChips} role="group" aria-label="인원 연도">
+          {(['cur', 'y27'] as Kind[]).map(k => (
+            <FilterChip key={k} label={`${KIND_INFO[k].chip}${kindDirty(k) ? ' ●' : ''}`} checked={kind === k} onChange={() => setKind(k)} />
+          ))}
+        </div>
+        {/* 2027 인원을 처음 채울 때 편의 — 2026 입력칸 값을 2027 입력칸으로 복사(저장 전까지는 화면에서만, 덮어쓰기 전 확인).
+            연도 칩 반대편 오른쪽 끝, 2026 탭에선 자리만 남겨(visibility) 탭을 바꿔도 줄 높이·배치가 안 흔들림(2026-10-29 요청) */}
+        <Button variant="ghost" size="sm" className={kind === 'y27' ? undefined : styles.reserved}
+          disabled={filled('cur') === 0} tabIndex={kind === 'y27' ? undefined : -1} aria-hidden={kind !== 'y27'}
+          title="2026 인원 입력값을 2027 입력칸으로 복사합니다(저장 전까지는 화면에서만)"
+          onClick={async () => {
+            // 이미 적어 둔 2027 값이 있으면 덮어쓰기 전에 확인 — 브라우저 기본 창이 아니라 사이트 공용 확인창(utils/dialog)
+            if (filled('y27') > 0) {
+              const ok = await confirmDialog('2027 입력칸에 적은 값이 **2026 인원** 값으로 바뀝니다.\n저장 전까지는 화면에서만 바뀌고, "되돌리기"로 취소할 수 있어요.', {
+                title: '2026 인원을 불러올까요?',
+                confirmText: '불러오기',
+              });
+              if (!ok) return;
+            }
+            setDraft(d => ({ ...d, y27: { ...d.cur } }));
+          }}>2026 인원 불러오기</Button>
       </div>
 
       {isLoading ? <span className={styles.muted}>불러오는 중…</span> : (
@@ -145,15 +163,6 @@ const PartHeadcountPanel = ({ hideTitle = false }: { hideTitle?: boolean }) => {
               <div className={styles.boxTotal}>
                 <span className={styles.total}>합계 <b>{formatHeadcount(sum(kind))}</b>명</span>
                 <span className={styles.muted}>{filled(kind)}/{partNames.length}개 입력</span>
-                {/* 2027 인원을 처음 채울 때 편의 — 2026 입력칸 값을 2027 입력칸으로 복사(저장 전까지는 화면에서만, 덮어쓰기 전 확인) */}
-                {kind === 'y27' && (
-                  <Button variant="ghost" size="sm" disabled={filled('cur') === 0}
-                    title="2026 인원 입력값을 2027 입력칸으로 복사합니다(저장 전까지는 화면에서만)"
-                    onClick={() => {
-                      if (filled('y27') > 0 && !window.confirm('2027 입력칸의 값이 2026 인원으로 바뀝니다. 계속할까요?')) return;
-                      setDraft(d => ({ ...d, y27: { ...d.cur } }));
-                    }}>2026 인원 불러오기</Button>
-                )}
               </div>
             </div>
             <div className={styles.list}>

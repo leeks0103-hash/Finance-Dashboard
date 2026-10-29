@@ -343,6 +343,10 @@ export interface PerfPlanPartStats {
   rev_rate: number | null;
   cost_direct: number; cost_labor: number; cost_overhead: number; cost_mgmt: number;
   operating_profit: number; avg_profit_rate: number; count: number;
+  /** 원가율(%) = 원가(직접+공통) ÷ 27 계획 매출 — 백엔드 계산, 매출이 0 이하면 null */
+  cost_rate?: number | null;
+  /** 27 계획 매출 대비 구성 비율(%) — 구성 막대 칸 수치 옆에 표시(백엔드 계산) */
+  comp_rate?: { direct: number | null; labor: number | null; overhead: number | null; mgmt: number | null; profit: number | null };
   /** 파트 인원(관리자 수기 입력 — 실적 보기의 "현재 인원"과 같은 값). 미입력이면 null */
   headcount?: number | null;
   /** 팀 필터로 행이 잘린 상태에서 여러 팀에 걸친 파트 — 인당 값을 못 구함 */
@@ -360,6 +364,9 @@ export interface PerfPlanTotal {
   rate: Record<string, number | null>;
   cost_direct: number; cost_labor: number; cost_overhead: number; cost_mgmt: number;
   operating_profit: number; avg_profit_rate: number; count: number;
+  /** 원가율(%) — cost_rate = 원가(직접+공통) ÷ 매출(구성 차트), direct_rate = 직접원가 ÷ 매출(월별 차트의 원가율). 백엔드 계산 */
+  cost_rate?: number | null;
+  direct_rate?: number | null;
 }
 
 export interface PerfPlanSummary {
@@ -370,7 +377,7 @@ export interface PerfPlanSummary {
   /** 데이터가 없으면 빈 객체({}) — y27이 없으면 비어 있는 것 */
   total: Partial<PerfPlanTotal>;
   by_part: Record<string, PerfPlanPartStats>;
-  by_team: Record<string, { cost_direct: number; cost_labor: number; cost_overhead: number; cost_mgmt: number; operating_profit: number }>;
+  by_team: Record<string, { cost_direct: number; cost_labor: number; cost_overhead: number; cost_mgmt: number; operating_profit: number; cost_rate?: number | null }>;
   /** 1~12월 계획 분배(실적 아님) */
   monthly: PerfMonthly[];
 }

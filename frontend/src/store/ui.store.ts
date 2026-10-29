@@ -28,6 +28,10 @@ interface UiStore {
   tourSeen: boolean;
   markTourSeen: () => void;
 
+  /** 2027 계획 보기 상단 안내 문구를 닫았는지(2026-10-29) — 닫으면 이 브라우저에선 다시 안 보임(localStorage) */
+  planNoteDismissed: boolean;
+  dismissPlanNote: () => void;
+
   /** 이 브라우저가 관리자 인증됐는지 — useExtractJob이 동기화(키 자체는 extract.api가 localStorage에 보관).
    *  달성률·바로가기(↗) 공개 범위 자체는 서버 저장(useVisibility) — 예전엔 여기(브라우저별)라 남의 화면엔 안 먹었음 */
   /** 로그인 역할 — null이면 로그인 화면. 관리자 기능은 'admin'만(2026-10-13 일반 회원 분리) */
@@ -62,6 +66,9 @@ export const useUiStore = create<UiStore>()(
       tourSeen: false,
       markTourSeen: () => set({ tourSeen: true }),
 
+      planNoteDismissed: false,
+      dismissPlanNote: () => set({ planNoteDismissed: true }),
+
       authRole: null,
       adminAuthed: false,
       setAuthRole: (role) => set({ authRole: role, adminAuthed: role === 'admin' }),
@@ -74,7 +81,7 @@ export const useUiStore = create<UiStore>()(
       // 그래프 수치·표 실제값·재무 대조·투어 시청 여부·차트 색만 로컬에 저장 — 나머지는 세션 한정
       partialize: (s) => ({
         showChartLabels: s.showChartLabels, showRawValues: s.showRawValues, showFinCompare: s.showFinCompare, tourSeen: s.tourSeen,
-        chartColors: s.chartColors,
+        chartColors: s.chartColors, planNoteDismissed: s.planNoteDismissed,
       }),
       // 저장된 차트 색이 깨졌거나(직접 고친 localStorage·옛 형식) 모르는 값이면 버림
       merge: (persisted, current) => {

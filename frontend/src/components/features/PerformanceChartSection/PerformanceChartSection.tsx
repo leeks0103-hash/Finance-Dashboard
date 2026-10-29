@@ -386,6 +386,8 @@ const SIDE_LABEL = {
   formatter: (_: number, ctx: SegCtx) => `${realValue(ctx)}`,
   display: (ctx: SegCtx) => labelsOn(ctx) && realValue(ctx) > 0 && !segFits(ctx),
 };
+// ⚠️ 아래 costRatePlugin·tightLabelsPlugin·tightTicksPlugin·fitBarLabelsPlugin·breakAtDotTick·costRateTuning은 2027 계획 보기 차트
+// (PerformancePlanChartSection)도 그대로 가져다 씀(2026-10-29 — 2026/2027 글자 크기·자간·두 줄 파트명이 같아야 한다는 요청). 이름·동작을 바꾸면 양쪽에 반영됨.
 // 원가율 — "원가 ÷ 매출"을 원가 막대 위, 원가 합계 수치 바로 위에 괄호로 "(54.8%)"(2026-10-21 시안 요청).
 // 그 전엔 막대 발치(가로축 아래) → 두 막대 경계 위(더 높은 막대 기준)였음.
 // 원가 = 원가 막대 전체(직접원가 + 공통원가, 보이는 막대 높이 그대로). 데이터셋 순서: 0 매출 / 1 직접원가 / 2 공통원가.
@@ -394,7 +396,7 @@ const SIDE_LABEL = {
 interface CostRateOpts { show: boolean; text: string; minBarWidth?: number; lift?: number; font?: string }   // lift: 차트별 높이(기본 COST_RATE_LIFT), font: 차트별 글꼴(기본 COST_RATE_FONT)
 const COST_RATE_FONT = "bold 12px 'Pretendard', 'Malgun Gothic', sans-serif";
 const COST_RATE_LIFT = 41;   // 원가 막대 꼭대기에서 이만큼 위 — 원가 합계 수치 상자(offset 4 + 14px 글자 + 위아래 padding 4 = 막대 위 약 29px) 윗줄 + 간격, 겹쳐 보여 27 → 41
-const costRatePlugin: Plugin<'bar'> = {
+export const costRatePlugin: Plugin<'bar'> = {
   id: 'costRate',
   afterDatasetsDraw(chart) {
     const o = (chart.options.plugins as { costRate?: CostRateOpts } | undefined)?.costRate;
@@ -427,23 +429,63 @@ const costRatePlugin: Plugin<'bar'> = {
   },
 };
 
+// 원가율을 막대 위 별도 글씨(costRatePlugin) 대신 **원가 수치 라벨의 둘째 줄** "(54.8%)"로 — 글자색이 수치와 같고 개행만 함(2026-10-29 시도, 요청).
+// 월별 계획 분배(2027)·진도율(월별 실적 추이)·원가분석에 적용. 마음에 안 들면 false — costRatePlugin이 예전처럼 막대 위에 따로 그림(옵션 show가 !INLINE_COST_RATE를 따름)
+export const INLINE_COST_RATE = false;   // 2026-10-29: 둘째 줄 방식을 시도했다가 "퍼센트 수치 위치 롤백" 요청으로 끔 — 원가율은 예전처럼 막대 위 별도 글씨(costRatePlugin). 다시 쓰려면 true
+/** i번째 막대의 원가율 글자 "(54.8%)" — 매출(데이터셋 0) 대비 원가(데이터셋 1 + 보이는 공통원가 2), costRatePlugin과 같은 계산. 값이 없거나 매출·원가를 숨겼으면 null */
+export const costRateText = (chart: Chart, i: number): string | null => {
+  if (!chart.isDatasetVisible(0) || !chart.isDatasetVisible(1)) return null;
+  const num = (di: number) => {
+    const d = chart.data.datasets[di] as unknown as { data: unknown[]; realData?: number[] } | undefined;
+    return Number(d?.realData?.[i] ?? d?.data[i]) || 0;
+  };
+  const rev = num(0);
+  const cost = num(1) + (chart.data.datasets.length > 2 && chart.isDatasetVisible(2) ? num(2) : 0);
+  return rev > 0 && cost > 0 ? `(${Math.round((cost / rev) * 1000) / 10}%)` : null;
+};
+
 // 막대 위 수치 자간 좁히기(진도율 차트, 2026-10-23 요청) — chartjs-plugin-datalabels는 자간 옵션이 없어서,
 // 수치가 그려지기 직전(beforeDatasetsDraw)에 캔버스 letterSpacing을 걸고 그리기가 끝나면(afterDraw) 되돌림.
 // datalabels·costRate 둘 다 이 값을 물려받음. 축 눈금(그 전에 그려짐)엔 영향 없음
 type SpacedCtx = CanvasRenderingContext2D & { letterSpacing?: string };
-const tightLabelsPlugin: Plugin<'bar'> = {
+// whiteSpacing(선택, 2026-10-29) — 막대 **안쪽 흰색** 수치(원가분석의 층 안 숫자)만 다른 자간. datalabels는 라벨마다 자간을 못 주므로
+// 수치가 그려지는 동안(beforeDatasetsDraw ~ afterDatasetsDraw) ctx.fillText를 감싸 글자색이 흰색일 때만 whiteSpacing, 나머지는 spacing.
+// 감싼 걸 afterDatasetsDraw에서 바로 풀어 툴팁·범례 등 뒤에 그려지는 글씨엔 영향 없음(그 뒤 letterSpacing 기본 복원은 afterDraw)
+type TightLabelsOpts = { spacing: string; whiteSpacing?: string };
+type PatchedCtx = SpacedCtx & { _tightFillText?: boolean };
+const unpatchFillText = (ctx: PatchedCtx) => {
+  if (!ctx._tightFillText) return;
+  delete (ctx as { fillText?: unknown }).fillText;   // 인스턴스에 얹은 것만 지워 원래(프로토타입) fillText로 복귀
+  ctx._tightFillText = false;
+};
+export const tightLabelsPlugin: Plugin<'bar'> = {
   id: 'tightLabels',
   beforeDatasetsDraw(chart) {
-    const o = (chart.options.plugins as { tightLabels?: { spacing: string } } | undefined)?.tightLabels;
-    if (o?.spacing) (chart.ctx as SpacedCtx).letterSpacing = o.spacing;
+    const o = (chart.options.plugins as { tightLabels?: TightLabelsOpts } | undefined)?.tightLabels;
+    const ctx = chart.ctx as PatchedCtx;
+    if (o?.spacing) ctx.letterSpacing = o.spacing;
+    if (o?.whiteSpacing && !ctx._tightFillText) {
+      const orig = ctx.fillText;
+      const { spacing, whiteSpacing } = o;
+      ctx.fillText = function (this: PatchedCtx, ...args: Parameters<CanvasRenderingContext2D['fillText']>) {
+        // fillStyle은 읽을 때 "#ffffff"로 정규화됨(#FFF·#fff·#FFFFFF 모두)
+        this.letterSpacing = String(this.fillStyle).toLowerCase() === '#ffffff' ? whiteSpacing : spacing;
+        return orig.apply(this, args);
+      } as CanvasRenderingContext2D['fillText'];
+      ctx._tightFillText = true;
+    }
+  },
+  afterDatasetsDraw(chart) {
+    unpatchFillText(chart.ctx as PatchedCtx);
   },
   afterDraw(chart) {
+    unpatchFillText(chart.ctx as PatchedCtx);   // 그리기가 중간에 취소돼도 남지 않게 한 번 더
     (chart.ctx as SpacedCtx).letterSpacing = '0px';
   },
 };
 
 // 조절표(chartTuning.ts)의 costRate → costRatePlugin 옵션(위치 lift·글자 font·좁은 막대 생략 minBarWidth)
-const costRateTuning = (t: { costRate?: { lift: number; fontPx: number; minBarWidth?: number } }) => t.costRate ? {
+export const costRateTuning = (t: { costRate?: { lift: number; fontPx: number; minBarWidth?: number } }) => t.costRate ? {
   lift: t.costRate.lift,
   font: `bold ${t.costRate.fontPx}px 'Pretendard', 'Malgun Gothic', sans-serif`,
   ...(t.costRate.minBarWidth != null ? { minBarWidth: t.costRate.minBarWidth } : {}),
@@ -452,7 +494,7 @@ const costRateTuning = (t: { costRate?: { lift: number; fontPx: number; minBarWi
 // 파트명 축 글자를 가운데점(ㆍ)에서 두 줄로 — Chart.js 눈금 callback이 배열을 돌려주면 여러 줄로 그림. 라벨 데이터는 그대로라 클릭·툴팁은 원래 이름
 // (조절표 breakTickAtDot, 2026-10-27). 점이 없거나 짧은 이름("AIㆍDS" 5자)은 그대로 한 줄 — 이 글자 수 이상일 때만 나눔
 const BREAK_AT_DOT_MIN_LEN = 7;
-const breakAtDotTick = function (this: { getLabelForValue: (v: number) => string }, v: string | number) {
+export const breakAtDotTick = function (this: { getLabelForValue: (v: number) => string }, v: string | number) {
   const label = this.getLabelForValue(Number(v));
   const at = label.indexOf('ㆍ');
   return label.length >= BREAK_AT_DOT_MIN_LEN && at > 0 && at < label.length - 1 ? [label.slice(0, at + 1), label.slice(at + 1)] : label;
@@ -665,7 +707,7 @@ const TICK_LETTER_SPACING = '-1px';
 // 옵션 plugins.tightTicks = { spacing: '-1px', axes: ['y'] } — 자간(기본 -1px)·적용 축(기본 y = 가로 막대의 왼쪽 파트명, 세로 막대는 ['x']).
 // 값은 chartTuning.ts의 tickSpacing에서 옴. 폭 재기·그리기 때 옵션을 그때그때 읽어서 값을 바꿔도 바로 반영
 interface TightTicksOpts { spacing?: string; axes?: ('x' | 'y')[] }
-const tightTicksPlugin: Plugin<'bar'> = {
+export const tightTicksPlugin: Plugin<'bar'> = {
   id: 'tightTicks',
   beforeLayout(chart) {
     const readOpts = () => (chart.options.plugins as { tightTicks?: TightTicksOpts } | undefined)?.tightTicks;
@@ -685,7 +727,7 @@ const tightTicksPlugin: Plugin<'bar'> = {
   },
 };
 
-const fitBarLabelsPlugin: Plugin<'bar'> = {
+export const fitBarLabelsPlugin: Plugin<'bar'> = {
   id: 'fitBarLabels',
   afterDataLimits(chart, args) {
     const o = (chart.options.plugins as { fitBarLabels?: FitBarLabelsOpts } | undefined)?.fitBarLabels;
@@ -913,8 +955,15 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
       datalabels: {
         ...vm.monthly.options.plugins?.datalabels,
         font: tuningLabelFont(CHART_TUNING.monthly),
+        textAlign: 'center' as const,
+        // 원가 막대(데이터셋 1) 수치 아래 줄에 원가율 — 같은 글자색(INLINE_COST_RATE)
+        formatter: (v: number, ctx: { chart: Chart; datasetIndex: number; dataIndex: number }) => {
+          const t = `${v}억`;
+          const r = INLINE_COST_RATE && ctx.datasetIndex === 1 ? costRateText(ctx.chart, ctx.dataIndex) : null;
+          return r ? [t, r] : t;
+        },
       },
-      costRate: { show: vm.showLabels, text: dark ? 'rgb(0,170,210)' : 'rgb(0,119,147)', ...costRateTuning(CHART_TUNING.monthly) },
+      costRate: { show: vm.showLabels && !INLINE_COST_RATE, text: dark ? 'rgb(0,170,210)' : 'rgb(0,119,147)', ...costRateTuning(CHART_TUNING.monthly) },
       tightLabels: { spacing: px(CHART_TUNING.monthly.labelSpacing) },
       tightTicks: { spacing: px(CHART_TUNING.monthly.tickSpacing), axes: ['x'] as ('x' | 'y')[] },   // 세로 막대 — 아래 월 글자 자간
     },
@@ -1066,8 +1115,12 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
     // 매출·원가 막대 사이 원가율 칩(costRatePlugin) — makeBarOptions는 legend·datalabels 외 플러그인 옵션을 버려서 여기서 덧붙임
     plugins: {
       ...base.plugins,
-      costRate: { show: vm.showLabels, text: dark ? 'rgb(0,170,210)' : 'rgb(0,119,147)', ...costRateTuning(CHART_TUNING.profitRate) },
-      tightLabels: { spacing: px(CHART_TUNING.profitRate.labelSpacing) },
+      costRate: { show: vm.showLabels && !INLINE_COST_RATE, text: dark ? 'rgb(0,170,210)' : 'rgb(0,119,147)', ...costRateTuning(CHART_TUNING.profitRate) },
+      tightLabels: {
+        spacing: px(CHART_TUNING.profitRate.labelSpacing),
+        // 막대 안쪽 흰색 수치만 따로 — chartTuning.ts profitRate.innerLabelSpacing
+        ...(CHART_TUNING.profitRate.innerLabelSpacing != null ? { whiteSpacing: px(CHART_TUNING.profitRate.innerLabelSpacing) } : {}),
+      },
       tightTicks: { spacing: px(CHART_TUNING.profitRate.tickSpacing), axes: ['x'] as ('x' | 'y')[] },   // 세로 막대 — 아래 파트명 자간   // 이 차트만 2px 낮게(2026-10-21 요청). 합계 수치(labelColor)와 다른 색 — Active Blue(라이트는 검정 30% 섞어 진하게). 공통원가 회청색은 너무 연했음
       // 원가 층은 보기용 높이라 툴팁도 실제값(realData)으로
       tooltip: { callbacks: { label: (ctx: { dataIndex: number; dataset: unknown }) =>
@@ -1385,8 +1438,13 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
                 display: vm.showLabels,
                 anchor: 'end' as const, align: 'end' as const,
                 color: palette.cost,
-                formatter: (_: number, ctx: { dataIndex: number }) =>
-                  `${+((directs[ctx.dataIndex] ?? 0) + (overheads[ctx.dataIndex] ?? 0)).toFixed(1)}억`,
+                textAlign: 'center' as const,
+                // 합계 아래 줄에 원가율(원가(직접+공통) ÷ 매출) — 같은 글자색(INLINE_COST_RATE)
+                formatter: (_: number, ctx: { chart: Chart; dataIndex: number }) => {
+                  const t = `${+((directs[ctx.dataIndex] ?? 0) + (overheads[ctx.dataIndex] ?? 0)).toFixed(1)}억`;
+                  const r = INLINE_COST_RATE ? costRateText(ctx.chart, ctx.dataIndex) : null;
+                  return r ? [t, r] : t;
+                },
               },
             },
           } },
