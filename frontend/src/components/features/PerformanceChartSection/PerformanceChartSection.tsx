@@ -273,15 +273,15 @@ interface Rect { l: number; r: number; t: number; b: number }
 const planDrawn = new WeakMap<object, PlanDrawn[]>();
 const PLAN_FONT = "bold 12px 'Pretendard', 'Malgun Gothic', sans-serif";
 const LABEL_H = 16;       // 12px 글자 + 위아래 여백 — 막대 수치(datalabels padding)와 같은 높이
-const LABEL_PAD_X = 3;
+export const LABEL_PAD_X = 3;
 // 파트별 추정 매출/원가(메인 카드) — 원가 수치만 오른쪽으로 미는 양(px, 소수 가능). 막대는 그대로.
 // datalabels엔 가로 오프셋 옵션이 없고 padding은 배경 박스만 키울 뿐 글자는 항상 기준점 가운데라
 // (boundingRects: text.x = -w/2 고정) 안 움직임 — 대신 align을 '막대 위(-90°)'에서 아주 조금 기울여
 // 가로 이동량이 정확히 COST_LABEL_SHIFT가 되게 각도를 계산(가로 이동 ≈ (박스폭/2 + offset)·tanθ)
 const COST_LABEL_SHIFT = 1.1;
 const REV_COST_LABEL_FONT = "bold 12px 'Pretendard', 'Malgun Gothic', sans-serif";
-const REV_COST_LABEL_OFFSET = 2;
-const costLabelAlign = (ctx: { chart: Chart; datasetIndex: number; dataIndex: number; dataset: { data: unknown[] } }) => {
+export const REV_COST_LABEL_OFFSET = 2;
+export const costLabelAlign = (ctx: { chart: Chart; datasetIndex: number; dataIndex: number; dataset: { data: unknown[] } }) => {
   if (ctx.datasetIndex !== 1 || !COST_LABEL_SHIFT) return 'end' as const;
   const c = ctx.chart.ctx;
   c.save();
@@ -294,7 +294,7 @@ const costLabelAlign = (ctx: { chart: Chart; datasetIndex: number; dataIndex: nu
 // 층이 글자보다 낮거나 좁으면 생략 — 그 값은 마우스 올림·확대 표에서(2026-10-20)
 // 층 막대는 보기용 높이(data)와 실제값(realData)이 다를 수 있음 — 숫자·툴팁은 항상 실제값(2026-10-20)
 type RealDataset = { data: unknown[]; realData?: number[] };
-const realValue = (ctx: { dataIndex: number; dataset: unknown }) => {
+export const realValue = (ctx: { dataIndex: number; dataset: unknown }) => {
   const d = ctx.dataset as RealDataset;
   return d.realData?.[ctx.dataIndex] ?? Number(d.data[ctx.dataIndex]);
 };
@@ -305,7 +305,7 @@ const realValue = (ctx: { dataIndex: number; dataset: unknown }) => {
 // 숫자가 안 들어가서 화면 픽셀 기준도 둠(단 막대의 절반은 넘지 않게). 공통원가가 직접원가보다 크면 그대로
 const OVERHEAD_MIN_SHARE = 0.2;
 const OVERHEAD_MIN_PX = 18;
-const layerBoostPlugin: Plugin<'bar'> = {
+export const layerBoostPlugin: Plugin<'bar'> = {
   id: 'layerBoost',
   // 축 크기가 정해진 뒤에야 px ↔ 억 환산이 되므로 그린 뒤 계산해서 다르면 한 번 더 그림(전체 합은 같아 축이 안 바뀌어 반복 없음)
   afterUpdate(chart) {
@@ -359,7 +359,7 @@ const segFits = (ctx: SegCtx) => {
   c.restore();
   return w <= el.width - 2;
 };
-const SEGMENT_LABEL = {
+export const SEGMENT_LABEL = {
   anchor: 'center' as const,
   align: 'center' as const,
   offset: 0,
@@ -372,7 +372,7 @@ const SEGMENT_LABEL = {
 };
 // 공통원가 층이 얇아 안에 안 들어가면 — 그 층 높이에 맞춰 막대 바로 오른쪽 빈 틈(다음 파트 매출 막대 전)에 층 색 숫자.
 // 화면 구성은 그대로 두고 숫자만 항상 보이게(대표님이 보신 화면 유지, 2026-10-20). 0이면 표시 안 함
-const SIDE_LABEL = {
+export const SIDE_LABEL = {
   anchor: 'center' as const,
   align: 0,
   offset: (ctx: SegCtx) => (segEl(ctx)?.width ?? 0) / 2 + 2,
@@ -386,7 +386,7 @@ const SIDE_LABEL = {
   formatter: (_: number, ctx: SegCtx) => `${realValue(ctx)}`,
   display: (ctx: SegCtx) => labelsOn(ctx) && realValue(ctx) > 0 && !segFits(ctx),
 };
-// ⚠️ 아래 costRatePlugin·tightLabelsPlugin·tightTicksPlugin·fitBarLabelsPlugin·breakAtDotTick·costRateTuning은 2027 계획 보기 차트
+// ⚠️ 위(layerBoostPlugin·SEGMENT_LABEL·SIDE_LABEL·costLabelAlign·realValue 등)와 아래 costRatePlugin·tightLabelsPlugin·tightTicksPlugin·fitBarLabelsPlugin·breakAtDotTick·costRateTuning은 2027 계획 보기 차트
 // (PerformancePlanChartSection)도 그대로 가져다 씀(2026-10-29 — 2026/2027 글자 크기·자간·두 줄 파트명이 같아야 한다는 요청). 이름·동작을 바꾸면 양쪽에 반영됨.
 // 원가율 — "원가 ÷ 매출"을 원가 막대 위, 원가 합계 수치 바로 위에 괄호로 "(54.8%)"(2026-10-21 시안 요청).
 // 그 전엔 막대 발치(가로축 아래) → 두 막대 경계 위(더 높은 막대 기준)였음.

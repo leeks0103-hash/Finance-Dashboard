@@ -8,6 +8,7 @@
 }
 
 .card { min-width: 0; display: flex; flex-direction: column; min-height: 430px; }
+.cardTall { min-height: 540px; }   /* 원가분석(+옆 구성 카드) — 실적 보기 원가분석 높이와 같음 */
 .cardLow { min-height: 0; }   /* 파트별 인원(한 줄 전체, 내용만큼) — 실적 보기 .rowLow와 같음 */
 .span3  { grid-column: span 3; }
 .span4  { grid-column: span 4; }

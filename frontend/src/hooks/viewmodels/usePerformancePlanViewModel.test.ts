@@ -60,6 +60,23 @@ describe('buildPlanChartData 구성 파이(전체·팀·파트)', () => {
   });
 });
 
+describe('buildPlanChartData 원가분석(파트별 27 계획 매출/원가)용 값', () => {
+  const data = buildPlanChartData(summary({
+    '① AIㆍDS': part({ rev27: 1_200_000, cost27: 500_000 }),    // 매출 > 직접원가
+    '② SW':     part({ rev27: 300_000, cost27: 400_000 }),      // 직접원가 > 매출 → 손실색
+  }))!;
+
+  it('직접원가는 억 단위로, 화면 순서(SW → AIㆍDS)에 맞춰 들어간다', () => {
+    expect(data.partLabels).toEqual(['SW', 'AIㆍDS']);
+    expect(data.rev27).toEqual([3, 12]);
+    expect(data.cost27).toEqual([4, 5]);
+  });
+
+  it('직접원가가 매출보다 큰 파트만 손실 표시', () => {
+    expect(data.costLoss).toEqual([true, false]);
+  });
+});
+
 describe('buildPlanChartData 원가율·구성 비율은 백엔드 값을 그대로(프론트 계산 없음)', () => {
   const s = summary({
     '① AIㆍDS': part({ cost_rate: 45.8, comp_rate: { direct: 41.7, labor: 8.3, overhead: 4.2, mgmt: 6.7, profit: 39.2 } }),

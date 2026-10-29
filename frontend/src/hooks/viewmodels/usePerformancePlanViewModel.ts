@@ -28,6 +28,10 @@ export interface PlanChartData {
   partLabels:  string[];
   rev26:       number[];
   rev27:       number[];
+  /** 원가분석용 — 파트별 27 계획 직접원가(원가행 합, 억). 공통원가는 composition.overhead */
+  cost27:      number[];
+  /** 직접원가가 매출보다 큰(매출이익 마이너스) 파트 — 원가 막대를 손실색으로(실적 보기 원가분석과 같은 규칙) */
+  costLoss:    boolean[];
   /** 27 계획 ÷ 26 추정 매출 % (백엔드 계산, 26이 0 이하면 null) — 막대 끝 수치 옆에 표시 */
   revRates:    (number | null)[];
   /** 27 계획 구성(매출 = 직접원가 + 인건비 + 공통원가 + 관리비 + 경상손익) — 파트별 누적 막대 */
@@ -91,6 +95,8 @@ export const buildPlanChartData = (summary: PerfPlanSummary | undefined): PlanCh
     partLabels: keys.map(stripPartPrefix),
     rev26:      keys.map(k => toEokNum(part(k).rev26)),
     rev27:      keys.map(k => toEokNum(part(k).rev27)),
+    cost27:     keys.map(k => toEokNum(part(k).cost27)),
+    costLoss:   keys.map(k => part(k).rev27 - part(k).cost27 < 0),
     revRates:   keys.map(k => part(k).rev_rate),
     composition: {
       direct:   keys.map(k => toEokNum(part(k).cost_direct)),

@@ -6,6 +6,7 @@ import CostFilterPopover from '@/components/features/PerformanceChartSection/Cos
 import {
   costRatePlugin, tightLabelsPlugin, tightTicksPlugin, fitBarLabelsPlugin, breakAtDotTick, costRateTuning,
   INLINE_COST_RATE, costRateText,
+  layerBoostPlugin, SEGMENT_LABEL, SIDE_LABEL, costLabelAlign, realValue, LABEL_PAD_X, REV_COST_LABEL_OFFSET,
 } from '@/components/features/PerformanceChartSection/PerformanceChartSection';
 import { CHART_TUNING, tuningBarSize, tuningLabelFont, tuningTickFont, px } from '@/components/features/PerformanceChartSection/chartTuning';
 import { useTheme } from '@/hooks';
@@ -31,6 +32,9 @@ const INFO_COMPOSITION = '27 계획 매출의 구성 — 직접원가 + 인건�
   '막대 안 % = 그 항목 ÷ 매출, 막대 끝 (%) = 원가율 = 원가(직접+공통) ÷ 매출. ' +
   '파이는 하나씩 보는 용도(전체·팀·파트를 이 카드에서 따로 선택), 막대는 파트 전체를 나란히 비교하는 용도. 막대는 상단 팀·파트 필터를 따름.';
 const INFO_PVP = '파트별 매출 합계 — 26 연간 추정(시트의 "2026년 연간 추정" 열)과 27 사업계획을 나란히. 막대 끝 % = 27 계획 ÷ 26 추정(백엔드 계산). 팀·파트 필터 적용.';
+const INFO_REVCOST = '파트별 27 계획 매출(시트 "2027년 사업계획 합계" 열, 구분=매출)과 원가를 나란히 — 원가 막대는 아래 직접원가(구분=원가) + 위 공통원가(매출행 공통원가) 2층, ' +
+  '막대 위 숫자는 두 층의 합입니다. 막대 위 % = 원가율 = 원가(직접+공통) ÷ 매출. 직접원가가 매출보다 큰 파트(매출이익 마이너스)는 원가 막대가 손실색. ' +
+  '공통원가 층은 얇아서 층 높이만 보기 좋게 키웠고(전체 높이·숫자·툴팁은 실제값) 팀·파트 필터를 따릅니다.';
 const infoPerHead = (what: string) =>
   `파트별 27 계획 ${what} ÷ 파트 인원 — 인원은 관리자가 수기 입력한 **2027 인원**(관리자 페이지 > 파트별 인원 > 2027년 인원, 2026 인원과 따로)입니다. ` +
   '인원이 입력되지 않은 파트, 팀 필터를 걸었을 때 여러 팀에 걸친 파트(K뉴딜TF)는 제외합니다. 억 단위 소수 둘째 자리(버림).';
@@ -76,7 +80,8 @@ type PerHeadId = 'perCapitaRevenue' | 'perCapitaMgmt' | 'perCapitaProfit';
 
 /**
  * 2027 사업계획 보기 차트(2026-10-29) — 위에서부터
- *   ①② 한 줄 8 : 4칸(실적 보기 원가분석 : 원가 비율과 같은 비율): 월별 계획 분배 · 파트별 27 계획 매출 구성(파이 ↔ 누적 막대 전환, 파이는 전체·팀·파트 선택)
+ *   ① 월별 계획 분배(한 줄 전체)
+ *   ② 한 줄 8 : 4칸(실적 보기와 같은 비율·같은 줄): 원가분석(파트별 27 계획 매출/원가) · 파트별 27 계획 매출 구성(파이 ↔ 누적 막대 전환, 파이는 전체·팀·파트 선택)
  *   파트별 인원(2027 인원) — 실적 보기와 같은 자리·모양의 한 줄 카드
  *   ③ 한 줄 4칸: 파트별 26 추정 vs 27 계획 매출 · 인당 매출 · 인당 관리비 · 인당 손익 (실적 보기 3줄째와 같은 순서)
  * 실적 보기의 진도율·달성률·인원 카드는 기준월·실적이 있어야 의미가 있어 없음. 수치는 전부 억 단위로 받음(VM 변환).
@@ -173,6 +178,48 @@ const PerformancePlanChartSection = ({ chart, composition }: Props) => {
     } as ChartOptions<'bar'>;
   }, [showLabels, labelColor, scales, eokTick, rateColor, chart?.compositionRates, chart?.partCostRates]);
 
+  // 원가분석 — 2026 "원가분석(파트별 추정 매출/원가)"와 같은 차트: 같은 조절표 profitRate·같은 플러그인(layerBoost·costRate)·같은 라벨 규칙, 값만 27 계획
+  const partRevCostOptions = useMemo(() => {
+    const t = CHART_TUNING.profitRate;
+    const base = makeBarOptions(showLabels, labelColor, {
+      plugins: {
+        datalabels: {
+          anchor: 'end',
+          // 원가 수치만 오른쪽으로 살짝(costLabelAlign) — 실적 보기와 같음
+          align: costLabelAlign,
+          offset: REV_COST_LABEL_OFFSET,
+          font: tuningLabelFont(t),
+          formatter: (v: number) => `${v}억`,
+          padding: { top: 1, bottom: 1, left: LABEL_PAD_X, right: LABEL_PAD_X },
+          // 수치 글자색 = 그 막대 색(매출 파랑 / 원가 갈색, 손실 파트 원가는 빨강)
+          color: (ctx: { dataset: { backgroundColor?: unknown }; dataIndex: number }) => {
+            const bg = ctx.dataset.backgroundColor;
+            return (Array.isArray(bg) ? bg[ctx.dataIndex] : bg) as string;
+          },
+        },
+      },
+    } as Partial<ChartOptions<'bar'>>);
+    return {
+      ...base,
+      layout: { padding: t.padding },
+      datasets: tuningBarSize(t),
+      plugins: {
+        ...base.plugins,
+        costRate: { show: showLabels && !INLINE_COST_RATE, text: rateColor, ...costRateTuning(t) },
+        tightLabels: { spacing: px(t.labelSpacing) },
+        tightTicks: { spacing: px(t.tickSpacing), axes: ['x'] as ('x' | 'y')[] },
+        // 원가 층은 보기용 높이라 툴팁은 실제값(realData)으로
+        tooltip: { callbacks: { label: (ctx: { dataIndex: number; dataset: unknown }) =>
+          `${(ctx.dataset as { label?: string }).label}: ${realValue(ctx)}억` } },
+      },
+      scales: {
+        // 매출 막대와 원가(직접+공통 2층) 막대를 나란히 — 원가끼리만 쌓음(데이터셋 stack)
+        x: { ...scales.x, stacked: true, offset: true, ticks: { ...scales.x.ticks, ...tuningTickFont(t), align: 'center' as const, color: dark ? '#FFFFFF' : tickColor, padding: 3 } },
+        y: { ...scales.y, grace: '8%', stacked: true, ticks: { ...scales.y.ticks, ...tuningTickFont(t), ...eokTick } },
+      },
+    } as ChartOptions<'bar'>;
+  }, [showLabels, labelColor, scales, eokTick, rateColor, dark, tickColor]);
+
   // ③ 26 추정 vs 27 계획 — 2026 "파트별 계획 vs 추정 매출"(planVsActual)과 같은 조절표·fitBarLabels(수치 자리만큼 축을 늘림)
   const pvpOptions = useMemo(() => {
     const t = CHART_TUNING.planVsActual;
@@ -257,6 +304,31 @@ const PerformancePlanChartSection = ({ chart, composition }: Props) => {
     { label: '경상손익(억)', data: chart.composition.profit,   backgroundColor: palette.costProfit },
   ];
 
+  // 원가분석 데이터셋 — 매출 / 직접원가(아래 층) / 공통원가(위 층, 층 안 숫자·옆 숫자·합계). 층 높이 보정(layerBoost)은 realData를 기준으로 함
+  const partRevCostSets = [
+    { label: '매출', data: chart.rev27, backgroundColor: palette.revenue, stack: 'rev' },
+    { label: '직접원가', data: chart.cost27, realData: chart.cost27,
+      backgroundColor: chart.costLoss.map(loss => (loss ? palette.loss : palette.cost)), stack: 'cost', datalabels: SEGMENT_LABEL },
+    { label: '공통원가', data: chart.composition.overhead, realData: chart.composition.overhead, backgroundColor: palette.costOverhead, stack: 'cost',
+      datalabels: {
+        labels: {
+          value: SEGMENT_LABEL,
+          side: SIDE_LABEL,
+          total: {
+            display: showLabels,
+            anchor: 'end' as const, align: 'end' as const,
+            color: palette.cost,
+            textAlign: 'center' as const,
+            formatter: (_: number, ctx: { chart: Chart; dataIndex: number }) => {
+              const t = `${+((chart.cost27[ctx.dataIndex] ?? 0) + (chart.composition.overhead[ctx.dataIndex] ?? 0)).toFixed(1)}억`;
+              const r = INLINE_COST_RATE ? costRateText(ctx.chart, ctx.dataIndex) : null;
+              return r ? [t, r] : t;
+            },
+          },
+        },
+      } },
+  ] as unknown as ChartDataset<'bar'>[];
+
   const isPie = composition.mode === 'pie';
   // 파이 범위 문구 — 어느 범위를 보고 있는지 제목 옆에 한눈에
   const pieScope = composition.team || (composition.part !== '전체' ? composition.part : '전체');
@@ -298,8 +370,8 @@ const PerformancePlanChartSection = ({ chart, composition }: Props) => {
 
   return (
     <div className={styles.grid}>
-      {/* ① 월별 계획 분배 — ②와 한 줄, 실적 보기 2줄째(원가분석 : 원가 비율)와 같은 8 : 4 비율(2026-10-29 요청). 1280px 이하는 위아래로 */}
-      <div className={`${styles.card} ${styles.span8}`}>
+      {/* ① 월별 계획 분배 — 한 줄 전체(2026 보기의 "진도율 + 진행 현황" 줄 자리, 진행 현황이 없어 단독) */}
+      <div className={`${styles.card} ${styles.span12}`}>
         <ChartCard expandable={false}>
           <ChartCard.Title>
             <span className={styles.chartTitle}>월별 계획 분배 (매출 · 원가)<InfoButton>{INFO_MONTHLY}</InfoButton></span>
@@ -325,8 +397,26 @@ const PerformancePlanChartSection = ({ chart, composition }: Props) => {
         </ChartCard>
       </div>
 
-      {/* ② 파트별 27 계획 매출 구성 — 파이(하나씩) ↔ 누적 막대(파트 비교). 파이는 전체·팀·파트를 이 카드에서 따로 고름 */}
-      <div className={`${styles.card} ${styles.span4}`}>
+      {/* ②-1 원가분석(파트별 27 계획 매출/원가) — 2026 보기의 원가분석과 같은 차트·같은 8 : 4 줄(2026-10-29 요청). 1280px 이하는 위아래로 */}
+      <div className={`${styles.card} ${styles.cardTall} ${styles.span8}`}>
+        <ChartCard expandable={false}>
+          <ChartCard.Title>
+            <span className={styles.chartTitle}>원가분석(파트별 27 계획 매출/원가)<InfoButton>{INFO_REVCOST}</InfoButton></span>
+            {showLabels && <span className={styles.rateNote}><b className={styles.rateNotePct}>%</b>원가율 = 원가(직접+공통) ÷ 매출</span>}
+          </ChartCard.Title>
+          <ChartCard.Body>
+            <BarChart
+              labels={chart.partLabels}
+              datasets={partRevCostSets}
+              options={partRevCostOptions}
+              plugins={[costRatePlugin, layerBoostPlugin, tightLabelsPlugin, tightTicksPlugin]}
+            />
+          </ChartCard.Body>
+        </ChartCard>
+      </div>
+
+      {/* ②-2 파트별 27 계획 매출 구성 — 파이(하나씩) ↔ 누적 막대(파트 비교). 파이는 전체·팀·파트를 이 카드에서 따로 고름 */}
+      <div className={`${styles.card} ${styles.cardTall} ${styles.span4}`}>
         <ChartCard
           expandable={false}
           bodyBleedX={isPie ? undefined : CHART_TUNING.planVsActual.bleedX}
