@@ -157,8 +157,10 @@ def ai_summary(sheet: str, method: str, changes: list[str], checks: list[dict], 
 
 
 # ── 검증 ───────────────────────────────────────────────────────
-def validate(df: pd.DataFrame) -> list[dict]:
-    """엑셀 원본 수식이 전 행에서 맞는지 — 9월 파일 실측 전부 100%(2026-10-14 세션). 매출행 기준, 오차 1천원"""
+def validate(df: pd.DataFrame, view: str = "actual") -> list[dict]:
+    """엑셀 원본 수식이 전 행에서 맞는지 — 9월 파일 실측 전부 100%(2026-10-14 세션). 매출행 기준, 오차 1천원.
+    view="plan27"(2026-10-29)도 **같은 식·같은 95% 기준** — 계획 시트는 열 맵이 plan_initial=26 추정·jun_check_total=27 계획이라 항등식이 그대로 성립
+    (2027 실파일 실측 전부 100%). 이름만 계획 시트에 맞게 바꿈. 기준을 느슨하게 하지 말 것"""
     rev = df[df["category"] == "매출"]
     n = lambda c: pd.to_numeric(rev[c], errors="coerce").fillna(0).to_numpy()   # noqa: E731
 
@@ -179,8 +181,9 @@ def validate(df: pd.DataFrame) -> list[dict]:
         ("매출이익 = 연간 합계 − 직접원가", rate(n("profit_gross"), n("jun_check_total") - n("cost_direct"))),
         ("경상손익 = 매출이익 − 인건비 − 공통원가 − 관리비",
          rate(n("operating_profit"), n("profit_gross") - n("cost_labor") - n("cost_overhead") - n("cost_mgmt"))),
-        ("연간 합계 = 1~12월 합", rate(n("jun_check_total"), months)),
-        ("계획 대비 차이 = 연간 합계 − 최초 사업계획", rate(n("plan_diff_amount"), n("jun_check_total") - n("plan_initial"))),
+        ("연간 합계 = 1~12월 합" if view == "actual" else "27 계획 합계 = 1~12월 합(계획 분배)", rate(n("jun_check_total"), months)),
+        ("계획 대비 차이 = 연간 합계 − 최초 사업계획" if view == "actual" else "차이금액 = 27 계획 − 26 추정",
+         rate(n("plan_diff_amount"), n("jun_check_total") - n("plan_initial"))),
         ("매출행 직접원가 = 바로 아래 원가행 연간 합계", rate(pa, pb) if len(pairs) else 0.0),
     ]
     out = [{"name": k, "rate": v, "ok": v >= _PASS_RATE} for k, v in checks]
@@ -192,15 +195,21 @@ def validate(df: pd.DataFrame) -> list[dict]:
     return out
 
 
-def _totals(df: pd.DataFrame) -> dict:
+def _totals(df: pd.DataFrame, view: str = "actual") -> dict:
     rev = df[df["category"] == "매출"]
     eok = lambda c: round(float(pd.to_numeric(rev[c], errors="coerce").fillna(0).sum()) / 100_000, 1)  # noqa: E731
+    if view == "plan27":
+        return {"26 추정 매출": eok("plan_initial"), "27 계획 매출": eok("jun_check_total"),
+                "27 경상손익": eok("operating_profit"), "프로젝트(매출행)": int(len(rev))}
     return {"계획 매출": eok("plan_initial"), "연간 추정 매출": eok("jun_check_total"),
             "경상손익": eok("operating_profit"), "프로젝트(매출행)": int(len(rev))}
 
 
 # ── 상태 저장 ──────────────────────────────────────────────────
-def read_status() -> dict:
+_OTHER_VIEWS = ("plan27",)   # 실적(actual) 상태는 파일 최상위(기존 모양 그대로 — 프론트 호환), 다른 뷰는 이 이름의 하위 키
+
+
+def _read_all() -> dict:
     try:
         with open(STATUS_PATH, encoding="utf-8") as f:
             return json.load(f)
@@ -208,13 +217,63 @@ def read_status() -> dict:
         return {}
 
 
-def write_status(st: dict) -> None:
+def read_status(view: str = "actual") -> dict:
+    """뷰별 상태(2026-10-29). actual = 파일 전체(다른 뷰 하위 키 포함 — 기존 호출이 읽고 되쓰는 모양 유지), 그 외 = 그 뷰 하위 키만"""
+    st = _read_all()
+    return st if view == "actual" else (st.get(view) or {})
+
+
+def write_status(st: dict, view: str = "actual") -> None:
+    """뷰별 저장 — 한 뷰의 검증 결과가 다른 뷰 상태를 지우지 않게 병합(예전엔 통째로 덮어써서 계획 뷰가 실적 상태를 지움).
+    actual은 st가 파일 전체를 대체하되 다른 뷰 하위 키는 **디스크 값을 유지**(st에 든 옛 값 무시 — 그 사이 다른 뷰가 갱신했을 수 있음)"""
     with _status_lock:
+        allst = _read_all()
+        if view == "actual":
+            out = dict(st)
+            for v in _OTHER_VIEWS:
+                if v in allst:
+                    out[v] = allst[v]
+                else:
+                    out.pop(v, None)
+        else:
+            out = allst
+            out[view] = st
         os.makedirs(_DATA_DIR, exist_ok=True)
         tmp = STATUS_PATH + ".tmp"
         with open(tmp, "w", encoding="utf-8") as f:
-            json.dump(st, f, ensure_ascii=False, indent=2)
+            json.dump(out, f, ensure_ascii=False, indent=2)
         os.replace(tmp, STATUS_PATH)
+
+
+# 마지막으로 잘 읽힌 시트의 머리글·열 맵 스냅샷(뷰별) — 다음 새 파일의 열을 맞출 **기준**.
+# 예전엔 기준이 "같은 파일 안의 아는 시트" 또는 "직전 파일(경로)"뿐이라, 직전 파일을 data/에서 치우면(경영실적 히스토리로 옮김) 기준이 사라져
+# 새 시트의 자동 정렬이 "기준 시트 없음"으로 실패했음(2026-10-29 — 사용자가 매번 사람에게 맡길 수 없다고 한 지점)
+REF_PATH = os.path.join(_DATA_DIR, "perf_ref_labels.json")
+
+
+def _load_ref_snapshot(view: str) -> "dict | None":
+    try:
+        with open(REF_PATH, encoding="utf-8") as f:
+            snap = json.load(f).get(view)
+        if snap and snap.get("labels") and snap.get("map"):
+            return {"sheet": snap.get("sheet", ""), "labels": snap["labels"], "map": {int(k): v for k, v in snap["map"].items()}}
+    except (FileNotFoundError, ValueError, AttributeError):
+        pass
+    return None
+
+
+def _save_ref_snapshot(view: str, sheet: str, labels: list[str], col_map: dict[int, str]) -> None:
+    try:
+        with open(REF_PATH, encoding="utf-8") as f:
+            snaps = json.load(f)
+    except (FileNotFoundError, ValueError):
+        snaps = {}
+    snaps[view] = {"sheet": sheet, "labels": labels, "map": {str(k): v for k, v in sorted(col_map.items())}}
+    os.makedirs(_DATA_DIR, exist_ok=True)
+    tmp = REF_PATH + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(snaps, f, ensure_ascii=False, indent=1)
+    os.replace(tmp, REF_PATH)
 
 
 def _save_learned_map(sheet: str, col_map: dict[int, str]) -> None:
@@ -233,9 +292,11 @@ def _save_learned_map(sheet: str, col_map: dict[int, str]) -> None:
 
 
 # ── 준비(검증까지) ─────────────────────────────────────────────
-def prepare(path: str, prev_good: "dict | None" = None):
+def prepare(path: str, prev_good: "dict | None" = None, view: str = "actual"):
     """새 파일 준비 — 성공하면 (df, sheet, year, month, status), 실패하면 ValueError(status는 기록됨).
-    prev_good: 직전에 잘 읽힌 파일 {"file": 경로, "sheet": 시트} — 같은 파일 안에 아는 시트가 없을 때 기준으로 씀"""
+    prev_good: 직전에 잘 읽힌 파일 {"file": 경로, "sheet": 시트} — 같은 파일 안에 아는 시트가 없을 때 기준으로 씀
+    view(2026-10-29): "actual"(N월 집계/추정 시트) / "plan27"(사업계획 시트). 같은 절차(열 맞추기 → H-chat 보완 → 계산식 검증)를 뷰별로,
+    상태는 뷰별 키에 따로 기록. 기준 시트는 **같은 뷰** 안에서만 고름(계획 시트 열을 실적 시트에 대조하면 엉뚱하게 맞춰짐)"""
     import performance
     st = {"checked_at": datetime.now().strftime("%Y-%m-%d %H:%M"), "file": os.path.basename(path),
           "ok": False, "changes": [], "checks": [], "summary": "", "error": ""}
@@ -245,31 +306,53 @@ def prepare(path: str, prev_good: "dict | None" = None):
         engine = "pyxlsb" if path.endswith(".xlsb") else "openpyxl"
         with pd.ExcelFile(path, engine=engine) as xf:
             sheets = xf.sheet_names
-        sheet = performance._resolve_perf_sheet(sheets)
+        if view == "plan27":
+            sheet = performance._resolve_plan_sheet(sheets)
+            if not sheet:
+                raise ValueError("사업계획 시트(연도 + '계획')가 이 파일에 없습니다")
+        else:
+            sheet = performance._resolve_perf_sheet(sheets)
         st["sheet"] = sheet
 
         col_map = performance.perf_col_map(sheet)
         method = "기존 매핑"
+        new_labels = None
         if not col_map:
-            # 기준 시트 — 같은 파일 안 이미 아는 시트 중 가장 최근(대상보다 이전), 없으면 직전 파일의 시트
-            ref = None
+            # 기준 — ① 같은 파일 안 이미 아는 같은 종류 시트 중 가장 최근(대상보다 이전) ② 직전 파일의 시트
+            # ③ 마지막으로 잘 읽힌 시트의 머리글 스냅샷(data/perf_ref_labels.json — 직전 파일을 치워도 남음)
+            ref_map = ref_labels = None
+            ref_desc = ""
             known = []
             for name in sheets:
-                m = performance._PERF_SHEET_RE.match(str(name).strip())
-                if m and name != sheet and performance.perf_col_map(name):
-                    known.append(((int(m.group(1)), int(m.group(2)), m.group(3) == "집계"), name))
+                if name == sheet or not performance.perf_col_map(name):
+                    continue
+                if view == "plan27":
+                    if performance.is_plan_sheet(name):
+                        known.append(((int(performance._PLAN_SHEET_RE.match(str(name)).group(1)), 0, False), name))
+                else:
+                    m = performance._PERF_SHEET_RE.match(str(name).strip())
+                    if m:
+                        known.append(((int(m.group(1)), int(m.group(2)), m.group(3) == "집계"), name))
             if known:
-                ref = (path, max(known)[1])
+                ref_name = max(known)[1]
+                ref_map = performance.perf_col_map(ref_name)
+                ref_labels = header_labels(path, ref_name)
+                ref_desc = ref_name
             elif prev_good and prev_good.get("file") and os.path.exists(prev_good["file"]) and \
                     performance.perf_col_map(prev_good.get("sheet", "")):
-                ref = (prev_good["file"], prev_good["sheet"])
-            if not ref:
-                raise ValueError(f"'{sheet}' 시트의 열을 맞출 기준 시트가 없습니다(아는 지난달 시트 없음)")
-            ref_map = performance.perf_col_map(ref[1])
-            ref_labels = header_labels(ref[0], ref[1])
+                ref_map = performance.perf_col_map(prev_good["sheet"])
+                ref_labels = header_labels(prev_good["file"], prev_good["sheet"])
+                ref_desc = f"{prev_good['sheet']} · {os.path.basename(prev_good['file'])}"
+            else:
+                snap = _load_ref_snapshot(view)
+                if snap:
+                    ref_map, ref_labels = snap["map"], snap["labels"]
+                    ref_desc = f"{snap['sheet']} · 저장된 머리글"
+            if not ref_map:
+                raise ValueError(f"'{sheet}' 시트의 열을 맞출 기준 시트가 없습니다(아는 같은 종류 시트 없음)")
             new_labels = header_labels(path, sheet)
             col_map, changes, missing = align_map(ref_labels, ref_map, new_labels)
-            method = f"자동 정렬(기준: {ref[1]}{'' if ref[0] == path else ' · ' + os.path.basename(ref[0])})"
+            method = f"자동 정렬(기준: {ref_desc})"
             st["changes"] = changes
             if missing:
                 found = ai_fill_missing(missing, ref_labels, ref_map, new_labels, col_map)
@@ -285,28 +368,33 @@ def prepare(path: str, prev_good: "dict | None" = None):
                 raise ValueError("필수 열을 못 찾음: " + ", ".join(lack))
         st["method"] = method
 
-        df, sheet, year, month = performance.read_perf_frame(path, sheet, col_map)
-        st["checks"] = validate(df)
-        st["totals"] = _totals(df)
-        st["base"] = {"year": year, "month": month}
+        df, sheet, year, month = performance.read_perf_frame(path, sheet, col_map, view=view)
+        st["checks"] = validate(df, view)
+        st["totals"] = _totals(df, view)
+        st["base"] = {"year": year, "month": month} if view == "actual" else {"year": year}
         failed = [c["name"] for c in st["checks"] if not c["ok"]]
         if failed:
             raise ValueError("계산식 검증 실패: " + " / ".join(failed))
 
         if method != "기존 매핑":
             _save_learned_map(sheet, col_map)
+        # 검증을 통과한 시트의 머리글·열 맵을 다음 새 파일의 기준으로 저장 — 이 파일을 data/에서 치워도 자동 정렬이 계속됨
+        try:
+            _save_ref_snapshot(view, sheet, new_labels if new_labels is not None else header_labels(path, sheet), col_map)
+        except Exception:
+            logger.warning("기준 머리글 스냅샷 저장 실패 — 다음 파일은 직전 파일이 있어야 자동 정렬됨", exc_info=True)
         st["ok"] = True
         st["summary"] = ai_summary(sheet, method, st["changes"], st["checks"], st["totals"]) if method != "기존 매핑" else ""
-        write_status(st)
-        logger.info("실적 새 파일 준비 완료: %s / %s (%s)", st["file"], sheet, method)
+        write_status(st, view)
+        logger.info("실적 새 파일 준비 완료(%s): %s / %s (%s)", view, st["file"], sheet, method)
         return df, sheet, year, month, st
     except Exception as e:
         st["error"] = str(e)
         st["failed_mtime"] = os.path.getmtime(path) if os.path.exists(path) else None
-        prev = read_status()
+        prev = read_status(view)
         for k in ("good", "serving", "serving_sheet"):   # 직전에 잘 되던 파일 정보는 유지
             if k in prev:
                 st[k] = prev[k]
-        write_status(st)
-        logger.error("실적 새 파일 준비 실패(%s): %s", st["file"], e)
+        write_status(st, view)
+        logger.error("실적 새 파일 준비 실패(%s, %s): %s", view, st["file"], e)
         raise ValueError(str(e)) from e

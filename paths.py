@@ -41,7 +41,9 @@ def _from_env(var: str, default_name: str) -> str:
     return os.path.join(DATA_DIR, default_name)
 
 
-_PERF_NAME_DATE_RE = re.compile(r"_(\d{6})_")   # "…ver9.4_261013_9월…" → 261013(yymmdd)
+# "…ver9.4_261013_9월…" → 261013(yymmdd). 날짜가 이름 끝에 오는 "…취합 완료_261028.xlsx"도 인식(2026-10-29 —
+# 예전엔 `_` 뒤가 필수라 이런 이름이 수정 시각 폴백으로 밀려 날짜 있는 옛 파일보다 뒤로 갔음)
+_PERF_NAME_DATE_RE = re.compile(r"_(\d{6})(?=[_.]|$)")
 
 
 def perf_excel_candidates() -> list[str]:

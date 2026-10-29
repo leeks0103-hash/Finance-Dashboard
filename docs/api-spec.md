@@ -53,7 +53,8 @@
 
 | 메서드 | 경로 | 설명 |
 |---|---|---|
-| GET | `/api/performance/summary` | 집계 — 기준월(`base`)·합계·파트별·월별·원가 구성·진행률 등 (필터 `part`·`team`) |
+| GET | `/api/performance/views` | 전환 가능한 뷰 — `{actual:{available,base}, plan27:{available,sheet,year}}` (계획 시트가 없으면 `plan27.available=false`) |
+| GET | `/api/performance/summary` | 집계 — 기준월(`base`)·합계·파트별·월별·원가 구성·진행률 등 (필터 `part`·`team`). **`?view=plan27`이면 계획 전용 응답**(`total.y26/y27/rate`·`by_part.rev26/rev27/…`·`monthly`=계획 분배, `base`·누계·달성률 없음). `/data`·`/options`·`/data/export`도 `view`를 받음, `/insights`는 plan27에서 400·`/summary/breakdown`은 `available:false` |
 | GET | `/api/performance/summary/breakdown` | 차트 막대 하나의 산출 근거(`chart`·`series`·`key`) |
 | GET | `/api/performance/options` | 팀·파트·담당자 옵션 |
 | GET | `/api/performance/data` | 프로젝트 상세(프로젝트당 1행, 서버 페이지). 필터 `part`·`team`·`progress`·열 필터 `cf`(JSON) |

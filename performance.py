@@ -37,12 +37,24 @@ PERF_AUTO_UPDATE = True   # 2026-10-15 켬
 PERF_LEARNED_MAPS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "perf_col_maps.json")
 _PERF_SHEET_RE = re.compile(r"^(\d{4})년 \((\d+)월 (추정|집계)\)$")
 
+# ── 2027 사업계획 시트(2026-10-29) ─────────────────────────────────────────
+# 뷰 두 가지: "actual"(N월 집계/추정 시트 — 실적, 기준월·누계 있음) / "plan27"(사업계획 시트 — 기준월·실적 없음, 월별 값은 계획 분배).
+# 계획 시트 이름은 느슨하게 봄: "연도 + '계획'"이 든 시트("2027년 (사업계획)", "2028년 사업계획" …)이면서 N월 실적 시트가 아닌 것.
+# "(사업계획 참조)"처럼 연도 없는 보조 시트·"기타. 사업계획 재정리(260818)"는 걸리지 않음. 최종 판정은 계산식 검증(perf_autoupdate.validate)
+_PLAN_SHEET_RE = re.compile(r"^\s*(\d{4})\s*년.*계획")
+PERF_VIEWS = ("actual", "plan27")
+
 _perf_cached_df: pd.DataFrame = pd.DataFrame()
 _perf_last_loaded = None
 _perf_cached_mtime = None
 _perf_current_month = 0   # 자동 선택된 시트의 기준월 (전월대비 계산에 사용)
 _perf_current_year = 0    # 자동 선택된 시트의 연도 — 화면의 "1~N월" 표기 기준(summary base로 내려줌)
 _perf_cache_lock = threading.Lock()
+
+# 계획 뷰("plan27") 캐시 — 실적 뷰 전역(위)은 그대로 두고 따로 둠(ai_insight 등이 실적 전역을 직접 읽음).
+# seen = 마지막으로 시도한 (최신 파일 경로, 수정 시각) — 최신 파일에 계획 시트가 없거나 실패했을 때 5초마다 다시 읽지 않게
+_plan_cache = {"df": pd.DataFrame(), "path": None, "mtime": None, "year": 0, "sheet": None, "loaded": None, "seen": None}
+_plan_cache_lock = threading.Lock()
 
 # ──────────────────────────────────────────────────────────────
 # 컬럼맵
@@ -225,6 +237,79 @@ _PERF_COL_MAP_AUG = {
 
 _PERF_COL_MAP_SEP = {(i if i < 17 else i + 1): name for i, name in _PERF_COL_MAP_AUG.items()}
 
+# 2027년 (사업계획) 시트(27년 사업계획 통합관리 파일 ver3.1_261028) — 2026-10-29. 머리글 11~12행·데이터 13행~, 매출행+원가행 2행 구조는 실적 시트와 같고
+# 열 배치·의미가 다름. 실적 시트와 **같은 내부 필드 이름을 재사용**해 계산식 검증(perf_autoupdate.validate)·프로젝트 병합(_merge_rev_cost_rows)·표를 그대로 씀:
+#   plan_initial    ← Z(25) "2026년 연간 추정"  = 비교 기준(26 추정). 시트가 차이금액·증감율을 이 기준으로 줌(AI = AC − Z)
+#   jun_check_total ← AS(44) "2027년 사업계획 합계" = 27 계획(AC(28)와 같은 값. 1~12월 합과 항등식이 맞는 건 AS)
+#   chk_m01..12     ← AT~BE(45~56) 1~12월 **계획 분배**(실적 아님 — 기준월·누계 개념 없음, jun_actual·acc_* 는 0)
+# ⚠️ 필드 이름은 실적 시트와 같지만 **의미가 다름**(plan_initial = 최초계획이 아니라 26 추정) — 이 시트는 view="plan27" 응답(build_plan_summary)으로만 내보냄.
+# 실측 대조(2026-10-29, 사용 행): AS = 1~12월 합 100% · AL = AS − AM 100% · AQ = AL − AN − AO − AP 100% · AM = 아래 원가행 AS 100% · AI = AC − Z 100%
+_PERF_COL_MAP_PLAN27 = {
+    1:  "tech_category",      # B 미래기술 분류
+    2:  "team",               # C 팀
+    3:  "part",               # D 파트
+    4:  "use_yn",             # E 2026년 사용여부
+    5:  "biz_division",       # F 사업 분류
+    6:  "biz_type",           # G 사업구분
+    7:  "customer_type",      # H 고객구분
+    8:  "biz_plan",           # I 사업계획
+    9:  "progress",           # J 진행
+    10: "category",           # K 구분(매출/원가)
+    # 11(L) 비딩여부, 13(N) 전년도 연관성, 14(O) 전년도 프로젝트코드, 20(U) 사업구분 — 대시보드 미사용
+    12: "edu_type",           # M 교육형태
+    15: "budget_code",        # P 예산코드
+    16: "project_code",       # Q 프로젝트코드
+    17: "biz_type2",          # R 사업유형
+    18: "budget_unit",        # S 예산단위
+    19: "project_name",       # T 26년 프로젝트명
+    21: "manager",            # V 담당자
+    22: "actual_2025",        # W 2025년
+    25: "plan_initial",       # Z 2026년 연간 추정 ← 비교 기준
+    34: "plan_diff_amount",   # AI 차이금액(27 계획 − 26 추정)
+    35: "plan_diff_rate",     # AJ 증감율
+    36: "plan_diff_reason",   # AK 사유
+    37: "profit_gross",       # AL 매출이익
+    38: "cost_direct",        # AM 직접원가
+    39: "cost_labor",         # AN 인건비
+    40: "cost_overhead",      # AO 공통원가
+    41: "cost_mgmt",          # AP 관리비
+    42: "operating_profit",   # AQ 경상손익
+    43: "profit_rate_raw",    # AR 손익률
+    44: "jun_check_total",    # AS 2027년 사업계획 합계 ← 27 계획
+    45: "chk_m01", 46: "chk_m02", 47: "chk_m03", 48: "chk_m04",   # AT~AW
+    49: "chk_m05", 50: "chk_m06", 51: "chk_m07", 52: "chk_m08",   # AX~BA
+    53: "chk_m09", 54: "chk_m10", 55: "chk_m11", 56: "chk_m12",   # BB~BE
+    57: "chk_cost_rate",      # BF (원가율)
+    58: "chk_course",         # BG 과정
+    59: "chk_session",        # BH 차수
+    60: "chk_participant",    # BI 인원
+    61: "change_note",        # BJ 변동 검토의견
+    64: "balance_amount",     # BM 대차금액
+    65: "balance_rate",       # BN 대차비율
+    67: "dup_check",          # BP 중복 코드 점검
+    68: "ref_code",           # BQ 참조 코드
+    71: "sa_direct_total",    # BT 직접원가 소계
+    72: "sa_instructor",      # BU 강사비
+    73: "sa_sub_instructor",  # BV 보조강사비
+    74: "sa_venue",           # BW 강의장
+    75: "sa_practice",        # BX 실습비
+    76: "sa_textbook",        # BY 교재비
+    77: "sa_other_direct",    # BZ 기타
+    78: "sa_overhead_total",  # CA 공통원가 소계
+    79: "sa_refreshment",     # CB 다과비
+    80: "sa_edu_venue",       # CC 교육장
+    81: "sa_parking",         # CD 주차비
+    82: "sa_sw_practice",     # CE 실습비(SW·교보재)
+    83: "sa_intern",          # CF 인턴/파견 인건비
+    84: "sa_labor_total",     # CG 인건비 소계
+    85: "sa_regular",         # CH 정규직
+    86: "sa_overhead_cost",   # CI 제경비
+    88: "note",               # CK 비고
+}
+
+# 실적 시트에는 있고 계획 시트엔 없는 필드(jun_actual 등)도 열(0 또는 빈 값)로 채워 두기 위한 전체 필드 목록 — 계획 뷰에서도 같은 열 이름으로 표·병합 코드가 돎
+_ALL_PERF_FIELDS = set(_PERF_COL_MAP_SEP.values()) | set(_PERF_COL_MAP_PLAN27.values())
+
 _PERF_COL_MAPS = {
     "2026년 (6월 집계)": _PERF_COL_MAP_JUN,
     "2026년 (7월 추정)": _PERF_COL_MAP_JUL,
@@ -237,6 +322,8 @@ _PERF_COL_MAPS = {
     # 원본에서 그 컬럼이 지워지면 다시 _PERF_COL_MAP_AUG로 돌아갈 것
     "2026년 (9월 추정)": _PERF_COL_MAP_SEP,
     "2026년 (9월 집계)": _PERF_COL_MAP_SEP,
+    # 27년 파일(ver3.1_261028): 2027 사업계획 시트 — 계획 전용 뷰(view="plan27"), 위 _PERF_COL_MAP_PLAN27 주석 참고
+    "2027년 (사업계획)": _PERF_COL_MAP_PLAN27,
 }
 
 
@@ -255,6 +342,24 @@ def _resolve_perf_sheet(sheet_names):
         )
     latest = candidates[max(candidates.keys())]
     return latest.get("집계") or latest.get("추정")
+
+
+def is_plan_sheet(name) -> bool:
+    """사업계획 시트인가 — 이름에 연도와 '계획'이 있고 N월 실적 시트가 아님(_PLAN_SHEET_RE 주석 참고)"""
+    s = str(name).strip()
+    return not _PERF_SHEET_RE.match(s) and bool(_PLAN_SHEET_RE.match(s))
+
+
+def _resolve_plan_sheet(sheet_names) -> "str | None":
+    """가장 최근 연도의 사업계획 시트 이름 — 없으면 None(그 파일엔 계획 뷰가 없다는 뜻이지 오류가 아님).
+    _resolve_perf_sheet(실적)은 그대로 둠 — 테스트가 고정하고, 계획 시트가 실적 시트로 잘못 뽑히면 안 되므로"""
+    best = None
+    for name in sheet_names:
+        if is_plan_sheet(name):
+            year = int(_PLAN_SHEET_RE.match(str(name)).group(1))
+            if best is None or year >= best[0]:
+                best = (year, name)
+    return best[1] if best else None
 
 
 def _learned_col_maps() -> dict:
@@ -276,14 +381,14 @@ def perf_col_map(sheet: str) -> "dict | None":
     return _PERF_COL_MAPS.get(sheet) or _learned_col_maps().get(sheet)
 
 
-def _plan_overhead_from_block(raw: "pd.DataFrame", rev_plan_sum: float, cost_plan_sum: float) -> "float | None":
+def _plan_overhead_from_block(raw: "pd.DataFrame", rev_plan_sum: float, cost_plan_sum: float, col: str = "plan_initial") -> "float | None":
     """사업계획(최초사업계획 열) 기준 공통원가 — 시트 맨 아래 합계 블록(구분 열에 매출 / 원가 / 공통원가 / 인건비 … 순)의
     '공통원가' 줄 값(천원). 프로젝트 행엔 없는 값이라 거기서만 읽는다(2026-10-23, 9월 집계 924행 W열 = 2,033,364천원 = 20.33억).
     행 위치는 시트마다 달라(9월 추정은 918행) 줄 번호가 아니라 라벨로 찾고, 같은 블록의 매출·원가 줄이
     프로젝트 행 합과 같을 때만 믿음 — 아니면 None(= 호출쪽이 예전처럼 추정 공통원가로 대체)."""
     try:
         label = raw["part"].fillna("").astype(str).str.strip().tolist()
-        plan = pd.to_numeric(raw["plan_initial"], errors="coerce").tolist()
+        plan = pd.to_numeric(raw[col], errors="coerce").tolist()   # col: 계획 시트는 27 계획(jun_check_total)·26 추정(plan_initial) 둘 다 읽음
         hits = [i for i, v in enumerate(label) if v == "공통원가"]
         if len(hits) != 1 or hits[0] < 2:
             logger.warning("계획 공통원가: 합계 블록의 '공통원가' 줄을 못 찾음(%d곳) — 추정 공통원가로 대체", len(hits))
@@ -305,7 +410,7 @@ def _plan_overhead_from_block(raw: "pd.DataFrame", rev_plan_sum: float, cost_pla
         return None
 
 
-def _plan_mgmt_profit_from_block(raw: "pd.DataFrame", rev_plan_sum: float, cost_plan_sum: float) -> "dict[str, float] | None":
+def _plan_mgmt_profit_from_block(raw: "pd.DataFrame", rev_plan_sum: float, cost_plan_sum: float, col: str = "plan_initial") -> "dict[str, float] | None":
     """사업계획(최초사업계획 열) 기준 관리비·경상손익·인건비 — _plan_overhead_from_block과 같은 합계 블록
     (구분 열에 매출 / 원가 / 공통원가 / 인건비 / 자산 / 관리비 / 손익 순)의 '관리비'·'손익' 줄 값(천원). 2026-10-27.
     9월 집계 실측: 관리비 4,430,525(44.31억) · 손익 953,426(9.53억). 손익 = 매출 − 원가 − 공통원가 − 인건비 − 관리비
@@ -314,7 +419,7 @@ def _plan_mgmt_profit_from_block(raw: "pd.DataFrame", rev_plan_sum: float, cost_
     계획 경상손익은 프로젝트 행에 없는 값이라 대체할 추정값이 없음(추정으로 채우면 계획=추정이 돼 오해)."""
     try:
         label = raw["part"].fillna("").astype(str).str.strip().tolist()
-        plan = pd.to_numeric(raw["plan_initial"], errors="coerce").tolist()
+        plan = pd.to_numeric(raw[col], errors="coerce").tolist()
         hits = [i for i, v in enumerate(label) if v == "공통원가"]
         if len(hits) != 1 or hits[0] < 2 or hits[0] + 4 >= len(label):
             logger.warning("계획 관리비·경상손익: 합계 블록의 '공통원가' 줄을 못 찾음(%d곳) — 계획 칸 비움", len(hits))
@@ -340,14 +445,24 @@ def _plan_mgmt_profit_from_block(raw: "pd.DataFrame", rev_plan_sum: float, cost_
         return None
 
 
-def read_perf_frame(path: str, sheet: "str | None" = None, col_map: "dict | None" = None):
+def read_perf_frame(path: str, sheet: "str | None" = None, col_map: "dict | None" = None, view: "str | None" = None):
     """실적 엑셀 한 시트를 읽어 정리한 DataFrame + (시트명, 연, 월). 캐시·전역값은 안 건드림 —
     load_perf_excel(대시보드 캐시)과 업로드 검증(perf_upload)이 같은 규칙으로 읽게 공용(2026-10-14).
-    sheet 생략 = 최신 시트 자동 선택, col_map 생략 = perf_col_map(sheet)."""
+    sheet 생략 = 최신 시트 자동 선택, col_map 생략 = perf_col_map(sheet).
+    view(2026-10-29): "actual"(N월 집계/추정 시트) / "plan27"(사업계획 시트 — 기준월·누계 없음, 월은 0으로 돌려줌).
+    생략하면 시트 이름으로 정함(계획 시트 이름이면 plan27)."""
     _perf_engine = "pyxlsb" if path.endswith(".xlsb") else "openpyxl"
     with pd.ExcelFile(path, engine=_perf_engine) as xf:
-        resolved_sheet = sheet or _resolve_perf_sheet(xf.sheet_names)
-        logger.info("실적 시트 선택: %s", resolved_sheet)
+        if sheet:
+            resolved_sheet = sheet
+        elif view == "plan27":
+            resolved_sheet = _resolve_plan_sheet(xf.sheet_names)
+            if not resolved_sheet:
+                raise ValueError(f"사업계획 시트(연도 + '계획')를 찾을 수 없습니다. 시트 목록: {list(xf.sheet_names)}")
+        else:
+            resolved_sheet = _resolve_perf_sheet(xf.sheet_names)
+        view = view or ("plan27" if is_plan_sheet(resolved_sheet) else "actual")
+        logger.info("실적 시트 선택: %s (%s)", resolved_sheet, view)
 
         col_map = col_map or perf_col_map(resolved_sheet)
         if not col_map:
@@ -363,6 +478,10 @@ def read_perf_frame(path: str, sheet: "str | None" = None, col_map: "dict | None
             usecols=col_indices,
         )
     df.columns = [col_map[i] for i in col_indices]
+    if view == "plan27":
+        # 계획 시트엔 없는 실적 전용 필드(jun_actual·jun_est 등)는 빈 열로 — 표·병합 코드가 열 이름을 그대로 찾아서 KeyError가 안 나게
+        for _f in sorted(_ALL_PERF_FIELDS - set(df.columns)):
+            df[_f] = np.nan
 
     # 프로젝트코드(O열)가 비어있어도 실제 매출/원가가 있는 행이면 집계에서 빠지면 안 됨
     # (2026-09-14 실측: K뉴딜 아카데미 2건이 코드 미기재로 통째로 누락돼 실적현황 합계가
@@ -438,6 +557,14 @@ def read_perf_frame(path: str, sheet: "str | None" = None, col_map: "dict | None
     #    (jun_check_total=BE열도 동일 — AO==BE, 둘 다 chk_m01~chk_m12 전체 합)
     #    진짜 "이번 달까지의 실적"은 경과한 달(1~현재월)만 합산해야 하므로 여기서 보정한다.
     #    jun_check_total은 "N월 점검 연간합계"라는 이름 그대로 연간(전체) 값이 맞아 보정하지 않음.
+    if view == "plan27":
+        # 계획 시트는 실적이 아니라 jun_actual 재합산·누계 경상손익 재구성(아래)이 의미 없음 — 0으로 두고 마무리(월은 0 = 기준월 없음)
+        _y = re.search(r"(\d{4})", resolved_sheet)
+        df["jun_actual"] = 0.0
+        df["acc_profit_gross"] = 0.0
+        df["acc_operating_profit"] = 0.0
+        return _finish_perf_frame(df, raw_df, path, view), resolved_sheet, (int(_y.group(1)) if _y else 0), 0
+
     sheet_month_match = _PERF_SHEET_RE.match(resolved_sheet)
     current_month_num = int(sheet_month_match.group(2))
     current_year = int(sheet_month_match.group(1))
@@ -484,15 +611,40 @@ def read_perf_frame(path: str, sheet: "str | None" = None, col_map: "dict | None
         alloc_rate[gross > 0].mean() * 100 if (gross > 0).any() else 0,
     )
 
+    return _finish_perf_frame(df, raw_df, path, view), resolved_sheet, current_year, current_month_num
+
+
+def _raw_category_sum(raw_df: pd.DataFrame, category: str, col: str) -> float:
+    """필터(사용 여부 등) 전 원본 행에서 구분이 category인 행의 col 합 — 시트 맨 아래 합계 블록과 맞춰 보는 용도(계획 시트)"""
+    cat = raw_df["category"].astype(str).str.strip()
+    val = pd.to_numeric(raw_df[col], errors="coerce").fillna(0)
+    return float(val[cat == category].sum())
+
+
+def _finish_perf_frame(df: pd.DataFrame, raw_df: pd.DataFrame, path: str, view: str) -> pd.DataFrame:
+    """read_perf_frame 마무리 — NaN→None, 파일명, 시트 맨 아래 합계 블록 값을 df.attrs에 붙임(실적·계획 공용)"""
     df = df.where(df.notna(), other=None)
     df["filename"] = os.path.basename(path)
+    df.attrs["view"] = view
+    if view == "plan27":
+        # 계획 시트의 합계 블록(공통원가·인건비·관리비·손익 줄) — 27 계획(jun_check_total 열)과 26 추정(plan_initial 열) 두 열을 다 읽음.
+        # 실적 시트는 블록 매출·원가가 '사용' 행 합과 같았지만 이 시트는 사용여부가 비거나 미사용인 행까지 합친 값(2026-10-29 실측: 매출 387.59억 vs 사용 행 387.49억,
+        # 사용여부가 빈 1건 때문) → 비교 대상을 필터 전 전체 행 합으로. 못 읽으면 None(화면은 그 칸을 '-'로)
+        blocks = {}
+        for key, col in (("y27", "jun_check_total"), ("y26", "plan_initial")):
+            rs, cs = _raw_category_sum(raw_df, "매출", col), _raw_category_sum(raw_df, "원가", col)
+            extra = _plan_mgmt_profit_from_block(raw_df, rs, cs, col)
+            overhead = _plan_overhead_from_block(raw_df, rs, cs, col)
+            blocks[key] = ({"overhead": overhead, **extra} if extra else {"overhead": overhead}) if overhead is not None or extra else None
+        df.attrs["plan_blocks"] = blocks
+        return df
     # 사업계획 기준 공통원가(시트 합계 블록 W열) — 못 찾거나 검증 실패면 None(요약이 추정 공통원가로 대체)
     _rev_plan_sum  = float(df.loc[df["category"] == "매출", "plan_initial"].sum())
     _cost_plan_sum = float(df.loc[df["category"] == "원가", "plan_initial"].sum())
     df.attrs["plan_overhead"] = _plan_overhead_from_block(raw_df, _rev_plan_sum, _cost_plan_sum)
     # 사업계획 기준 관리비·경상손익(같은 블록, 2026-10-27) — 못 읽으면 None(계획 칸을 비움)
     df.attrs["plan_block_extra"] = _plan_mgmt_profit_from_block(raw_df, _rev_plan_sum, _cost_plan_sum)
-    return df, resolved_sheet, current_year, current_month_num
+    return df
 
 
 def load_perf_excel():
@@ -580,11 +732,92 @@ def perf_autoupdate_sheet(path: str) -> "str | None":
         return None
 
 
+def plan_sheet_of(path: str) -> "str | None":
+    """그 파일의 사업계획 시트 이름(없거나 못 읽으면 None)"""
+    try:
+        engine = "pyxlsb" if path.endswith(".xlsb") else "openpyxl"
+        with pd.ExcelFile(path, engine=engine) as xf:
+            return _resolve_plan_sheet(xf.sheet_names)
+    except Exception:
+        return None
+
+
+def load_plan_excel() -> pd.DataFrame:
+    """_plan_cache_lock 보유 상태에서만 호출. 계획 뷰(plan27) 읽기 — data/의 실적 파일을 최신부터 보며 사업계획 시트가 있는 첫 파일을 씀.
+    실적 뷰(load_perf_excel)와 같은 방식(처음 보는 파일은 perf_autoupdate.prepare로 열 맞추기·계산식 검증, 실패하면 다음 파일)이고
+    상태는 perf_update_status.json의 "plan27" 키에 따로 기록(실적 상태를 안 덮어씀).
+    계획 시트가 하나도 없으면 오류가 아니라 빈 결과(= 화면의 계획 보기 전환이 안 보임)."""
+    import perf_autoupdate
+    from paths import perf_excel_candidates
+    cands = [c for c in (perf_excel_candidates() or [resolve_perf_excel()]) if os.path.exists(c)]
+    _plan_cache["seen"] = (cands[0], safe_mtime(cands[0])) if cands else None
+    status = perf_autoupdate.read_status("plan27")
+    good = status.get("good") or {}
+    errors = []
+    for path in cands:
+        sheet = plan_sheet_of(path)
+        if not sheet:
+            continue   # 이 파일엔 계획 시트가 없음 — 오류 아님, 다음(직전) 파일을 봄
+        mtime = safe_mtime(path)
+        try:
+            if good.get("file") == path and good.get("mtime") == mtime and perf_col_map(good.get("sheet", "")):
+                df, sheet, year, _ = read_perf_frame(path, good["sheet"], view="plan27")
+            elif not PERF_AUTO_UPDATE:
+                df, sheet, year, _ = read_perf_frame(path, sheet, view="plan27")
+            else:
+                df, sheet, year, _, _ = perf_autoupdate.prepare(path, good, view="plan27")
+        except Exception as e:
+            errors.append(f"{os.path.basename(path)}: {e}")
+            continue
+        st = perf_autoupdate.read_status("plan27")
+        st["good"] = {"file": path, "sheet": sheet, "mtime": mtime}
+        st["serving"] = os.path.basename(path)
+        st["serving_sheet"] = sheet
+        perf_autoupdate.write_status(st, "plan27")
+        _plan_cache.update(df=df, path=path, mtime=mtime, year=year, sheet=sheet,
+                           loaded=datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        if errors:
+            logger.warning("최신 계획 시트 반영 실패 — 직전 파일(%s)로 표시: %s", os.path.basename(path), " | ".join(errors))
+        logger.info("사업계획 시트 로드 완료: %s / %s — %d행", os.path.basename(path), sheet, len(df))
+        return df
+    _plan_cache.update(df=pd.DataFrame(), path=None, mtime=None, year=0, sheet=None, loaded=None)
+    if errors:
+        raise ValueError("읽을 수 있는 사업계획 시트가 없습니다 — " + " | ".join(errors))
+    return _plan_cache["df"]
+
+
+def get_plan_df() -> pd.DataFrame:
+    """계획 뷰 프레임(캐시) — 파일 mtime이 바뀌거나 data/에 새 파일이 들어오면 다시 읽음(5초마다 확인).
+    최신 파일에 계획 시트가 없거나 검증에 실패한 경우는 seen으로 기억해 같은 파일을 반복해서 다시 열지 않음"""
+    import time
+    c = _plan_cache
+    newest = resolve_perf_excel()
+    if time.time() - c.get("_checked", 0) > 5:
+        c["_checked"] = time.time()
+        stale = c["seen"] != (newest, safe_mtime(newest))
+    else:
+        stale = False
+    if not stale and c["path"] and safe_mtime(c["path"]) != c["mtime"]:
+        stale = True
+    if not stale:
+        return c["df"]
+    with _plan_cache_lock:
+        try:
+            load_plan_excel()
+        except Exception as e:
+            logger.error("load_plan_excel() 실패: %s", e)
+            c.update(df=pd.DataFrame(), path=None, mtime=None, year=0, sheet=None, loaded=None)
+    return c["df"]
+
+
 _perf_newest_checked = 0.0   # data/에 새 파일이 들어왔는지 보는 시각(5초 간격)
 
 
-def get_perf_df() -> pd.DataFrame:
-    """파일 mtime이 바뀌거나 data/에 더 최신 실적 파일이 들어오면 자동으로 다시 읽는다."""
+def get_perf_df(view: str = "actual") -> pd.DataFrame:
+    """파일 mtime이 바뀌거나 data/에 더 최신 실적 파일이 들어오면 자동으로 다시 읽는다.
+    view="plan27"이면 사업계획 시트 프레임(get_plan_df) — 기본값 "actual"이라 인자 없는 기존 호출은 그대로(테스트도 인자 없는 함수로 바꿔치기함)"""
+    if view == "plan27":
+        return get_plan_df()
     global _perf_cached_df, _perf_cached_mtime, _perf_newest_checked
     import time
     newer = False
@@ -633,6 +866,17 @@ def apply_perf_filters(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def request_view() -> str:
+    """요청의 ?view= — "actual"(기본, 실적) / "plan27"(2027 사업계획). 모르는 값은 실적으로"""
+    v = request.args.get("view", "actual").strip()
+    return v if v in PERF_VIEWS else "actual"
+
+
+def _df_for_request() -> pd.DataFrame:
+    """요청한 뷰의 프레임. 실적은 인자 없이 호출(테스트가 인자 없는 함수로 get_perf_df를 바꿔치기함 — test_headcount)"""
+    return get_perf_df("plan27") if request_view() == "plan27" else get_perf_df()
+
+
 def _weighted_profit_rate(group) -> float:
     """손익률 = 경상손익 합계 / 매출 합계 × 100.
 
@@ -674,7 +918,7 @@ def _ratio(numer: float, denom: float) -> "float | None":
 
 @perf_bp.route("/api/performance/options")
 def api_perf_options():
-    df = get_perf_df()
+    df = _df_for_request()
     if df.empty:
         return jsonify({"parts": [], "teams": [], "team_parts": {}, "progress": [], "managers": []})
     parts = sorted(df["part"].dropna().unique().tolist())
@@ -818,8 +1062,9 @@ def _attach_finance_mismatch(rows: pd.DataFrame) -> pd.DataFrame:
     return rows
 
 
-def _project_rows(rows: pd.DataFrame) -> pd.DataFrame:
-    """매출행+원가행 → 프로젝트당 1행 + 완료 프로젝트 재무 대조. 프로젝트 상세 표·불일치 목록 공용."""
+def _project_rows(rows: pd.DataFrame, with_finance: bool = True) -> pd.DataFrame:
+    """매출행+원가행 → 프로젝트당 1행 + 완료 프로젝트 재무 대조. 프로젝트 상세 표·불일치 목록 공용.
+    with_finance=False(계획 뷰): 재무 이력 대조 생략 — 대조 대상이 '당월 추정 매출·직접원가'인데 계획 시트 값은 27 계획이라 의미가 없음(빈 fin_mismatch만 채움)"""
     if rows.empty:
         return rows
     # 묶음(프로젝트) 일련번호 — 매출/원가 2행이 한 묶음이라 행 번호로는 NO.가 어긋난다.
@@ -840,6 +1085,10 @@ def _project_rows(rows: pd.DataFrame) -> pd.DataFrame:
     group_key = code.where(is_real_code, code + "␟" + rows["project_name"].astype(str) + "␟" + rows["team"].astype(str))
     group_no = (group_key != group_key.shift()).cumsum()
     rows = _merge_rev_cost_rows(rows, group_no)
+    if not with_finance:
+        rows = rows.copy()
+        rows["fin_mismatch"] = [[] for _ in range(len(rows))]
+        return rows
     return _attach_finance_mismatch(rows)
 
 
@@ -892,7 +1141,7 @@ def apply_column_filters(rows: pd.DataFrame, raw: str) -> pd.DataFrame:
 def _perf_detail_frame() -> pd.DataFrame:
     """프로젝트 상세 표의 행 — 필터·진행단계·검색·프로젝트당 1행·재무 대조·정렬까지(페이지 자르기 전).
     표 조회(/data)와 엑셀 다운로드(/data/export)가 같은 행을 쓰게 공용(2026-10-14)"""
-    df = apply_perf_filters(get_perf_df())
+    df = apply_perf_filters(_df_for_request())
     if df.empty:
         return df
     # 프로젝트당 한 줄 — 엑셀은 매출행+원가행 2행이지만 표에선 매출행에 원가행의 사업계획 원가(plan_cost)를
@@ -920,7 +1169,7 @@ def _perf_detail_frame() -> pd.DataFrame:
                     mask |= rows[col].astype(str).str.lower().str.contains(s, regex=False, na=False)
         rows = rows[mask]
 
-    rows = _project_rows(rows)
+    rows = _project_rows(rows, with_finance=request_view() == "actual")
     # 열 필터(표 머리글 깔때기) — 합친 뒤 계산되는 열(당월 추정 직접원가·매출 이익 등)도 걸려야 해서 _project_rows 다음
     rows = apply_column_filters(rows, request.args.get("cf", ""))
     # 전체 기준 정렬(표 머리글 클릭) — 페이지를 자르기 전에
@@ -957,7 +1206,8 @@ def api_perf_data_export():
     from perf_export import finance_code_counts
     import finance
     rows = _perf_detail_frame()
-    base = {"year": _perf_current_year, "month": _perf_current_month} if _perf_current_month else None
+    base = ({"year": _perf_current_year, "month": _perf_current_month}
+            if _perf_current_month and request_view() == "actual" else None)   # 계획 뷰엔 기준월 없음
     try:
         fin_counts = finance_code_counts(finance.get_df())
     except Exception:
@@ -973,12 +1223,31 @@ def api_perf_data_export():
 _PERF_UPLOAD_MAX = 80 * 1024 * 1024
 
 
+def _reload_plan() -> None:
+    """계획 뷰 캐시를 즉시 다시 읽음 — 실패 기록(failed_mtime)·'이미 본 파일' 표시를 지워 같은 파일도 처음부터 다시 시도. 실패해도 예외는 안 던짐"""
+    import perf_autoupdate
+    st = perf_autoupdate.read_status("plan27")
+    if st:
+        st.pop("failed_mtime", None)
+        perf_autoupdate.write_status(st, "plan27")
+    with _plan_cache_lock:
+        _plan_cache["seen"] = None
+        try:
+            load_plan_excel()
+        except Exception as e:
+            logger.error("계획 시트 다시 시도 실패: %s", e)
+            _plan_cache.update(df=pd.DataFrame(), path=None, mtime=None, year=0, sheet=None, loaded=None)
+
+
 def _update_status_payload() -> dict:
     import perf_autoupdate
     from paths import perf_excel_candidates
     st = perf_autoupdate.read_status()
     st.pop("good", None)   # 서버 경로는 안 내보냄
     st.pop("failed_mtime", None)
+    if isinstance(st.get("plan27"), dict):   # 계획 뷰 상태(2026-10-29) — 실적 상태와 같은 모양, 같은 규칙으로 서버 경로 제거
+        st["plan27"] = {k: v for k, v in st["plan27"].items() if k not in ("good", "failed_mtime")}
+        st["plan27"]["loaded_at"] = _plan_cache["loaded"]
     st["files"] = [os.path.basename(f) for f in perf_excel_candidates()]
     st["loaded_at"] = _perf_last_loaded
     return st
@@ -990,6 +1259,7 @@ def api_perf_update_status():
     if not PERF_AUTO_UPDATE:
         return jsonify({"ok": False, "error": "실적 파일 자동 반영은 지금 꺼져 있습니다"}), 404
     get_perf_df()   # data/에 새 파일이 있으면 여기서 반영 시도
+    get_perf_df("plan27")
     return jsonify(_update_status_payload())
 
 
@@ -1008,6 +1278,7 @@ def api_perf_update_retry():
             load_perf_excel()
         except Exception as e:
             logger.error("실적 다시 시도 실패: %s", e)
+    _reload_plan()   # 계획 뷰도 같이(실패 기록 지우고 다시)
     return jsonify(_update_status_payload())
 
 
@@ -1059,6 +1330,7 @@ def api_perf_upload():
             load_perf_excel()
         except Exception as e:
             logger.error("업로드 후 반영 실패: %s", e)
+    _reload_plan()
     st = _update_status_payload()
     if notice:
         st["notice"] = notice
@@ -1096,8 +1368,130 @@ def api_perf_fin_mismatch():
     return jsonify({"data": out, "total": len(out)})
 
 
+def build_plan_summary():
+    """계획 뷰(?view=plan27) 요약 — 27 사업계획 vs 26 연간 추정(시트의 비교 기준). 금액은 전부 천원, 비율은 %.
+    실적 요약(api_perf_summary)과 **필드를 공유하지 않는 별도 응답**: base·jun_actual·달성률·누계 같은 실적 필드가 아예 없음(기준월 없음).
+      total.y26 / total.y27 : {revenue, cost, overhead, gross, labor, mgmt, profit} — 26 추정 / 27 계획.
+        y27은 프로젝트 행 합(팀·파트 필터에 따라 줄어듦), y26의 공통원가·인건비·관리비·경상손익은 프로젝트 행에 없는 값이라
+        시트 합계 블록의 '2026년 연간 추정' 열에서 읽음 — 필터 중이거나 못 읽으면 None(화면은 '-'). 매출이익 = 매출 − (직접원가 + 공통원가)
+      total.rate[카드 id] : 27 계획 ÷ 26 추정 × 100 (26 값이 없거나 0 이하면 None)
+      total.cost_direct 등 : 27 계획 원가 구성(원가 도넛용), by_part·by_team : 파트·팀별 같은 구성 + rev26/rev27/cost26/cost27
+      monthly : 1~12월 **계획 분배**(실적 아님)"""
+    full = get_perf_df("plan27")
+    df = apply_perf_filters(full)
+    _year, _sheet, _loaded = _plan_cache["year"], _plan_cache["sheet"], _plan_cache["loaded"]
+    if df.empty:
+        return jsonify({"view": "plan27", "year": _year, "sheet": _sheet, "loaded_at": _loaded,
+                        "total": {}, "by_part": {}, "by_team": {}, "monthly": []})
+
+    rev  = df[df["category"] == "매출"]
+    cost = df[df["category"] == "원가"]
+    total_of = lambda frame, col: float(frame[col].sum())   # noqa: E731
+
+    y27 = {
+        "revenue":  total_of(rev, "jun_check_total"),
+        "cost":     total_of(cost, "jun_check_total"),
+        "overhead": total_of(rev, "cost_overhead"),
+        "labor":    total_of(rev, "cost_labor"),
+        "mgmt":     total_of(rev, "cost_mgmt"),
+        "profit":   total_of(rev, "operating_profit"),
+    }
+    y27["gross"] = y27["revenue"] - (y27["cost"] + y27["overhead"])
+
+    # 26 추정 — 매출·직접원가는 프로젝트 행(plan_initial = 시트 Z열), 나머지는 시트 합계 블록(필터 중엔 전사 값뿐이라 None)
+    blk = None if len(df) != len(full) else (full.attrs.get("plan_blocks") or {}).get("y26")
+    blk = blk or {}
+    y26 = {
+        "revenue":  total_of(rev, "plan_initial"),
+        "cost":     total_of(cost, "plan_initial"),
+        "overhead": blk.get("overhead"),
+        "labor":    blk.get("labor"),
+        "mgmt":     blk.get("mgmt"),
+        "profit":   blk.get("profit"),
+    }
+    y26["gross"] = (y26["revenue"] - (y26["cost"] + y26["overhead"])) if y26["overhead"] is not None else None
+
+    def _vs(v27: float, v26: "float | None") -> "float | None":
+        return None if v26 is None else _ratio(v27, v26)
+
+    rate = {
+        "revenue":     _vs(y27["revenue"], y26["revenue"]),
+        "cost":        _vs(y27["cost"], y26["cost"]),
+        "overhead":    _vs(y27["overhead"], y26["overhead"]),
+        "grossProfit": _vs(y27["gross"], y26["gross"]),
+        "labor":       _vs(y27["labor"], y26["labor"]),
+        "mgmt":        _vs(y27["mgmt"], y26["mgmt"]),
+        "profit":      _vs(y27["profit"], y26["profit"]),
+    }
+
+    total = {
+        "y26": y26, "y27": y27, "rate": rate,
+        "cost_direct":      total_of(rev, "cost_direct"),
+        "cost_labor":       y27["labor"],
+        "cost_overhead":    y27["overhead"],
+        "cost_mgmt":        y27["mgmt"],
+        "operating_profit": y27["profit"],
+        "avg_profit_rate":  _weighted_profit_rate(rev),
+        "count":            int(len(rev)),
+    }
+
+    by_part = {}
+    for part_name, rev_grp in rev.groupby("part"):
+        cost_grp = cost[cost["part"] == part_name]
+        by_part[part_name] = {
+            "rev26":  total_of(rev_grp, "plan_initial"),
+            "rev27":  total_of(rev_grp, "jun_check_total"),
+            "cost26": total_of(cost_grp, "plan_initial"),
+            "cost27": total_of(cost_grp, "jun_check_total"),
+            # 27 계획 매출 ÷ 26 추정 매출 × 100 — 계산은 백엔드(프론트는 표시만). 26이 0 이하면 None
+            "rev_rate": _ratio(total_of(rev_grp, "jun_check_total"), total_of(rev_grp, "plan_initial")),
+            "cost_direct":      total_of(rev_grp, "cost_direct"),
+            "cost_labor":       total_of(rev_grp, "cost_labor"),
+            "cost_overhead":    total_of(rev_grp, "cost_overhead"),
+            "cost_mgmt":        total_of(rev_grp, "cost_mgmt"),
+            "operating_profit": total_of(rev_grp, "operating_profit"),
+            "avg_profit_rate":  _weighted_profit_rate(rev_grp),
+            "count":            int(len(rev_grp)),
+        }
+
+    by_team = {
+        team_name: {
+            "cost_direct":      total_of(g, "cost_direct"),
+            "cost_labor":       total_of(g, "cost_labor"),
+            "cost_overhead":    total_of(g, "cost_overhead"),
+            "cost_mgmt":        total_of(g, "cost_mgmt"),
+            "operating_profit": total_of(g, "operating_profit"),
+        }
+        for team_name, g in rev.dropna(subset=["team"]).groupby("team")
+    }
+
+    monthly = [
+        {"month": f"{m}월", "revenue": total_of(rev, f"chk_m{m:02d}"), "cost": total_of(cost, f"chk_m{m:02d}")}
+        for m in range(1, 13)
+    ]
+    return jsonify({"view": "plan27", "year": _year, "sheet": _sheet, "loaded_at": _loaded,
+                    "total": total, "by_part": by_part, "by_team": by_team, "monthly": monthly})
+
+
+@perf_bp.route("/api/performance/views")
+def api_perf_views():
+    """화면 전환(2026 실적 / 2027 계획)이 쓸 수 있는 뷰 목록 — 계획 시트가 없으면 plan27.available=False(칩을 숨김)"""
+    actual = get_perf_df()
+    plan = get_perf_df("plan27")
+    import perf_autoupdate
+    return jsonify({
+        "actual": {"available": not actual.empty,
+                   # 전환 칩 이름 — 실제 시트명("2026년 (9월 집계)")을 그대로 보여 두 시트가 한눈에 구분되게(2026-10-29)
+                   "sheet": perf_autoupdate.read_status().get("serving_sheet"),
+                   "base": {"year": _perf_current_year, "month": _perf_current_month} if _perf_current_month else None},
+        "plan27": {"available": not plan.empty, "sheet": _plan_cache["sheet"], "year": _plan_cache["year"] or None},
+    })
+
+
 @perf_bp.route("/api/performance/summary")
 def api_perf_summary():
+    if request_view() == "plan27":
+        return build_plan_summary()
     df = apply_perf_filters(get_perf_df())
     if df.empty:
         return jsonify({"total": {}, "by_part": {}, "by_progress": {}, "monthly": []})
@@ -1298,6 +1692,8 @@ def api_perf_summary():
 
 @perf_bp.route("/api/performance/insights")
 def api_perf_insights():
+    if request_view() != "actual":
+        return jsonify({"ok": False, "error": "계획 보기는 인사이트를 지원하지 않습니다(달성률·누계 기반)"}), 400
     df = apply_perf_filters(get_perf_df())
     if df.empty:
         return jsonify({"worst": [], "risk": [], "comments": []})
@@ -1578,6 +1974,8 @@ def api_perf_summary_breakdown():
     pair=True인 차트(planVsActual·partAchievement)는 클릭한 시리즈와 무관하게 `compare`에
     계획·실적을 프로젝트별로 나란히 담아 함께 반환한다.
     """
+    if request_view() != "actual":
+        return jsonify({"available": False, "message": "계획 보기는 막대별 산출 근거를 아직 지원하지 않습니다."})
     df = apply_perf_filters(get_perf_df())
     if df.empty:
         return jsonify({"available": False, "message": "표시할 데이터가 없습니다."})
@@ -1628,6 +2026,7 @@ def api_perf_reload():
             load_perf_excel()
             count     = len(_perf_cached_df)
             loaded_at = _perf_last_loaded
+        _reload_plan()   # 계획 뷰도 같이 다시 읽음(계획 시트가 없는 파일이면 조용히 비움)
         return jsonify({"ok": True, "loaded_at": loaded_at, "count": count})
     except Exception as e:
         logger.error("api_perf_reload 실패: %s", e)
