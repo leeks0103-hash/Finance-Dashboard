@@ -1,19 +1,32 @@
 import client from './client';
 import { appendPageParams } from './queryParams';
 import { getStoredExtractKey, authHeaders } from './extract.api';
-import type { PerfSummary, PerfProject, PerfOptions, PerfInsights, FinMismatchRow, PerfUpdateStatus } from '@/types/performance.types';
+import type {
+  PerfSummary, PerfProject, PerfOptions, PerfInsights, FinMismatchRow, PerfUpdateStatus,
+  PerfView, PerfViews, PerfPlanSummary,
+} from '@/types/performance.types';
 import type { PagedResponse, PageParams } from '@/types/finance.types';
 import type { ColumnFilterValue } from '@/types/columnFilter.types';
 
-const toParams = (parts: string[], team = ''): URLSearchParams => {
+/** view는 계획 보기(plan27)일 때만 주소에 붙임 — 실적 요청은 예전과 똑같은 주소 */
+const toParams = (parts: string[], team = '', view: PerfView = 'actual'): URLSearchParams => {
   const p = new URLSearchParams();
   parts.forEach(v => p.append('part', v));
   if (team) p.set('team', team);
+  if (view !== 'actual') p.set('view', view);
   return p;
 };
 
 export const getPerfSummary = (parts: string[], team = ''): Promise<PerfSummary> =>
   client.get<PerfSummary>('/performance/summary', { params: toParams(parts, team) }).then(r => r.data);
+
+/** 2027 사업계획 보기 요약 — 27 계획 vs 26 추정(기준월·누계·달성률 없음) */
+export const getPerfPlanSummary = (parts: string[], team = ''): Promise<PerfPlanSummary> =>
+  client.get<PerfPlanSummary>('/performance/summary', { params: toParams(parts, team, 'plan27') }).then(r => r.data);
+
+/** 전환 가능한 뷰(2026 실적 / 2027 계획) — 계획 시트가 없으면 plan27.available=false */
+export const getPerfViews = (): Promise<PerfViews> =>
+  client.get<PerfViews>('/performance/views').then(r => r.data);
 
 export const getPerfInsights = (parts: string[], team = ''): Promise<PerfInsights> =>
   client.get<PerfInsights>('/performance/insights', { params: toParams(parts, team) }).then(r => r.data);
@@ -24,8 +37,9 @@ export const getPerfData = (
   team = '',
   progress = '',
   columnFilters: ColumnFilterValue[] = [],
+  view: PerfView = 'actual',
 ): Promise<PagedResponse<PerfProject>> => {
-  const params = toParams(parts, team);
+  const params = toParams(parts, team, view);
   if (progress) params.set('progress', progress);
   if (columnFilters.length) params.set('cf', JSON.stringify(columnFilters));
   appendPageParams(params, page);
@@ -35,8 +49,9 @@ export const getPerfData = (
 /** 프로젝트 상세 엑셀 다운로드 주소 — 표와 같은 필터·검색·정렬(페이지는 무시, 전체). <a href>라 토큰은 ?token= */
 export const perfExportHref = (
   parts: string[], page: PageParams, team = '', progress = '', columnFilters: ColumnFilterValue[] = [],
+  view: PerfView = 'actual',
 ): string => {
-  const params = toParams(parts, team);
+  const params = toParams(parts, team, view);
   if (progress) params.set('progress', progress);
   if (columnFilters.length) params.set('cf', JSON.stringify(columnFilters));
   appendPageParams(params, page);
@@ -46,8 +61,8 @@ export const perfExportHref = (
   return `/api/performance/data/export?${params.toString()}`;
 };
 
-export const getPerfOptions = (): Promise<PerfOptions> =>
-  client.get<PerfOptions>('/performance/options').then(r => r.data);
+export const getPerfOptions = (view: PerfView = 'actual'): Promise<PerfOptions> =>
+  client.get<PerfOptions>('/performance/options', { params: view === 'actual' ? undefined : { view } }).then(r => r.data);
 
 export const reloadPerfData = () =>
   client.post('/performance/reload').then(r => r.data);

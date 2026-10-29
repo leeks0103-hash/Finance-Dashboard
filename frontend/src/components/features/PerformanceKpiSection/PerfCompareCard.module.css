@@ -314,25 +314,6 @@
   white-space: nowrap;
 }
 
-/* ── 스파크라인 — KpiCard(.sparkWrap)와 같은 크기·위치·투명도(2026-10-27). 색은 아래 방향별 규칙(accent 색은 폴백) ── */
-.sparkWrap {
-  position: absolute;
-  bottom: 0; right: 0;
-  width: 52%;
-  height: 48px;
-  opacity: 0.22;
-  pointer-events: none;
-}
-.spark { width: 100%; height: 100%; }
-.brand  .sparkWrap { color: var(--brand-mid); }
-.profit .sparkWrap { color: var(--profit); }
-.loss   .sparkWrap { color: var(--loss); }
-.warn   .sparkWrap { color: var(--warn); }
-.purple .sparkWrap { color: var(--purple); }
-/* 방향별 색(2026-10-27 "내려가는 그래프는 빨강") — 차이 배지(.up/.down)와 같은 색. accent 색보다 뒤에 둬 덮어씀 */
-.sparkWrap.sparkUp   { color: var(--profit); }
-.sparkWrap.sparkDown { color: var(--loss); }
-
 /* ── 머리글(2026-10-27) — 위의 .label/@container 규칙을 덮어쓰려고 파일 끝쪽에 둠 ──
    차이 배지는 원래 자리(오른쪽 위) 그대로. 제목은 항상 두 줄 고정(앞부분 / "(계획/추정)")이라 카드마다 값 높이가 같음.
    카드가 아주 좁아 앞부분이 배지 옆에 안 들어가면 3줄로 꺾이는 대신 …로 줄임(전체 제목은 마우스를 올리면 툴팁) */

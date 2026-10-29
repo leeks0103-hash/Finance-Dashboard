@@ -1,12 +1,60 @@
 import { useRef, useState, type DragEvent } from 'react';
 import { Button, Spinner } from '@/components/ui';
 import { usePerfUpdateStatus } from '@/hooks/usePerfUpdateStatus';
+import type { PerfUpdateStatus } from '@/types/performance.types';
 import styles from './PerfUpdatePanel.module.css';
 
 /** axios 오류 → 서버가 준 문구 */
 const errText = (e: unknown): string => {
   const r = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
   return r || (e instanceof Error ? e.message : '알 수 없는 오류');
+};
+
+/** 2027 사업계획 시트(계획 뷰)의 반영 결과 한 덩어리(2026-10-29) — 실적 결과와 같은 모양, 열 맞춤·검증은 시트별로 따로 이뤄져서 따로 보여줌 */
+const PlanResult = ({ st }: { st: NonNullable<PerfUpdateStatus['plan27']> }) => {
+  const failed = st.ok === false;
+  const servingOther = failed && st.serving && st.serving !== st.file;
+  return (
+    <div className={`${styles.result} ${failed ? styles.resultFail : ''}`}>
+      <div className={styles.resultHead}>
+        <span className={`${styles.badge} ${failed ? styles.badgeFail : styles.badgeOk}`}>
+          {failed ? '반영 안 됨' : '반영됨'}
+        </span>
+        <span className={styles.file} title={st.file}>2027 사업계획 시트 · {st.file}</span>
+        <span className={styles.muted}>{st.checked_at}</span>
+      </div>
+      <div className={styles.meta}>
+        {st.sheet && <span>시트 {st.sheet}</span>}
+        {st.method && <span>열 매핑: {st.method}</span>}
+      </div>
+      {failed && (
+        <div className={styles.error}>
+          {st.error}
+          {servingOther && <div className={styles.muted}>2027 계획 보기는 직전 파일({st.serving})로 계속 표시 중입니다</div>}
+        </div>
+      )}
+      {st.summary && <p className={styles.summary}>{st.summary}</p>}
+      {!!st.changes?.length && <ul className={styles.changes}>{st.changes.map(c => <li key={c}>{c}</li>)}</ul>}
+      {!!st.checks?.length && (
+        <div className={styles.checks}>
+          {st.checks.map(c => (
+            <span key={c.name} className={`${styles.check} ${c.ok ? '' : styles.checkFail}`} title={c.name}>
+              <span className={styles.checkMark}>{c.ok ? '✓' : '✕'}</span>
+              <span className={styles.checkName}>{c.name}</span>
+              <span className={styles.checkRate}>{c.rate}%</span>
+            </span>
+          ))}
+        </div>
+      )}
+      {st.totals && (
+        <div className={styles.totals}>
+          {Object.entries(st.totals).map(([k, v]) => (
+            <span key={k}><b>{v.toLocaleString()}</b>{k.includes('프로젝트') ? '건' : '억'} {k}</span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 };
 
 /**
@@ -118,6 +166,8 @@ const PerfUpdatePanel = () => {
           )}
         </div>
       )}
+      {/* 2027 사업계획 시트 — 그 파일에 계획 시트가 있을 때만(없으면 서버가 이 키를 안 줌) */}
+      {status?.plan27?.file && <PlanResult st={status.plan27} />}
       {!!status?.files?.length && (
         <div className={styles.muted} title={status.files.join('\n')}>
           data 폴더 실적 파일 {status.files.length}개 — 가장 최신(파일명 날짜 기준)을 씁니다

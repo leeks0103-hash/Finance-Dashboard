@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { usePerformanceOptions } from '@/hooks/usePerformanceData';
+import { usePerfViews } from '@/hooks/usePerfViews';
 import { stripPartPrefix } from '@/utils';
 import { sortParts, sortTeams } from '@/utils/partOrder';
 import { usePerfStore } from '@/store/perf.store';
@@ -23,6 +24,14 @@ const PerformanceFilterBar = () => {
   const setTeamLabel       = usePerfStore(s => s.setTeamLabel);
   const initialized        = usePerfStore(s => s.initialized);
   const initializeDefaults = usePerfStore(s => s.initializeDefaults);
+  const perfView           = usePerfStore(s => s.perfView);
+  const setPerfView        = usePerfStore(s => s.setPerfView);
+  const { data: views }    = usePerfViews();
+  // 계획 시트가 있는 파일일 때만 전환 칩을 보임(2026-10-29). 저장된 보기가 계획인데 서버에서 사라졌으면 실적으로 되돌림
+  const planAvailable = !!views?.plan27.available;
+  useEffect(() => {
+    if (views && !views.plan27.available && perfView === 'plan27') setPerfView('actual');
+  }, [views, perfView, setPerfView]);
 
   const parts = sortParts((options?.parts ?? []).map(stripPartPrefix));
   // 고정 순서(기획 → 전동화/모빌리티 → SW). 아래 effect deps라 옵션이 바뀔 때만 새 배열
@@ -69,6 +78,19 @@ const PerformanceFilterBar = () => {
 
   return (
     <div className={styles.panel}>
+      {/* 보기 전환(2026 실적 / 2027 계획) — 팀·파트 필터는 그대로 두고 화면만 바뀜. 계획 시트가 없는 파일이면 안 보임 */}
+      {planAvailable && (
+        <div className={`${styles.field} ${styles.chipsOnly}`}>
+          <span className={styles.label}>보기</span>
+          <div className={styles.group}>
+            <div className={styles.chips}>
+              {/* 칩 이름 = 실제 시트명(예: "2026년 (9월 집계)" / "2027년 (사업계획)") — 어느 시트를 보고 있는지 바로 알 수 있게 */}
+              <FilterChip label={views?.actual.sheet ?? '2026 실적'} checked={perfView === 'actual'} onChange={() => setPerfView('actual')} />
+              <FilterChip label={views?.plan27.sheet ?? '2027 사업계획'} checked={perfView === 'plan27'} onChange={() => setPerfView('plan27')} />
+            </div>
+          </div>
+        </div>
+      )}
       {/* 라벨은 트랙 밖, 트랙 안엔 칩만 — 라벨이 칩과 섞여 구분이 안 됐음(2026-10-01) */}
       <div className={`${styles.field} ${styles.chipsOnly}`}>
         <span className={styles.label}>팀</span>

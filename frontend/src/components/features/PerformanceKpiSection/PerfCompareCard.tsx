@@ -1,6 +1,5 @@
 import type { CSSProperties } from 'react';
 import type { PerfCompareCardData } from '@/hooks/viewmodels/usePerformanceViewModel';
-// import { Sparkline } from '@/components/ui/Sparkline';   // 스파크라인 주석 처리(2026-10-27 "곡선 이미지 삭제")
 import { useChartPalette } from '@/hooks/useChartPalette';
 import { useCompareCardViewModel } from '@/hooks/viewmodels/useCompareCardViewModel';
 import { splitValueUnit } from '@/utils/format';
@@ -32,8 +31,8 @@ const PerfCompareCard = ({ card }: { card: PerfCompareCardData }) => {
   // const planH = `${Math.round((planAbs / hi) * 100)}%`;
   // const estH  = `${Math.round((estAbs  / hi) * 100)}%`;
 
-  // 제목 끝의 "(계획/추정)"을 떼어 둘째 줄에 따로 그림 — 없는 제목은 그대로 한 덩어리
-  const m = card.label.match(/^(.*?)\s*(\(계획\/추정\))$/);
+  // 제목 끝의 "(계획/추정)"(2027 계획 보기는 "(26 추정/27 계획)")을 떼어 둘째 줄에 따로 그림 — 없는 제목은 그대로 한 덩어리
+  const m = card.label.match(/^(.*?)\s*(\((?:계획\/추정|26 추정\/27 계획)\))$/);
   const labelMain   = m ? m[1] : card.label;
   const labelSuffix = m ? m[2] : '';
 
@@ -62,7 +61,12 @@ const PerfCompareCard = ({ card }: { card: PerfCompareCardData }) => {
         <div className={styles.valuesWrap}>
           {/* 추정 값 위 "계획 대비 추정" 비율(2026-10-27) — 값이 없어도 줄은 남겨 카드마다 값 높이를 맞춤 */}
           <div className={styles.rateRow}>
-            {card.rateStr && <span key={card.rateStr} className={styles.rate} title="계획 대비 추정 비율 (추정 ÷ 계획)">계획 대비 {card.rateStr}</span>}
+            {card.rateStr && (
+              <span key={card.rateStr} className={styles.rate}
+                title={card.rateLabel ? `${card.rateLabel} 비율` : '계획 대비 추정 비율 (추정 ÷ 계획)'}>
+                {card.rateLabel ?? '계획 대비'} {card.rateStr}
+              </span>
+            )}
           </div>
           <div className={styles.values}>
             <div className={styles.planRow}>
@@ -95,15 +99,6 @@ const PerfCompareCard = ({ card }: { card: PerfCompareCardData }) => {
         </div>
         */}
       </div>
-
-      {/* 오른쪽 구석 하단 스파크라인 주석 처리(2026-10-27 요청 "카드들 그래프 곡선 이미지 삭제") — 복구하려면 아래 주석과 위 import를 풀 것.
-          (CSS .sparkWrap/.sparkUp/.sparkDown은 그대로 남겨 둠)
-      {card.diffStr && (
-        <div className={`${styles.sparkWrap} ${card.diffUp ? styles.sparkUp : styles.sparkDown}`} aria-hidden>
-          <Sparkline up={card.diffUp} className={styles.spark} />
-        </div>
-      )}
-      */}
     </div>
   );
 };

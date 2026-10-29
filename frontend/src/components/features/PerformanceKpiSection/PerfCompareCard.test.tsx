@@ -39,10 +39,9 @@ describe('PerfCompareCard 계획 값이 없을 때(관리비·경상손익, 팀�
   });
 });
 
-describe('PerfCompareCard 스파크라인(2026-10-27 삭제 요청으로 안 그림)', () => {
-  it('차이 배지가 있어도 스파크라인(.sparkWrap)을 그리지 않는다', () => {
+describe('PerfCompareCard 스파크라인(2026-10-27 삭제 요청 — 코드·CSS도 제거함, 2026-10-29)', () => {
+  it('차이 배지가 있어도 그래프(svg)를 그리지 않는다', () => {
     const { container } = render(<PerfCompareCard card={base} />);
-    expect(container.querySelector(`.${styles.sparkWrap}`)).toBeNull();
     expect(container.querySelector('svg')).toBeNull();
   });
 });
@@ -71,5 +70,29 @@ describe('PerfCompareCard 계획 대비 추정(%)', () => {
     const { container } = render(<PerfCompareCard card={base} />);
     expect(container.querySelector(`.${styles.rate}`)).toBeNull();
     expect(container.querySelector(`.${styles.rateRow}`)).not.toBeNull();
+  });
+});
+
+describe('PerfCompareCard 2027 계획 보기(26 추정 / 27 계획, 2026-10-29)', () => {
+  const plan: PerfCompareCardData = {
+    ...base, id: 'revenue', label: '27년 매출 (26 추정/27 계획)', accent: 'brand',
+    planStr: '392.2억원', estStr: '387.5억원', planNum: 392.2, estNum: 387.5, diffStr: '-4.7억원', diffUp: false,
+    rateStr: '98.8%', rateLabel: '26 추정 대비',
+  };
+
+  it('제목 끝 "(26 추정/27 계획)"도 둘째 줄(.labelSuffix)로 따로 그린다', () => {
+    const { container } = render(<PerfCompareCard card={plan} />);
+    expect(container.querySelector(`.${styles.labelMain}`)?.textContent?.trim()).toBe('27년 매출');
+    expect(container.querySelector(`.${styles.labelSuffix}`)?.textContent).toBe('(26 추정/27 계획)');
+  });
+
+  it('비율 앞 글자는 rateLabel("26 추정 대비") — "계획 대비"가 아님', () => {
+    const { container } = render(<PerfCompareCard card={plan} />);
+    expect(container.querySelector(`.${styles.rate}`)?.textContent).toBe('26 추정 대비 98.8%');
+  });
+
+  it('rateLabel이 없으면 예전 그대로 "계획 대비"', () => {
+    const { container } = render(<PerfCompareCard card={{ ...base, rateStr: '112.0%' }} />);
+    expect(container.querySelector(`.${styles.rate}`)?.textContent).toBe('계획 대비 112.0%');
   });
 });

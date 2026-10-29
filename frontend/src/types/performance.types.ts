@@ -309,4 +309,60 @@ export interface PerfUpdateStatus {
   loaded_at?:  string | null;
   /** 올리기 결과 안내 — 같은 파일이 이미 있음 / 같은 이름 이전 파일을 히스토리로 옮김 */
   notice?:     string;
+  /** 2027 사업계획 시트(계획 뷰)의 반영 상태 — 같은 모양, 최상위는 실적 뷰(2026-10-29). 그 파일에 계획 시트가 없으면 없음 */
+  plan27?:     Omit<PerfUpdateStatus, 'files' | 'plan27' | 'notice'>;
+}
+
+
+// ── 2027 사업계획 보기(계획 뷰, 2026-10-29) ─────────────────────────────────
+// 실적 요약(PerfSummary)과 필드를 공유하지 않는 별도 응답 — 기준월·누계·달성률이 없음. 금액은 전부 천원.
+export type PerfView = 'actual' | 'plan27';
+
+/** 전환 가능한 뷰 — plan27.available=false(계획 시트가 없음)면 전환 칩을 숨김 */
+export interface PerfViews {
+  actual: { available: boolean; sheet?: string | null; base?: { year: number; month: number } | null };
+  plan27: { available: boolean; sheet?: string | null; year?: number | null };
+}
+
+/** 한 시점(26 추정 또는 27 계획)의 합계. null = 값 없음('-') — 26 추정의 공통원가·인건비·관리비·경상손익은
+ *  시트 합계 블록에서 읽어 팀·파트 필터 중이거나 못 읽으면 null */
+export interface PerfPlanValues {
+  revenue:  number;
+  cost:     number;
+  overhead: number | null;
+  labor:    number | null;
+  mgmt:     number | null;
+  profit:   number | null;
+  /** 매출 − (직접원가 + 공통원가) */
+  gross:    number | null;
+}
+
+export interface PerfPlanPartStats {
+  rev26: number; rev27: number; cost26: number; cost27: number;
+  /** 27 계획 매출 ÷ 26 추정 매출 × 100 — 26이 0 이하면 null */
+  rev_rate: number | null;
+  cost_direct: number; cost_labor: number; cost_overhead: number; cost_mgmt: number;
+  operating_profit: number; avg_profit_rate: number; count: number;
+}
+
+export interface PerfPlanTotal {
+  y26: PerfPlanValues;
+  y27: PerfPlanValues;
+  /** 카드 id(revenue·cost·overhead·grossProfit·labor·mgmt·profit) → 27 계획 ÷ 26 추정 × 100 (없으면 null) */
+  rate: Record<string, number | null>;
+  cost_direct: number; cost_labor: number; cost_overhead: number; cost_mgmt: number;
+  operating_profit: number; avg_profit_rate: number; count: number;
+}
+
+export interface PerfPlanSummary {
+  view:      'plan27';
+  year?:     number | null;
+  sheet?:    string | null;
+  loaded_at?: string | null;
+  /** 데이터가 없으면 빈 객체({}) — y27이 없으면 비어 있는 것 */
+  total: Partial<PerfPlanTotal>;
+  by_part: Record<string, PerfPlanPartStats>;
+  by_team: Record<string, { cost_direct: number; cost_labor: number; cost_overhead: number; cost_mgmt: number; operating_profit: number }>;
+  /** 1~12월 계획 분배(실적 아님) */
+  monthly: PerfMonthly[];
 }

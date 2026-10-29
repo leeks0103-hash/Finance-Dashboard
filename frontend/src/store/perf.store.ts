@@ -1,11 +1,15 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { toggle } from '@/utils/array';
+import type { PerfView } from '@/types/performance.types';
 
 interface PerfStore {
   selectedParts: string[];
   selectedTeam: string;
   initialized: boolean;
+  /** 보기 — 'actual'(2026 실적, 기본) / 'plan27'(2027 사업계획). 팀·파트 필터와 같이 저장 */
+  perfView: PerfView;
+  setPerfView: (v: PerfView) => void;
   togglePart: (part: string) => void;
   /** 팀 선택 시 그 팀 소속 파트로 칩 선택을 동기화(전체 팀 선택 시 호출부가 전체 파트 목록을 넘김) */
   setTeam: (team: string, teamParts: string[]) => void;
@@ -23,6 +27,8 @@ export const usePerfStore = create<PerfStore>()(
       selectedParts: [],
       selectedTeam: '',
       initialized: false,
+      perfView: 'actual',
+      setPerfView: v => set({ perfView: v }),
       togglePart: part => set(s => ({ selectedParts: toggle(s.selectedParts, part) })),
       setTeam: (team, teamParts) => set({ selectedTeam: team, selectedParts: [...teamParts] }),
       setTeamLabel: team => set(s => (s.selectedTeam === team ? s : { selectedTeam: team })),
@@ -38,6 +44,7 @@ export const usePerfStore = create<PerfStore>()(
         selectedParts: s.selectedParts,
         selectedTeam:  s.selectedTeam,
         initialized:   s.initialized,
+        perfView:      s.perfView,
       }),
     },
   ),

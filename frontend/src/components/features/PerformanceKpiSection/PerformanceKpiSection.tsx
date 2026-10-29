@@ -20,6 +20,8 @@ const LS_KPI_ORDER = 'performance-kpi-order-v3';
 
 interface Props {
   cards: PerfKpiCard[];
+  /** 카드 순서를 저장하는 localStorage 키 — 기본은 실적 보기. 2027 계획 보기는 따로 저장(같은 카드 id라 안 나누면 서로 순서를 덮어씀, 2026-10-29) */
+  orderKey?: string;
 }
 
 // 카드 전체가 아니라 그립 아이콘만 드래그 — 차트 섹션(ChartSection/PerformanceChartSection)과 동일 패턴,
@@ -41,7 +43,7 @@ function SortableCard({ id, wide, children }: SortableCardProps) {
   );
 }
 
-const PerformanceKpiSection = ({ cards }: Props) => {
+const PerformanceKpiSection = ({ cards, orderKey = LS_KPI_ORDER }: Props) => {
   // order 자체가 항상 "화면에 쓸 완전한 순서"여야 drag가 실제로 반영됨 — 저장값이 없으면
   // 빈 배열이 아니라 DEFAULT_KPI_ORDER로 채워야 함 (PerformanceChartSection과 동일 패턴).
   // 이전 버전은 order를 빈 배열로 시작해두고 렌더 시에만 별도로 기본순서를 합성했는데,
@@ -49,7 +51,7 @@ const PerformanceKpiSection = ({ cards }: Props) => {
   // (드래그 중 애니메이션만 보이고 드롭 후 원위치로 돌아가던 버그의 원인)
   const [order, setOrder] = useState<string[]>(() => {
     try {
-      const saved: string[] = JSON.parse(localStorage.getItem(LS_KPI_ORDER) ?? '[]');
+      const saved: string[] = JSON.parse(localStorage.getItem(orderKey) ?? '[]');
       const valid = saved.filter(id => DEFAULT_KPI_ORDER.includes(id));
       if (!valid.length) return DEFAULT_KPI_ORDER;
       // 새로 생긴 카드(관리비 등)는 맨 뒤가 아니라 기본 순서상 바로 앞 카드 뒤에 끼움 — 이미 순서를 저장한 브라우저도 같은 자리에
@@ -70,10 +72,10 @@ const PerformanceKpiSection = ({ cards }: Props) => {
     if (!over || active.id === over.id) return;
     setOrder(prev => {
       const next = arrayMove(prev, prev.indexOf(String(active.id)), prev.indexOf(String(over.id)));
-      localStorage.setItem(LS_KPI_ORDER, JSON.stringify(next));
+      localStorage.setItem(orderKey, JSON.stringify(next));
       return next;
     });
-  }, []);
+  }, [orderKey]);
 
   // cards가 아직 로딩 중이라 일부 id만 와 있어도 order 기준으로 정렬 후 없는 건 걸러냄.
   // SortableContext의 items는 실제로 렌더되는 카드 id와 정확히 같아야 함 — order 그대로 넘기면

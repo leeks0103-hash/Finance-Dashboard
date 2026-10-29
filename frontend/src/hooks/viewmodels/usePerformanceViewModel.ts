@@ -38,6 +38,8 @@ export interface PerfCompareCardData {
   sub?:    string;
   /** 추정 값 위에 얹는 "계획 대비 추정" 비율 — 예: "112.0%"(백엔드 est_plan_rate). 계획 값이 없으면 undefined(2026-10-27) */
   rateStr?: string;
+  /** 비율 앞 글자 — 기본 "계획 대비". 2027 계획 보기는 "26 추정 대비"(27 계획 ÷ 26 추정)(2026-10-29) */
+  rateLabel?: string;
   accent:  PerfAccent;
   /** 카드 상단 2px 바 색 — 차트 색상 역할(매출·직접원가·공통원가·인건비·관리비·경상손익 …)에 맞춤(2026-10-27).
    *  색 자체는 안 들고 역할 이름만 — 실제 색은 카드가 useChartPalette로 읽음(사용자가 고른 차트 색·주간/야간 반영). 없으면 accent 색 */

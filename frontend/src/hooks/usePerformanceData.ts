@@ -47,12 +47,15 @@ export const usePerformanceData = (page: PageParams, progress = '', columnFilter
   return query;
 };
 
-export const usePerformanceOptions = () =>
-  useQuery({
-    queryKey:          ['perf-options'],
-    queryFn:           getPerfOptions,
+/** 팀·파트 옵션 — 보기(실적/2027 계획)별로 따로(2026-10-29, 계획 시트에만 있는 파트·팀이 생길 수 있어서) */
+export const usePerformanceOptions = () => {
+  const view = usePerfStore(s => s.perfView);
+  return useQuery({
+    queryKey:          ['perf-options', view],
+    queryFn:           () => getPerfOptions(view),
     structuralSharing: true,
     staleTime:         STALE_5MIN,
     gcTime:            GC_10MIN,
     meta: { queryType: 'perf-options' },
   });
+};

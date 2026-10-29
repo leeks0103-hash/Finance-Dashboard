@@ -269,3 +269,52 @@ export const perfColumnSet = (month: string, finCompare = false): PerfColumnSet 
   _cache.set(cacheKey, set);
   return set;
 };
+
+// ── 2027 사업계획 보기 컬럼(2026-10-29) ─────────────────────────────────────────────
+// 같은 서버 표(프로젝트당 한 줄)이지만 값의 의미가 다름: 백엔드 필드 이름은 실적 시트와 같게 재사용하되
+//   plan_initial = 26 연간 추정(비교 기준) / plan_cost = 그 원가 / jun_check_total = 27 계획 매출 / est_cost = 27 계획 직접원가.
+// 그래서 머리글만 바꿔 "26 추정 …" / "27 …"로 보이게 하고, 재무 대조(상이·착수↑ 배지·재무 이력 열)는 이 보기엔 없음(백엔드가 fin_mismatch를 비워 줌).
+const PLAN_HEADERS: Record<string, string> = {
+  plan_initial:     '26 추정 매출',
+  plan_cost:        '26 추정 직접원가',
+  jun_check_total:  '27 계획 매출',
+  est_cost:         '27 계획 직접원가',
+  est_gross:        '27 매출 이익',
+  cost_labor:       '27 인건비',
+  cost_overhead:    '27 공통원가',
+  cost_mgmt:        '27 관리비',
+  operating_profit: '27 경상손익',
+  profit_rate:      '27 손익률',
+};
+
+/** 계획 보기 기본 표시 컬럼 — 실적 보기와 같되 '증감 금액·증감률'(27 계획 − 26 추정)을 매출 옆에 */
+export const PLAN_VISIBLE: string[] = [
+  'project_code', 'progress', 'project_name', 'team', 'part', 'manager',
+  'plan_initial', 'plan_cost', 'jun_check_total', 'plan_diff_amount', 'plan_diff_rate', 'est_cost', 'est_gross',
+  'cost_labor', 'cost_overhead', 'cost_mgmt', 'operating_profit', 'profit_rate',
+];
+
+let _planSet: PerfColumnSet | undefined;
+export const perfPlanColumnSet = (): PerfColumnSet => {
+  if (_planSet) return _planSet;
+  const base = buildColumns('', false);
+  const columns: typeof base = [];
+  for (const c of base) {
+    const id = _colId(c);
+    columns.push(PLAN_HEADERS[id] ? ({ ...c, header: PLAN_HEADERS[id] } as typeof c) : c);
+    if (id === 'jun_check_total') {
+      columns.push(h.accessor('plan_diff_amount', {
+        header: '증감 금액(27−26)', size: 124, enableSorting: true, cell: i => eok(i), meta: eokMeta,
+      }) as unknown as typeof c);
+    }
+  }
+  const visible = new Set(PLAN_VISIBLE);
+  _planSet = {
+    columns,
+    defaultHidden: Object.fromEntries(columns.map(_colId).filter(id => !visible.has(id)).map(id => [id, false])),
+    hideable: columns
+      .map(c => ({ id: _colId(c), label: String((c as { header?: unknown }).header ?? '') }))
+      .filter(c => c.id !== 'project_code'),
+  };
+  return _planSet;
+};

@@ -1,0 +1,23 @@
+/* 2027 사업계획 보기 차트 영역(2026-10-29) — 실적 보기 차트 섹션(PerformanceChartSection)과 같은 12칸 그리드·카드 높이 */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  grid-auto-rows: auto;
+  gap: 16px;
+  animation: contentFadeIn 0.3s ease;
+}
+
+.card { min-width: 0; display: flex; flex-direction: column; min-height: 430px; }
+.span6  { grid-column: span 6; }
+.span12 { grid-column: span 12; }
+
+.chartTitle { display: inline-flex; align-items: center; gap: 4px; }
+
+.empty {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 200px; color: var(--text-muted); font-size: 0.9rem;
+}
+
+@media (max-width: 1024px) {
+  .span6 { grid-column: span 12; }
+}
