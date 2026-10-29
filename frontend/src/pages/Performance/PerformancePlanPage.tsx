@@ -64,6 +64,7 @@ const PerformancePlanPage = () => {
           }
           isLoading={vm.isLoading}
           isFetching={vm.isFetching}
+          refreshSpinner
           getRowVariant={(row) =>
             row.category !== '매출' ? ''
               : row.operating_profit < 0 ? 'loss'

@@ -19,6 +19,7 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable';
 import { Button } from '@/components/ui/Button';
+import { RefreshSpinner } from '@/components/ui/RefreshSpinner';
 import { Pagination } from '@/components/ui/Pagination';
 import { FilterSelect } from '@/components/ui/FilterSelect';
 import { LineIcon } from '@/components/ui/LineIcon';
@@ -254,6 +255,9 @@ interface Props<T> {
   title?:             string;
   isLoading?:         boolean;
   isFetching?:        boolean;
+  /** true면 정렬·페이지·검색·필터로 표 데이터를 다시 불러오는 동안(첫 로딩 제외) 표 위에 스피너를 띄움 — 이전 행은 그대로 흐리게 남음.
+   *  기본 꺼짐(다른 표는 흐려짐만). 행이 많고 2뎁스까지 있어 재조회가 은근 긴 프로젝트 상세에서 켬(2026-10-29) */
+  refreshSpinner?:    boolean;
   getRowVariant?:     (row: T) => 'loss' | 'warn' | '';
   footer?:            Record<string, ReactNode>;
   hideableColumns?:   HideableColumn[];
@@ -379,6 +383,7 @@ const DataTable = <T extends object>({
   title,
   isLoading         = false,
   isFetching        = false,
+  refreshSpinner    = false,
   getRowVariant,
   footer,
   hideableColumns,
@@ -1068,7 +1073,9 @@ const DataTable = <T extends object>({
         );
       })()}
 
-      <div ref={bodyRef} className={fillHeight ? styles.fillBody : undefined}>
+      <div ref={bodyRef} className={fillHeight ? styles.fillBody : undefined} style={refreshSpinner ? { position: 'relative' } : undefined}>
+      {/* 재조회 스피너 — 표 본문 영역만 덮음(차트·카드는 안 건드림), 스피너가 0.12초 뒤에 나타나 금방 끝나는 조회엔 안 번쩍임 */}
+      {refreshSpinner && <RefreshSpinner active={isFetching && !isLoading} />}
       {isLoading ? (
         <div className={styles.skeletonWrap}>
           {[...Array(6)].map((_, i) => <div key={i} className={styles.skeletonRow} />)}
