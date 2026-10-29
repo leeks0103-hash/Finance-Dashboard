@@ -25,6 +25,8 @@ export interface PerfUpdateNote {
  *  parts = 현재 인원. plan_parts(계획 인원)는 2026-10-27 주석 처리 — 서버 응답엔 아직 있을 수 있음 */
 export interface HeadcountSettings {
   parts:      Record<string, number>;
+  /** 2027 인원 — 2027 계획 보기 인당 값의 분모(2026 인원과 따로 입력, 2026-10-29). 옛 서버 응답엔 없음 */
+  parts27?:   Record<string, number>;
   // plan_parts: Record<string, number>;   // 계획 인원 주석 처리(2026-10-27)
   updated_at: string;
   updated_by: string;

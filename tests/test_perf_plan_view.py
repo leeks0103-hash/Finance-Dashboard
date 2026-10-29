@@ -275,9 +275,10 @@ class TestPlanSummaryEndpoint:
         assert all(p["rev_rate"] == 120.0 for p in s["by_part"].values())   # 120 ÷ 100 — 프론트는 계산 없이 표시만
         assert len(s["monthly"]) == 12 and sum(m["revenue"] for m in s["monthly"]) == 120 * N_PAIRS
 
-    def test_per_head_uses_current_headcount_like_the_actual_view(self, client, monkeypatch):
-        """인당 = 27 계획 금액 ÷ 관리자 입력 현재 인원(실적 보기와 같은 값·같은 함수). 인원 없는 파트는 None"""
-        monkeypatch.setattr(P.headcount, "read_headcount", lambda: {"parts": {"파트가": 4}, "plan_parts": {}})
+    def test_per_head_uses_2027_headcount_not_the_2026_one(self, client, monkeypatch):
+        """인당 = 27 계획 금액 ÷ **2027 인원**(parts27, 같은 함수·같은 규칙) — 2026 인원(parts)은 빌려 쓰지 않음. 인원 없는 파트는 None"""
+        monkeypatch.setattr(P.headcount, "read_headcount",
+                            lambda: {"parts": {"파트가": 99, "파트나": 99}, "parts27": {"파트가": 4}, "plan_parts": {}})
         by_part = client.get("/api/performance/summary?view=plan27").get_json()["by_part"]
         a, b = by_part["① 파트가"], by_part["② 파트나"]
         # ① 파트가 = 매출행 30개 → 27 매출 3600, 관리비 240, 경상손익 1410 (천원)
@@ -286,12 +287,18 @@ class TestPlanSummaryEndpoint:
         assert b["headcount"] is None and b["rev_per_head"] is None and b["profit_per_head"] is None   # 인원 미입력 → 제외
 
     def test_per_head_blank_for_parts_spanning_teams_when_team_filtered(self, client, monkeypatch):
-        monkeypatch.setattr(P.headcount, "read_headcount", lambda: {"parts": {"파트가": 4, "파트나": 5}, "plan_parts": {}})
+        monkeypatch.setattr(P.headcount, "read_headcount", lambda: {"parts": {}, "parts27": {"파트가": 4, "파트나": 5}, "plan_parts": {}})
         by_part = client.get("/api/performance/summary?view=plan27&team=SW팀").get_json()["by_part"]
         for st in by_part.values():   # 합성 데이터는 두 파트 모두 두 팀에 걸쳐 있음 → 팀 몫 금액 ÷ 파트 전체 인원이 되므로 비움
             assert st["headcount_partial"] is True and st["rev_per_head"] is None
         whole = client.get("/api/performance/summary?view=plan27").get_json()["by_part"]
         assert all(st["headcount_partial"] is False for st in whole.values())
+
+    def test_without_2027_headcount_per_head_is_empty_even_if_2026_is_entered(self, client, monkeypatch):
+        """2027 인원을 아직 안 넣었으면 인당 3종은 비어야 함(2026 인원으로 조용히 채우지 않음)"""
+        monkeypatch.setattr(P.headcount, "read_headcount", lambda: {"parts": {"파트가": 4, "파트나": 5}, "parts27": {}, "plan_parts": {}})
+        by_part = client.get("/api/performance/summary?view=plan27").get_json()["by_part"]
+        assert all(st["rev_per_head"] is None and st["headcount"] is None for st in by_part.values())
 
     def test_unsupported_endpoints_say_so(self, client):
         assert client.get("/api/performance/insights?view=plan27").status_code == 400

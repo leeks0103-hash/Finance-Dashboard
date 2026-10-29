@@ -120,3 +120,6 @@
 /* 파트 항목 — 박스가 넓어져(계획 인원 박스 주석 처리, 2026-10-27) 한 줄에 하나씩 놓으면 오른쪽이 비므로 폭에 맞춰 여러 열로 */
 /* .list { display: flex; flex-direction: column; gap: 8px; } */
 .list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; }
+
+/* 2026 / 2027 인원 전환 칩(2026-10-29) */
+.yearTabs { display: flex; gap: 8px; margin-bottom: 4px; }

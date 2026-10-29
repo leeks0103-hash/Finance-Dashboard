@@ -20,12 +20,12 @@ const INFO_COMPOSITION = '27 계획 매출의 구성 — 직접원가 + 인건�
   '파이는 하나씩 보는 용도(전체·팀·파트를 이 카드에서 따로 선택), 막대는 파트 전체를 나란히 비교하는 용도. 막대는 상단 팀·파트 필터를 따름.';
 const INFO_PVP = '파트별 매출 합계 — 26 연간 추정(시트의 "2026년 연간 추정" 열)과 27 사업계획을 나란히. 막대 끝 % = 27 계획 ÷ 26 추정(백엔드 계산). 팀·파트 필터 적용.';
 const infoPerHead = (what: string) =>
-  `파트별 27 계획 ${what} ÷ 파트 인원 — 인원은 관리자가 수기 입력한 값(실적 보기의 "현재 인원"과 같은 값)입니다. ` +
+  `파트별 27 계획 ${what} ÷ 파트 인원 — 인원은 관리자가 수기 입력한 **2027 인원**(관리자 페이지 > 파트별 인원 > 2027년 인원, 2026 인원과 따로)입니다. ` +
   '인원이 입력되지 않은 파트, 팀 필터를 걸었을 때 여러 팀에 걸친 파트(K뉴딜TF)는 제외합니다. 억 단위 소수 둘째 자리(버림).';
 
 /**
  * 2027 사업계획 보기 차트(2026-10-29) — 위에서부터
- *   ① 월별 계획 분배  ② 파트별 27 계획 매출 구성(파이 ↔ 누적 막대 전환, 파이는 전체·팀·파트 선택)
+ *   ①② 한 줄 6칸씩: 월별 계획 분배 · 파트별 27 계획 매출 구성(파이 ↔ 누적 막대 전환, 파이는 전체·팀·파트 선택)
  *   ③ 한 줄 4칸: 파트별 26 추정 vs 27 계획 매출 · 인당 매출 · 인당 관리비 · 인당 손익 (실적 보기 3줄째와 같은 순서)
  * 실적 보기의 진도율·달성률·인원 카드는 기준월·실적이 있어야 의미가 있어 없음. 수치는 전부 억 단위로 받음(VM 변환).
  */
@@ -132,8 +132,8 @@ const PerformancePlanChartSection = ({ chart, composition }: Props) => {
                   {partialParts.length > 0 && missingParts.length === 0
                     ? '팀 필터 중에는 여러 팀에 걸친 파트의 인당 값을 구할 수 없습니다'
                     : isAdmin
-                      ? '파트 인원이 아직 입력되지 않았습니다 — 관리자 페이지 > 파트별 인원에서 입력하세요'
-                      : '파트 인원이 아직 입력되지 않았습니다'}
+                      ? '2027 파트 인원이 아직 입력되지 않았습니다 — 관리자 페이지 > 파트별 인원 > 2027년 인원에서 입력하세요'
+                      : '2027 파트 인원이 아직 입력되지 않았습니다'}
                 </div>
               : <BarChart horizontal labels={labels} datasets={[{ label: `${title}(억)`, data: values, backgroundColor: color }]} options={perHeadOptions} />}
           </ChartCard.Body>
@@ -144,8 +144,8 @@ const PerformancePlanChartSection = ({ chart, composition }: Props) => {
 
   return (
     <div className={styles.grid}>
-      {/* ① 월별 계획 분배 */}
-      <div className={`${styles.card} ${styles.span12}`}>
+      {/* ① 월별 계획 분배 — ②와 한 줄(6칸씩, 2026-10-29 요청. 1024px 이하는 위아래로) */}
+      <div className={`${styles.card} ${styles.span6}`}>
         <ChartCard expandable={false}>
           <ChartCard.Title>
             <span className={styles.chartTitle}>월별 계획 분배 (매출 · 원가)<InfoButton>{INFO_MONTHLY}</InfoButton></span>
@@ -164,7 +164,7 @@ const PerformancePlanChartSection = ({ chart, composition }: Props) => {
       </div>
 
       {/* ② 파트별 27 계획 매출 구성 — 파이(하나씩) ↔ 누적 막대(파트 비교). 파이는 전체·팀·파트를 이 카드에서 따로 고름 */}
-      <div className={`${styles.card} ${styles.span12}`}>
+      <div className={`${styles.card} ${styles.span6}`}>
         <ChartCard
           expandable={false}
           titleAside={

@@ -104,6 +104,25 @@ class TestHeadcountApi:
         r = client.put("/api/settings/headcount", json={"parts": {"AIㆍDS": 13}})
         assert r.get_json()["parts"] == {"AIㆍDS": 13} and r.get_json()["plan_parts"] == {"AIㆍDS": 15}
 
+    def test_put_saves_2027_headcount_separately_and_keeps_it_when_omitted(self, client, hc_path, as_admin):
+        """2026 인원(parts)과 2027 인원(parts27)은 따로 저장 — 안 보내면 저장돼 있던 값 유지(2026-10-29)"""
+        r = client.put("/api/settings/headcount", json={"parts": {"AIㆍDS": 12}, "parts27": {"① AIㆍDS": 14, "SW": "9.5"}})
+        assert r.status_code == 200 and r.get_json()["parts27"] == {"AIㆍDS": 14, "SW": 9.5}
+        assert r.get_json()["parts"] == {"AIㆍDS": 12}
+        r = client.put("/api/settings/headcount", json={"parts": {"AIㆍDS": 13}})          # 옛 화면 — parts27 안 보냄
+        assert r.get_json()["parts"] == {"AIㆍDS": 13} and r.get_json()["parts27"] == {"AIㆍDS": 14, "SW": 9.5}
+        r = client.put("/api/settings/headcount", json={"parts": {"AIㆍDS": 13}, "parts27": {}})   # 빈 값을 보내면 전부 비움
+        assert r.get_json()["parts27"] == {}
+
+    def test_put_rejects_bad_2027_value_without_writing(self, client, hc_path, as_admin):
+        r = client.put("/api/settings/headcount", json={"parts": {"AIㆍDS": 1}, "parts27": {"AIㆍDS": 500}})
+        assert r.status_code == 400 and not hc_path.exists()
+
+    def test_old_file_without_2027_reads_as_empty_2027(self, client, hc_path):
+        hc_path.write_text('{"parts": {"AIㆍDS": 3}}', encoding="utf-8")
+        got = client.get("/api/settings/headcount").get_json()
+        assert got["parts"] == {"AIㆍDS": 3} and got["parts27"] == {}
+
     def test_put_rejects_bad_plan_value(self, client, hc_path, as_admin):
         r = client.put("/api/settings/headcount", json={"parts": {"AIㆍDS": 1}, "plan_parts": {"AIㆍDS": 5000}})
         assert r.status_code == 400 and not hc_path.exists()
