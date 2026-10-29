@@ -42,7 +42,7 @@ export interface ChartTuning {
   minHeight?: number;
   /** 막대 위 원가율 "(54.8%)" — 월별·원가분석만. lift: 원가 막대 꼭대기에서 위로 띄우는 px, fontPx: 글자 크기,
    *  minBarWidth: 막대가 이보다 좁으면 안 그림 */
-  costRate?: { lift: number; fontPx: number; minBarWidth?: number };
+  costRate?: { lift: number; fontPx: number; minBarWidth?: number; spacing?: number };
 }
 
 export const CHART_TUNING: Record<string, ChartTuning> = {
@@ -53,7 +53,8 @@ export const CHART_TUNING: Record<string, ChartTuning> = {
     labelFontPx: 13,
     labelSpacing: -0.7,   // -0.3 → -1 → -0.7(2026-10-29): 둘째 줄 방식을 롤백하고 막대 폭도 줄어서 "진짜 조금만" 다시 풂. 진도율·2027 월별 계획 분배 둘만 씀
     tickSpacing: 0,
-    costRate: { lift: 41, fontPx: 11, minBarWidth: 30 },
+    // spacing: 원가율 글씨 "(54.8%)"만의 자간(px, 요청 2026-10-29 "조금만 늘려") — 수치 자간(labelSpacing -0.7)보다 살짝 느슨하게. 비우면 labelSpacing을 따름. 진도율·2027 월별만 씀
+    costRate: { lift: 41, fontPx: 11, minBarWidth: 30, spacing: -0.1 },   // -0.3 → 0 → -0.1(0에서 "아주 미세하게" 다시 줄임)
   },
   profitRate: {
     padding: { top: 20, right: 12, bottom: 12, left: 4 },

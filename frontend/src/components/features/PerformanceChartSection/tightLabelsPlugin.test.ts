@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { tightLabelsPlugin } from './PerformanceChartSection';
+import { tightLabelsPlugin, costRateTuning } from './PerformanceChartSection';
+import { CHART_TUNING } from './chartTuning';
 
 // 플러그인 훅 호출용 느슨한 타입 — 실제 Chart 인스턴스 없이 가짜 컨텍스트만 넘김
 type Hook = (chart: unknown, args: object, opts: object) => void;
@@ -55,5 +56,18 @@ describe('tightLabelsPlugin 막대 안쪽 흰색 수치만 다른 자간(2026-10
     expect(calls.slice(2).map(c => c.spacing)).toEqual(['0.5px', '-0.8px']);
     hooks.afterDraw(chart, {}, {});
     expect(ctx.letterSpacing).toBe('0px');
+  });
+});
+
+describe('costRateTuning 원가율 글씨만의 자간(2026-10-29)', () => {
+  it('조절표에 spacing이 있으면 px 문자열로 넘기고, 없으면 옵션에서 뺀다(차트 전체 자간을 따름)', () => {
+    expect(costRateTuning({ costRate: { lift: 41, fontPx: 11, spacing: -0.3 } })).toMatchObject({ spacing: '-0.3px' });
+    expect('spacing' in costRateTuning({ costRate: { lift: 39, fontPx: 12 } })).toBe(false);
+    expect(costRateTuning({})).toEqual({});
+  });
+
+  it('월별(진도율·2027 월별)만 값이 있고 원가분석은 그대로(자간 지정 없음)', () => {
+    expect(CHART_TUNING.monthly.costRate?.spacing).toBe(-0.1);
+    expect(CHART_TUNING.profitRate.costRate?.spacing).toBeUndefined();
   });
 });

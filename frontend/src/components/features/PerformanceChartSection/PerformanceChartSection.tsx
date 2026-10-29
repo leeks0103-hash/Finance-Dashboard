@@ -393,7 +393,7 @@ const SIDE_LABEL = {
 // 원가 = 원가 막대 전체(직접원가 + 공통원가, 보이는 막대 높이 그대로). 데이터셋 순서: 0 매출 / 1 직접원가 / 2 공통원가.
 // 매출·원가 중 하나라도 숨기면(범례) 안 그림, '그래프 수치' 토글을 따름
 // 월별 실적 추이도 같은 플러그인(2026-10-21 요청) — 데이터셋 0 매출 / 1 원가(층 없음). 막대가 좁으면 안 그림(minBarWidth)
-interface CostRateOpts { show: boolean; text: string; minBarWidth?: number; lift?: number; font?: string }   // lift: 차트별 높이(기본 COST_RATE_LIFT), font: 차트별 글꼴(기본 COST_RATE_FONT)
+interface CostRateOpts { show: boolean; text: string; minBarWidth?: number; lift?: number; font?: string; spacing?: string }   // lift: 차트별 높이(기본 COST_RATE_LIFT), font: 차트별 글꼴(기본 COST_RATE_FONT)
 const COST_RATE_FONT = "bold 12px 'Pretendard', 'Malgun Gothic', sans-serif";
 const COST_RATE_LIFT = 41;   // 원가 막대 꼭대기에서 이만큼 위 — 원가 합계 수치 상자(offset 4 + 14px 글자 + 위아래 padding 4 = 막대 위 약 29px) 윗줄 + 간격, 겹쳐 보여 27 → 41
 export const costRatePlugin: Plugin<'bar'> = {
@@ -409,6 +409,8 @@ export const costRatePlugin: Plugin<'bar'> = {
     ctx.save();
     ctx.globalAlpha = getDatalabelAlpha();
     ctx.font = o.font ?? COST_RATE_FONT;
+    // 원가율 글씨만의 자간(선택, 조절표 costRate.spacing) — 없으면 차트 전체 자간(tightLabels)을 그대로 따름. save/restore가 되돌림
+    if (o.spacing) (ctx as CanvasRenderingContext2D & { letterSpacing?: string }).letterSpacing = o.spacing;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     metas[0].data.forEach((_revEl, i) => {
@@ -485,10 +487,11 @@ export const tightLabelsPlugin: Plugin<'bar'> = {
 };
 
 // 조절표(chartTuning.ts)의 costRate → costRatePlugin 옵션(위치 lift·글자 font·좁은 막대 생략 minBarWidth)
-export const costRateTuning = (t: { costRate?: { lift: number; fontPx: number; minBarWidth?: number } }) => t.costRate ? {
+export const costRateTuning = (t: { costRate?: { lift: number; fontPx: number; minBarWidth?: number; spacing?: number } }) => t.costRate ? {
   lift: t.costRate.lift,
   font: `bold ${t.costRate.fontPx}px 'Pretendard', 'Malgun Gothic', sans-serif`,
   ...(t.costRate.minBarWidth != null ? { minBarWidth: t.costRate.minBarWidth } : {}),
+  ...(t.costRate.spacing != null ? { spacing: px(t.costRate.spacing) } : {}),
 } : {};
 
 // 파트명 축 글자를 가운데점(ㆍ)에서 두 줄로 — Chart.js 눈금 callback이 배열을 돌려주면 여러 줄로 그림. 라벨 데이터는 그대로라 클릭·툴팁은 원래 이름
