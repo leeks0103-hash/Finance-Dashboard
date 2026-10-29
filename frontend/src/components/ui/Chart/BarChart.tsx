@@ -22,6 +22,14 @@ Chart.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend, LineElem
 Chart.defaults.font.family = "'Pretendard', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif";
 Chart.defaults.font.size   = 14;
 
+// 툴팁(검은 설명창)이 막대에서 막대로 옮겨 갈 때 기본 400ms 동안 미끄러지며 따라가서, 얇은 막대·빈틈 위로 마우스를 움직이면
+// 계속 흔들려 보였음(2026-10-29 요청). 위치·크기 이동 애니메이션만 끄고(즉시 이동) 나타나고 사라지는 페이드(opacity)는 그대로 둠.
+// Chart는 모든 차트(막대·도넛)가 공유하는 전역 기본값이라 한 곳에서 전체에 적용됨
+const tooltipDefaults = Chart.defaults.plugins.tooltip as unknown as { animations?: { numbers?: Record<string, unknown> } };
+if (tooltipDefaults.animations) {
+  tooltipDefaults.animations.numbers = { ...tooltipDefaults.animations.numbers, duration: 0 };
+}
+
 interface Props {
   labels:      string[];
   /** 기본은 막대 데이터셋. "목표선" 등 line 데이터셋을 섞고 싶으면 { type: 'line', ... }를

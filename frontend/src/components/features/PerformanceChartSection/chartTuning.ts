@@ -51,7 +51,7 @@ export const CHART_TUNING: Record<string, ChartTuning> = {
     categoryPercentage: 0.89,   // 0.92 → 0.89, barPercentage도 0.92 → 0.89(2026-10-29 요청 "막대 폭 아주 미세하게"): 막대 폭 약 6% 감소. 이 값은 진도율·2027 월별 계획 분배 둘만 씀
     barPercentage: 0.89,
     labelFontPx: 13,
-    labelSpacing: -1,   // -0.3 → -1(2026-10-29): 원가율이 수치 아래 둘째 줄이 되면서 "(50.1%)"가 옆 막대에 닿아 자간을 좁힘. 2027 월별 차트도 이 값을 같이 씀
+    labelSpacing: -0.7,   // -0.3 → -1 → -0.7(2026-10-29): 둘째 줄 방식을 롤백하고 막대 폭도 줄어서 "진짜 조금만" 다시 풂. 진도율·2027 월별 계획 분배 둘만 씀
     tickSpacing: 0,
     costRate: { lift: 41, fontPx: 11, minBarWidth: 30 },
   },
