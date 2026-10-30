@@ -6,7 +6,8 @@ import AdminChartColorSection from '@/components/features/Admin/AdminChartColorS
 import AdminExtractModal from '@/components/features/Admin/AdminExtractModal';
 import AdminSettingsSection from '@/components/features/Admin/AdminSettingsSection';
 import PerfUpdatePanel from '@/components/features/Admin/PerfUpdatePanel';
-import PartHeadcountPanel from '@/components/features/Admin/PartHeadcountPanel';
+// 파트별 인원은 관리자 기능에서 뺌(2026-10-29) — 실적 탭 "파트별 인원" 카드의 [인원 입력]에서만. 이 페이지는 현재 주석 처리 상태(App.tsx)
+// import PartHeadcountPanel from '@/components/features/Admin/PartHeadcountPanel';
 import FinMismatch from '@/components/features/Admin/FinMismatch';
 import SecretMailPanel from '@/components/features/Admin/SecretMailPanel';
 import styles from './AdminPage.module.css';
@@ -20,7 +21,7 @@ const SECTIONS: { id: AdminSectionId; label: string; desc: string }[] = [
   { id: 'extract',      label: 'PPT 추출',       desc: '재무·KPI 추출 실행 · 추출 현황' },
   { id: 'fin-mismatch', label: '재무 불일치',    desc: '완료 프로젝트 실적↔재무 대조' },
   { id: 'secret-mail',  label: '시크릿 키 메일', desc: '임직원 로그인 키 발송' },
-  { id: 'headcount',    label: '파트별 인원',    desc: '인당 매출·손익·관리비 계산용' },
+  // { id: 'headcount',    label: '파트별 인원',    desc: '인당 매출·손익·관리비 계산용' },
 ];
 
 const LS_SIDE_COLLAPSED = 'admin-side-collapsed';
@@ -72,7 +73,6 @@ const AdminPage = () => {
     const io = new IntersectionObserver(entries => {
       if (Date.now() < lockUntil.current) return;
       const hit = entries.filter(e => e.isIntersecting).map(e => (e.target as HTMLElement).dataset.adminSection as AdminSectionId | undefined);
-      console.log('hit', hit);
       const bottom = entries.some(e => e.isIntersecting && e.target === bottomRef.current);
       if (bottom) setActive(SECTIONS[SECTIONS.length - 1].id);
       else if (hit[0]) setActive(hit[0]);
@@ -138,9 +138,9 @@ const AdminPage = () => {
         <Block id="secret-mail" label="시크릿 키 메일" desc="임직원에게 로그인 시크릿 키를 Outlook으로 한 사람씩 발송">
           <SecretMailPanel />
         </Block>
-        <Block id="headcount" label="파트별 인원" desc="실적 탭 인당 매출·손익·관리비 차트의 분모 — 저장하면 모든 사용자에게 반영">
+        {/* <Block id="headcount" label="파트별 인원" desc="실적 탭 인당 매출·손익·관리비 차트의 분모 — 저장하면 모든 사용자에게 반영">
           <div className={styles.card}><PartHeadcountPanel /></div>
-        </Block>
+        </Block> */}
         {/* 맨 아래 센티널 — 마지막 섹션이 짧아 위쪽 띠까지 못 올라와도 끝까지 내리면 마지막 메뉴가 켜지게 */}
         <div ref={bottomRef} className={styles.bottom} aria-hidden />
       </div>

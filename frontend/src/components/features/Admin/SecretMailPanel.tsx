@@ -20,15 +20,17 @@ const listText = (rows: SecretMailRow[]) =>
  * 전체 보내기 = 관리자·발송 담당 빼고 아직 안 보낸 사람 / 골라서 보내기 = 체크한 사람(이미 보냈어도 다시).
  * 같은 일을 send_user_secrets.bat으로도 할 수 있음
  */
-const SecretMailPanel = () => {
+const SecretMailPanel = ({ inline = false }: { inline?: boolean }) => {
   const [open, setOpen] = useState(false);
+  // inline이면 열려 있는 것과 같음 — 명단·Outlook·계정 대조를 탭에 들어오자마자 읽음
+  const active = inline || open;
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<string[]>([]);
   // 미리보기 — 처음 보여 줄 사람(체크한 첫 사람, 없으면 목록 첫 사람)
   const [previewEmp, setPreviewEmp] = useState<string | null>(null);
   // "명단 보기"는 인라인으로 펼치지 않고 모달로(2026-10-23 요청 — 명단·대조·보내기가 길어 페이지 안에서 펼치면 답답) — 열려 있을 때만 서버에서 읽음
-  const mail = useSecretMail(open);
-  const diff = useSecretMailAccountDiff(open);
+  const mail = useSecretMail(active);
+  const diff = useSecretMailAccountDiff(active);
   const rows = useMemo(() => mail.data?.rows ?? [], [mail.data]);
   const job = mail.job;
   const locked = mail.running || mail.isStarting;
@@ -84,18 +86,8 @@ const SecretMailPanel = () => {
 
   const pct = job?.total ? Math.round(((job.done ?? 0) + (job.failed?.length ?? 0)) / job.total * 100) : 0;
 
-  return (
-    <section className={styles.wrap}>
-      <div className={styles.top}>
-        <div className={styles.titleBox}>
-          <span className={styles.title}>시크릿 키 메일</span>
-          <span className={styles.sub}>임직원에게 로그인 시크릿 키를 Outlook으로 · 한 사람씩 차례로, 받는 사람은 본인만(참조 없음) · 본문은 접속 주소·ID·PW 안내(사람마다 사번·키가 다름)</span>
-        </div>
-        <Button variant="primary" size="sm" onClick={() => setOpen(true)}>명단 보기</Button>
-      </div>
-
-      {open && (
-        <Modal title="시크릿 키 메일" sub="임직원 명단 · 계정 대조 · 보내기" width="min(1000px, 94vw)" onClose={() => setOpen(false)}>
+  // 명단·계정 대조·보내기 본문 — 버튼 → 모달(기본)과 관리자 창 탭에 바로 펼침(inline) 둘이 같은 내용을 씀(2026-10-29)
+  const body = (
         <div className={styles.body}>
           {mail.isLoading && <span className={styles.muted}>명단·Outlook 확인 중…</span>}
           {mail.loadError && (
@@ -233,12 +225,31 @@ const SecretMailPanel = () => {
             </>
           )}
         </div>
+  );
+  const preview = previewEmp && (
+    <SecretMailPreviewModal rows={rows} initialEmp={previewEmp} sender={mail.data?.sender ?? null}
+      onClose={() => setPreviewEmp(null)} />
+  );
+
+  // 관리자 창의 "시크릿 키 메일" 탭 — 버튼 없이 탭을 열면 바로 명단이 보임(예전 모달 본문 그대로, 2026-10-29 요청)
+  if (inline) return <>{body}{preview}</>;
+
+  return (
+    <section className={styles.wrap}>
+      <div className={styles.top}>
+        <div className={styles.titleBox}>
+          <span className={styles.title}>시크릿 키 메일</span>
+          <span className={styles.sub}>임직원에게 로그인 시크릿 키를 Outlook으로 · 한 사람씩 차례로, 받는 사람은 본인만(참조 없음) · 본문은 접속 주소·ID·PW 안내(사람마다 사번·키가 다름)</span>
+        </div>
+        <Button variant="primary" size="sm" onClick={() => setOpen(true)}>명단 보기</Button>
+      </div>
+
+      {open && (
+        <Modal title="시크릿 키 메일" sub="임직원 명단 · 계정 대조 · 보내기" width="min(1000px, 94vw)" onClose={() => setOpen(false)}>
+          {body}
         </Modal>
       )}
-      {previewEmp && (
-        <SecretMailPreviewModal rows={rows} initialEmp={previewEmp} sender={mail.data?.sender ?? null}
-          onClose={() => setPreviewEmp(null)} />
-      )}
+      {preview}
     </section>
   );
 };

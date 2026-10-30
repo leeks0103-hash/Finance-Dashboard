@@ -1,0 +1,24 @@
+/* 파트별 인원 카드 오른쪽 끝 — 알약 목록과 얇은 세로선으로 구분하고, 작은 고스트 버튼 둘(카드 높이 47px 안에 들어가게 26px) */
+.wrap {
+  flex: none;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  padding-left: 14px;
+  border-left: 1px solid var(--border);
+}
+
+/* .wrap .btn — Button 기본 스타일(같은 한 단계 선택자)보다 이기게 */
+.wrap .btn {
+  height: 26px;
+  padding: 0 10px;
+  gap: 5px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--text-sub);
+}
+.wrap .btn svg { width: 14px; height: 14px; flex: none; }
+.wrap .btn:hover { color: var(--brand-mid); }

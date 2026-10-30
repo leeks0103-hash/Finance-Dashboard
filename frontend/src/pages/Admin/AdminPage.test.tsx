@@ -38,17 +38,19 @@ describe('AdminPage — 한 페이지 + 바로가기 메뉴', () => {
   it('모든 섹션을 한 페이지에 그린다', () => {
     renderPage();
     // 실적현황 파일·PPT 추출은 카드의 버튼으로 모달에서 열림 — 페이지에는 카드만(본문은 모달을 열어야 보임)
-    for (const t of ['설정 본문', '인원 본문', '불일치 본문', '메일 본문']) {
+    // 파트별 인원 섹션은 2026-10-29에 주석 처리(실적 탭 인원 카드의 [인원 입력]으로 이동) — 페이지에 없어야 함
+    expect(screen.queryByText('인원 본문')).toBeNull();
+    for (const t of ['설정 본문', '불일치 본문', '메일 본문']) {
       expect(screen.getByText(t)).toBeInTheDocument();
     }
   });
 
   it('메뉴를 누르면 URL은 그대로 두고 그 섹션으로 스크롤하며 메뉴 표시가 옮겨 간다', () => {
     renderPage();
-    fireEvent.click(menuItem('파트별 인원'));
-    expect(scrolled).toEqual(['admin-headcount']);
+    fireEvent.click(menuItem('시크릿 키 메일'));
+    expect(scrolled).toEqual(['admin-secret-mail']);
     expect(screen.getByTestId('where').textContent).toBe('/admin');
-    expect(menuItem('파트별 인원')).toHaveAttribute('aria-current', 'true');
+    expect(menuItem('시크릿 키 메일')).toHaveAttribute('aria-current', 'true');
     expect(menuItem('화면 설정')).not.toHaveAttribute('aria-current');
   });
 
@@ -68,7 +70,7 @@ describe('AdminPage — 한 페이지 + 바로가기 메뉴', () => {
     const { container } = renderPage();
     const sentinel = container.querySelector('[aria-hidden="true"]:last-child') as Element;
     intersect(sentinel);
-    expect(menuItem('파트별 인원')).toHaveAttribute('aria-current', 'true');
+    expect(menuItem('시크릿 키 메일')).toHaveAttribute('aria-current', 'true');
   });
 
   it('사이드바 숨김 버튼으로 숨기고 다시 펼칠 수 있으며 선택을 기억한다', () => {

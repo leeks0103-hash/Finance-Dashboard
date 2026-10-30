@@ -8,6 +8,7 @@ import PerformancePlanPage from './PerformancePlanPage';
 import { usePerformanceViewModel } from '@/hooks/viewmodels/usePerformanceViewModel';
 import { useFinanceCodes } from '@/hooks/useFinanceCodes';
 import { DataTable, InfoButton, FilterSelect, HrefDownloadButton, RefreshSpinner } from '@/components/ui';
+import { FinanceDetailButton } from '@/components/features/FinanceDataModal';
 // ErrorBoundary — 재무 검색 결과 섹션 비활성으로 미사용, 복구 시 함께 해제
 // import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { FadeInSection } from '@/components/FadeInSection';
@@ -166,12 +167,16 @@ const PerformanceActualPage = () => {
               { tone: 'info',   label: '착수↑', desc: '착수 보고 대비 당월 원가가 크거나 같은 경우' },
             ]}
             // 엑셀 — 지금 표의 필터·검색·열 필터·정렬 그대로 전체(페이지 무관), 1뎁스만. 배지는 숫자 옆 글자·칸 색·메모(2026-10-14)
+            // 재무 상세(2026-10-29) — 엑셀 바로 왼쪽. 프로젝트 재무 상세 표를 모달로 바로 띄움(⚙ > 재무데이터 확인과 같은 창)
             toolbarExtra={
-              <HrefDownloadButton
-                href={vm.exportHref}
-                confirmText="지금 표의 필터·검색·정렬 그대로 전체 프로젝트를 받습니다."
-                title="프로젝트 상세 엑셀 — 상이·착수↑ 배지 포함"
-              />
+              <>
+                <FinanceDetailButton />
+                <HrefDownloadButton
+                  href={vm.exportHref}
+                  confirmText="지금 표의 필터·검색·정렬 그대로 전체 프로젝트를 받습니다."
+                  title="프로젝트 상세 엑셀 — 상이·착수↑ 배지 포함"
+                />
+              </>
             }
             isLoading={vm.isLoading}
             isFetching={vm.isFetching}

@@ -7,6 +7,7 @@ from datetime import datetime
 from pathlib import Path
 
 import numpy as np
+import ipaddress
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request
 from flask.json.provider import DefaultJSONProvider
@@ -848,9 +849,16 @@ def api_extract_open_file():
 if __name__ == "__main__":
     with _cache_lock:
         load_excel()
+    # API가 귀 기울일 주소(.env API_HOST) — 기본은 이 PC 안(127.0.0.1)만. 화면은 Vite(5188)가 같은 PC에서 /api를 5000으로 중계하므로
+    # 밖에서 5000에 직접 닿을 필요 없음. IP 하나만 쓸 수 있고(10.206.0.0/16 같은 대역 표기는 불가) 접속 대역 제한은 Windows 방화벽에서(2026-10-30)
+    API_HOST = os.environ.get("API_HOST", "127.0.0.1").strip() or "127.0.0.1"
+    try:
+        ipaddress.ip_address(API_HOST)
+    except ValueError:
+        raise SystemExit(f"API_HOST={API_HOST!r}는 IP 주소가 아닙니다 — 127.0.0.1(이 PC만) 또는 0.0.0.0(모든 곳) 같은 IP 하나만 쓸 수 있습니다")
     try:
         from waitress import serve
-        print("서버 시작: http://0.0.0.0:5000")
-        serve(app, host="0.0.0.0", port=5000, threads=4)
+        print(f"서버 시작: http://{API_HOST}:5000")
+        serve(app, host=API_HOST, port=5000, threads=4)
     except ImportError:
-        app.run(host="0.0.0.0", port=5000, debug=False)
+        app.run(host=API_HOST, port=5000, debug=False)

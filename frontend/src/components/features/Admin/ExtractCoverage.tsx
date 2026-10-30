@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Button, CopyText } from '@/components/ui';
 import { useExtractCoverage } from '@/hooks/useExtractCoverage';
 import { openCoverageFileOrAlert } from '@/hooks/useOpenFile';
@@ -39,10 +40,31 @@ const RefreshIcon = () => (
   </svg>
 );
 
-const ItemList = ({ items }: { items: CoverageItem[] }) => (
+type PickHandler = (files: string[], target: ExtractTarget, on: boolean) => void;
+
+interface ItemListProps {
+  items: CoverageItem[];
+  /** 체크박스를 달 때만 — 이 카드의 대상(재무/KPI)과 지금 고른 파일, 체크 핸들러 */
+  target?: ExtractTarget;
+  picked?: ReadonlySet<string>;
+  onPick?: PickHandler;
+  disabled?: boolean;
+}
+
+const ItemList = ({ items, target, picked, onPick, disabled }: ItemListProps) => (
   <ul className={styles.list}>
-    {items.map(it => (
-      <li key={it.file} className={styles.item}>
+    {items.map(it => {
+      const selectable = !!(onPick && target);
+      const isPicked = !!picked?.has(it.file);
+      return (
+      <li key={it.file} className={`${styles.item} ${selectable ? styles.itemSelectable : ''} ${isPicked ? styles.itemPicked : ''}`}>
+        {/* 체크 = 위 'PPT 데이터 추출'의 '선택' 방식에 이 파일을 담음(2026-10-29 요청 — 원본 수정된 파일을 바로 다시 추출) */}
+        {selectable && (
+          <input type="checkbox" className={styles.check} checked={isPicked} disabled={disabled}
+            onChange={() => onPick!([it.file], target!, !isPicked)}
+            aria-label={`${it.file} 다시 추출할 파일로 선택`}
+            title="체크하면 위 'PPT 데이터 추출'의 선택 방식에 담깁니다" />
+        )}
         {/* 추출 뒤에 수정된 파일은 상태 대신 '수정됨' 알약 — 반영된 숫자가 옛 것일 수 있음 */}
         {it.modified
           ? <span className={`${styles.pill} ${styles.pill_modified}`}>{MODIFIED_LABEL}</span>
@@ -54,18 +76,24 @@ const ItemList = ({ items }: { items: CoverageItem[] }) => (
           ? <span className={styles.reason}>{`마지막 추출 ${it.at} → 원본 수정 ${it.modified_at} — 다시 추출하면 최신 숫자가 반영됨`}</span>
           : it.reason && <span className={styles.reason} title={it.detail || undefined}>{it.reason}</span>}
       </li>
-    ))}
+      );
+    })}
   </ul>
 );
 
 interface SourceCardProps {
   src: SourceCoverage;
+  /** 이 카드가 재무인지 KPI인지 — 체크한 파일을 추출할 대상으로 같이 켜려고 */
+  target: ExtractTarget;
   /** 실패 파일만 다시 추출 — 없으면 버튼 안 그림 */
   onRetryFailed?: () => void;
   retryDisabled?: boolean;
+  /** 지금 '선택' 방식에 담긴 파일명 — 있으면 목록에 체크박스(실패·미처리·원본 수정됨 파일만) */
+  picked?: ReadonlySet<string>;
+  onPick?: PickHandler;
 }
 
-const SourceCard = ({ src, onRetryFailed, retryDisabled }: SourceCardProps) => {
+const SourceCard = ({ src, target, onRetryFailed, retryDisabled, picked, onPick }: SourceCardProps) => {
   const by = (s: CoverageStatus) => src.items.filter(it => it.status === s);
   // DRM 파일도 포함 — 누가 원본을 고쳤을 수 있어 시도는 해봄(추출 스크립트가 원본 대신 로컬 사본을 엶)
   const retriable = by('failed').length;
@@ -74,6 +102,8 @@ const SourceCard = ({ src, onRetryFailed, retryDisabled }: SourceCardProps) => {
   const pct = Math.round((c.extracted / total) * 1000) / 10;
   // 추출 뒤 원본이 수정된 파일 — 상태와 별개(실패·미처리는 제외하고 셈, 서버 modified_count와 같음)
   const modifiedItems = src.items.filter(it => it.modified);
+  const modifiedFiles = modifiedItems.map(it => it.file);
+  const allModifiedPicked = modifiedFiles.length > 0 && modifiedFiles.every(f => picked?.has(f));
   const needCheck = c.failed + c.pending + modifiedItems.length;
   const allOk = needCheck === 0;
   return (
@@ -83,6 +113,14 @@ const SourceCard = ({ src, onRetryFailed, retryDisabled }: SourceCardProps) => {
         <span className={`${styles.stateBadge} ${allOk ? styles.stateOk : styles.stateWarn}`}>
           {allOk ? '이상 없음' : `확인 필요 ${needCheck}건`}
         </span>
+        {/* 원본 수정된 파일을 한 번에 담기/빼기 — 하나씩 체크하지 않아도 됨 */}
+        {onPick && modifiedFiles.length > 0 && (
+          <Button variant="ghost" size="sm" className={styles.retryBtn} disabled={retryDisabled}
+            onClick={() => onPick(modifiedFiles, target, !allModifiedPicked)}
+            title="원본이 수정된 파일을 위 'PPT 데이터 추출'의 선택 방식에 한꺼번에 담거나 뺍니다">
+            {allModifiedPicked ? `수정된 ${modifiedFiles.length}개 선택 해제` : `수정된 ${modifiedFiles.length}개 모두 선택`}
+          </Button>
+        )}
         {onRetryFailed && retriable > 0 && (
           <Button variant="primary" size="sm" className={styles.retryBtn} disabled={retryDisabled} onClick={onRetryFailed}
             title="실패한 파일만 다시 추출합니다">
@@ -130,7 +168,8 @@ const SourceCard = ({ src, onRetryFailed, retryDisabled }: SourceCardProps) => {
 
       {/* 펼쳐 두는 목록 = 실패·미처리 + 추출 뒤 수정된 파일(수정된 건 아래 접힌 목록엔 안 넣어 겹치지 않게) */}
       {(OPEN_GROUPS.some(s => by(s).length > 0) || modifiedItems.length > 0) && (
-        <ItemList items={[...OPEN_GROUPS.flatMap(by), ...modifiedItems]} />
+        <ItemList items={[...OPEN_GROUPS.flatMap(by), ...modifiedItems]}
+          target={target} picked={picked} onPick={onPick} disabled={retryDisabled} />
       )}
       {FOLDED_GROUPS.map(s => {
         const rest = by(s).filter(it => !it.modified);
@@ -166,14 +205,22 @@ interface Props {
   onRetryFailed?: (target: ExtractTarget) => void;
   /** 추출 실행 중이면 버튼 막음 */
   retryDisabled?: boolean;
+  /** 위 '선택' 방식에 담긴 파일명 + 목록 체크 핸들러 — 둘 다 있으면 실패·미처리·원본 수정됨 파일에 체크박스(2026-10-29) */
+  selectedFiles?: string[];
+  onPick?: PickHandler;
+  onClearSelected?: () => void;
+  /** 담긴 파일을 바로 다시 추출(확인창은 호출하는 쪽에서) */
+  onRunSelected?: () => void;
 }
 
 /**
  * 추출 현황 — "폴더에 N개 있는데 몇 개가 실제로 들어갔고, 안 된 건 무엇이며 왜인지"(2026-10-01 요청).
  * 파일 수와 취합 행 수를 섞어 "260개"처럼 오판하지 않게 둘을 나눠 보여줌. 디버깅용으로도 씀
  */
-const ExtractCoverage = ({ finishedAt, onRetryFailed, retryDisabled }: Props) => {
+const ExtractCoverage = ({ finishedAt, onRetryFailed, retryDisabled, selectedFiles, onPick, onClearSelected, onRunSelected }: Props) => {
   const { data, isLoading, isFetching, refresh } = useExtractCoverage(true, finishedAt);
+  const picked = useMemo(() => new Set(selectedFiles ?? []), [selectedFiles]);
+  const pickedCount = selectedFiles?.length ?? 0;
 
   return (
     <section className={styles.wrap}>
@@ -194,10 +241,24 @@ const ExtractCoverage = ({ finishedAt, onRetryFailed, retryDisabled }: Props) =>
       {data && !data.ok && <div className={styles.warn}>{data.error}</div>}
       {data?.ok && (
         <div className={styles.cards}>
-          {data.finance && <SourceCard src={data.finance} retryDisabled={retryDisabled}
+          {data.finance && <SourceCard src={data.finance} target="finance" retryDisabled={retryDisabled}
+            picked={picked} onPick={onPick}
             onRetryFailed={onRetryFailed && (() => onRetryFailed('finance'))} />}
-          {data.kpi && <SourceCard src={data.kpi} retryDisabled={retryDisabled}
+          {data.kpi && <SourceCard src={data.kpi} target="kpi" retryDisabled={retryDisabled}
+            picked={picked} onPick={onPick}
             onRetryFailed={onRetryFailed && (() => onRetryFailed('kpi'))} />}
+        </div>
+      )}
+      {/* 담긴 파일이 있으면 아래에 따라다니는 바 — 스크롤해서 위로 올라갈 필요 없이 여기서 바로 다시 추출 */}
+      {onRunSelected && pickedCount > 0 && (
+        <div className={styles.pickBar} role="region" aria-label="선택한 파일 다시 추출">
+          <span className={styles.pickText}>
+            <b>{pickedCount}개</b> 선택됨 <span className={styles.pickHint}>— 위 'PPT 데이터 추출'의 선택 방식과 같은 목록</span>
+          </span>
+          <Button variant="ghost" size="sm" disabled={retryDisabled} onClick={onClearSelected}>선택 해제</Button>
+          <Button variant="primary" size="sm" disabled={retryDisabled} onClick={onRunSelected}>
+            선택한 {pickedCount}개 다시 추출
+          </Button>
         </div>
       )}
     </section>

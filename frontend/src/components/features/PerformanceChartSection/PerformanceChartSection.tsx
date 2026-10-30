@@ -15,6 +15,7 @@ import { makeBarOptions, legendRadioClick } from '@/utils/chartOptions';
 import { getChartTheme } from '@/utils/chartColors';
 import { useChartPalette } from '@/hooks/useChartPalette';
 import { useUiStore } from '@/store';
+import AdminQuickActions from '@/components/features/Admin/AdminQuickActions';
 // Toggle — 파트별 경상이익 토글 비활성화로 미사용(주석 처리). 복구 시 함께 import
 import { createColumnHelper } from '@tanstack/react-table';
 import { ChartCard, BarChart, DoughnutChart, DataTable, useTableDndSensors, InfoButton, Button, LineIcon } from '@/components/ui';
@@ -1209,7 +1210,7 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
                 {partialParts.length > 0 && missingParts.length === 0
                   ? '팀 필터 중에는 여러 팀에 걸친 파트의 인당 값을 구할 수 없습니다'
                   : isAdmin
-                    ? '파트 인원이 아직 입력되지 않았습니다 — 관리자 페이지 > 파트별 인원에서 입력하세요'
+                    ? '파트 인원이 아직 입력되지 않았습니다 — 위 "파트별 인원" 카드 오른쪽 [인원 입력]에서 입력하세요'
                     : '파트 인원이 아직 입력되지 않았습니다'}
               </div>
             : <BarChart horizontal labels={labels} datasets={datasets} options={perCapitaChartOptions[id as keyof typeof perCapitaChartOptions]} plugins={[fitBarLabelsPlugin, tightTicksPlugin, tightLabelsPlugin]} />}
@@ -1236,30 +1237,34 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
           {/* 카드 제목 없음(2026-10-23 요청) — 목록 앞 라벨(파트별 인원)이 제목 역할. dense = 빈 제목줄·큰 여백 제거(높이 축소, 2026-10-27) */}
           <ChartCard.Title>{null}</ChartCard.Title>
           <ChartCard.Body>
-            {hc.labels.length === 0
-              ? <div className={styles.perCapitaEmpty}>
-                  {isAdmin
-                    ? '파트 인원이 아직 입력되지 않았습니다 — 관리자 페이지 > 파트별 인원에서 입력하세요'
-                    : '파트 인원이 아직 입력되지 않았습니다'}
-                </div>
-              : <div className={styles.headcountRow}>
-                  <span className={styles.headcountRowLabel}>파트별 인원</span>
-                  <ul className={styles.headcountList}>
-                    {hc.labels.map((name, i) => (
-                      <li key={name} className={styles.headcountItem}>
-                        <span className={styles.headcountName}>{name}</span>
+            {/* 오른쪽 끝에 관리자 전용 [인원 입력] 버튼(AdminQuickActions, 2026-10-29 — 예전엔 상단 바 아이콘). 인원이 하나도 없어도 줄은 그대로 */}
+            <div className={styles.headcountRow}>
+              {hc.labels.length === 0
+                ? <span className={styles.headcountEmpty}>
+                    {isAdmin
+                      ? '파트 인원이 아직 입력되지 않았습니다 — 오른쪽 [인원 입력]에서 입력하세요'
+                      : '파트 인원이 아직 입력되지 않았습니다'}
+                  </span>
+                : <>
+                    <span className={styles.headcountRowLabel}>파트별 인원</span>
+                    <ul className={styles.headcountList}>
+                      {hc.labels.map((name, i) => (
+                        <li key={name} className={styles.headcountItem}>
+                          <span className={styles.headcountName}>{name}</span>
+                          <span className={styles.headcountSep}>:</span>
+                          <b className={styles.headcountVal}>{formatHeadcount(hc.current[i])}명</b>
+                        </li>
+                      ))}
+                      <li className={`${styles.headcountItem} ${styles.headcountTotal}`}
+                        title={hc.missingParts.length > 0 ? `인원 미입력 파트: ${hc.missingParts.join(', ')}` : undefined}>
+                        <span className={styles.headcountName}>합계</span>
                         <span className={styles.headcountSep}>:</span>
-                        <b className={styles.headcountVal}>{formatHeadcount(hc.current[i])}명</b>
+                        <b className={styles.headcountVal}>{formatHeadcount(hc.totalCurrent)}명</b>
                       </li>
-                    ))}
-                    <li className={`${styles.headcountItem} ${styles.headcountTotal}`}
-                      title={hc.missingParts.length > 0 ? `인원 미입력 파트: ${hc.missingParts.join(', ')}` : undefined}>
-                      <span className={styles.headcountName}>합계</span>
-                      <span className={styles.headcountSep}>:</span>
-                      <b className={styles.headcountVal}>{formatHeadcount(hc.totalCurrent)}명</b>
-                    </li>
-                  </ul>
-                </div>}
+                    </ul>
+                  </>}
+              <AdminQuickActions />
+            </div>
           </ChartCard.Body>
         </ChartCard>
       );

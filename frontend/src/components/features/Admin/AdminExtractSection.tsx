@@ -125,8 +125,11 @@ const AdminExtractSection = ({ extractJob, initialSelected }: Props) => {
       </section>
 
       {/* 추출 현황 — 폴더 파일 수 vs 실제로 들어간 파일, 안 된 파일과 이유(2026-10-01) */}
+      {/* 목록에서 체크한 파일은 위 '선택' 방식에 그대로 담김(같은 selectedFiles) — 아래 바에서 바로 다시 추출도 가능(2026-10-29) */}
       <ExtractCoverage finishedAt={extractJob.status?.finished_at}
-        onRetryFailed={vm.retryFailed} retryDisabled={locked} />
+        onRetryFailed={vm.retryFailed} retryDisabled={locked}
+        selectedFiles={selectedFiles} onPick={vm.pickFromCoverage}
+        onClearSelected={() => vm.setSelectedFiles([])} onRunSelected={vm.runSelected} />
     </div>
   );
 };

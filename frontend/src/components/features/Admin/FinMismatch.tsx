@@ -41,7 +41,7 @@ const Item = ({ r }: { r: FinMismatchRow }) => (
  * 재무 이력 완료 보고 금액이 1,000원 이상 다른 프로젝트. 프로젝트 상세의 빨간 칸과 같은 기준.
  * 데이터 이상 배지(코드 충돌 등)와는 성격이 달라 따로 둠. 버튼을 누르면 목록이 모달로 열림
  */
-const FinMismatch = () => {
+const FinMismatch = ({ inline = false }: { inline?: boolean }) => {
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const { rows, total, isLoading, isError, exportCsv } = useFinMismatch(true);
@@ -60,12 +60,24 @@ const FinMismatch = () => {
           <span className={styles.sub}>완료인데 실적현황 매출·직접원가가 재무 이력(완료 보고)과 다름 · 1,000원 미만 차이는 제외</span>
         </div>
         <Button variant="ghost" size="sm" disabled={!total} onClick={() => void exportCsv()}>↓ CSV</Button>
-        <Button variant="primary" size="sm" disabled={isLoading || isError || !total} onClick={() => setOpen(true)}>
-          {isLoading ? '확인 중…' : isError ? '불러오기 실패' : !total ? '불일치 없음' : `${total}건 보기`}
-        </Button>
+        {/* inline(관리자 기능 창, 2026-10-29) — 버튼 없이 목록을 바로 아래에 펼침. 건수는 상태 글자로 */}
+        {inline
+          ? <span className={styles.state}>
+              {isLoading ? '확인 중…' : isError ? '불러오기 실패' : !total ? '불일치 없음' : `${total}건`}
+            </span>
+          : (
+            <Button variant="primary" size="sm" disabled={isLoading || isError || !total} onClick={() => setOpen(true)}>
+              {isLoading ? '확인 중…' : isError ? '불러오기 실패' : !total ? '불일치 없음' : `${total}건 보기`}
+            </Button>
+          )}
       </div>
+      {inline && total > 0 && (
+        <ul className={styles.list}>
+          {rows.map(r => <Item key={r.project_code + r.fin_filename} r={r} />)}
+        </ul>
+      )}
       {/* 목록은 페이지에 펼치지 않고 모달로(2026-10-23 요청) */}
-      {open && total > 0 && (
+      {!inline && open && total > 0 && (
         <Modal title="완료 프로젝트 재무 불일치" sub={`${total}건 · 완료인데 실적현황 매출·직접원가가 재무 이력(완료 보고)과 다름 · 1,000원 미만 차이는 제외`}
           width="min(1000px, 94vw)" onClose={() => setOpen(false)}>
           <ul className={styles.list}>

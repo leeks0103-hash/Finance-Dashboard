@@ -23,7 +23,7 @@ export const HrefDownloadButton = ({ href, label = '↓ 엑셀', confirmText, ti
     document.body.removeChild(a);
   };
   return (
-    <Button variant="success" size="sm" onClick={onClick} title={title}>
+    <Button variant="ghost" size="sm" onClick={onClick} title={title}>
       {label}
     </Button>
   );

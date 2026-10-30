@@ -11,6 +11,7 @@ import {
 import { CHART_TUNING, tuningBarSize, tuningLabelFont, tuningTickFont, px } from '@/components/features/PerformanceChartSection/chartTuning';
 import { useTheme } from '@/hooks';
 import { useUiStore } from '@/store';
+import AdminQuickActions from '@/components/features/Admin/AdminQuickActions';
 import { useChartPalette } from '@/hooks/useChartPalette';
 import { formatHeadcount } from '@/utils/format';
 // 파트별 인원 카드는 2026 실적 보기와 같은 CSS(알약 목록)를 그대로 씀 — 한 곳에서만 고치면 두 해가 같이 바뀜
@@ -357,7 +358,7 @@ const PerformancePlanChartSection = ({ chart, composition }: Props) => {
                   {partialParts.length > 0 && missingParts.length === 0
                     ? '팀 필터 중에는 여러 팀에 걸친 파트의 인당 값을 구할 수 없습니다'
                     : isAdmin
-                      ? '2027 파트 인원이 아직 입력되지 않았습니다 — 관리자 페이지 > 파트별 인원 > 2027년 인원에서 입력하세요'
+                      ? '2027 파트 인원이 아직 입력되지 않았습니다 — 위 "파트별 인원 (2027)" 카드 오른쪽 [인원 입력]에서 입력하세요'
                       : '2027 파트 인원이 아직 입력되지 않았습니다'}
                 </div>
               : <BarChart horizontal labels={labels} datasets={[{ label: `${title}(억)`, data: values, backgroundColor: color }]}
@@ -479,30 +480,34 @@ const PerformancePlanChartSection = ({ chart, composition }: Props) => {
         <ChartCard expandable={false} dense>
           <ChartCard.Title>{null}</ChartCard.Title>
           <ChartCard.Body>
-            {chart.headcount.labels.length === 0
-              ? <div className={actualStyles.perCapitaEmpty}>
-                  {isAdmin
-                    ? '2027 파트 인원이 아직 입력되지 않았습니다 — 관리자 페이지 > 파트별 인원 > 2027년 인원에서 입력하세요'
-                    : '2027 파트 인원이 아직 입력되지 않았습니다'}
-                </div>
-              : <div className={actualStyles.headcountRow}>
-                  <span className={actualStyles.headcountRowLabel}>파트별 인원 (2027)</span>
-                  <ul className={actualStyles.headcountList}>
-                    {chart.headcount.labels.map((name, i) => (
-                      <li key={name} className={actualStyles.headcountItem}>
-                        <span className={actualStyles.headcountName}>{name}</span>
+            {/* 오른쪽 끝 관리자 전용 [인원 입력] — 실적 보기와 같은 버튼, 인원 입력 창은 2027 인원 탭으로 열림 */}
+            <div className={actualStyles.headcountRow}>
+              {chart.headcount.labels.length === 0
+                ? <span className={actualStyles.headcountEmpty}>
+                    {isAdmin
+                      ? '2027 파트 인원이 아직 입력되지 않았습니다 — 오른쪽 [인원 입력]에서 입력하세요'
+                      : '2027 파트 인원이 아직 입력되지 않았습니다'}
+                  </span>
+                : <>
+                    <span className={actualStyles.headcountRowLabel}>파트별 인원 (2027)</span>
+                    <ul className={actualStyles.headcountList}>
+                      {chart.headcount.labels.map((name, i) => (
+                        <li key={name} className={actualStyles.headcountItem}>
+                          <span className={actualStyles.headcountName}>{name}</span>
+                          <span className={actualStyles.headcountSep}>:</span>
+                          <b className={actualStyles.headcountVal}>{formatHeadcount(chart.headcount.current[i])}명</b>
+                        </li>
+                      ))}
+                      <li className={`${actualStyles.headcountItem} ${actualStyles.headcountTotal}`}
+                        title={chart.headcount.missingParts.length > 0 ? `인원 미입력 파트: ${chart.headcount.missingParts.join(', ')}` : undefined}>
+                        <span className={actualStyles.headcountName}>합계</span>
                         <span className={actualStyles.headcountSep}>:</span>
-                        <b className={actualStyles.headcountVal}>{formatHeadcount(chart.headcount.current[i])}명</b>
+                        <b className={actualStyles.headcountVal}>{formatHeadcount(chart.headcount.totalCurrent)}명</b>
                       </li>
-                    ))}
-                    <li className={`${actualStyles.headcountItem} ${actualStyles.headcountTotal}`}
-                      title={chart.headcount.missingParts.length > 0 ? `인원 미입력 파트: ${chart.headcount.missingParts.join(', ')}` : undefined}>
-                      <span className={actualStyles.headcountName}>합계</span>
-                      <span className={actualStyles.headcountSep}>:</span>
-                      <b className={actualStyles.headcountVal}>{formatHeadcount(chart.headcount.totalCurrent)}명</b>
-                    </li>
-                  </ul>
-                </div>}
+                    </ul>
+                  </>}
+              <AdminQuickActions headcountKind="y27" />
+            </div>
           </ChartCard.Body>
         </ChartCard>
       </div>

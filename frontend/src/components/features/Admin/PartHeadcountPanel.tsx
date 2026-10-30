@@ -21,7 +21,8 @@ const STEP = 0.1;
 // type Kind = 'plan' | 'cur';
 // 연도별로 따로 입력(2026-10-29): cur = 2026 현재 인원(실적 보기 인당 분모), y27 = 2027 인원(2027 계획 보기 인당 분모)
 type Kind = 'cur' | 'y27';
-type Draft = Record<Kind, Record<string, string>>;
+export type HeadcountKind = Kind;
+type Draft =Record<Kind, Record<string, string>>;
 
 const KIND_INFO: Record<Kind, { chip: string; title: string; desc: string; empty: string }> = {
   cur: { chip: '2026년 인원', title: '2026년 인원', desc: '2026 실적 보기 — 인당 추정 매출·손익·관리비의 분모',
@@ -81,7 +82,8 @@ const Stepper = ({ label, part, value, onChange }: StepperProps) => {
  * 저장하면 서버(data/headcount.json)에 올라가고 모든 사용자에게 보인다. 비워 두면 '미입력'.
  * 관리자 페이지 섹션과 상단 바 바로가기(모달) 둘 다에서 같은 패널을 씀 — 모달은 제목을 자기가 갖고 있어 hideTitle
  */
-const PartHeadcountPanel = ({ hideTitle = false }: { hideTitle?: boolean }) => {
+// initialKind — 처음 보여 줄 연도(2027 계획 보기의 인원 카드에서 열면 2027 인원)
+const PartHeadcountPanel = ({ hideTitle = false, initialKind = 'cur' }: { hideTitle?: boolean; initialKind?: Kind }) => {
   const { settings, isLoading, save, isSaving, error } = useHeadcount();
   const { data: options } = usePerformanceOptions();
 
@@ -97,7 +99,7 @@ const PartHeadcountPanel = ({ hideTitle = false }: { hideTitle?: boolean }) => {
     // return { plan: str(settings.plan_parts ?? {}), cur: str(settings.parts) };   // 계획 인원 주석 처리(2026-10-27)
     return { cur: str(settings.parts), y27: str(settings.parts27 ?? {}) };
   }, [partNames, settings.parts, settings.parts27]);
-  const [kind, setKind] = useState<Kind>('cur');   // 지금 보는 연도 — 저장은 두 연도를 같이
+  const [kind, setKind] = useState<Kind>(initialKind);   // 지금 보는 연도 — 저장은 두 연도를 같이
   const [draft, setDraft] = useState<Draft>(fromServer);
   useEffect(() => { setDraft(fromServer); }, [fromServer]);   // 서버 값이 바뀌면(저장·다른 관리자) 입력칸을 맞춤
 

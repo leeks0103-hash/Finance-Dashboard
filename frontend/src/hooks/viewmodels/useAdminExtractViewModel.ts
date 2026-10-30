@@ -51,6 +51,31 @@ export const useAdminExtractViewModel = (extractJob: ReturnType<typeof useExtrac
     setTargets(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]);
   };
 
+  // 고른 파일만 다시 추출 — 방식 버튼의 '선택'과 추출 현황의 "선택한 N개 다시 추출"이 같이 씀(2026-10-29).
+  // 방식이 증분 등으로 바뀌어 있어도 이쪽은 항상 '선택'으로 보냄(추출 현황에서 체크한 파일을 증분으로 돌리는 사고 방지)
+  const runSelected = async () => {
+    if (targets.length === 0 || locked || selectedFiles.length === 0) return;
+    const targetLabel = targets.map(t => EXTRACT_TARGET_LABEL[t]).join(' + ');
+    const shown = selectedFiles.slice(0, 8).map(f => `· ${f}`).join('\n');
+    const more = selectedFiles.length > 8 ? `\n· 외 ${selectedFiles.length - 8}개` : '';
+    const selMsg = `${targetLabel} — 고른 파일 ${selectedFiles.length}개를 다시 추출합니다.\n\n${shown}${more}\n\n`
+      + '이 파일 이름으로 남은 기존 행은 지우고 새로 넣습니다. 다른 파일과 같은 (코드/연도/단계) 행이 있으면 이번 값으로 덮어씁니다.';
+    if (!await confirmDialog(selMsg, { title: '선택한 파일 다시 추출', confirmText: '다시 추출' })) return;
+    extractJob.run({ targets, mode: 'selected', files: selectedFiles });
+  };
+
+  // 추출 현황 목록의 체크박스 → '선택' 방식으로 보내고 그 카드의 대상(재무/KPI)도 켬(안 켜면 파일 고르기 표에서 못 고르는 파일이라)
+  const pickFromCoverage = (files: string[], target: ExtractTarget, on: boolean) => {
+    if (locked) return;
+    if (on) {
+      setMode('selected');
+      setTargets(prev => (prev.includes(target) ? prev : [...prev, target]));
+      setSelectedFiles(prev => [...prev, ...files.filter(f => !prev.includes(f))]);
+    } else {
+      setSelectedFiles(prev => prev.filter(f => !files.includes(f)));
+    }
+  };
+
   const run = async () => {
     if (targets.length === 0 || locked) return;
     // 어떤 방식이든 실제로 PPT를 다시 읽어 엑셀을 덮어쓰는 작업이라, 무슨 대상을 어떤 방식으로
@@ -58,17 +83,8 @@ export const useAdminExtractViewModel = (extractJob: ReturnType<typeof useExtrac
     // 이전엔 reset일 때만 확인해서 증분/전체재처리는 바로 실행돼버렸음)
     const targetLabel = targets.map(t => EXTRACT_TARGET_LABEL[t]).join(' + ');
     const modeInfo = EXTRACT_MODE_INFO[mode];
-    if (mode === 'selected') {
-      if (selectedFiles.length === 0) return;
-      const shown = selectedFiles.slice(0, 8).map(f => `· ${f}`).join('\n');
-      const more = selectedFiles.length > 8 ? `\n· 외 ${selectedFiles.length - 8}개` : '';
-      const selMsg = `${targetLabel} — 고른 파일 ${selectedFiles.length}개를 다시 추출합니다.\n\n${shown}${more}\n\n`
-        + '이 파일 이름으로 남은 기존 행은 지우고 새로 넣습니다. 다른 파일과 같은 (코드/연도/단계) 행이 있으면 이번 값으로 덮어씁니다.';
-      if (!await confirmDialog(selMsg, { title: '선택한 파일 다시 추출', confirmText: '다시 추출' })) return;
-      extractJob.run({ targets, mode: 'selected', files: selectedFiles });
-      return;
-    }
-    const msg = `${targetLabel} 데이터를 "${modeInfo.label}" 방식으로 추출합니다.\n\n${modeInfo.desc}`;
+    if (mode === 'selected') { await runSelected(); return; }
+    const msg =`${targetLabel} 데이터를 "${modeInfo.label}" 방식으로 추출합니다.\n\n${modeInfo.desc}`;
     if (!await confirmDialog(msg, { danger: mode === 'reset' })) return;
     extractJob.run({ targets, mode });
   };
@@ -99,6 +115,6 @@ export const useAdminExtractViewModel = (extractJob: ReturnType<typeof useExtrac
     mode, setMode,
     selectedFiles, setSelectedFiles,
     locked,
-    run, cancel, retryFailed,
+    run, runSelected, pickFromCoverage, cancel, retryFailed,
   };
 };

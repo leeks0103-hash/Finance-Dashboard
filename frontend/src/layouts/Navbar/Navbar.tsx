@@ -6,13 +6,13 @@ import TabNav from '@/components/ui/TabNav/TabNav';
 import type { TabId } from '@/components/ui/TabNav/TabNav';
 import KpiActionBar from '@/components/features/KpiActionBar';
 import PerformanceActionBar from '@/components/features/PerformanceActionBar';
-import FinanceDataModal from '@/components/features/FinanceDataModal';
+// import FinanceDataModal from '@/components/features/FinanceDataModal';   // ⚙ > 바로가기 > 재무데이터 확인 주석 처리(2026-10-29) — 프로젝트 상세의 "재무 상세" 버튼이 같은 창을 엶
 import { useProductTour } from '@/components/features/ProductTour';
 import { useTheme } from '@/hooks';
 import { useDataHealth, useDataHealthAck } from '@/hooks/useDataHealth';
 import HealthAckButton from './HealthAckButton';
 import AdminExtractModal from '@/components/features/Admin/AdminExtractModal';
-import PartHeadcountModal from '@/components/features/Admin/PartHeadcountModal';
+import AdminModal from '@/components/features/Admin/AdminModal';
 import ExtractRequestBadge from './ExtractRequestBadge';
 import { useChartLabelToggle } from '@/hooks/useChartLabelToggle';
 import { useKeyShortcuts } from '@/hooks/useKeyShortcuts';
@@ -38,17 +38,7 @@ const SunIcon = () => (
   </svg>
 );
 
-/** 파트별 인원 바로 입력 아이콘(사람 여럿) — 글자색(currentColor)을 따름 */
-const GroupIcon = () => (
-  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-    <circle cx="9" cy="8.5" r="3.4" />
-    <path d="M2.5 19.5c0-3.5 2.9-5.9 6.5-5.9s6.5 2.4 6.5 5.9a.9.9 0 0 1-.9.9H3.4a.9.9 0 0 1-.9-.9Z" />
-    <circle cx="17" cy="9.5" r="2.7" opacity=".7" />
-    <path d="M16.6 13.9c2.9.1 5 2 5 4.9a.8.8 0 0 1-.8.8h-3.6c.2-1.9-.3-3.7-1.6-4.9.3-.5.7-.7 1-.8Z" opacity=".7" />
-  </svg>
-);
-
-/** 관리자 페이지 바로가기 아이콘(사람) — 글자색(currentColor)을 따름 */
+/** 관리자 기능 아이콘(사람) — 글자색(currentColor)을 따름 */
 const PersonIcon = () => (
   <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden>
     <circle cx="12" cy="8" r="4" />
@@ -74,9 +64,9 @@ const Navbar = () => {
   // 설정 메뉴 제목 옆 단축키 표시(항상) — 표시 켜고 끄는 줄은 필요 없다는 의견으로 뺌(2026-10-02)
   const kbd = (key: string) => <kbd className={styles.kbd}>{key}</kbd>;
   const [open, setOpen] = useState(false);
-  const [financeModalOpen, setFinanceModalOpen] = useState(false);
-  // 파트별 인원 바로 입력 창(관리자) — 관리자 페이지까지 안 가고 상단 바에서
-  const [headcountOpen, setHeadcountOpen] = useState(false);
+  // const [financeModalOpen, setFinanceModalOpen] = useState(false);   // ⚙ > 재무데이터 확인 주석 처리(2026-10-29)
+  // 관리자 기능 창 — 관리자 페이지(#/admin)는 주석 처리하고 다시 모달로(2026-10-29). 헤더의 사람 아이콘이 연다
+  const [adminOpen, setAdminOpen] = useState(false);
   // PPT 추출 창 — 노란 "!"의 "추출로 열기"·"추출 중…" 배지가 관리자 페이지로 넘어가지 않고 이 창을 연다(2026-10-23 요청)
   const [extractOpen, setExtractOpen] = useState(false);
   const [extractPreset, setExtractPreset] = useState<string[] | undefined>();
@@ -304,24 +294,14 @@ const Navbar = () => {
             </Button>
           )}
 
-          {/* 관리자 페이지 바로가기 — 관리자에게만 보임(2026-10-23, 예전 ⚙ 메뉴의 "관리자 기능" 자리). 일반 회원·로그인 요구가 꺼진
-              비로그인 상태엔 안 보임(로그인 요구가 꺼져 있을 땐 #/admin 주소로 직접 들어가 로그인 폼 사용) */}
+          {/* 관리자 기능 — 관리자에게만 보임. 누르면 관리자 기능 창(모달, 2026-10-29). 파트별 인원 입력 아이콘은 헤더에서 뺌 —
+              실적 탭 "파트별 인원" 카드 오른쪽 끝으로(AdminQuickActions). 로그인 요구가 꺼져 있을 땐 #/admin 주소로 들어가 관리자 로그인 폼을 씀 */}
           {adminAuthed && (
             <Button unstyled
               className={`${styles.settingsBtn} ${styles.adminBtn}`}
-              onClick={() => setHeadcountOpen(true)}
-              aria-label="파트별 인원 입력"
-              title="파트별 인원 입력 (인당 차트 분모)"
-            >
-              <GroupIcon />
-            </Button>
-          )}
-          {adminAuthed && (
-            <Button unstyled
-              className={`${styles.settingsBtn} ${styles.adminBtn}`}
-              onClick={() => navigate('/admin')}
-              aria-label="관리자 페이지"
-              title={extractJob.isRunning ? '관리자 페이지 (PPT 추출 중…)' : '관리자 페이지'}
+              onClick={() => setAdminOpen(true)}
+              aria-label="관리자 기능"
+              title={extractJob.isRunning ? '관리자 기능 (PPT 추출 중…)' : '관리자 기능'}
             >
               <PersonIcon />
             </Button>
@@ -388,11 +368,10 @@ const Navbar = () => {
 
               <div className={styles.divider} />
 
-              {/* 재무 데이터 탭 자체가 네비게이션에서 빠져있어(TabNav 주석 참고) 재무 원본
-                  표만 단독으로 볼 방법이 없다는 요청으로 추가 — 탭 전환 없이 바로 모달로 확인.
-                  위 두 섹션(테마·그래프 수치)과 동일하게 sectionLabel을 붙이고, 커스텀
-                  플랫 스타일 대신 다른 액션 버튼들(↺ 다시 분석, ↓ CSV 등)과 같은 실제
-                  Button ghost variant를 써서 사이트 톤에 맞춤(2026-09-22 피드백) */}
+              {/* [주석 처리 2026-10-29] 바로가기 > 재무데이터 확인 — 프로젝트 상세 표 제목줄의 "재무 상세" 버튼(FinanceDetailButton)이 대신함.
+                  복구하려면 이 블록과 위쪽 import(FinanceDataModal)·financeModalOpen state·아래 모달 렌더 주석을 같이 풀 것.
+                  (원래 취지: 재무 데이터 탭이 네비게이션에서 빠져 재무 원본 표만 단독으로 볼 방법이 없다는 요청 — 2026-09-22.
+                   다른 액션 버튼들과 같은 Button ghost variant로 사이트 톤에 맞춤)
               <div className={styles.section}>
                 <span className={styles.sectionLabel}>바로가기</span>
                 <Button
@@ -406,6 +385,7 @@ const Navbar = () => {
               </div>
 
               <div className={styles.divider} />
+              */}
 
               <div className={styles.section}>
                 <span className={styles.sectionLabel}>도움말</span>
@@ -444,8 +424,8 @@ const Navbar = () => {
         </div>
       </div>
 
-      {financeModalOpen && <FinanceDataModal onClose={() => setFinanceModalOpen(false)} />}
-      {headcountOpen && adminAuthed && <PartHeadcountModal onClose={() => setHeadcountOpen(false)} />}
+      {/* {financeModalOpen && <FinanceDataModal onClose={() => setFinanceModalOpen(false)} />} */}
+      {adminOpen && adminAuthed && <AdminModal onClose={() => setAdminOpen(false)} />}
       {extractOpen && adminAuthed && (
         <AdminExtractModal extractJob={extractJob} initialSelected={extractPreset}
           onClose={() => { setExtractOpen(false); setExtractPreset(undefined); }} />
