@@ -4,7 +4,7 @@ import { usePerfViews } from '@/hooks/usePerfViews';
 import { stripPartPrefix } from '@/utils';
 import { sortParts, sortTeams } from '@/utils/partOrder';
 import { usePerfStore } from '@/store/perf.store';
-import { FilterChip, MultiSelectDropdown } from '@/components/ui';
+import { FilterChip, MultiSelectDropdown, Skeleton } from '@/components/ui';
 import { isAllSelected } from '@/utils/array';
 import styles from './PerformanceFilterBar.module.css';
 
@@ -12,7 +12,7 @@ import styles from './PerformanceFilterBar.module.css';
 const TEAM_SKELETON = [34, 112, 150, 98];
 const PART_SKELETON = [34, 36, 46, 92, 76, 36, 46, 62];
 const ChipSkeleton = ({ widths }: { widths: number[] }) => (
-  <>{widths.map((w, i) => <span key={`${w}-${i}`} className={styles.chipSkeleton} style={{ width: w }} aria-hidden="true" />)}</>
+  <>{widths.map((w, i) => <Skeleton key={`${w}-${i}`} className={styles.chipSkeleton} style={{ width: w }} />)}</>
 );
 
 const PerformanceFilterBar = () => {

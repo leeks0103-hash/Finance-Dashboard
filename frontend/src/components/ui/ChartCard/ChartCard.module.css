@@ -27,6 +27,13 @@
 .rootDense {
   padding: 10px 16px;
 }
+/* 파트별 인원 카드는 마우스를 올려도 그림자 애니메이션 없음(2026-10-30 요청) — 다른 차트 카드의 호버 그림자는 그대로 */
+.rootDense,
+.rootDense:hover,
+:global([data-theme="dark"]) .rootDense:hover {
+  box-shadow: none;
+  transition: none;
+}
 
 :global([data-theme="dark"]) .root:hover {
   box-shadow: var(--shadow-md);
@@ -78,7 +85,7 @@
 
 .expandBtn {
   position: absolute;
-  top: 8px;
+  bottom: 8px;   /* 우측 하단(2026-10-30) — 예전엔 top: 8px */
   right: 10px;
   z-index: 3;
   border: none;

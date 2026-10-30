@@ -24,6 +24,8 @@ interface Props {
   /** 'sm'(기본) — 메인 카드처럼 캔버스가 작아 인출선을 짧게(링 크기 거의 그대로).
    *  'lg' — 확대 모달처럼 캔버스가 큰 곳 전용. 두 값은 완전히 독립 — 하나를 조정해도 다른 쪽엔 영향 없음. */
   outsideLabelsSize?: 'sm' | 'md' | 'lg';
+  /** true면 인출선 라벨을 "경상손익(5.7%)"처럼 항목명과 함께 — 가로가 넓은 카드용. 좌우 여백도 가장 긴 이름 폭으로 잡음 */
+  outsideLabelNames?: boolean;
 }
 
 // 현대 브랜드 9색 — Hyundai Blue / Active Blue / Sky Blue / Gold
@@ -53,8 +55,11 @@ const DoughnutChart = ({
   onSliceClick,
   outsideLabels = false,
   outsideLabelsSize = 'sm',
+  outsideLabelNames = false,
 }: Props) => {
   const total = data.reduce((a, b) => a + b, 0);
+  // md 크기의 좌우 여백 — 항목명을 같이 쓰면 가장 긴 이름 폭만큼 더 필요
+  const sidePad = outsideLabelSidePadding('md', outsideLabelNames ? labels : undefined);
 
   // 범례 텍스트 클릭 시 해당 세그먼트 숨김/복원 — Chart.js 기본 범례가 하던 토글을
   // 커스텀 HTML 범례(2열 그리드)로 바꾸면서 빠졌던 동작. toggleDataVisibility로 재구현
@@ -103,7 +108,7 @@ const DoughnutChart = ({
             // md(메인 카드): 위아래 28, 좌우는 라벨 폭을 재서 — 3칸 카드에서 좌우 라벨이 잘리던 것(2026-10-21)
             layout: { padding: !outsideLabels ? 12
               : outsideLabelsSize === 'lg' ? 68
-              : outsideLabelsSize === 'md' ? { top: 28, bottom: 28, left: outsideLabelSidePadding('md'), right: outsideLabelSidePadding('md') }
+              : outsideLabelsSize === 'md' ? { top: 28, bottom: 28, left: sidePad, right: sidePad }
               : 24 },
             plugins: {
               // 범례는 아래 2열 그리드로 직접 그린다 (Chart.js 기본 범례는 개수에 따라 줄이 어긋남)
@@ -125,7 +130,7 @@ const DoughnutChart = ({
                   return `${((value / sum) * 100).toFixed(1)}%`;
                 },
               },
-              outsideLabels: { enabled: showLabels && outsideLabels, size: outsideLabelsSize },
+              outsideLabels: { enabled: showLabels && outsideLabels, size: outsideLabelsSize, showName: outsideLabelNames },
             },
           }}
         />

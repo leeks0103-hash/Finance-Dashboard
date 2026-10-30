@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { usePerformancePlanSummary, usePerformancePlanData } from '@/hooks/usePerformancePlan';
 import { usePerformanceOptions } from '@/hooks/usePerformanceData';
 import { useDebouncedSearch } from '@/hooks/useDebouncedSearch';
+import { buildServerPagination, buildServerSearch } from './serverTableProps';
 import { useServerSort } from '@/hooks/useServerSort';
 import { useReactPagination } from '@/lib/pagination';
 import { usePerfStore } from '@/store/perf.store';
@@ -304,23 +305,8 @@ export const usePerformancePlanViewModel = (): PerformancePlanViewModel => {
     projects: paged?.rows ?? [],
 
     serverSorting: sort,
-    serverPagination: {
-      total:            paged?.total ?? 0,
-      page:             pagination.page,
-      pageSize:         pagination.pageSize,
-      onPageChange:     pagination.setPage,
-      onPageSizeChange: pagination.setPageSize,
-    },
-    serverSearch: {
-      value:    search.inputValue,
-      onChange: (val) => {
-        search.handleChange({ target: { value: val } } as React.ChangeEvent<HTMLInputElement>);
-        pagination.resetToFirstPage();
-      },
-      field:         searchField,
-      onFieldChange: (f) => { setSearchField(f); pagination.resetToFirstPage(); },
-      fieldOptions:  SEARCH_FIELD_OPTIONS,
-    },
+    serverPagination: buildServerPagination(pagination, paged?.total ?? 0),
+    serverSearch: buildServerSearch(search, pagination, searchField, setSearchField, SEARCH_FIELD_OPTIONS),
 
     progressOptions: options?.progress ?? [],
     selectedProgress,

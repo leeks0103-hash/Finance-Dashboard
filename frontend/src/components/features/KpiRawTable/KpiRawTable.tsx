@@ -9,7 +9,7 @@ import {
 import {
   CopyText, Button, Pagination, HighlightText,
   useColumnHighlight, useClipboardPopup, useTableEscapePriority, useTableDndSensors,
-  SortableHeaderCell, CellPopup, TableTitleBar,
+  SortableHeaderCell, CellPopup, TableTitleBar, Skeleton,
 } from '@/components/ui';
 import { cellVal, isImplausibleScoreRow, isPrematureActualRow, kpiCellTint } from '@/utils/kpiColumns';
 import { openKpiFileOrAlert } from '@/hooks/useOpenFile';
@@ -234,7 +234,7 @@ const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, searchE
       <div className={`${styles.scroll} ${isFetching ? styles.fetching : ''}`}>
         {isLoading ? (
           <div className={styles.skeletonWrap}>
-            {[...Array(8)].map((_, i) => <div key={i} className={styles.skeletonRow} />)}
+            {[...Array(8)].map((_, i) => <Skeleton key={i} className={styles.skeletonRow} />)}
           </div>
         ) : (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>

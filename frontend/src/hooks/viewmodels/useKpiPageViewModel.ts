@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useKpiSummary, useKpiDataPaged } from '@/hooks/useKpiSummary';
 import { useDebouncedSearch } from '@/hooks/useDebouncedSearch';
+import { buildServerPagination, buildServerSearch } from './serverTableProps';
 import { useReactPagination } from '@/lib/pagination';
 import { useKpiFilterStore } from '@/store/kpiFilter.store';
 import { useUiStore } from '@/store';
@@ -197,23 +198,8 @@ export const useKpiPageViewModel = (summaryPart = '', anomalyOnly = false): KpiP
 
     serverSorting: sort,
 
-    serverPagination: {
-      page:             pagination.page,
-      pageSize:         pagination.pageSize,
-      total:            data?.total ?? 0,
-      onPageChange:     pagination.setPage,
-      onPageSizeChange: pagination.setPageSize,
-    },
+    serverPagination: buildServerPagination(pagination, data?.total ?? 0),
 
-    serverSearch: {
-      value:    search.inputValue,
-      onChange: (val) => {
-        search.handleChange({ target: { value: val } } as React.ChangeEvent<HTMLInputElement>);
-        pagination.resetToFirstPage();
-      },
-      field:        searchField,
-      onFieldChange: (f) => { setSearchField(f); pagination.resetToFirstPage(); },
-      fieldOptions:  SEARCH_FIELD_OPTIONS,
-    },
+    serverSearch: buildServerSearch(search, pagination, searchField, setSearchField, SEARCH_FIELD_OPTIONS),
   };
 };

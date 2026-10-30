@@ -1,5 +1,5 @@
 import { useKpiViewModel } from '@/hooks/viewmodels';
-import { KpiCard, ErrorFallback, QueryGate } from '@/components/ui';
+import { KpiCard, ErrorFallback, QueryGate, Skeleton } from '@/components/ui';
 import styles from './KpiSection.module.css';
 
 /** 재무 탭 상단 KPI 카드 4개. 로딩/에러/빈 상태 분기는 QueryGate가 담당. */
@@ -13,7 +13,7 @@ const KpiSection = () => {
       empty={!vm.isLoading && vm.cards.length === 0}
       loadingView={
         <div className={styles.grid}>
-          {['a', 'b', 'c', 'd'].map(k => <div key={k} className={styles.skeleton} />)}
+          {['a', 'b', 'c', 'd'].map(k => <Skeleton key={k} className={styles.skeleton} />)}
         </div>
       }
       errorView={

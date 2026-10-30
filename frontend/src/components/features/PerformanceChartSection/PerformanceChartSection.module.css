@@ -96,38 +96,6 @@
   .span12, .span9, .span8, .span4, .span3 { grid-column: span 1; }
 }
 
-.skeleton {
-  background: var(--bg-subtle);
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  min-height: 430px;   /* .grid grid-auto-rows 와 맞출 것 */
-  animation: pulse 1.4s ease infinite;
-}
-
-.errorCard,
-.emptyCard {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  min-height: 430px;   /* .grid grid-auto-rows 와 맞출 것 */
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  color: var(--text-muted);
-  font-size: 0.82rem;
-}
-
-.errorCard { border-color: var(--danger-bg, rgba(230,51,18,0.10)); }
-.errorIcon { font-size: 1.4rem; }
-.emptyIcon { font-size: 1.4rem; opacity: 0.5; }
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.45; }
-}
-
 /* "월별 실적 추이"·"파트별 추정 매출/원가" 확대 모달 공용 — 그냥 크게 보여주기만 하면 심심하다는
    피드백에 따라, 차트 밑에 검증용 표(+파트별 카드는 파트 표시 체크박스까지)를 추가한 레이아웃.
    modalHeight로 기본 모달보다 살짝 키워서(ChartCard) 표가 스크롤 없이 다 보이게 함

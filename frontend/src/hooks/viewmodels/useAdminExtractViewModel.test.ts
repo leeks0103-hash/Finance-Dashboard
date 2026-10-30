@@ -65,3 +65,50 @@ describe('useAdminExtractViewModel — 추출 현황에서 선택 추출로 담�
     expect(job.run).not.toHaveBeenCalled();
   });
 });
+
+describe('useAdminExtractViewModel — 선택 추출이 끝나면 체크 해제', () => {
+  const status = (over: Record<string, unknown>) => ({ running: false, finished_at: 't0', ok: true, ...over });
+
+  const runAndFinish = async (finished: Record<string, unknown>) => {
+    let job = makeJob({ status: status({}) });
+    const { result, rerender } = renderHook(() => useAdminExtractViewModel(job));
+    act(() => result.current.pickFromCoverage(['a.pptx', 'b.pptx'], 'finance', true));
+    await act(async () => { await result.current.runSelected(); });
+    expect(result.current.selectedFiles).toEqual(['a.pptx', 'b.pptx']);   // 도는 동안엔 그대로
+    job = makeJob({ isRunning: true, status: status({ running: true, finished_at: null }) });
+    rerender();
+    expect(result.current.selectedFiles).toEqual(['a.pptx', 'b.pptx']);
+    job = makeJob({ status: status(finished) });
+    rerender();
+    return result;
+  };
+
+  it('성공으로 끝나면 담은 파일을 비운다', async () => {
+    const result = await runAndFinish({ finished_at: 't1', ok: true });
+    expect(result.current.selectedFiles).toEqual([]);
+  });
+
+  it('폴링 사이에 시작·종료돼 running을 못 봤어도(완료 시각만 바뀜) 비운다', async () => {
+    let job = makeJob({ status: status({}) });
+    const { result, rerender } = renderHook(() => useAdminExtractViewModel(job));
+    act(() => result.current.pickFromCoverage(['a.pptx'], 'finance', true));
+    await act(async () => { await result.current.runSelected(); });
+    job = makeJob({ status: status({ finished_at: 't1' }) });
+    rerender();
+    expect(result.current.selectedFiles).toEqual([]);
+  });
+
+  it('실패로 끝나면 다시 시도하기 좋게 체크를 유지한다', async () => {
+    const result = await runAndFinish({ finished_at: 't1', ok: false });
+    expect(result.current.selectedFiles).toEqual(['a.pptx', 'b.pptx']);
+  });
+
+  it('내가 시작한 선택 추출이 아니면(완료 시각만 바뀐 경우) 건드리지 않는다', () => {
+    let job = makeJob({ status: status({}) });
+    const { result, rerender } = renderHook(() => useAdminExtractViewModel(job));
+    act(() => result.current.pickFromCoverage(['a.pptx'], 'finance', true));
+    job = makeJob({ status: status({ finished_at: 't1' }) });
+    rerender();
+    expect(result.current.selectedFiles).toEqual(['a.pptx']);
+  });
+});

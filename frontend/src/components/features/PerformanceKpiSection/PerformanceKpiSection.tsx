@@ -6,7 +6,7 @@ import {
 import {
   SortableContext, rectSortingStrategy, useSortable, arrayMove,
 } from '@dnd-kit/sortable';
-import { KpiCard, useTableDndSensors } from '@/components/ui';
+import { KpiCard, Skeleton, useTableDndSensors } from '@/components/ui';
 import PerfCompareCard from './PerfCompareCard';
 import type { PerfKpiCard } from '@/hooks/viewmodels/usePerformanceViewModel';
 import { SORTABLE_TRANSITION, sortableItemStyle } from '@/components/ui/sortableMotion';
@@ -87,7 +87,7 @@ const PerformanceKpiSection = ({ cards, orderKey = LS_KPI_ORDER }: Props) => {
   if (sortedCards.length === 0) {
     return (
       <div className={styles.kpiGrid} aria-busy="true" aria-label="카드 불러오는 중">
-        {DEFAULT_KPI_ORDER.map(id => <div key={id} className={`${styles.wide} ${styles.skeleton}`} />)}
+        {DEFAULT_KPI_ORDER.map(id => <Skeleton key={id} className={`${styles.wide} ${styles.skeleton}`} />)}
       </div>
     );
   }

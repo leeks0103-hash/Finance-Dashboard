@@ -1,0 +1,20 @@
+/* 스켈레톤 공용 — 바탕색 위로 밝은 띠가 왼쪽에서 오른쪽으로 은은하게 흐름(2026-10-30).
+   모양(높이·모서리·테두리)은 쓰는 쪽 className이 정하고, 바탕·애니메이션은 여기서만. 바탕색을 바꾸려면 --skeleton-base.
+   같은 부모 안 형제끼리는 시작 시점을 조금씩 늦춰 위→아래(왼→오른)로 파도가 이어지게 함 */
+.skeleton {
+  background: var(--skeleton-wave) 130% 0 / 200% 100% no-repeat, var(--skeleton-base, var(--bg-subtle));
+  animation: skeletonWave 1.8s ease-in-out infinite;
+}
+.skeleton:nth-child(2) { animation-delay: 0.1s; }
+.skeleton:nth-child(3) { animation-delay: 0.2s; }
+.skeleton:nth-child(4) { animation-delay: 0.3s; }
+.skeleton:nth-child(5) { animation-delay: 0.4s; }
+.skeleton:nth-child(6) { animation-delay: 0.5s; }
+.skeleton:nth-child(7) { animation-delay: 0.6s; }
+.skeleton:nth-child(8) { animation-delay: 0.7s; }
+
+@keyframes skeletonWave {
+  from { background-position: 130% 0; }
+  to   { background-position: -30% 0; }
+}
+@media (prefers-reduced-motion: reduce) { .skeleton { animation: none; } }

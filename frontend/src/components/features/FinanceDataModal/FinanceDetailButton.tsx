@@ -2,11 +2,14 @@ import { useState } from 'react';
 import { Button } from '@/components/ui';
 import FinanceDataModal from './FinanceDataModal';
 
-/** 목록(가로 선 셋) 아이콘 — 가장 단순한 모양, 글자색(currentColor)을 따름 */
-const ListIcon = () => (
+/** 문서 + 돋보기 아이콘 — 재무 보고서에서 뽑은 내용을 "자세히 본다"는 뜻(후보 7개 중 사용자가 5번으로 확정, 2026-10-30). 글자색(currentColor)을 따름 */
+const ReportIcon = () => (
   <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor"
-    strokeWidth="1.8" strokeLinecap="round" aria-hidden>
-    <path d="M2.5 4h11M2.5 8h11M2.5 12h7" />
+    strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d="M8.2 14H4.6a1.3 1.3 0 0 1-1.3-1.3V3.1a1.3 1.3 0 0 1 1.3-1.3h4.9l3.2 3.2v2.4" />
+    <path d="M9.5 1.8V5h3.2" />
+    <circle cx="10.6" cy="11" r="2.1" />
+    <path d="M12.2 12.6l1.6 1.6" />
   </svg>
 );
 
@@ -21,7 +24,7 @@ const FinanceDetailButton = () => {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <Button variant="ghost" size="sm" icon={<ListIcon />}
+      <Button variant="ghost" size="sm" icon={<ReportIcon />}
         onClick={() => setOpen(true)}
         title="프로젝트 재무 상세 — 재무 보고서(PPT)에서 뽑은 프로젝트별 재무 이력을 바로 확인">
         재무 상세

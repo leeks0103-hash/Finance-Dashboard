@@ -5,6 +5,56 @@
 
 ---
 
+## [2026-10-30] 선택 추출이 끝나면 체크 자동 해제
+
+- **문제**: 관리자 기능 > 데이터 > PPT 추출에서 파일을 골라 "선택" 추출을 끝내도 파일 체크(`selectedFiles`)가 그대로 남아 있었음.
+- **수정**(`useAdminExtractViewModel`): 선택 추출을 시작할 때 그 시점의 `finished_at`을 기억(`selectedRunRef`)하고, 작업이 멈춘 상태에서 완료 시각이 바뀌면(=방금 끝남) **성공(`ok`)일 때만** 체크를 비움 — 폴링 사이에 시작·종료된 짧은 작업도 잡음(`useExtractJob`의 캐시 무효화와 같은 방식). **실패·중지면 체크 유지**(다시 시도하기 좋게). 내가 시작한 선택 추출이 아닌 다른 사람의 완료엔 반응하지 않음. 증분·초기화 방식은 원래 체크와 무관.
+- 테스트 4개 추가(성공 시 비움·running을 못 본 짧은 작업·실패 시 유지·남의 작업엔 무반응), VM 테스트 9개·`tsc -b` 통과. ⚠️ 실제 추출은 안 돌려봄(NAS 원본 PPT를 여는 작업이라 테스트로만 확인).
+
+## [2026-10-30] 파트별 인원 카드 호버 효과 제거
+
+- **요청**: 파트별 인원 카드에 마우스를 올리면 애니메이션 효과가 있는데 필요 없음. 원인 = 공용 `ChartCard`의 `.root:hover` 그림자 전환(모든 차트 카드 공통). **`dense`(=파트별 인원 한 줄 카드)만** 호버 그림자·전환을 끔(`.rootDense`, 야간 테마 호버 규칙까지) — 다른 차트 카드의 호버 그림자는 그대로.
+- **확인**: 실제 페이지에서 카드와 상위 요소 6단계의 box-shadow·transform·transition·animation을 호버 전/후 비교 — 변화 없음(임시 백엔드는 종료). 2027 계획 보기의 인원 카드도 같은 `dense` 카드라 같이 적용.
+
+## [2026-10-30] 필터 칩 줄 "모두 해제" 버튼 · 재무 상세 아이콘
+
+- **"모두 해제"**(요청 "밤티임"): 기본 ghost 버튼(테두리 있는 네모) → **칩 줄에 맞춘 조용한 글자 버튼**(`.filterChipsClear` — 테두리 없음·흐린 글자, 호버에서만 알약 모양 위험색 바탕). 아이콘은 있어야 한다는 의견 — 처음 넣은 동그라미 ×는 별로여서 **깔때기에 사선**(머리글 필터 아이콘의 "필터 끄기" 짝)으로 교체. 호버에서 글자·아이콘 함께 위험색. 서버 열 필터를 쓰는 모든 표 공통(`DataTable`).
+- **재무 상세 버튼 아이콘**: 가로 선 셋 → **문서 + 돋보기** 아이콘(`ReportIcon` — 후보 7개를 실제 크기로 그려 비교, 클립보드·문서+막대·표를 시험한 끝에 5번으로 확정). 버튼 자체(ghost)는 그대로.
+- **확인**: 로그인만 끈 임시 백엔드로 실제 페이지에서 필터를 걸어 칩 줄·호버·버튼을 캡처(끝나고 서버 종료). `tsc -b` 통과.
+
+## [2026-10-30] 차트 카드 확대(⤢) 모달 부활 — 우측 하단
+
+- **요청**: 각 그래프 차트마다 확대 모달 부활, 버튼은 **우측 하단**. 10-23에 주석 처리했던 `ChartCard`의 확대 버튼을 복구하고 위치만 우측 상단 → **우측 하단**(`.expandBtn { bottom: 8px }`, 평소 반투명·카드 호버 시 선명).
+- **켠 곳**: 재무 탭 차트 4·KPI 탭 차트(기본값이 이미 확대 가능) + 실적 보기 차트(월별·원가분석·원가 비율·계획 vs 추정·인당 3종·파트별 진행 현황) + 2027 계획 보기 차트(월별·원가분석·구성 파이/막대·26 vs 27·인당 3종)에서 `expandable={false}`를 걷음. **안 켠 곳**: 파트별 인원 한 줄 카드(`dense`, 차트가 아님). 투어 문구("⤢ 크게 보기")·`ChartCard.test.tsx` 확대 테스트(skip 해제)도 복구.
+- **안 되살린 것**: 도넛 모달(`CostBreakdownModal`) 카드 안 ⤢(전사평균과 비교)와 `FinMismatch`의 ⤢(표로 크게)는 요청 범위 밖이라 주석 그대로 — 복구 방법은 각 주석에.
+- **확인**: 로그인만 끈 임시 백엔드(5001, 실제 `data/` 읽기, 끝나고 종료)로 실제 페이지를 렌더 — 실적 보기 버튼 8개·계획 보기 7개, 진행 현황·계획 vs 추정(표 포함)·인당 매출·구성 파이 모달이 크게 정상 표시, ESC로 닫힘, 콘솔 오류 없음. `tsc -b`·전체 테스트 176개 통과. ⚠️ 버튼 위치가 차트 범례·막대와 겹치는 카드가 있는지는 화면에서 볼 것(우측 하단에 작게 반투명).
+
+## [2026-10-30] 도넛 인출선 라벨에 항목명 추가 — "경상손익(5.7%)"
+
+- **요청**: 파트별 27 계획 매출 구성(파이)·전체 평균 원가 비율 도넛 — 가로를 넓게 쓰니 기존 양식(링 바깥 인출선 + 글씨) 그대로 항목명만 붙여 "경상손익(5.7%)"처럼. 그래프 안에 글씨를 넣는 게 아님.
+- **구현**: `outsideLabelsPlugin`에 `showName`(한 줄 `이름(%)`, `formatNamedLabel`) · `outsideLabelSidePadding('md', names)`가 가장 긴 "이름(00.0%)" 폭으로 좌우 여백 · `DoughnutChart`에 `outsideLabelNames` prop — 두 차트(`PerformanceChartSection` 원가 비율, `PerformancePlanChartSection` 구성 파이)만 켬. 작은 카드·확대 모달(`BigCostDoughnut`)은 그대로(기존 `%`만). 아래 범례(이름 + %)는 그대로 둠.
+- **확인**: 실제 `DoughnutChart`를 임시 하네스(삭제함)로 Playwright 렌더 — 카드 폭 520px에선 링 크기 괜찮음, **380px 정도로 좁으면 좌우 라벨 여백(각 ~120px)에 링이 많이 작아짐**. 실제 화면 폭에서(1366px 노트북이면 4칸 카드 ≈ 420px) 링이 너무 작으면 라벨 글자 크기(`SIZE_PRESET.md.font`)·짧은 이름·`showName`을 넓은 화면에서만 켜기 중 택1 필요.
+
+## [2026-10-30] 프로젝트 상세 열 필터 칩 줄 — 부드럽게 나타남·사라짐
+
+- **요청**: 열 필터를 걸면 표 위에 "필터" 칩 줄(`.filterChips`)이 뚝 생기고 뚝 사라짐 → 나타날 땐 위에서 부드럽게, 사라질 땐 반대 방향으로.
+- **구현**(`DataTable.tsx`·`.module.css`, 서버 열 필터를 쓰는 모든 표 공통): 칩 줄을 `grid-template-rows 0fr↔1fr` 래퍼로 감싸 높이가 0↔자연 높이로 접히고 펴지며(+투명도, 칩 줄 `translateY(-8px)`), 마지막 필터가 풀리면 `usePresence(…, 220)`로 퇴장 애니메이션 동안만 남김. 사라지는 동안엔 value가 이미 비어 있어 마지막 칩 목록(`lastColFilters` ref)을 그대로 보여 주고 `pointer-events: none`. 길이·곡선은 `--dur-base`·`--ease-out`(0.25초), reduced-motion이면 즉시.
+- **확인**: 같은 CSS를 옮긴 목업을 Playwright로 재 아래 요소 위치 변화를 쟀음 — 열릴 때 8→19→29→37→43→45px, 닫힐 때 45→30→21→14→9→8px로 매끄럽게. 실제 페이지에서는 못 봄. 필터가 둘째·셋째로 늘고 줄 때(칩 줄이 이미 열려 있음)는 이번 대상이 아님(칩 개별 애니메이션 없음).
+
+## [2026-10-30] 코드 정리 1차 — 중복 컴포넌트화
+
+- **조사**(knip·jscpd): 안 쓰는 파일 5개(`FinanceSearchResults.tsx`·`useKpiExport.ts`·`usePerfExport.ts`·`utils/perfCsvColumns.ts`·`pages/Admin/index.ts`)는 **전부 "주석 처리해 둔 기능의 복구용"**(CSV 내보내기 버튼·재무 검색 결과 섹션·관리자 페이지 — 각 호출부 주석에 복구 방법이 있음)이라 **지우지 않음**(주석·휴면 코드를 무작정 지우지 않는다는 요청). 노이즈: `pretendard`(CSS가 씀)·named+default 중복 export·타입만 export는 knip 거짓 양성. 중복은 TSX 0.7%로 적고 대부분 CSS·뷰모델·두 차트 섹션 사이.
+- **한 일**: ① `ui/Skeleton`(파도 바탕·애니메이션·형제 시차·reduced-motion 한 곳) — 8곳(차트 카드 2·KPI 카드 2·표 행 3·필터 칩)의 개별 스켈레톤 CSS 제거, 쓰는 쪽은 모양(높이·모서리)만. 바탕색은 `--skeleton-base`. ② `ui/ChartStateGrid`(로딩·에러·빈 카드 + 그 CSS) — 재무 `ChartSection`·실적 `PerformanceChartSection`에 각자 있던 같은 컴포넌트·CSS(`errorCard`·`emptyCard`·`skeleton`) 통합, 높이는 `minHeight`(재무 400·실적 430). ③ 쓰는 곳 없던 `ProjectTable.module.css .skeletonRow` 삭제. 테스트 `Skeleton.test.tsx`·`ChartStateGrid.test.tsx`, 전체 172개 통과·`tsc -b`·`vite build` 통과.
+- ⚠️ 시차가 카드 0.15초→0.1초 간격으로 통일됨(미세). 실제 화면은 못 봄.
+- **같은 날 2차("애매하면 냅두고 확실한 것만")**: 실적·실적 계획·재무 상세·KPI 뷰모델 4곳에 글자까지 같던 `serverPagination`·`serverSearch` 묶음을 `hooks/viewmodels/serverTableProps.ts`(`buildServerPagination`·`buildServerSearch`)로 뺌(테스트 `serverTableProps.test.ts`). **일부러 안 합친 것**: `BigCostDoughnut` ↔ `ui/Chart/DoughnutChart` — 코드 주석이 "서로 완전히 독립(한쪽 조정이 다른 쪽에 영향 없어야 함)"을 의도로 밝혔고 라벨·여백·범례 동작이 실제로 달라 합치면 위험. 나머지 "남은 후보"도 모양을 눈으로 확인 못 하는 CSS·1,700줄 차트 섹션이라 보류.
+- **남은 후보**(효과 순, 안 했음): 두 차트 섹션(`PerformanceChartSection` 1,700줄·`PerformancePlanChartSection`) 공통 조각, `BigCostDoughnut` ↔ `ui/Chart/DoughnutChart`(TSX 3곳·CSS 2곳 거의 같음), `usePerformanceViewModel` ↔ `usePerformancePlanViewModel` 공통 헬퍼, `PerformancePage` ↔ `PerformancePlanPage`(22줄), Admin 패널 CSS(ExtractFilePicker·SecretMailPanel·FinMismatch·ExtractCoverage), `ProjectTable.module.css` ↔ `DataTable.module.css`(표 CSS 중복).
+
+## [2026-10-30] 스켈레톤 로딩에 은은한 파도 효과
+
+- **요청**: 스켈레톤 UI에 파도처럼 반짝이는 애니메이션을 은은하게. 기존엔 8곳이 각자 `opacity` 깜빡임(pulse)이었음.
+- **구현**: `index.css`에 `--skeleton-hi`(주간 흰색 65% / 야간 7%)·`--skeleton-wave`(밝은 띠 그라데이션) → 각 스켈레톤이 `background: var(--skeleton-wave) 130% 0 / 200% 100% no-repeat, <기존 바탕색>`으로 겹쳐 쓰고 모듈별 `@keyframes skeletonWave`(1.8초, background-position만 → 왼쪽에서 오른쪽)로 흘림. 표 행·KPI 카드·차트 카드는 `animation-delay`를 조금씩 늦춰 위→아래/왼→오른으로 파도가 이어짐. 적용: 차트 카드 3곳(ChartSection·PerformanceChartSection·KpiSection)·KPI 카드(PerformanceKpiSection)·표 행(DataTable·ProjectTable·KpiRawTable)·필터 칩(PerformanceFilterBar). `prefers-reduced-motion`이면 끔. 전역 `.pulse` 클래스는 그대로.
+- **확인**: 같은 CSS를 옮긴 목업을 Playwright로 주간·야간 렌더(은은함 확인), `vite build` 통과. ⚠️ 실제 페이지 로딩 화면은 못 봄 — 세기·속도는 `--skeleton-hi` 투명도와 1.8초를 조절.
+
 ## [2026-10-29 밤] 관리자 페이지 → 다시 모달 · 인원 입력 버튼을 인원 카드로
 
 - **파트별 인원 목록 모양 변경(요청 "인원 노출 화면도 별로")**: 회색 바탕·테두리·158px 고정 폭 알약 → **글자만**(파트명 흐리게 + 값 굵게, 얇은 세로선으로 구분, 합계는 브랜드색). `.headcountList/.headcountItem`(`PerformanceChartSection.module.css`)만 고침 — 2027 계획 보기 카드가 같은 클래스를 import해 같이 바뀜. ':' 구분자는 CSS로 숨김(DOM 유지). 줄이 바뀔 때 줄 첫 항목이 들여쓰기·선 없이 왼쪽에 맞게 `clip-path`로 처리(실제 페이지가 아니라 같은 CSS를 옮긴 목업을 Playwright로 880·700px에서 확인). ⚠️ 실제 페이지에서는 못 봄.

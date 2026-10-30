@@ -43,6 +43,7 @@
   --surface:      #FFFFFF;   /* White — 카드 */
   --bg:           #FFFFFF;   /* White — 페이지 배경 */
   --bg-subtle:    #EDE8E4;   /* Light Sand↔Sand 파생 — 행 호버·칩·합계행 */
+  --skeleton-hi:  rgba(255,255,255,0.65);   /* 스켈레톤 파도 하이라이트(은은하게) */
   --bg-subtle-soft: rgba(237,232,228,0.5);   /* bg-subtle 절반 알파 — 고정값 컬럼처럼 은은하게만 표시할 때 */
   --emphasis-col-bg: #FFF7DC;   /* 강조 컬럼 — 연한 바나나우유색(9색 밖, 2026-10-02 사용자 지정) */
   --filled-cell-bg: rgba(170,202,230,0.22);   /* 값이 채워진 칸 — 아주 연한 Sky Blue(KPI 취합 목표·실적, 2026-10-02) */
@@ -106,6 +107,7 @@
   --surface:      #0E2038;   /* Blue 파생 surface */
   --bg:           #001322;   /* Blue 딥 */
   --bg-subtle:    #14304D;   /* Blue mid-dark */
+  --skeleton-hi:  rgba(255,255,255,0.07);
   --bg-subtle-soft: rgba(20,48,77,0.5);   /* bg-subtle 절반 알파 — 고정값 컬럼처럼 은은하게만 표시할 때 */
   --emphasis-col-bg: rgba(255,214,120,0.10);   /* 강조 컬럼 — 남색 위에 옅은 노랑 */
   --filled-cell-bg: rgba(170,202,230,0.10);   /* 값이 채워진 칸 — 남색 위 옅은 Sky Blue */
@@ -131,6 +133,8 @@
 
 /* ─── 공통 토큰 ──────────────────────────────── */
 :root {
+  /* 스켈레톤 파도 — 밝은 띠 하나. ui/Skeleton이 바탕색 위에 겹쳐 쓰고 오른쪽으로 흘림(2026-10-30) */
+  --skeleton-wave: linear-gradient(100deg, transparent 35%, var(--skeleton-hi) 50%, transparent 65%);
   --sky-blue: #AACAE6;   /* Sky Blue PMS 277C — 라이트/다크 동일(이미 옅은 톤이라 다크 보정 불필요) */
 
   --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;

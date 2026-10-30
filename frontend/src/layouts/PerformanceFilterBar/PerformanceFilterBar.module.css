@@ -74,16 +74,7 @@
   flex-shrink: 0;
   height: 23px;
   border-radius: var(--radius-pill, 999px);
-  background: color-mix(in srgb, var(--text-muted) 18%, transparent);
-  animation: chipPulse 1.4s ease infinite;
-}
-.chipSkeleton:nth-child(even) { animation-delay: 0.15s; }
-@keyframes chipPulse {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: 0.45; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .chipSkeleton { animation: none; }
+  --skeleton-base: color-mix(in srgb, var(--text-muted) 18%, transparent);
 }
 
 .panel { display: flex; align-items: center; gap: 20px; flex-wrap: nowrap; }

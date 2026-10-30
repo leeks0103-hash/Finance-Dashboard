@@ -1,0 +1,25 @@
+/* 차트 영역 로딩/에러/빈 상태 카드 — 재무(ChartSection)·실적(PerformanceChartSection) 공용(예전엔 두 모듈에 같은 CSS가 있었음).
+   카드 높이는 쓰는 쪽 그리드 행 높이에 맞춰 --state-card-min-h로 */
+.skeleton,
+.errorCard,
+.emptyCard {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  min-height: var(--state-card-min-h, 400px);
+}
+
+.errorCard,
+.emptyCard {
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.errorCard { border-color: var(--danger-bg, rgba(230,51,18,0.10)); }
+.errorIcon { font-size: 1.4rem; }
+.emptyIcon { font-size: 1.4rem; opacity: 0.5; }

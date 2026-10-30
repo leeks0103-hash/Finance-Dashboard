@@ -3,6 +3,7 @@ import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { usePerformanceSummary } from '@/hooks/usePerformanceSummary';
 import { usePerformanceData, usePerformanceOptions } from '@/hooks/usePerformanceData';
 import { useDebouncedSearch } from '@/hooks/useDebouncedSearch';
+import { buildServerPagination, buildServerSearch } from './serverTableProps';
 import { useReactPagination } from '@/lib/pagination';
 // import { useCountUp } from '@/hooks/useCountUp';   // 카운트업 카드 주석 처리(2026-10-27)
 import { usePerfStore } from '@/store/perf.store';
@@ -387,24 +388,9 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
 
     serverSorting: sort,
 
-    serverPagination: {
-      total:            paged?.total ?? 0,
-      page:             pagination.page,
-      pageSize:         pagination.pageSize,
-      onPageChange:     pagination.setPage,
-      onPageSizeChange: pagination.setPageSize,
-    },
+    serverPagination: buildServerPagination(pagination, paged?.total ?? 0),
 
-    serverSearch: {
-      value:    search.inputValue,
-      onChange: (val) => {
-        search.handleChange({ target: { value: val } } as React.ChangeEvent<HTMLInputElement>);
-        pagination.resetToFirstPage();
-      },
-      field:        searchField,
-      onFieldChange: (f) => { setSearchField(f); pagination.resetToFirstPage(); },
-      fieldOptions:  SEARCH_FIELD_OPTIONS,
-    },
+    serverSearch: buildServerSearch(search, pagination, searchField, setSearchField, SEARCH_FIELD_OPTIONS),
 
     autoExpandKey,
     financeResults,

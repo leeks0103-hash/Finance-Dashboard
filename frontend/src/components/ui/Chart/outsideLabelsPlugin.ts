@@ -24,6 +24,8 @@ interface OutsideLabelsOpts {
   size?: 'sm' | 'md' | 'lg';
   /** true면 "123.4억(45.2%)"처럼 금액도 같이(값은 이미 억 단위). 기본은 비중(%)만 */
   showValue?: boolean;
+  /** true면 "경상손익(5.7%)"처럼 항목명도 같이(한 줄) — 가로가 넓은 카드용(2026-10-30). showValue보다 우선 */
+  showName?: boolean;
 }
 
 const SIZE_PRESET = {
@@ -44,6 +46,10 @@ const labelLines = (value: number, sum: number, showValue?: boolean): string[] =
   const pct = `${(sum ? (value / sum) * 100 : 0).toFixed(1)}%`;
   return showValue ? [`${value.toFixed(1)}억`, `(${pct})`] : [pct];
 };
+
+/** 항목명 포함 한 줄 라벨 "경상손익(5.7%)" — 여백 계산·그리기 공통 */
+export const formatNamedLabel = (name: string, value: number, sum: number): string =>
+  `${name}(${(sum ? (value / sum) * 100 : 0).toFixed(1)}%)`;
 
 /** 라벨 글자색 — 밝은 조각색(Sky Blue 등, 공통원가)은 흰 배경에 묻혀서 같은 색에 검정을 30% 섞어 진하게.
  *  그림자는 오히려 번져 보여서 반려(2026-09-29). 그 외 색은 조각색 그대로 */
@@ -66,9 +72,13 @@ const measureTextWidth = (text: string, font: string): number => {
 
 /** 좌우 여백 — 인출선(r2+horiz) + 글자 간격 4 + 가장 긴 % 라벨("100.0%") 폭 + 2px.
  *  좁은 카드(3칸)에선 도넛이 가로 폭에 맞춰 그려져, 고정 28px로는 좌우 끝 라벨이 잘렸음(2026-10-21) */
-export const outsideLabelSidePadding = (size: 'sm' | 'md' | 'lg'): number => {
+export const outsideLabelSidePadding = (size: 'sm' | 'md' | 'lg', names?: string[]): number => {
   const preset = SIZE_PRESET[size];
-  const textW = measureTextWidth('100.0%', `700 ${preset.font}px 'Pretendard', sans-serif`);
+  const font = `700 ${preset.font}px 'Pretendard', sans-serif`;
+  // 항목명을 같이 쓰는 차트는 가장 긴 "항목명(00.0%)" 폭 기준(숫자 자릿수와 무관하게 링 크기가 일정하도록 고정 문구로 잼)
+  const textW = names?.length
+    ? Math.max(...names.map(n => measureTextWidth(`${n}(00.0%)`, font)))
+    : measureTextWidth('100.0%', font);
   return Math.ceil(preset.r2 + preset.horiz + 4 + (textW || preset.font * 3.4) + 2);
 };
 
@@ -162,6 +172,7 @@ export const outsideLabelsPlugin: Plugin<'doughnut'> = {
 
     const preset = SIZE_PRESET[opts.size ?? 'sm'];
     const colors = (dataset.backgroundColor as string[]) ?? [];
+    const names  = (chart.data.labels as string[]) ?? [];
     const { ctx } = chart;
 
     const items: LabelItem[] = [];
@@ -181,7 +192,7 @@ export const outsideLabelsPlugin: Plugin<'doughnut'> = {
         x0: el.x, y0: el.y, cos, sin, isRight: cos >= 0,
         r1, r2, horiz: preset.horiz,
         naturalY, y: naturalY,
-        lines: labelLines(value, sum, opts.showValue),
+        lines: opts.showName ? [formatNamedLabel(String(names[i] ?? ''), value, sum)] : labelLines(value, sum, opts.showValue),
         color: colors[i] ?? '#1a1a1a',
       });
     });
@@ -194,7 +205,7 @@ export const outsideLabelsPlugin: Plugin<'doughnut'> = {
     ctx.lineWidth = 1;
 
     const lineH  = preset.font + 2;
-    const labelH = lineH * (opts.showValue ? 2 : 1);
+    const labelH = lineH * (opts.showValue && !opts.showName ? 2 : 1);
     const minGap = labelH + 4;   // 두 줄 라벨은 그만큼 더 띄움
     const lo = labelH / 2 + 2;
     const hi = chart.height - labelH / 2 - 2;

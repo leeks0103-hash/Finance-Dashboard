@@ -345,7 +345,7 @@ const PerformancePlanChartSection = ({ chart, composition }: Props) => {
     ].filter(Boolean).join(' / ');
     return (
       <div className={`${styles.card} ${styles.span3}`}>
-        <ChartCard expandable={false} bodyBleedX={CHART_TUNING[id].bleedX}>
+        <ChartCard bodyBleedX={CHART_TUNING[id].bleedX}>
           <ChartCard.Title>
             <span className={styles.chartTitle}>{title}<InfoButton>{infoPerHead(what)}</InfoButton></span>
             {skipped.length > 0 && labels.length > 0 && (
@@ -373,7 +373,7 @@ const PerformancePlanChartSection = ({ chart, composition }: Props) => {
     <div className={styles.grid}>
       {/* ① 월별 계획 분배 — 한 줄 전체(2026 보기의 "진도율 + 진행 현황" 줄 자리, 진행 현황이 없어 단독) */}
       <div className={`${styles.card} ${styles.span12}`}>
-        <ChartCard expandable={false}>
+        <ChartCard>
           <ChartCard.Title>
             <span className={styles.chartTitle}>월별 계획 분배 (매출 · 원가)<InfoButton>{INFO_MONTHLY}</InfoButton></span>
             {/* 27 계획 합계 매출·원가 + 원가율 — 실적 보기 진도율 차트의 "매출/원가 추정 누계 실적"과 같은 자리·모양(계획이라 누계·진행률 대신 합계·원가율) */}
@@ -400,7 +400,7 @@ const PerformancePlanChartSection = ({ chart, composition }: Props) => {
 
       {/* ②-1 원가분석(파트별 27 계획 매출/원가) — 2026 보기의 원가분석과 같은 차트·같은 8 : 4 줄(2026-10-29 요청). 1280px 이하는 위아래로 */}
       <div className={`${styles.card} ${styles.cardTall} ${styles.span8}`}>
-        <ChartCard expandable={false}>
+        <ChartCard>
           <ChartCard.Title>
             <span className={styles.chartTitle}>원가분석(파트별 27 계획 매출/원가)<InfoButton>{INFO_REVCOST}</InfoButton></span>
             {showLabels && <span className={styles.rateNote}><b className={styles.rateNotePct}>%</b>원가율 = 원가(직접+공통) ÷ 매출</span>}
@@ -419,7 +419,6 @@ const PerformancePlanChartSection = ({ chart, composition }: Props) => {
       {/* ②-2 파트별 27 계획 매출 구성 — 파이(하나씩) ↔ 누적 막대(파트 비교). 파이는 전체·팀·파트를 이 카드에서 따로 고름 */}
       <div className={`${styles.card} ${styles.cardTall} ${styles.span4}`}>
         <ChartCard
-          expandable={false}
           bodyBleedX={isPie ? undefined : CHART_TUNING.planVsActual.bleedX}
           titleAside={
             <span className={styles.compControls}>
@@ -465,6 +464,7 @@ const PerformancePlanChartSection = ({ chart, composition }: Props) => {
                         showLabels={showLabels}
                         outsideLabels
                         outsideLabelsSize="md"
+                        outsideLabelNames
                       />
                     </div>
                   : <BarChart horizontal labels={chart.partLabels} datasets={compositionSets} options={compositionOptions}
@@ -514,7 +514,7 @@ const PerformancePlanChartSection = ({ chart, composition }: Props) => {
 
       {/* ③ 한 줄 4칸 — 실적 보기 3줄째와 같은 순서: 계획 vs 추정 · 인당 매출 · 인당 관리비 · 인당 손익 */}
       <div className={`${styles.card} ${styles.span3}`}>
-        <ChartCard expandable={false} bodyBleedX={CHART_TUNING.planVsActual.bleedX}>
+        <ChartCard bodyBleedX={CHART_TUNING.planVsActual.bleedX}>
           <ChartCard.Title>
             <span className={styles.chartTitle}>파트별 26 추정 매출 vs 27 계획 매출<InfoButton>{INFO_PVP}</InfoButton></span>
           </ChartCard.Title>

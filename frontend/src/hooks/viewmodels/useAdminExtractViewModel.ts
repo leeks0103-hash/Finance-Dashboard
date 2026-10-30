@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { confirmDialog } from '@/utils/dialog';
 import type { useExtractJob } from '@/hooks/useExtractJob';
 import type { ExtractTarget, ExtractMode } from '@/types/extract.types';
@@ -47,6 +47,19 @@ export const useAdminExtractViewModel = (extractJob: ReturnType<typeof useExtrac
   const [selectedFiles, setSelectedFiles] = useState<string[]>(() => initialSelected ?? []);
   const locked = extractJob.isRunning || extractJob.isStarting;
 
+  // '선택' 추출이 성공으로 끝나면 담아 둔 파일 체크를 풀어 줌(2026-10-30 — 끝났는데도 그대로 체크돼 있다는 지적).
+  // 시작할 때의 완료 시각(finished_at)을 기억해 두고, 멈춘 상태에서 그 값이 바뀌면 방금 끝난 것 —
+  // 폴링 사이에 시작·종료된 짧은 작업도 놓치지 않음(useExtractJob의 캐시 무효화와 같은 방식). 실패·중지면 재시도하기 좋게 체크 유지
+  const selectedRunRef = useRef<{ finishedAt: string | null | undefined } | null>(null);
+  const jobStatus = extractJob.status;
+  useEffect(() => {
+    const pending = selectedRunRef.current;
+    if (!pending || !jobStatus || jobStatus.running) return;
+    if (jobStatus.finished_at === pending.finishedAt) return;
+    selectedRunRef.current = null;
+    if (jobStatus.ok) setSelectedFiles([]);
+  }, [jobStatus]);
+
   const toggleTarget = (t: ExtractTarget) => {
     setTargets(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]);
   };
@@ -61,6 +74,7 @@ export const useAdminExtractViewModel = (extractJob: ReturnType<typeof useExtrac
     const selMsg = `${targetLabel} — 고른 파일 ${selectedFiles.length}개를 다시 추출합니다.\n\n${shown}${more}\n\n`
       + '이 파일 이름으로 남은 기존 행은 지우고 새로 넣습니다. 다른 파일과 같은 (코드/연도/단계) 행이 있으면 이번 값으로 덮어씁니다.';
     if (!await confirmDialog(selMsg, { title: '선택한 파일 다시 추출', confirmText: '다시 추출' })) return;
+    selectedRunRef.current = { finishedAt: extractJob.status?.finished_at };
     extractJob.run({ targets, mode: 'selected', files: selectedFiles });
   };
 

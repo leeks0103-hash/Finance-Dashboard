@@ -4,6 +4,7 @@ import { useSummary } from '@/hooks/useSummary';
 import { useFilterOptions } from '@/hooks/useFilterOptions';
 import { usePerformanceOptions } from '@/hooks/usePerformanceData';
 import { useDebouncedSearch } from '@/hooks/useDebouncedSearch';
+import { buildServerPagination, buildServerSearch } from './serverTableProps';
 import { useQuickSearchStore } from '@/store/quickSearch.store';
 import { useReactPagination } from '@/lib/pagination';
 import { formatBillion, formatRate } from '@/utils';
@@ -142,24 +143,9 @@ export const useProjectTableViewModel = (): ProjectTableViewModel => {
 
     serverSorting: sort,
 
-    serverPagination: {
-      total:            paged?.total ?? 0,
-      page:             pagination.page,
-      pageSize:         pagination.pageSize,
-      onPageChange:     pagination.setPage,
-      onPageSizeChange: pagination.setPageSize,
-    },
+    serverPagination: buildServerPagination(pagination, paged?.total ?? 0),
 
-    serverSearch: {
-      value:    search.inputValue,
-      onChange: (val) => {
-        search.handleChange({ target: { value: val } } as React.ChangeEvent<HTMLInputElement>);
-        pagination.resetToFirstPage();
-      },
-      field:        searchField,
-      onFieldChange: (f) => { setSearchField(f); pagination.resetToFirstPage(); },
-      fieldOptions:  SEARCH_FIELD_OPTIONS,
-    },
+    serverSearch: buildServerSearch(search, pagination, searchField, setSearchField, SEARCH_FIELD_OPTIONS),
 
     teamFilter: {
       value:    team,

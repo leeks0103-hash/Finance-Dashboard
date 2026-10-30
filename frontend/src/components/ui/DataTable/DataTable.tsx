@@ -20,6 +20,7 @@ import {
 } from '@dnd-kit/sortable';
 import { Button } from '@/components/ui/Button';
 import { RefreshSpinner } from '@/components/ui/RefreshSpinner';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { Pagination } from '@/components/ui/Pagination';
 import { FilterSelect } from '@/components/ui/FilterSelect';
 import { LineIcon } from '@/components/ui/LineIcon';
@@ -545,6 +546,13 @@ const DataTable = <T extends object>({
   });
   const [showColMenu,      setShowColMenu]      = useState(false);
   const [hoverGroupId,     setHoverGroupId]     = useState<string | null>(null);
+  // 열 필터 칩 줄 — 처음 걸릴 때 위에서 부드럽게 내려오고, 마지막 필터가 풀리면 반대로 올라가며 사라짐(2026-10-30).
+  // 사라지는 동안엔 value가 이미 비어 있으니 마지막으로 걸려 있던 칩을 잠깐 그대로 보여 줌
+  const hasColFilters = !!serverColumnFilters && serverColumnFilters.value.length > 0;
+  const chipsPresence = usePresence(hasColFilters, 220);
+  const lastColFilters = useRef<ColumnFilterValue[]>([]);
+  if (hasColFilters) lastColFilters.current = serverColumnFilters!.value;
+  const shownColFilters = hasColFilters ? serverColumnFilters!.value : lastColFilters.current;
   const colMenuDrop = usePresence(showColMenu);   // 닫힐 때도 퇴장 애니메이션(.closingDrop)
   const colMenuRef = useRef<HTMLDivElement>(null);
 
@@ -1038,21 +1046,33 @@ const DataTable = <T extends object>({
         </div>
       )}
 
-      {/* 걸린 열 필터 — 칩마다 ×, 모두 해제 */}
-      {serverColumnFilters && serverColumnFilters.value.length > 0 && (
-        <div className={styles.filterChips}>
-          <span className={styles.filterChipsLabel}>필터</span>
-          {serverColumnFilters.value.map(f => (
-            <span key={f.id} className={styles.filterChip}>
-              <Button unstyled className={styles.filterChipText}
-                onClick={e => setFilterOpen({ id: f.id, el: e.currentTarget })}>
-                {describeColumnFilter(f, columnTitle(f.id))}
+      {/* 걸린 열 필터 — 칩마다 ×, 모두 해제. 바깥 래퍼가 높이를 0↔자연 높이로 부드럽게 접고 펼침 */}
+      {chipsPresence.mounted && serverColumnFilters && (
+        <div className={`${styles.filterChipsWrap} ${chipsPresence.closing ? styles.filterChipsOut : styles.filterChipsIn}`}>
+          <div className={styles.filterChipsClip}>
+            <div className={styles.filterChips}>
+              <span className={styles.filterChipsLabel}>필터</span>
+              {shownColFilters.map(f => (
+                <span key={f.id} className={styles.filterChip}>
+                  <Button unstyled className={styles.filterChipText}
+                    onClick={e => setFilterOpen({ id: f.id, el: e.currentTarget })}>
+                    {describeColumnFilter(f, columnTitle(f.id))}
+                  </Button>
+                  <Button unstyled className={styles.filterChipX} aria-label="이 필터 해제"
+                    onClick={() => setColumnFilter(f.id, null)}>×</Button>
+                </span>
+              ))}
+              {/* 칩과 같은 눈높이의 조용한 글자 버튼 — 호버에서만 위험색(2026-10-30, 기본 ghost 버튼이 칩 줄에서 투박해 보인다는 의견) */}
+              <Button unstyled className={styles.filterChipsClear} onClick={() => serverColumnFilters.onChange([])}>
+                {/* 깔때기에 사선 — 머리글 필터 아이콘의 "필터 끄기" 짝 */}
+                <svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" strokeLinecap="round" aria-hidden>
+                  <path d="M1.5 2h9L7.2 6.2v3.5L4.8 10.8V6.2L1.5 2Z" />
+                  <path d="M1 11L11 1" />
+                </svg>
+                모두 해제
               </Button>
-              <Button unstyled className={styles.filterChipX} aria-label="이 필터 해제"
-                onClick={() => setColumnFilter(f.id, null)}>×</Button>
-            </span>
-          ))}
-          <Button variant="ghost" size="sm" onClick={() => serverColumnFilters.onChange([])}>모두 해제</Button>
+            </div>
+          </div>
         </div>
       )}
       {filterOpen && serverColumnFilters && (() => {
@@ -1078,7 +1098,7 @@ const DataTable = <T extends object>({
       {refreshSpinner && <RefreshSpinner active={isFetching && !isLoading} />}
       {isLoading ? (
         <div className={styles.skeletonWrap}>
-          {[...Array(6)].map((_, i) => <div key={i} className={styles.skeletonRow} />)}
+          {[...Array(6)].map((_, i) => <Skeleton key={i} className={styles.skeletonRow} />)}
         </div>
       ) : rows.length === 0 ? (
         /* 결과 없음 — 테이블 자체를 그리지 않아 불필요한 가로 스크롤 방지 */

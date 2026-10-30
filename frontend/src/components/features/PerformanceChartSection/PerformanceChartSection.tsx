@@ -18,7 +18,7 @@ import { useUiStore } from '@/store';
 import AdminQuickActions from '@/components/features/Admin/AdminQuickActions';
 // Toggle — 파트별 경상이익 토글 비활성화로 미사용(주석 처리). 복구 시 함께 import
 import { createColumnHelper } from '@tanstack/react-table';
-import { ChartCard, BarChart, DoughnutChart, DataTable, useTableDndSensors, InfoButton, Button, LineIcon } from '@/components/ui';
+import { ChartCard, BarChart, DoughnutChart, DataTable, useTableDndSensors, InfoButton, Button, LineIcon, ChartStateGrid } from '@/components/ui';
 import type { Plugin, Chart, LegendItem, LegendElement, ChartEvent } from 'chart.js';
 import CostFilterPopover from './CostFilterPopover';
 import PerfBreakdownModal from '@/components/features/PerfBreakdownModal/PerfBreakdownModal';
@@ -805,27 +805,11 @@ function SortableChart({ id, fullRow, spanClassName, dropState, noHandle, childr
   );
 }
 
-// 로딩/에러/데이터없음 플레이스홀더 — 실제 차트와 같은 id 목록·span을 그대로 써서 레이아웃을
+// 로딩/에러/데이터없음 플레이스홀더 — 공용 ChartStateGrid(ui). 실제 차트와 같은 id 목록·span을 그대로 써서 레이아웃을
 // 맞춘다. 예전엔 카드 span 없이 고정 개수(5)만 찍어서, 2번째 줄(카드 3개, span 5+3+4=12)이
 // 에러/빈 상태가 되면 각 칸이 span 없는 기본 1칸으로 쪼그라들어 오른쪽이 텅 비어 보였음
-interface ChartStateGridProps { variant: 'skeleton' | 'error' | 'empty'; icon?: ReactNode; message?: string; ids: string[]; }
-function ChartStateGrid({ variant, icon, message, ids }: ChartStateGridProps) {
-  return (
-    <>
-      {ids.map(id => {
-        const className = cardClass(id);
-        return variant === 'skeleton' ? (
-          <div key={id} className={`${styles.skeleton} ${className}`} />
-        ) : (
-          <div key={id} className={`${variant === 'error' ? styles.errorCard : styles.emptyCard} ${className}`}>
-            <span className={variant === 'error' ? styles.errorIcon : styles.emptyIcon}>{icon}</span>
-            <span>{message}</span>
-          </div>
-        );
-      })}
-    </>
-  );
-}
+const STATE_CARD_MIN_H = 430;   // .grid grid-auto-rows와 맞출 것
+const stateItems = (ids: string[]) => ids.map(id => ({ key: id, className: cardClass(id) }));
 
 /** 차트 영역 안에 한 칸으로 들어가는 외부 카드 — 파트별 매출 진행 현황(PerformancePage가 막대·모달 연결을 들고 있어 내용만 받음) */
 export interface AchievementCardProps {
@@ -1197,7 +1181,7 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
       partialParts.length ? `팀 필터로 인당 값을 못 구함: ${partialParts.join(', ')}` : '',
     ].filter(Boolean).join(' / ');
     return (
-      <ChartCard expandable={false} bodyBleedX={CHART_TUNING[id]?.bleedX}>
+      <ChartCard bodyBleedX={CHART_TUNING[id]?.bleedX}>
         <ChartCard.Title>
           <span className={styles.chartTitle}>{CHART_TITLES[id]}<InfoButton>{info}</InfoButton></span>
           {skipped.length > 0 && labels.length > 0 && (
@@ -1272,7 +1256,7 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
     // 파트별 매출 진행 현황 — 데이터가 아직 없으면 카드 없음. 투어 앵커(perf-achievement)는 이 래퍼에(예전엔 페이지 섹션에 있었음)
     achievement: () => achievement ? (
       <div data-tour="perf-achievement" className={styles.fillCard}>
-        <ChartCard expandable={false} titleAside={achievement.legend}>
+        <ChartCard titleAside={achievement.legend}>
           <ChartCard.Title>
             <span className={styles.chartTitle}>{achievement.title}{achievement.info && <InfoButton>{achievement.info}</InfoButton>}</span>
           </ChartCard.Title>
@@ -1627,6 +1611,7 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
             showLabels={vm.showLabels}
             outsideLabels
             outsideLabelsSize="md"
+            outsideLabelNames
             onSliceClick={i => openTarget({
               chart: 'costBreakdown', series: i, key: '',
               // 이 카드는 메인 필터 무관 — 카드 자체 팀/파트 선택 기준으로만 조회
@@ -1663,9 +1648,9 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
 
   const chartState = vm.isLoading ? 'loading' : vm.isError ? 'error' : vm.isEmpty ? 'empty' : 'ready';
 
-  const content = chartState === 'loading' ? <ChartStateGrid variant="skeleton" ids={chartOrder} />
-    : chartState === 'error' ? <ChartStateGrid variant="error" icon="⚠" message="데이터를 불러올 수 없습니다" ids={chartOrder} />
-    : chartState === 'empty' ? <ChartStateGrid variant="empty" icon={<LineIcon kind="chart" />} message="데이터 없음" ids={chartOrder} />
+  const content = chartState === 'loading' ? <ChartStateGrid variant="skeleton" items={stateItems(chartOrder)} minHeight={STATE_CARD_MIN_H} />
+    : chartState === 'error' ? <ChartStateGrid variant="error" items={stateItems(chartOrder)} minHeight={STATE_CARD_MIN_H} icon="⚠" message="데이터를 불러올 수 없습니다" />
+    : chartState === 'empty' ? <ChartStateGrid variant="empty" items={stateItems(chartOrder)} minHeight={STATE_CARD_MIN_H} icon={<LineIcon kind="chart" />} message="데이터 없음" />
     : visibleCharts.map(c => (
         <SortableChart
           key={c.id}

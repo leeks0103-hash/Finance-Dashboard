@@ -226,8 +226,7 @@
 
 /* ── 스켈레톤 ─────────────────────────── */
 .skeletonWrap { padding: 16px; display: flex; flex-direction: column; gap: 8px; }
-.skeletonRow  { height: 36px; border-radius: var(--radius-sm); background: var(--border); animation: pulse 1.2s ease-in-out infinite; }
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.skeletonRow  { height: 36px; border-radius: var(--radius-sm); --skeleton-base: var(--border); }
 
 /* ── 페이지네이션 ─────────────────────── */
 .paginationBar {
