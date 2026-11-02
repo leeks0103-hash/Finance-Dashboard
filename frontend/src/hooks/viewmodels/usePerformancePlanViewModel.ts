@@ -6,7 +6,7 @@ import { buildServerPagination, buildServerSearch } from './serverTableProps';
 import { useServerSort } from '@/hooks/useServerSort';
 import { useReactPagination } from '@/lib/pagination';
 import { usePerfStore } from '@/store/perf.store';
-import { toEokNum, stripPartPrefix } from '@/utils';
+import { toEokNum, stripPartPrefix, thousandWonTitle } from '@/utils';
 import { toEokNum2, roundHeadcount } from '@/utils/format';
 import { sortParts, sortTeams } from '@/utils/partOrder';
 import { perfExportHref } from '@/api/performance.api';
@@ -237,8 +237,10 @@ export const usePerformancePlanViewModel = (): PerformancePlanViewModel => {
       const rateStr = rate == null ? undefined : `${rate.toFixed(1)}%`;
       const e = toEokNum(v27);
       const base = { kind: 'compare' as const, id, label, accent, colorRole, rateStr, rateLabel: '26 추정 대비' };
+      // 마우스오버 툴팁 = 정확한 원 단위 값(천원 × 1000) — 왼쪽 값 = 26 추정, 오른쪽 값 = 27 계획
+      const estTitle = `27 계획 ${thousandWonTitle(v27)}`;
       if (v26 == null) {
-        return { ...base, planStr: '-', estStr: `${e.toFixed(1)}억원`, planNum: 0, estNum: e, diffStr: '', diffUp: true };
+        return { ...base, planStr: '-', estStr: `${e.toFixed(1)}억원`, planNum: 0, estNum: e, diffStr: '', diffUp: true, estTitle };
       }
       const p = toEokNum(v26);
       const d = +(e - p).toFixed(1);
@@ -246,6 +248,9 @@ export const usePerformancePlanViewModel = (): PerformancePlanViewModel => {
         ...base,
         planStr: `${p.toFixed(1)}억원`, estStr: `${e.toFixed(1)}억원`, planNum: p, estNum: e,
         diffStr: `${d >= 0 ? '+' : ''}${d.toFixed(1)}억원`, diffUp: d >= 0,
+        planTitle: `26 추정 ${thousandWonTitle(v26)}`,
+        estTitle,
+        diffTitle: `차이(27 계획 − 26 추정) ${thousandWonTitle(v27 - v26, true)}`,
       };
     };
 

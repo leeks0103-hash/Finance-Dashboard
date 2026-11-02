@@ -7,10 +7,10 @@ import styles from './PerfCompareCard.module.css';
 
 /** "137.0억원" → 숫자 칸(오른쪽 정렬 고정폭) + 단위로 분리 렌더링 — 계획/추정 자릿수가 달라도
     "억원" 단위가 항상 같은 자리에 오도록 (0.0억원 / 88.2억원처럼 자릿수 차가 클 때 특히 필요) */
-const ValueUnit = ({ value, className }: { value: string; className: string }) => {
+const ValueUnit = ({ value, className, title }: { value: string; className: string; title?: string }) => {
   const { num, unit } = splitValueUnit(value);
   return (
-    <span className={className}>
+    <span className={className} title={title}>
       <span className={styles.numPart}>{num}</span>
       {unit && <span className={styles.unitPart}>{unit}</span>}
     </span>
@@ -51,7 +51,7 @@ const PerfCompareCard = ({ card }: { card: PerfCompareCardData }) => {
         </span>
         {/* 계획 값이 없으면(diffStr '') 차이 알약도 안 그림 */}
         {card.diffStr && (
-          <span key={card.diffStr} className={`${styles.diff} ${card.diffUp ? styles.up : styles.down}`}>
+          <span key={card.diffStr} className={`${styles.diff} ${card.diffUp ? styles.up : styles.down}`} title={card.diffTitle}>
             {card.diffUp ? '▲' : '▼'} {card.diffStr}
           </span>
         )}
@@ -70,10 +70,11 @@ const PerfCompareCard = ({ card }: { card: PerfCompareCardData }) => {
           </div>
           <div className={styles.values}>
             <div className={styles.planRow}>
-              <ValueUnit value={planText} className={styles.plan} />
+              {/* 마우스오버 = 억으로 줄이기 전 정확한 원 단위 값(2026-11-02 요청) */}
+              <ValueUnit value={planText} className={styles.plan} title={card.planTitle} />
               <span className={styles.slash}>/</span>
             </div>
-            <ValueUnit value={estText} className={styles.est} />
+            <ValueUnit value={estText} className={styles.est} title={card.estTitle} />
           </div>
           {/* 값 바로 아래 보조 줄(관리비 "매출 대비 N%" 등) — 값 위치는 다른 카드와 같게 두려고 아래로 매닮 */}
           {card.sub && <div key={card.sub} className={styles.sub}>{card.sub}</div>}

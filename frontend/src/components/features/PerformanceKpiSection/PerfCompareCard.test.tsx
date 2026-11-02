@@ -96,3 +96,23 @@ describe('PerfCompareCard 2027 계획 보기(26 추정 / 27 계획, 2026-10-29)'
     expect(container.querySelector(`.${styles.rate}`)?.textContent).toBe('계획 대비 112.0%');
   });
 });
+
+describe('PerfCompareCard 마우스오버 툴팁(정확한 원 단위 값)', () => {
+  const withTitles: PerfCompareCardData = {
+    ...base,
+    planTitle: '계획 10,750,000,000원', estTitle: '추정 11,440,000,000원', diffTitle: '차이(추정 − 계획) +690,000,000원',
+  };
+
+  it('계획·추정 값과 차이 알약에 title로 붙는다', () => {
+    const { container } = render(<PerfCompareCard card={withTitles} />);
+    expect(container.querySelector(`.${styles.plan}`)?.getAttribute('title')).toBe('계획 10,750,000,000원');
+    expect(container.querySelector(`.${styles.est}`)?.getAttribute('title')).toBe('추정 11,440,000,000원');
+    expect(container.querySelector(`.${styles.diff}`)?.getAttribute('title')).toBe('차이(추정 − 계획) +690,000,000원');
+  });
+
+  it('값이 없는 칸(title 없음)엔 툴팁을 달지 않는다', () => {
+    const { container } = render(<PerfCompareCard card={{ ...base, planStr: '-', planNum: 0, diffStr: '', diffUp: true, estTitle: '추정 1원' }} />);
+    expect(container.querySelector(`.${styles.plan}`)?.hasAttribute('title')).toBe(false);
+    expect(container.querySelector(`.${styles.est}`)?.getAttribute('title')).toBe('추정 1원');
+  });
+});

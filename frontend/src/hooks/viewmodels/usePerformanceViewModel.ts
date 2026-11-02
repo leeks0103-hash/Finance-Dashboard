@@ -10,7 +10,7 @@ import { usePerfStore } from '@/store/perf.store';
 import { useQuickSearchStore } from '@/store/quickSearch.store';
 import { useFinanceCompletedCodes } from '@/hooks/useFinanceCodes';
 import { pickAutoExpandRow } from '@/utils/projectCode';
-import { formatEok, toEokNum, stripPartPrefix } from '@/utils';
+import { formatEok, toEokNum, stripPartPrefix, thousandWonTitle } from '@/utils';
 import { usePerfPeriod, type PerfPeriod } from '@/hooks/usePerfPeriod';
 import { partRank, sortParts, sortTeams } from '@/utils/partOrder';
 import { getProjects } from '@/api/finance.api';
@@ -51,6 +51,10 @@ export interface PerfCompareCardData {
   estNum:  number;
   diffStr: string;   // "+55.2억" / "-3.1억" — 계획 값이 없으면 '' (차이 표시 안 함)
   diffUp:  boolean;
+  /** 마우스오버 툴팁(2026-11-02) — 카드는 억 소수 첫째 자리로 줄여 보이므로 정확한 원 단위 값. 값이 없으면 undefined(툴팁 없음) */
+  planTitle?: string;   // 예: "계획 3,212,909,760원"
+  estTitle?:  string;   // 예: "추정 3,599,100,000원"
+  diffTitle?: string;   // 예: "차이(추정 − 계획) +386,190,240원"
 }
 
 /** 단일 값 카드 (경상손익·누계 실적) — 기존 형태 유지 */
@@ -235,6 +239,8 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
       // 계획 대비 추정(%) — 백엔드 계산값(est_plan_rate) 그대로 표시. 계획이 없으면 안 그림
       const rate = total.est_plan_rate?.[id];
       const rateStr = rate == null ? undefined : `${rate.toFixed(1)}%`;
+      // 마우스오버 툴팁 = 정확한 원 단위 값(천원 × 1000)
+      const estTitle = `추정 ${thousandWonTitle(estK)}`;
       // 계획 값이 없으면(관리비·경상손익: 팀·파트 필터 중이거나 시트 합계 블록을 못 읽음) 계획 칸 '-', 차이 표시 없음
       if (planK == null) {
         return {
@@ -242,6 +248,7 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
           planStr: '-', estStr: `${e.toFixed(1)}억원`,
           planNum: 0, estNum: e,
           diffStr: '', diffUp: true,
+          estTitle,
         };
       }
       const p = toEokNum(planK);
@@ -251,6 +258,9 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
         planStr: `${p.toFixed(1)}억원`, estStr: `${e.toFixed(1)}억원`,
         planNum: p, estNum: e,
         diffStr: `${d >= 0 ? '+' : ''}${d.toFixed(1)}억원`, diffUp: d >= 0,
+        planTitle: `계획 ${thousandWonTitle(planK)}`,
+        estTitle,
+        diffTitle: `차이(추정 − 계획) ${thousandWonTitle(estK - planK, true)}`,
       };
     };
 

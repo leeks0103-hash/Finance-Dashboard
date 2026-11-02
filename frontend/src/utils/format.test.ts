@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatWon, formatBillion, formatRate, formatCount, formatEok, formatPctRaw, formatNum, toEokNum2, roundHeadcount, formatHeadcount } from './format';
+import { formatWon, formatBillion, formatRate, formatCount, formatEok, formatPctRaw, formatNum, toEokNum2, roundHeadcount, formatHeadcount, thousandWonTitle } from './format';
 
 describe('formatWon', () => {
   it('formats with 원 suffix and locale grouping', () => {
@@ -122,5 +122,25 @@ describe('파트 인원 소수 첫째 자리(2026-10-27)', () => {
     expect(formatHeadcount(4.5)).toBe('4.5');
     expect(formatHeadcount(7.0)).toBe('7');
     expect(formatHeadcount(null)).toBe('-');
+  });
+});
+
+describe('thousandWonTitle — 천원 단위 값을 정확한 원 단위 툴팁으로', () => {
+  it('천원 × 1000을 쉼표로, 소수 천원은 원 단위로 반올림', () => {
+    expect(thousandWonTitle(32129098)).toBe('32,129,098,000원');
+    expect(thousandWonTitle(2033363.5629)).toBe('2,033,363,563원');
+  });
+  it('0은 "0원", 음수는 - 그대로', () => {
+    expect(thousandWonTitle(0)).toBe('0원');
+    expect(thousandWonTitle(-1234)).toBe('-1,234,000원');
+  });
+  it('sign=true면 양수에만 + (차이 값용)', () => {
+    expect(thousandWonTitle(500, true)).toBe('+500,000원');
+    expect(thousandWonTitle(-500, true)).toBe('-500,000원');
+  });
+  it('값이 없거나 숫자가 아니면 undefined', () => {
+    expect(thousandWonTitle(null)).toBeUndefined();
+    expect(thousandWonTitle(undefined)).toBeUndefined();
+    expect(thousandWonTitle(NaN)).toBeUndefined();
   });
 });

@@ -136,6 +136,16 @@ export const wonTitle = (v: unknown): string | undefined => {
   return n && isFinite(n) ? `${KO.format(Math.round(n))}원` : undefined;
 };
 
+/** 천원 단위 값 → 정확한 원 단위 툴팁("3,212,909,760원") — 실적 카드는 억 소수 첫째 자리로 줄여 보이므로 마우스오버용.
+ *  wonTitle과 달리 0도 "0원"으로 보여줌(카드엔 0.0억원이 실제로 뜸). 값이 없으면 undefined. sign=true면 양수에 + 붙임(차이 값용) */
+export const thousandWonTitle = (k: number | null | undefined, sign = false): string | undefined => {
+  if (k == null) return undefined;
+  const n = Number(k);
+  if (!Number.isFinite(n)) return undefined;
+  const won = Math.round(n * 1000);
+  return `${sign && won > 0 ? '+' : ''}${KO.format(won)}원`;
+};
+
 /** 표 셀 툴팁(% 비율) — 원본 소수 그대로(둘째 자리 이하까지) */
 export const pctTitle = (v: unknown): string | undefined => {
   const n = Number(v);
