@@ -28,8 +28,15 @@ export const getPdfUrl = (filters: Filters): string =>
 export const getMissedBidProjects = (): Promise<Project[]> =>
   client.get<{ data: Project[] }>('/finance/missed-bid').then(r => r.data.data);
 
-export const getFinanceCodes = (): Promise<Record<string, number>> =>
-  client.get<{ codes: Record<string, number> }>('/finance/codes').then(r => r.data.codes);
+export interface FinanceCodesResponse {
+  /** 재무 이력 코드 → 건수 */
+  codes:      Record<string, number>;
+  /** 그중 "완료" 단계 보고가 있는 코드 → 건수(Flask 재시작 전엔 없음) */
+  completed?: Record<string, number>;
+}
+
+export const getFinanceCodes = (): Promise<FinanceCodesResponse> =>
+  client.get<FinanceCodesResponse>('/finance/codes').then(r => r.data);
 
 export interface OpenFileResult {
   ok:       boolean;

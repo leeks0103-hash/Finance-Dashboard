@@ -226,7 +226,7 @@ const PerformanceActualPage = () => {
               getKey: (row) => String(row._row_num),
               excludeColumns: ['filename'],
               renderContent: (row, close) => <FinanceCrossCheckPanel projectCode={row.project_code} onClose={close} />,
-              // 검색 결과에 재무 이력이 있는 프로젝트가 있으면 첫 번째 것의 2뎁스를 자동 펼침(2026-09-30)
+              // 검색 결과에서 "완료" 단계 재무 보고 데이터가 정확히 1건일 때만 그 행의 2뎁스를 자동 펼침(2026-09-30, 1건일 때만으로 좁힘 2026-11-02)
               autoExpandKey: vm.autoExpandKey,
             }}
           />

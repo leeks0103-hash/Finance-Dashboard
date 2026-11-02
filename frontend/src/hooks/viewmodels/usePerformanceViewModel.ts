@@ -8,8 +8,8 @@ import { useReactPagination } from '@/lib/pagination';
 // import { useCountUp } from '@/hooks/useCountUp';   // 카운트업 카드 주석 처리(2026-10-27)
 import { usePerfStore } from '@/store/perf.store';
 import { useQuickSearchStore } from '@/store/quickSearch.store';
-import { useFinanceCodes } from '@/hooks/useFinanceCodes';
-import { countFinanceHistory } from '@/utils/projectCode';
+import { useFinanceCompletedCodes } from '@/hooks/useFinanceCodes';
+import { pickAutoExpandRow } from '@/utils/projectCode';
 import { formatEok, toEokNum, stripPartPrefix } from '@/utils';
 import { usePerfPeriod, type PerfPeriod } from '@/hooks/usePerfPeriod';
 import { partRank, sortParts, sortTeams } from '@/utils/partOrder';
@@ -366,15 +366,16 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
 
   const projects: PerfProject[] = paged?.rows ?? [];
 
-  // 검색 결과에 재무 이력이 있는 프로젝트가 있으면 표 순서상 첫 번째 것을 자동 펼침(한 번에 하나만 열리는 표).
+  // 검색 결과에서 "완료" 단계 재무 보고 데이터가 정확히 1건일 때만 그 행의 2뎁스를 자동 펼침(규칙은 pickAutoExpandRow).
+  // 그 밖(완료 보고 없음·여러 행·여러 건)은 그냥 둠 — 더블클릭으로는 그대로 열림(2026-11-02, 예전엔 재무 이력이 있으면 무조건 펼침).
   // 조회 중엔 옛 결과 기준으로 열리지 않게 null. 행 키는 PerformancePage expandableRow.getKey와 같은 _row_num
-  const { data: financeCodes } = useFinanceCodes();
+  const { data: completedCodes } = useFinanceCompletedCodes();
   const searching = search.debouncedValue.trim().length > 0;
   const autoExpandKey = useMemo(() => {
-    if (!searching || isFetching || !financeCodes) return null;
-    const hit = paged?.rows.find(p => countFinanceHistory(p.project_code, financeCodes) > 0);
+    if (!searching || isFetching) return null;
+    const hit = pickAutoExpandRow(paged?.rows ?? [], completedCodes);
     return hit ? String(hit._row_num) : null;
-  }, [searching, isFetching, financeCodes, paged]);
+  }, [searching, isFetching, completedCodes, paged]);
 
   return {
     isLoading, isFetching: isFetching ?? false,

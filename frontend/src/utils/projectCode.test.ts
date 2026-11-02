@@ -1,5 +1,27 @@
 import { describe, it, expect } from 'vitest';
-import { extractRealCode, countFinanceHistory } from './projectCode';
+import { extractRealCode, countFinanceHistory, pickAutoExpandRow } from './projectCode';
+
+describe('pickAutoExpandRow — 완료 보고가 정확히 1건일 때만', () => {
+  const row = (project_code: string) => ({ project_code });
+  const completed = { E148600126040002: 1, E148600126040001: 2 };
+  it('완료 보고가 있는 행이 하나뿐이고 1건이면 그 행', () => {
+    const a = row('E148600126040002');
+    expect(pickAutoExpandRow([row('E999900000000001'), a], completed)).toBe(a);
+  });
+  it('완료 보고가 2건 이상이면 안 펼침', () => {
+    expect(pickAutoExpandRow([row('E148600126040001')], completed)).toBeNull();
+  });
+  it('완료 보고가 있는 행이 여럿이면 안 펼침', () => {
+    expect(pickAutoExpandRow([row('E148600126040002'), row('E148600126040001')], completed)).toBeNull();
+  });
+  it('완료 보고가 없으면(재무 이력만 있어도) 안 펼침', () => {
+    expect(pickAutoExpandRow([row('E999900000000001')], completed)).toBeNull();
+    expect(pickAutoExpandRow([], completed)).toBeNull();
+  });
+  it('완료 코드 맵이 아직 없으면 안 펼침', () => {
+    expect(pickAutoExpandRow([row('E148600126040002')], undefined)).toBeNull();
+  });
+});
 
 describe('extractRealCode', () => {
   it('정식 코드 그대로', () => {

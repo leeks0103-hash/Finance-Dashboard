@@ -11,7 +11,7 @@ from flask import Blueprint, jsonify, request
 from markupsafe import escape as html_escape
 
 import headcount
-from shared import is_ranked_valid_code, safe_mtime, sort_frame, strip_part_prefix, PART_PREFIX_RE
+from shared import is_ranked_valid_code, safe_mtime, sort_frame, strip_part_prefix, PART_PREFIX_RE, open_excel_file
 from auth import admin_required
 
 load_dotenv()
@@ -452,7 +452,8 @@ def read_perf_frame(path: str, sheet: "str | None" = None, col_map: "dict | None
     view(2026-10-29): "actual"(N월 집계/추정 시트) / "plan27"(사업계획 시트 — 기준월·누계 없음, 월은 0으로 돌려줌).
     생략하면 시트 이름으로 정함(계획 시트 이름이면 plan27)."""
     _perf_engine = "pyxlsb" if path.endswith(".xlsb") else "openpyxl"
-    with pd.ExcelFile(path, engine=_perf_engine) as xf:
+    # 보안(AIP) 암호화로 zip이 아닌 파일은 Excel COM으로 읽음(shared.ComExcelFile, 2026-11-02) — 평문은 예전 그대로 pandas
+    with open_excel_file(path, _perf_engine) as xf:
         if sheet:
             resolved_sheet = sheet
         elif view == "plan27":
@@ -726,7 +727,7 @@ def perf_autoupdate_sheet(path: str) -> "str | None":
     """그 파일의 최신 시트 이름(못 읽으면 None)"""
     try:
         engine = "pyxlsb" if path.endswith(".xlsb") else "openpyxl"
-        with pd.ExcelFile(path, engine=engine) as xf:
+        with open_excel_file(path, engine) as xf:
             return _resolve_perf_sheet(xf.sheet_names)
     except Exception:
         return None
@@ -736,7 +737,7 @@ def plan_sheet_of(path: str) -> "str | None":
     """그 파일의 사업계획 시트 이름(없거나 못 읽으면 None)"""
     try:
         engine = "pyxlsb" if path.endswith(".xlsb") else "openpyxl"
-        with pd.ExcelFile(path, engine=engine) as xf:
+        with open_excel_file(path, engine) as xf:
             return _resolve_plan_sheet(xf.sheet_names)
     except Exception:
         return None

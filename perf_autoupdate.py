@@ -23,6 +23,8 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 
+from shared import open_excel_file, read_sheet_frame
+
 logger = logging.getLogger(__name__)
 
 _DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
@@ -45,7 +47,7 @@ REQUIRED_FIELDS = [
 def header_labels(path: str, sheet: str) -> list[str]:
     """머리글 2줄(그룹/세부 — 엑셀 11·12행) 글자. 3번째 줄은 숫자라 제외(scripts/check_perf_headers.py와 같은 규칙)"""
     engine = "pyxlsb" if path.endswith(".xlsb") else "openpyxl"
-    df = pd.read_excel(path, sheet_name=sheet, header=None, skiprows=10, nrows=3, engine=engine)
+    df = read_sheet_frame(path, sheet, skiprows=10, nrows=3, engine=engine)   # 암호화(OLE2)면 Excel COM — shared 참고
     out = []
     for c in range(df.shape[1]):
         parts = []
@@ -301,10 +303,10 @@ def prepare(path: str, prev_good: "dict | None" = None, view: str = "actual"):
     st = {"checked_at": datetime.now().strftime("%Y-%m-%d %H:%M"), "file": os.path.basename(path),
           "ok": False, "changes": [], "checks": [], "summary": "", "error": ""}
     try:
-        if open(path, "rb").read(4) == b"\xd0\xcf\x11\xe0":
-            raise ValueError("파일이 보안(AIP/DRM) 암호화돼 있어 읽을 수 없습니다 — 암호화 안 된 파일로 넣어 주세요")
+        # 예전엔 여기서 보안(AIP) 암호화(OLE2) 파일을 거부했음 — 2026-11-02부터 Excel COM으로 읽음(shared.ComExcelFile).
+        # 못 읽으면(Excel 없음·권한 없음 등) 아래 예외가 그대로 상태에 기록돼 직전 파일로 계속 표시
         engine = "pyxlsb" if path.endswith(".xlsb") else "openpyxl"
-        with pd.ExcelFile(path, engine=engine) as xf:
+        with open_excel_file(path, engine) as xf:
             sheets = xf.sheet_names
         if view == "plan27":
             sheet = performance._resolve_plan_sheet(sheets)

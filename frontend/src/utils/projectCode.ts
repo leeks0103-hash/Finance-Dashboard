@@ -48,3 +48,20 @@ export const countFinanceHistory = (
   cache?.set(term, n);
   return n;
 };
+
+/**
+ * 검색 결과에서 2뎁스(재무 이력)를 자동으로 펼칠 행 — 완료 단계 보고 데이터가 **정확히 1건**일 때만(2026-11-02 요청).
+ * 완료 보고가 있는 행이 하나뿐이고 그 행의 완료 보고가 1건이면 그 행, 아니면(없음·여러 행·한 행에 여러 건) null — 그냥 둠.
+ * completedCodes = 완료 단계 보고가 있는 코드 → 건수(/api/finance/codes의 completed). 건수 세는 규칙은 배지(countFinanceHistory)와 같음.
+ */
+export const pickAutoExpandRow = <T extends { project_code: string }>(
+  rows: readonly T[],
+  completedCodes: Record<string, number> | undefined,
+): T | null => {
+  if (!completedCodes) return null;
+  const cache = new Map<string, number>();
+  const withCompleted = rows.filter(r => countFinanceHistory(r.project_code, completedCodes, cache) > 0);
+  if (withCompleted.length !== 1) return null;
+  const only = withCompleted[0];
+  return countFinanceHistory(only.project_code, completedCodes, cache) === 1 ? only : null;
+};

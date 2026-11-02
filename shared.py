@@ -1,6 +1,7 @@
 import logging
 import os
 import re
+import threading
 
 logger = logging.getLogger(__name__)
 
@@ -103,8 +104,18 @@ def new_excel_app():
     return win32com.client.DispatchEx("Excel.Application")
 
 
+# Excel COM 읽기는 한 번에 하나만 — 페이지를 열면 여러 API가 동시에 같은 암호화 파일을 각자 새 Excel로 열려다
+# "Workbooks.Open 오류"가 났음(2026-11-02 로그). read_excel_via_com·ComExcelFile이 같이 씀
+_com_lock = threading.RLock()
+
+
 def read_excel_via_com(path: str, sheet_name: str) -> "pd.DataFrame | None":
     """AIP 암호화 Excel을 win32com으로 열어 DataFrame으로 반환(첫 행 = 헤더)."""
+    with _com_lock:
+        return _read_excel_via_com_locked(path, sheet_name)
+
+
+def _read_excel_via_com_locked(path: str, sheet_name: str) -> "pd.DataFrame | None":
     import pandas as pd
     try:
         import pythoncom
@@ -198,6 +209,166 @@ def read_sheet_cached(path: str, sheet_name: str):
     if df is not None:
         _sheet_cache[key] = (mtime, df)
     return df
+
+
+def is_ole2_file(path: str) -> bool:
+    """엑셀이 zip(.xlsx)이 아니라 OLE2 컨테이너인지 — 회사 보안(AIP/권한관리) 암호화가 걸리면 이 형식이 됨"""
+    try:
+        with open(path, "rb") as f:
+            return f.read(8) == b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"
+    except OSError:
+        return False
+
+
+# Excel이 셀 오류(#DIV/0! 등)를 숫자 코드로 돌려주는 값 → openpyxl이 주는 글자와 같게(숫자로 읽혀 조용히 틀리는 것 방지)
+_COM_ERROR_CODES = {
+    -2146826281: "#DIV/0!", -2146826246: "#N/A", -2146826259: "#NAME?", -2146826288: "#NULL!",
+    -2146826252: "#NUM!", -2146826265: "#REF!", -2146826273: "#VALUE!",
+}
+
+# pd.read_excel은 이 글자들을 빈 값(NaN)으로 읽음("#N/A" 셀 포함) — COM 쪽도 같게 해야 두 경로 결과가 같음(2026-11-02 대조에서 발견)
+try:
+    from pandas._libs.parsers import STR_NA_VALUES as _PANDAS_NA_STRINGS
+except Exception:   # pandas 내부 상수 — 못 찾으면 알려진 기본값
+    _PANDAS_NA_STRINGS = {"", "#N/A", "#N/A N/A", "#NA", "-1.#IND", "-1.#QNAN", "-NaN", "-nan", "1.#IND", "1.#QNAN",
+                          "<NA>", "N/A", "NA", "NULL", "NaN", "None", "n/a", "nan", "null"}
+
+# (경로, 수정시각) → {"names": 시트 이름 목록, "sheets": {시트: 값 2차원 목록}} — 같은 파일은 Excel을 한 번만 띄우도록
+_com_book_cache: dict = {}
+
+
+class ComExcelFile:
+    """`pd.ExcelFile` 중 실적 읽기가 쓰는 부분(`sheet_names`, `parse`)만 흉내 — 암호화(OLE2) 엑셀을 Excel COM으로 읽음.
+    값(Value2)만 읽고 저장·수정은 안 함(ReadOnly로 열고 Close(False)). Excel은 처음 필요할 때 한 번만 띄우고
+    같은 파일(수정 시각 같음)은 캐시. 날짜 셀은 일련번호 숫자로 옴(실적 시트의 읽는 열엔 날짜 없음)."""
+
+    def __init__(self, path: str):
+        self.path = os.path.abspath(path)
+        self._key = (self.path, safe_mtime(self.path))
+        for k in [k for k in _com_book_cache if k[0] == self.path and k != self._key]:
+            del _com_book_cache[k]   # 파일이 바뀌었으면 옛 값은 버림
+        self._entry = _com_book_cache.setdefault(self._key, {"names": None, "sheets": {}})
+        self._pythoncom = self._xl = self._wb = None
+        self._locked = False
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        self.close()
+
+    def _open(self):
+        if self._wb is not None:
+            return
+        import pythoncom
+        _com_lock.acquire()
+        self._locked = True
+        try:
+            pythoncom.CoInitialize()
+            self._pythoncom = pythoncom
+            self._xl = new_excel_app()
+            self._xl.Visible = False
+            self._xl.DisplayAlerts = False
+            self._wb = self._xl.Workbooks.Open(
+                self.path, UpdateLinks=False, ReadOnly=True, IgnoreReadOnlyRecommended=True,
+            )
+        except Exception:
+            self.close()
+            raise
+
+    def close(self):
+        try:
+            if self._wb is not None:
+                self._wb.Close(False)
+        except Exception:
+            pass
+        try:
+            if self._xl is not None:
+                self._xl.Quit()
+        except Exception:
+            pass
+        try:
+            if self._pythoncom is not None:
+                self._pythoncom.CoUninitialize()
+        except Exception:
+            pass
+        self._wb = self._xl = self._pythoncom = None
+        if self._locked:
+            self._locked = False
+            _com_lock.release()
+
+    @property
+    def sheet_names(self) -> list:
+        if self._entry["names"] is None:
+            self._open()
+            self._entry["names"] = [self._wb.Sheets(i).Name for i in range(1, self._wb.Sheets.Count + 1)]
+        return list(self._entry["names"])
+
+    def _sheet_values(self, sheet_name: str) -> list:
+        cached = self._entry["sheets"].get(sheet_name)
+        if cached is not None:
+            return cached
+        self._open()
+        ws = self._wb.Sheets(sheet_name)
+        ur = ws.UsedRange
+        last_r = ur.Row + ur.Rows.Count - 1
+        last_c = ur.Column + ur.Columns.Count - 1
+        # 시트 첫 행·첫 열(A1)부터 — pd.read_excel(header=None, skiprows=N)이 시트 1행부터 세는 것과 같은 기준
+        raw = ws.Range(ws.Cells(1, 1), ws.Cells(last_r, last_c)).Value2
+        if not isinstance(raw, tuple):
+            raw = ((raw,),)
+        rows = []
+        for r in raw:
+            row = []
+            for v in r:
+                if isinstance(v, int) and not isinstance(v, bool) and v in _COM_ERROR_CODES:
+                    v = _COM_ERROR_CODES[v]
+                if isinstance(v, str) and v in _PANDAS_NA_STRINGS:
+                    v = None
+                elif isinstance(v, float) and v.is_integer() and abs(v) < 1e15:
+                    v = int(v)   # openpyxl은 정수로 저장된 셀을 int로 줌 — 코드 칸이 "123.0"이 되지 않게
+                row.append(v)
+            rows.append(row)
+        while rows and all(v is None for v in rows[-1]):   # pandas처럼 아래쪽 빈 행 제거
+            rows.pop()
+        self._entry["sheets"][sheet_name] = rows
+        return rows
+
+    def parse(self, sheet_name, header=None, skiprows=0, usecols=None, nrows=None):
+        import pandas as pd
+        if header is not None:
+            raise NotImplementedError("ComExcelFile.parse는 header=None만 지원")
+        rows = self._sheet_values(sheet_name)[skiprows:]
+        if nrows is not None:
+            rows = rows[:nrows]
+        width = max((len(r) for r in rows), default=0)
+        while width > 0 and all(r[width - 1] is None for r in rows if len(r) >= width):   # pandas처럼 오른쪽 빈 열 제거
+            width -= 1
+        df = pd.DataFrame([(r + [None] * width)[:width] for r in rows])
+        if usecols is not None:
+            cols = sorted(usecols)
+            for c in cols:   # 시트 끝보다 오른쪽 열은 빈 열로(pandas는 오류) — 맵 검증이 빈 열을 걸러냄
+                if c not in df.columns:
+                    df[c] = None
+            df = df[cols]
+        return df
+
+
+def open_excel_file(path: str, engine: str = "openpyxl"):
+    """`pd.ExcelFile` 대용 — 암호화(OLE2) 파일이면 Excel COM(`ComExcelFile`), 아니면 pandas 그대로."""
+    import pandas as pd
+    if is_ole2_file(path):
+        return ComExcelFile(path)
+    return pd.ExcelFile(path, engine=engine)
+
+
+def read_sheet_frame(path: str, sheet_name: str, skiprows: int = 0, nrows: "int | None" = None, engine: str = "openpyxl"):
+    """`pd.read_excel(path, sheet_name, header=None, skiprows, nrows)` 대용 — 암호화(OLE2)면 Excel COM"""
+    import pandas as pd
+    if is_ole2_file(path):
+        with ComExcelFile(path) as xf:
+            return xf.parse(sheet_name, header=None, skiprows=skiprows, nrows=nrows)
+    return pd.read_excel(path, sheet_name=sheet_name, header=None, skiprows=skiprows, nrows=nrows, engine=engine)
 
 
 def find_source_path(excel_path: str, sheet_name: str, filename: str) -> "str | None":

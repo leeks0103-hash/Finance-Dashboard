@@ -321,13 +321,17 @@ def api_finance_codes():
     """
     df = get_df()
     if df.empty or "project_code" not in df.columns:
-        return jsonify({"codes": {}})
-    codes = (
-        df["project_code"].astype(str).str.strip()
-        .loc[lambda s: s.ne("") & s.ne("0")]
-        .value_counts()
-    )
-    return jsonify({"codes": {str(k): int(v) for k, v in codes.items()}})
+        return jsonify({"codes": {}, "completed": {}})
+    code_s = df["project_code"].astype(str).str.strip()
+    valid  = code_s.ne("") & code_s.ne("0")
+    codes  = code_s.loc[valid].value_counts()
+    # 완료 단계 보고가 있는 코드 → 건수(2026-11-02): 프로젝트 상세 검색 시 2뎁스 자동 펼침을 완료 보고가 있는 행에만 하려고.
+    # 단계 비교는 app.py 완료 보정·performance.py 재무 대조와 같이 정확히 "완료"(추가완료는 제외)
+    done = code_s.loc[valid & (df["stage"].astype(str).str.strip() == "완료")].value_counts()
+    return jsonify({
+        "codes":     {str(k): int(v) for k, v in codes.items()},
+        "completed": {str(k): int(v) for k, v in done.items()},
+    })
 
 
 @finance_bp.route("/api/summary")
