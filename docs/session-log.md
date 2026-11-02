@@ -5,6 +5,13 @@
 
 ---
 
+## [2026-11-02 저녁] 2027 사업계획 보기 일단 숨김(주석 처리)
+
+- **요청**: "논란의 여지가 있어서" 2027 계획 보기를 주석 처리하고 푸시. 논란 후보는 계획 보기의 "26 추정"이 2026 실적 보기 추정과 다른 점(392.2억 vs 359.91억, 10-29 교차 검증 참고).
+- **한 일(프론트만, 지우지 않고 주석 — 각 주석에 복구 방법)**: ① `PerformanceFilterBar` "보기" 칩 블록·`usePerfViews` 주석 + **임시 effect**(저장돼 있던 보기가 `plan27`이면 `actual`로 되돌림 — 칩이 없어 사용자가 스스로 못 돌아오므로) ② `PerformancePage`가 항상 `PerformanceActualPage` ③ 관리자 > 실적현황 파일의 2027 사업계획 시트 상태 블록 숨김(`PlanResult`는 `void`로만 참조 — noUnusedLocals 회피).
+- **그대로 둔 것**: 백엔드(`?view=plan27`·`/api/performance/views`·자동 반영·`perf_update_status.json`의 `plan27` 키)와 계획 화면 코드(`PerformancePlanPage`·VM·차트 섹션)·테스트. 화면 입구만 막았을 뿐 **로그인한 사용자가 API 주소로 직접 부르면 계획 데이터는 응답함**. API까지 막으려면 `api_perf_views`/`request_view`에서 plan27을 거부(테스트 `test_perf_plan_view.py`도 같이 손봐야 함) — 이번엔 안 함.
+- **확인**: `tsc -b` 통과, vitest 전체 통과. 실제 화면은 못 봄.
+
 ## [2026-11-02 오후] 실적 탭 맨 윗줄 비교 카드 7개 — 마우스오버 시 정확한 값 툴팁
 
 - **요청**: 카드가 억 소수 첫째 자리(321.3억원)로 줄여 보이니, 마우스를 올리면 실제 값을 툴팁으로.

@@ -2,9 +2,10 @@
 // import { createColumnHelper } from '@tanstack/react-table';
 // import type { PerfPartRow } from '@/hooks/viewmodels/usePerformanceViewModel';
 import { useState } from 'react';
-import { usePerfStore } from '@/store/perf.store';
-import { usePerfViews } from '@/hooks/usePerfViews';
-import PerformancePlanPage from './PerformancePlanPage';
+// 2027 계획 보기 비활성(2026-11-02) — 복구 시 아래 3줄 해제
+// import { usePerfStore } from '@/store/perf.store';
+// import { usePerfViews } from '@/hooks/usePerfViews';
+// import PerformancePlanPage from './PerformancePlanPage';
 import { usePerformanceViewModel } from '@/hooks/viewmodels/usePerformanceViewModel';
 import { useFinanceCodes } from '@/hooks/useFinanceCodes';
 import { DataTable, InfoButton, FilterSelect, HrefDownloadButton, RefreshSpinner } from '@/components/ui';
@@ -261,11 +262,14 @@ const PerformanceActualPage = () => {
  * 경영실적 탭 — 보기(2026 실적 / 2027 계획)에 따라 화면 전체가 갈림(2026-10-29). 실적 보기(위 PerformanceActualPage)는 예전 그대로.
  * 저장된 보기가 계획인데 서버에 계획 시트가 없어졌으면(plan27.available=false) 실적으로 — 응답 전엔 저장된 보기를 그대로 둠(깜빡임 방지)
  */
+// 2027 계획 보기 비활성(2026-11-02, 논란의 여지가 있어 일단 숨김) — 항상 실적 보기. 복구: 위 import 3개(usePerfStore·usePerfViews·PerformancePlanPage)와
+// 아래 원래 분기를 해제하고, PerformanceFilterBar.tsx의 "보기" 칩도 함께 되살릴 것.
 const PerformancePage = () => {
-  const view = usePerfStore(s => s.perfView);
-  const { data: views } = usePerfViews();
-  const planAvailable = views ? views.plan27.available : true;
-  return view === 'plan27' && planAvailable ? <PerformancePlanPage /> : <PerformanceActualPage />;
+  // const view = usePerfStore(s => s.perfView);
+  // const { data: views } = usePerfViews();
+  // const planAvailable = views ? views.plan27.available : true;
+  // return view === 'plan27' && planAvailable ? <PerformancePlanPage /> : <PerformanceActualPage />;
+  return <PerformanceActualPage />;
 };
 
 export default PerformancePage;

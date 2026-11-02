@@ -10,7 +10,8 @@ const errText = (e: unknown): string => {
   return r || (e instanceof Error ? e.message : '알 수 없는 오류');
 };
 
-/** 2027 사업계획 시트(계획 뷰)의 반영 결과 한 덩어리(2026-10-29) — 실적 결과와 같은 모양, 열 맞춤·검증은 시트별로 따로 이뤄져서 따로 보여줌 */
+/** 2027 사업계획 시트(계획 뷰)의 반영 결과 한 덩어리(2026-10-29) — 실적 결과와 같은 모양, 열 맞춤·검증은 시트별로 따로 이뤄져서 따로 보여줌.
+ *  2027 계획 보기 비활성(2026-11-02)으로 쓰는 곳이 없음 — 미사용 오류(noUnusedLocals)를 피하려고 아래 `void`로만 참조, 복구 시 void 줄 삭제 */
 const PlanResult = ({ st }: { st: NonNullable<PerfUpdateStatus['plan27']> }) => {
   const failed = st.ok === false;
   const servingOther = failed && st.serving && st.serving !== st.file;
@@ -56,6 +57,7 @@ const PlanResult = ({ st }: { st: NonNullable<PerfUpdateStatus['plan27']> }) => 
     </div>
   );
 };
+void PlanResult;   // 2027 계획 보기 비활성(2026-11-02) — 복구 시 이 줄 삭제
 
 /**
  * 관리자 기능 > 실적현황 파일 자동 반영(2026-10-14).
@@ -166,8 +168,10 @@ const PerfUpdatePanel = () => {
           )}
         </div>
       )}
-      {/* 2027 사업계획 시트 — 그 파일에 계획 시트가 있을 때만(없으면 서버가 이 키를 안 줌) */}
+      {/* 2027 사업계획 시트 반영 상태 — 비활성(2026-11-02, 2027 계획 보기를 숨기면서 같이 숨김). 복구: 이 줄과 위 PlanResult 주석을 해제.
+          원래: 그 파일에 계획 시트가 있을 때만(없으면 서버가 이 키를 안 줌)
       {status?.plan27?.file && <PlanResult st={status.plan27} />}
+      */}
       {!!status?.files?.length && (
         <div className={styles.muted} title={status.files.join('\n')}>
           data 폴더 실적 파일 {status.files.length}개 — 가장 최신(파일명 날짜 기준)을 씁니다
