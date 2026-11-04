@@ -5,6 +5,18 @@
 
 ---
 
+## [2026-11-04 저녁] AI QA 시범 · 매출이익 카드 "매출 대비 N%" + 계산식 아래 왼쪽 회색
+
+- **AI QA 시범(보고만, 코드 수정 없음)**: 격리 서버(백엔드 5001·프론트 5189, 로그인만 끈 임시 프로세스, 실서버·`data/access.json` 무접촉)에 화면(Playwright)·API(GET 위주) QA 에이전트를 돌림. 메일 발송·추출·파일 열기·설정 저장·AI·NAS는 금지. 핵심 발견(직접 재현 확인한 것 위주):
+  - **`#/admin` 간헐적 빈 화면 유력 원인(H1)**: 로그인 요구 ON + 저장된 토큰일 때 `/settings/access`·`/auth/me`가 느리면 `App.tsx` `if (isLoading) return null;`·`checking` 동안 Dashboard를 안 그려 완전 백지(응답 6초 지연 → 6초 백지, `me` 무응답 → 12초+). 빠른 응답에선 20회 새로고침 0회. **미수정**.
+  - **H2**: 프로젝트 상세 마지막 페이지에서 상단 팀/파트 필터를 바꾸면 "검색 결과 없음"(필터 변경 시 `resetToFirstPage()` 안 부름, `usePerformanceViewModel.ts` 155~175행). **미수정**.
+  - **API 500**: `cf`에 타입 틀린 JSON(`performance.apply_column_filters`), PDF 필터 값의 마크업(`finance.py:667` `Paragraph`), 프로젝트 상세 엑셀의 검색어 제어문자(`perf_export.condition_text`). **미수정**.
+  - 그 외: summary 실패 시 KPI 카드 영구 스켈레톤·perf-update `{}`면 앱 전체 ErrorBoundary·오프라인에서 필터 바꾸면 이전 숫자 유지·차트 확대 모달 포커스 미이동·좁은 폭(1024px 이하·400px) 레이아웃·0건 응답에 `base` 등 키 누락·reload 3개 무인증 Excel 기동·`/api/performance/data` 캐시 없음(350ms~, 동시 40개면 최대 16초). 재무 완료 단계 "값 없음(0)"이 insights/summary에서 실제 0 취급(설계 의도 확인 필요). **"데이터 없는 조건 검색 오류"는 이 대시보드에선 재현 안 됨**(0건은 정상 안내).
+  - 한계: 재무 xlsx 2행·KPI 1행이라 그 탭 숫자 대조는 얕음. 드래그·2뎁스·엑셀 다운로드 UI는 미실행. 에이전트 보고서 파일은 일부 저장 안 됨(본문이 전체).
+- **매출이익 카드(요청)**: 값 아래 오른쪽에 "매출 대비 N%"(백엔드 `total.est_gross_rate` = 추정 매출이익 ÷ 연간 추정 매출 × 100, 실측 32.5% = 100 − 62.2 − 5.3) 추가, 계산식 "매출 - (직접원가 + 공통원가)"는 그 **아래 왼쪽 정렬·회색**(`--text-muted`, `subNote`). `PerfCompareCard`의 보조 줄을 `.subs` 묶음(absolute, `bottom:0`)으로 바꿔 줄마다 좌/우 정렬.
+- **카드 높이**: 보조 줄 높이를 `.hasSub/.hasNote`(`padding-bottom`)로 미리 확보해 카드가 필요한 만큼만 자람 — 실측(msedge): 1920px 150 · 1600px 143 · 1366px 140(그대로) · 1280px 매출이익 줄 157 · 1024px 149. **`.sortable{height:100%}` 제거**(퍼센트 높이가 flex 줄 stretch를 막아 같은 줄 카드 높이가 `min-height:140`에만 의존했음 — 이제 같은 줄 카드가 같이 커짐). 부수 효과로 1024px 이하에서 보조 줄이 잘리던 문제도 해소.
+- **확인**: `tsc -b`, vitest(KPI 섹션·뷰모델 38개), pytest(`test_perf_plan_block`·`test_headcount` 35개) 통과, 화면은 1366·1600·1024px 스크린샷으로 확인. ⚠️ Flask 재시작 필요(`performance.py`) — 재시작 전엔 "매출 대비" 줄이 없고 계산식만 보임.
+
 ## [2026-11-04 오후] 원가분석 층 높이 보정 끔 · 막대 안 수치 글자 11px·자간 +0.3
 
 - **요청**: 원가분석(파트별 추정 매출/원가)에서 0.6%·0.9% 같은 아주 작은 공통원가도 보이게 층 높이를 키워 둔 보정(`layerBoostPlugin`)을 주석 처리 — "좀 안 보여도 된다". 이어서 "그러면 글자·자간을 늘려도 되지 않나".

@@ -1616,6 +1616,8 @@ def api_perf_summary():
         "est_cost_rate":     _ratio(_est_cost, _est_rev),
         "est_overhead_rate": _ratio(_est_overhead, _est_rev),
         "est_labor_rate":    _ratio(_est_labor, _est_rev),
+        # 매출이익 카드 보조값(2026-11-04) — 추정 매출이익(매출 − (직접원가 + 공통원가)) ÷ 연간 추정 매출 × 100. 적자면 음수
+        "est_gross_rate":    _ratio(_est_gross, _est_rev),
         # 계획 대비 누계 진행률 = 누계매출 ÷ 계획매출 × 100
         "achieve_rate":     _ratio(_acc_rev, _plan_rev),
         # 추정 대비 누계 진행률 = 누계매출 ÷ 연간 추정매출 × 100 — 누계 실적 카드 옆 표시(2026-10-02)

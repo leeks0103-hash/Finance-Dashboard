@@ -140,12 +140,24 @@
   letter-spacing: 0;
   white-space: nowrap;
 }
-.sub {
+/* 보조 줄이 차지하는 높이를 값 묶음 아래에 미리 확보(2026-11-04) — .subs는 absolute라 폭에는 안 끼지만 높이는 카드에 반영돼,
+   줄이 하나 더 붙는 매출이익 카드(.hasNote)가 필요한 만큼만 카드 전체(그리드 한 줄)를 키움. 값은 .subs의 margin-top 4px + 줄 높이(0.72rem × 1.3) */
+.hasSub  { padding-bottom: calc(4px + 0.72rem * 1.3); }
+.hasNote { padding-bottom: calc(4px + 0.72rem * 2.6 + 1px); }
+/* 보조 줄 묶음(.sub + .subNote) — 값 바로 아래 흐름 밖(absolute)에 매닮. 안에서 줄마다 좌/우 정렬을 따로(2026-11-04) */
+.subs {
   position: absolute;
-  top: 100%;
+  bottom: 0;   /* 위에서 확보한 padding-bottom 영역의 맨 아래 — 값과의 간격 4px은 padding 쪽 4px */
   left: 0;
-  margin-top: 4px;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.sub {
+  align-self: flex-start;
   font-size: 0.72rem;
+  line-height: 1.3;
   color: #002C5F;   /* Hyundai Blue(2026-11-04 요청) — 다크 배경에선 안 보여서 아래에서 Sky Blue로 */
   letter-spacing: 0.01em;
   white-space: nowrap;
@@ -153,8 +165,16 @@
 :global([data-theme="dark"]) .sub { color: var(--brand-light); }
 /* "매출 대비 N%" 보조 줄은 추정 값 오른쪽 끝에 맞춤(2026-11-04) — 위 "계획 대비 N%"(.rateRow)와 같은 오른쪽 선 */
 .subRight {
-  left: auto;
-  right: 0;
+  align-self: flex-end;
+}
+/* 매출 대비 아래 왼쪽 정렬 회색 안내(매출이익 계산식, 2026-11-04 요청) */
+.subNote {
+  align-self: flex-start;
+  font-size: 0.72rem;
+  line-height: 1.3;
+  color: var(--text-muted);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
 }
 
 /* 계획 / 추정 값을 한 줄로(2026-10-02 요청 — 예전엔 위아래 두 줄). 대신 글자를 줄임 */

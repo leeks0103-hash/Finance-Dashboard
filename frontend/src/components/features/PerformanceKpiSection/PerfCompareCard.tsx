@@ -58,7 +58,7 @@ const PerfCompareCard = ({ card }: { card: PerfCompareCardData }) => {
       </div>
 
       <div className={styles.body}>
-        <div className={styles.valuesWrap}>
+        <div className={`${styles.valuesWrap}${card.subNote ? ` ${styles.hasNote}` : card.sub ? ` ${styles.hasSub}` : ''}`}>
           {/* 추정 값 위 "계획 대비 추정" 비율(2026-10-27) — 값이 없어도 줄은 남겨 카드마다 값 높이를 맞춤 */}
           <div className={styles.rateRow}>
             {card.rateStr && (
@@ -77,7 +77,13 @@ const PerfCompareCard = ({ card }: { card: PerfCompareCardData }) => {
             <ValueUnit value={estText} className={styles.est} title={card.estTitle} />
           </div>
           {/* 값 바로 아래 보조 줄(관리비 "매출 대비 N%" 등) — 값 위치는 다른 카드와 같게 두려고 아래로 매닮 */}
-          {card.sub && <div key={card.sub} className={`${styles.sub}${card.subRight ? ` ${styles.subRight}` : ''}`}>{card.sub}</div>}
+          {(card.sub || card.subNote) && (
+            <div className={styles.subs}>
+              {card.sub && <div key={card.sub} className={`${styles.sub}${card.subRight ? ` ${styles.subRight}` : ''}`}>{card.sub}</div>}
+              {/* "매출 대비 N%" 아래 왼쪽 정렬 회색 안내(매출이익 계산식, 2026-11-04) */}
+              {card.subNote && <div className={styles.subNote}>{card.subNote}</div>}
+            </div>
+          )}
         </div>
 
         {/* 미니 2막대(계획/추정) 주석 처리(2026-10-27 요청) — 복구하려면 이 주석을 풀고 위 변수도 해제

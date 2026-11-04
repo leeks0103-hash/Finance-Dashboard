@@ -194,6 +194,8 @@ export interface PerfTotal {
   est_cost_rate?: number | null;
   est_overhead_rate?: number | null;
   est_labor_rate?: number | null;
+  /** 매출이익(매출 − (직접원가 + 공통원가)) ÷ 연간 추정 매출 × 100 — 매출이익 카드 보조값, 백엔드 계산(적자면 음수) */
+  est_gross_rate?: number | null;
   /** 전월대비 매출 diff (천원). 전월 데이터 없으면 null */
   mom_revenue?:     number | null;
   /** 전월대비 매출이익 diff (천원). 전월 데이터 없으면 null */

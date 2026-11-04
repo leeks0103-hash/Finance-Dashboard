@@ -39,6 +39,8 @@ export interface PerfCompareCardData {
   sub?:    string;
   /** true면 보조 줄(sub)을 왼쪽이 아니라 추정 값 오른쪽 끝에 맞춤 — 보조 줄 전부(매출 대비 N%·손익률·매출이익 계산식, 2026-11-04) */
   subRight?: boolean;
+  /** 보조 줄(sub) 아래 왼쪽 정렬 회색 안내 줄 — 매출이익 카드의 계산식 "매출 - (직접원가 + 공통원가)"(2026-11-04) */
+  subNote?: string;
   /** 추정 값 위에 얹는 "계획 대비 추정" 비율 — 예: "112.0%"(백엔드 est_plan_rate). 계획 값이 없으면 undefined(2026-10-27) */
   rateStr?: string;
   /** 비율 앞 글자 — 기본 "계획 대비". 2027 계획 보기는 "26 추정 대비"(27 계획 ÷ 26 추정)(2026-10-29) */
@@ -290,7 +292,9 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
          total.plan_gross,
          total.est_gross,
          // 매출이익은 전용 역할이 없어 이익(profit, 파랑) / 마이너스면 손실(loss, 빨강) 색
-         total.est_gross >= 0 ? 'profit' : 'loss'), sub: '매출 - (직접원가 + 공통원가)', subRight: true },   // 계산식은 값 아래 줄(sub) — 예전엔 제목 아래(labelNote), 2026-10-27 요청
+         total.est_gross >= 0 ? 'profit' : 'loss'),
+        // 값 아래: 오른쪽 "매출 대비 N%"(est_gross_rate) + 그 아래 왼쪽 회색 계산식(subNote) — 계산식은 예전엔 제목 아래(labelNote, 2026-10-27), 11-04에 매출 대비 아래로
+        sub: revRatioSub(total.est_gross_rate), subRight: true, subNote: '매출 - (직접원가 + 공통원가)' },
     ];
 
     // 관리비·경상손익 카드(2026-10-27) — 계획/추정 비교형으로 바꿈. 계획 = 시트 합계 블록의 사업계획 기준 값

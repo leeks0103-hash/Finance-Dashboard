@@ -33,9 +33,10 @@
   .wide, .narrow { flex-basis: 100%; }
 }
 
+/* height: 100%는 flex 줄에서 카드 높이를 맞추는 stretch를 막음(높이가 auto가 아니라서) — 같은 줄 카드 높이가 min-height(140)에만
+   의존했음. 매출이익 카드가 줄이 하나 더 붙어(2026-11-04) 더 커지면 같은 줄 카드가 같이 커지도록 stretch에 맡김 */
 .sortable {
   position: relative;
-  height: 100%;
 }
 
 /* 경상손익·누계 실적(KpiCard) — 옆 비교카드가 막대 위치 변경으로 더 길어져서 같이 키움.

@@ -58,6 +58,27 @@ describe('PerfCompareCard 제목·보조 줄 배치', () => {
     expect(container.querySelector(`.${styles.sub}`)?.textContent).toBe('매출 - (직접원가 + 공통원가)');
     expect(container.querySelector(`.${styles.labelNote}`)).toBeNull();
   });
+
+  it('subNote는 sub(매출 대비 N%) 아래 별도 줄(.subNote)로 그리고, 값 묶음에 높이 확보용 hasNote를 붙인다(2026-11-04)', () => {
+    const { container } = render(
+      <PerfCompareCard card={{ ...base, sub: '매출 대비 32.5%', subRight: true, subNote: '매출 - (직접원가 + 공통원가)' }} />,
+    );
+    const subs = container.querySelector(`.${styles.subs}`);
+    expect(subs?.children[0].textContent).toBe('매출 대비 32.5%');
+    expect(subs?.children[0].classList.contains(styles.subRight)).toBe(true);
+    expect(subs?.children[1].classList.contains(styles.subNote)).toBe(true);
+    expect(subs?.children[1].textContent).toBe('매출 - (직접원가 + 공통원가)');
+    expect(container.querySelector(`.${styles.valuesWrap}`)?.classList.contains(styles.hasNote)).toBe(true);
+  });
+
+  it('subNote 없이 sub만 있으면 hasSub(한 줄 높이), 둘 다 없으면 보조 영역을 안 그린다', () => {
+    const only = render(<PerfCompareCard card={{ ...base, sub: '매출 대비 5.3%' }} />);
+    expect(only.container.querySelector(`.${styles.valuesWrap}`)?.classList.contains(styles.hasSub)).toBe(true);
+    expect(only.container.querySelector(`.${styles.subNote}`)).toBeNull();
+    only.unmount();
+    const none = render(<PerfCompareCard card={base} />);
+    expect(none.container.querySelector(`.${styles.subs}`)).toBeNull();
+  });
 });
 
 describe('PerfCompareCard 계획 대비 추정(%)', () => {
