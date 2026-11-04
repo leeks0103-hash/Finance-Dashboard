@@ -60,7 +60,7 @@ export const CHART_TUNING: Record<string, ChartTuning> = {
     padding: { top: 20, right: 12, bottom: 12, left: 4 },
     labelFontPx: 12,
     labelSpacing: 0,   // 원래 값(0). 2026-10-29에 -0.8로 좁혔다가 "안 좁혀도 될 것 같다"는 요청으로 되돌림
-    // innerLabelSpacing: 0.5,   // 막대 안 흰색 수치만 자간을 따로 줄 때(양수 = 벌어짐) 주석 해제 — tightLabelsPlugin의 whiteSpacing. 지금은 안 씀
+    innerLabelSpacing: 0.3,   // 막대 안 흰색 수치만 자간 소폭 벌림(양수 = 벌어짐, 2026-11-04 요청 — 층 높이 보정을 끄고 글자도 11px로 키움). tightLabelsPlugin의 whiteSpacing. 끄려면 주석 처리
     tickSpacing: 0,
     costRate: { lift: 39, fontPx: 12 },
   },

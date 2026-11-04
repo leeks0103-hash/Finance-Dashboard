@@ -339,7 +339,9 @@ export const layerBoostPlugin: Plugin<'bar'> = {
   //   chart.update();
   // },
 };
-const SEGMENT_FONT = { size: 10, weight: 'bold' as const, family: "'Pretendard', 'Malgun Gothic', sans-serif" };
+// 크기 10 → 11(2026-11-04): 층 높이 보정을 끄면서 공통원가 층 때문에 줄여 둘 이유가 없어져 조금 키움. 안 들어가는 층은 기존대로 생략/옆 숫자.
+// 막대 안 흰색 수치와 막대 옆(SIDE_LABEL) 숫자가 같이 씀 — 더 키우면 막대 안에 들어가는 숫자가 줄어듦
+const SEGMENT_FONT = { size: 11, weight: 'bold' as const, family: "'Pretendard', 'Malgun Gothic', sans-serif" };
 type SegCtx = { chart: Chart; datasetIndex: number; dataIndex: number; dataset: { data: unknown[]; backgroundColor?: unknown } };
 type SegEl = { y: number; base: number; width: number };
 // 막대의 '애니메이션이 끝난 뒤' 위치·크기(getProps(…, true)) — 그냥 el.y/base를 읽으면 처음 그릴 때(막대가 0에서 자라는 중)
