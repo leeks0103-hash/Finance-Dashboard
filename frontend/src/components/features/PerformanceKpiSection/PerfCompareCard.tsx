@@ -79,9 +79,9 @@ const PerfCompareCard = ({ card }: { card: PerfCompareCardData }) => {
           {/* 값 바로 아래 보조 줄(관리비 "매출 대비 N%" 등) — 값 위치는 다른 카드와 같게 두려고 아래로 매닮 */}
           {(card.sub || card.subNote) && (
             <div className={styles.subs}>
-              {card.sub && <div key={card.sub} className={`${styles.sub}${card.subRight ? ` ${styles.subRight}` : ''}`}>{card.sub}</div>}
-              {/* "매출 대비 N%" 아래 왼쪽 정렬 회색 안내(매출이익 계산식, 2026-11-04) */}
+              {/* 매출이익 계산식 — "매출 대비 N%"와 같은 줄 왼쪽, 회색(2026-11-04 요청). 카드가 좁으면 CSS가 아래 줄로 내림 */}
               {card.subNote && <div className={styles.subNote}>{card.subNote}</div>}
+              {card.sub && <div key={card.sub} className={`${styles.sub}${card.subRight ? ` ${styles.subRight}` : ''}`}>{card.sub}</div>}
             </div>
           )}
         </div>

@@ -59,15 +59,15 @@ describe('PerfCompareCard 제목·보조 줄 배치', () => {
     expect(container.querySelector(`.${styles.labelNote}`)).toBeNull();
   });
 
-  it('subNote는 sub(매출 대비 N%) 아래 별도 줄(.subNote)로 그리고, 값 묶음에 높이 확보용 hasNote를 붙인다(2026-11-04)', () => {
+  it('subNote는 sub(매출 대비 N%)와 같은 .subs 줄의 왼쪽(첫째)에 그리고, 값 묶음에 높이 확보용 hasNote를 붙인다(2026-11-04)', () => {
     const { container } = render(
-      <PerfCompareCard card={{ ...base, sub: '매출 대비 32.5%', subRight: true, subNote: '매출 - (직접원가 + 공통원가)' }} />,
+      <PerfCompareCard card={{ ...base, sub: '매출 대비 32.5%', subRight: true, subNote: '매출-(직접/공통 원가)' }} />,
     );
     const subs = container.querySelector(`.${styles.subs}`);
-    expect(subs?.children[0].textContent).toBe('매출 대비 32.5%');
-    expect(subs?.children[0].classList.contains(styles.subRight)).toBe(true);
-    expect(subs?.children[1].classList.contains(styles.subNote)).toBe(true);
-    expect(subs?.children[1].textContent).toBe('매출 - (직접원가 + 공통원가)');
+    expect(subs?.children[0].classList.contains(styles.subNote)).toBe(true);
+    expect(subs?.children[0].textContent).toBe('매출-(직접/공통 원가)');
+    expect(subs?.children[1].classList.contains(styles.sub)).toBe(true);
+    expect(subs?.children[1].textContent).toBe('매출 대비 32.5%');
     expect(container.querySelector(`.${styles.valuesWrap}`)?.classList.contains(styles.hasNote)).toBe(true);
   });
 

@@ -294,7 +294,7 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
          // 매출이익은 전용 역할이 없어 이익(profit, 파랑) / 마이너스면 손실(loss, 빨강) 색
          total.est_gross >= 0 ? 'profit' : 'loss'),
         // 값 아래: 오른쪽 "매출 대비 N%"(est_gross_rate) + 그 아래 왼쪽 회색 계산식(subNote) — 계산식은 예전엔 제목 아래(labelNote, 2026-10-27), 11-04에 매출 대비 아래로
-        sub: revRatioSub(total.est_gross_rate), subRight: true, subNote: '매출 - (직접원가 + 공통원가)' },
+        sub: revRatioSub(total.est_gross_rate), subRight: true, subNote: '매출-(직접/공통 원가)' },
     ];
 
     // 관리비·경상손익 카드(2026-10-27) — 계획/추정 비교형으로 바꿈. 계획 = 시트 합계 블록의 사업계획 기준 값
