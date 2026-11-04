@@ -304,37 +304,40 @@ export const realValue = (ctx: { dataIndex: number; dataset: unknown }) => {
 // 매출 막대와의 비교·막대 위 합계·원가율은 실제와 같고, 층 안 숫자·툴팁도 실제값(realData).
 // 공통원가 층 최소 높이 = max(막대의 20%, 화면 18px) — 비율만 쓰면 PM처럼 막대 자체가 짧은 파트는 20%여도 몇 px라
 // 숫자가 안 들어가서 화면 픽셀 기준도 둠(단 막대의 절반은 넘지 않게). 공통원가가 직접원가보다 크면 그대로
-const OVERHEAD_MIN_SHARE = 0.2;
-const OVERHEAD_MIN_PX = 18;
+// ⚠️ 층 높이 보정 로직 주석 처리(2026-11-04 요청 — "좀 안 보여도 된다"): 0.6%·0.9%처럼 아주 작은 공통원가도 보이게 층 높이를 키웠던 것을
+// 끄고 실제 비율 그대로 그림. 플러그인은 다른 차트(2027 계획 원가분석)가 import해 쓰므로 껍데기(no-op)로 남김 — 복구하려면 아래 주석 해제.
+// 끄면 얇은 공통원가 층은 realData=data라 층 안 숫자가 안 들어가고 SIDE_LABEL(막대 오른쪽 숫자)로 표시됨.
+// const OVERHEAD_MIN_SHARE = 0.2;
+// const OVERHEAD_MIN_PX = 18;
 export const layerBoostPlugin: Plugin<'bar'> = {
   id: 'layerBoost',
-  // 축 크기가 정해진 뒤에야 px ↔ 억 환산이 되므로 그린 뒤 계산해서 다르면 한 번 더 그림(전체 합은 같아 축이 안 바뀌어 반복 없음)
-  afterUpdate(chart) {
-    type LayerDs = { data: number[]; realData?: number[] };
-    const direct = chart.data.datasets[1] as unknown as LayerDs | undefined;
-    const overhead = chart.data.datasets[2] as unknown as LayerDs | undefined;
-    const y = chart.scales.y;
-    if (!direct?.realData || !overhead?.realData || !y) return;
-    let nextD = direct.realData, nextO = overhead.realData;
-    // 공통원가를 범례로 숨기면 직접원가는 실제 높이 그대로
-    if (chart.isDatasetVisible(2) && chart.isDatasetVisible(1)) {
-      const upp = (y.max - y.min) / Math.max(1, y.bottom - y.top);   // 1px당 억
-      nextD = []; nextO = [];
-      direct.realData.forEach((d, i) => {
-        const o = overhead.realData![i] ?? 0;
-        const t = d + o;
-        const minO = Math.max(t * OVERHEAD_MIN_SHARE, Math.min(OVERHEAD_MIN_PX * upp, t * 0.5));
-        const boosted = o > 0 && d > o && o < minO;
-        nextO.push(boosted ? minO : o);
-        nextD.push(boosted ? t - minO : d);
-      });
-    }
-    const same = (p: number[], q: number[]) => p.length === q.length && p.every((v, i) => Math.abs(v - (q[i] ?? 0)) < 1e-6);
-    if (same(direct.data, nextD) && same(overhead.data, nextO)) return;
-    direct.data = nextD;
-    overhead.data = nextO;
-    chart.update();
-  },
+  // afterUpdate(chart) {
+  //   // 축 크기가 정해진 뒤에야 px ↔ 억 환산이 되므로 그린 뒤 계산해서 다르면 한 번 더 그림(전체 합은 같아 축이 안 바뀌어 반복 없음)
+  //   type LayerDs = { data: number[]; realData?: number[] };
+  //   const direct = chart.data.datasets[1] as unknown as LayerDs | undefined;
+  //   const overhead = chart.data.datasets[2] as unknown as LayerDs | undefined;
+  //   const y = chart.scales.y;
+  //   if (!direct?.realData || !overhead?.realData || !y) return;
+  //   let nextD = direct.realData, nextO = overhead.realData;
+  //   // 공통원가를 범례로 숨기면 직접원가는 실제 높이 그대로
+  //   if (chart.isDatasetVisible(2) && chart.isDatasetVisible(1)) {
+  //     const upp = (y.max - y.min) / Math.max(1, y.bottom - y.top);   // 1px당 억
+  //     nextD = []; nextO = [];
+  //     direct.realData.forEach((d, i) => {
+  //       const o = overhead.realData![i] ?? 0;
+  //       const t = d + o;
+  //       const minO = Math.max(t * OVERHEAD_MIN_SHARE, Math.min(OVERHEAD_MIN_PX * upp, t * 0.5));
+  //       const boosted = o > 0 && d > o && o < minO;
+  //       nextO.push(boosted ? minO : o);
+  //       nextD.push(boosted ? t - minO : d);
+  //     });
+  //   }
+  //   const same = (p: number[], q: number[]) => p.length === q.length && p.every((v, i) => Math.abs(v - (q[i] ?? 0)) < 1e-6);
+  //   if (same(direct.data, nextD) && same(overhead.data, nextO)) return;
+  //   direct.data = nextD;
+  //   overhead.data = nextO;
+  //   chart.update();
+  // },
 };
 const SEGMENT_FONT = { size: 10, weight: 'bold' as const, family: "'Pretendard', 'Malgun Gothic', sans-serif" };
 type SegCtx = { chart: Chart; datasetIndex: number; dataIndex: number; dataset: { data: unknown[]; backgroundColor?: unknown } };
