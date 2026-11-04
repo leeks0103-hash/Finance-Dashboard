@@ -77,7 +77,7 @@ const PerfCompareCard = ({ card }: { card: PerfCompareCardData }) => {
             <ValueUnit value={estText} className={styles.est} title={card.estTitle} />
           </div>
           {/* 값 바로 아래 보조 줄(관리비 "매출 대비 N%" 등) — 값 위치는 다른 카드와 같게 두려고 아래로 매닮 */}
-          {card.sub && <div key={card.sub} className={styles.sub}>{card.sub}</div>}
+          {card.sub && <div key={card.sub} className={`${styles.sub}${card.subRight ? ` ${styles.subRight}` : ''}`}>{card.sub}</div>}
         </div>
 
         {/* 미니 2막대(계획/추정) 주석 처리(2026-10-27 요청) — 복구하려면 이 주석을 풀고 위 변수도 해제

@@ -146,9 +146,15 @@
   left: 0;
   margin-top: 4px;
   font-size: 0.72rem;
-  color: var(--text-muted);
+  color: #002C5F;   /* Hyundai Blue(2026-11-04 요청) — 다크 배경에선 안 보여서 아래에서 Sky Blue로 */
   letter-spacing: 0.01em;
   white-space: nowrap;
+}
+:global([data-theme="dark"]) .sub { color: var(--brand-light); }
+/* "매출 대비 N%" 보조 줄은 추정 값 오른쪽 끝에 맞춤(2026-11-04) — 위 "계획 대비 N%"(.rateRow)와 같은 오른쪽 선 */
+.subRight {
+  left: auto;
+  right: 0;
 }
 
 /* 계획 / 추정 값을 한 줄로(2026-10-02 요청 — 예전엔 위아래 두 줄). 대신 글자를 줄임 */

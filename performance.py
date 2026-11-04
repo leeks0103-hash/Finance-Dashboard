@@ -1611,6 +1611,11 @@ def api_perf_summary():
         "est_plan_rate":         est_plan_rate,
         # '당해 연도 추정 관리비' 카드(2026-10-23) 보조값 — 관리비(매출행 BE, 연간 추정 기준) ÷ 연간 추정 매출 × 100
         "est_mgmt_rate":    _ratio(float(rev["cost_mgmt"].sum()), _est_rev),
+        # 직접원가·공통원가·인건비 카드 보조값(2026-11-04) — 관리비와 같이 각 추정 금액 ÷ 연간 추정 매출 × 100
+        # (직접원가 = 원가행 BH 합 _est_cost, 공통원가 = 매출행 BD 합, 인건비 = 매출행 인건비 합)
+        "est_cost_rate":     _ratio(_est_cost, _est_rev),
+        "est_overhead_rate": _ratio(_est_overhead, _est_rev),
+        "est_labor_rate":    _ratio(_est_labor, _est_rev),
         # 계획 대비 누계 진행률 = 누계매출 ÷ 계획매출 × 100
         "achieve_rate":     _ratio(_acc_rev, _plan_rev),
         # 추정 대비 누계 진행률 = 누계매출 ÷ 연간 추정매출 × 100 — 누계 실적 카드 옆 표시(2026-10-02)

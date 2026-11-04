@@ -37,6 +37,8 @@ export interface PerfCompareCardData {
   labelNote?: string;
   /** 값(계획 / 추정) 바로 아래 보조 줄(회색 작은 글씨) — 예: 관리비 "매출 대비 11.6%", 경상손익 "손익률 4.6%"(2026-10-27) */
   sub?:    string;
+  /** true면 보조 줄(sub)을 왼쪽이 아니라 추정 값 오른쪽 끝에 맞춤 — 보조 줄 전부(매출 대비 N%·손익률·매출이익 계산식, 2026-11-04) */
+  subRight?: boolean;
   /** 추정 값 위에 얹는 "계획 대비 추정" 비율 — 예: "112.0%"(백엔드 est_plan_rate). 계획 값이 없으면 undefined(2026-10-27) */
   rateStr?: string;
   /** 비율 앞 글자 — 기본 "계획 대비". 2027 계획 보기는 "26 추정 대비"(27 계획 ÷ 26 추정)(2026-10-29) */
@@ -264,17 +266,22 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
       };
     };
 
+    // 직접원가·공통원가·인건비 카드 보조 줄(2026-11-04) — 관리비와 같이 값 아래 "매출 대비 N%"(추정 기준, 백엔드 est_*_rate)
+    const revRatioSub = (r: number | null | undefined) => (r == null ? undefined : `매출 대비 ${r.toFixed(1)}%`);
+
     const compareCards = [
       mk('revenue',     '당해 연도 매출 (계획/추정)', 'brand',  total.plan_initial,   total.jun_check_total, 'revenue'),
-      mk('cost',        '당해 연도 직접 원가 (계획/추정)', 'purple', total.plan_cost,      total.jun_cost, 'costDirect'),
+      { ...mk('cost',   '당해 연도 직접 원가 (계획/추정)', 'purple', total.plan_cost,      total.jun_cost, 'costDirect'),
+        sub: revRatioSub(total.est_cost_rate), subRight: true },
       // 공통원가 카드(2026-10-27) — 직접 원가와 매출이익 카드 사이. 계획 = 시트 합계 블록의 사업계획 기준 값(plan_overhead),
       // 추정 = 매출행 BD 합(cost_overhead). 팀·파트 필터 중엔 계획도 추정 공통원가로 대체됨(plan_overhead_source 'estimate').
       // plan_overhead는 Flask 재시작 전엔 없을 수 있어 추정 값으로 폴백
       // 팀·파트 필터 중이면 계획 공통원가는 전사 값뿐이라 팀별 계획이 없음 — 백엔드가 추정으로 대체한 값(plan_overhead_source 'estimate')을
       // 계획 칸에 그대로 보이면 계획=추정으로 오해하므로 '-'로 비움(2026-10-27, 처음엔 추정 값을 그대로 보였던 것을 정정).
       // 매출이익 카드의 계획 칸 계산(plan_gross)은 백엔드 대체 규칙 그대로
-      mk('overhead',    '당해 연도 공통원가 (계획/추정)', 'purple',
+      { ...mk('overhead', '당해 연도 공통원가 (계획/추정)', 'purple',
          total.plan_overhead_source === 'estimate' ? null : (total.plan_overhead ?? total.cost_overhead), total.cost_overhead, 'costOverhead'),
+        sub: revRatioSub(total.est_overhead_rate), subRight: true },
       // 계획 칸 공통원가 = 시트 합계 블록의 사업계획 기준 값(백엔드 plan_overhead, 2026-10-23) — 빨간 "계획" 표시(planWarn)는 뺌.
       // 블록을 못 읽거나 팀·파트 필터 중이면 백엔드가 추정 공통원가로 대체(plan_overhead_source 'estimate')
       { ...mk('grossProfit', '당해 연도 매출이익 (계획/추정)',
@@ -283,7 +290,7 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
          total.plan_gross,
          total.est_gross,
          // 매출이익은 전용 역할이 없어 이익(profit, 파랑) / 마이너스면 손실(loss, 빨강) 색
-         total.est_gross >= 0 ? 'profit' : 'loss'), sub: '매출 - (직접원가 + 공통원가)' },   // 계산식은 값 아래 줄(sub) — 예전엔 제목 아래(labelNote), 2026-10-27 요청
+         total.est_gross >= 0 ? 'profit' : 'loss'), sub: '매출 - (직접원가 + 공통원가)', subRight: true },   // 계산식은 값 아래 줄(sub) — 예전엔 제목 아래(labelNote), 2026-10-27 요청
     ];
 
     // 관리비·경상손익 카드(2026-10-27) — 계획/추정 비교형으로 바꿈. 계획 = 시트 합계 블록의 사업계획 기준 값
@@ -294,15 +301,21 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
       ?? (total.jun_check_total > 0 ? Math.round(total.cost_mgmt / total.jun_check_total * 1000) / 10 : null);
     // 인건비 카드(2026-10-27) — 계획 = 시트 합계 블록 '인건비' 줄(plan_labor), 추정 = 매출행 인건비 합(cost_labor).
     // 관리비·경상손익과 같이 팀·파트 필터 중이거나 못 읽으면 계획 칸 '-'
-    const laborCard = mk('labor', '당해 연도 인건비 (계획/추정)', 'purple', total.plan_labor ?? null, total.cost_labor, 'costLabor');
+    const laborCard: PerfCompareCardData = {
+      ...mk('labor', '당해 연도 인건비 (계획/추정)', 'purple', total.plan_labor ?? null, total.cost_labor, 'costLabor'),
+      sub: revRatioSub(total.est_labor_rate),
+      subRight: true,
+    };
     const mgmtCard: PerfCompareCardData = {
       ...mk('mgmt', '당해 연도 관리비 (계획/추정)', 'purple', total.plan_mgmt ?? null, total.cost_mgmt, 'costMgmt'),
       sub: mgmtRate == null ? undefined : `매출 대비 ${mgmtRate.toFixed(1)}%`,
+      subRight: true,
     };
     const profitCard: PerfCompareCardData = {
       ...mk('profit', '당해 연도 경상손익 (계획/추정)', total.operating_profit >= 0 ? 'profit' : 'loss',
         total.plan_operating_profit ?? null, total.operating_profit, 'costProfit'),
       sub: `손익률 ${(total.avg_profit_rate ?? 0).toFixed(1)}%`,
+      subRight: true,
     };
 
     return [
