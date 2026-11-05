@@ -10,19 +10,17 @@ const base: PerfCompareCardData = {
 };
 
 describe('PerfCompareCard 제목 아래 안내(labelNote)', () => {
-  it('labelNote가 있으면 제목 줄 아래 별도 클래스(.labelNote) 한 줄로 그린다', () => {
+  it('labelNote가 있으면 머리글 둘째 줄(.noteRow) 안 별도 클래스(.labelNote)로 그린다 — 제목 줄(.label) 안이 아님(2026-11-05)', () => {
     const { container } = render(<PerfCompareCard card={{ ...base, labelNote: '매출 - (직접원가 + 공통원가)' }} />);
     const label = container.querySelector(`.${styles.label}`);
-    const note = label?.querySelector(`.${styles.labelNote}`);
+    const note = container.querySelector(`.${styles.noteRow} .${styles.labelNote}`);
     expect(note?.textContent).toBe('매출 - (직접원가 + 공통원가)');
-    expect(label?.textContent).toBe('매출이익 (계획/추정)매출 - (직접원가 + 공통원가)');   // 첫 줄 제목+(계획/추정), 둘째 줄 안내
-    expect(label?.classList.contains(styles.labelNoted)).toBe(true);   // 매출이익 카드 제목 전용 클래스
+    expect(label?.textContent).toBe('매출이익 (계획/추정)');   // 제목 줄엔 제목+(계획/추정)만
   });
 
   it('labelNote가 없으면 안내 줄을 그리지 않는다', () => {
     const { container } = render(<PerfCompareCard card={base} />);
     expect(container.querySelector(`.${styles.labelNote}`)).toBeNull();
-    expect(container.querySelector(`.${styles.label}`)?.classList.contains(styles.labelNoted)).toBe(false);
   });
 });
 
@@ -66,11 +64,11 @@ describe('PerfCompareCard 제목·보조 줄 배치', () => {
     const { container } = render(
       <PerfCompareCard card={{ ...base, sub: '매출 대비 32.5%', subRight: true, labelNote: '매출 - (직접/공통 원가)' }} />,
     );
-    const label = container.querySelector(`.${styles.label}`);
-    // 첫 줄(.titleLine) 다음 형제가 둘째 줄 안내
-    expect(label?.children[0].classList.contains(styles.titleLine)).toBe(true);
-    expect(label?.children[1].classList.contains(styles.labelNote)).toBe(true);
-    expect(label?.children[1].textContent).toBe('매출 - (직접/공통 원가)');
+    // 계산식은 header 직속 둘째 줄(.noteRow) 안 — 제목 줄(.label) 안이 아님(2026-11-05, "계획 대비 N%"와 같은 줄)
+    const row = container.querySelector(`.${styles.noteRow}`);
+    expect(row?.parentElement).toBe(container.querySelector(`.${styles.header}`));
+    expect(row?.querySelector(`.${styles.labelNote}`)?.textContent).toBe('매출 - (직접/공통 원가)');
+    expect(container.querySelector(`.${styles.label} .${styles.labelNote}`)).toBeNull();
     expect(container.querySelector(`.${styles.sub}`)?.textContent).toBe('매출 대비 32.5%');
     expect(container.querySelector(`.${styles.subs}`)?.textContent).toBe('매출 대비 32.5%');   // 보조 줄 묶음엔 계산식이 없음
   });
@@ -85,15 +83,17 @@ describe('PerfCompareCard 제목·보조 줄 배치', () => {
 });
 
 describe('PerfCompareCard 계획 대비 추정(%)', () => {
-  it('rateStr이 있으면 추정 값 위 줄(.rate)에 "계획 대비 N%"로 그린다', () => {
-    const { container } = render(<PerfCompareCard card={{ ...base, rateStr: '112.0%' }} />);
-    expect(container.querySelector(`.${styles.rate}`)?.textContent).toBe('계획 대비 112.0%');
+  it('rateStr이 있으면 머리글 둘째 줄(.noteRow)에 "계획 대비 N%"로 그린다 — 계산식과 같은 줄(2026-11-05)', () => {
+    const { container } = render(<PerfCompareCard card={{ ...base, rateStr: '112.0%', labelNote: '매출 - (직접/공통 원가)' }} />);
+    const rate = container.querySelector(`.${styles.rate}`);
+    expect(rate?.textContent).toBe('계획 대비 112.0%');
+    expect(rate?.parentElement).toBe(container.querySelector(`.${styles.noteRow}`));
+    expect(container.querySelector(`.${styles.labelNote}`)?.parentElement).toBe(rate?.parentElement);
   });
 
-  it('rateStr이 없으면 글자는 없고 줄(.rateRow)만 남겨 카드마다 값 높이를 맞춘다', () => {
+  it('rateStr이 없으면 .rate를 안 그린다(높이는 머리글 min-height가 맞춤)', () => {
     const { container } = render(<PerfCompareCard card={base} />);
     expect(container.querySelector(`.${styles.rate}`)).toBeNull();
-    expect(container.querySelector(`.${styles.rateRow}`)).not.toBeNull();
   });
 });
 

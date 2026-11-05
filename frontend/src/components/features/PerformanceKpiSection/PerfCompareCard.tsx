@@ -43,20 +43,13 @@ const PerfCompareCard = ({ card }: { card: PerfCompareCardData }) => {
       style={barColor ? ({ '--bar-color': barColor } as CSSProperties) : undefined}
     >
       <div className={styles.header}>
-        <span className={`${styles.label} ${card.labelNote ? styles.labelNoted : ''}`}>
-          {/* 제목 + "(계획/추정)"을 한 줄에 나란히(2026-11-05 요청 — 예전엔 "(계획/추정)"이 항상 둘째 줄이었음, 10-27). 둘째 줄은 labelNote 자리
-              (매출이익 카드의 계산식). 앞부분 끝 공백은 글자 모양엔 영향 없고 textContent("… (계획/추정)")만 예전 그대로 유지 */}
+        <span className={styles.label}>
+          {/* 제목 + "(계획/추정)"을 한 줄에 나란히(2026-11-05 요청 — 예전엔 "(계획/추정)"이 항상 둘째 줄이었음, 10-27).
+              앞부분 끝 공백은 글자 모양엔 영향 없고 textContent("… (계획/추정)")만 예전 그대로 유지 */}
           <span className={styles.titleLine}>
             <span className={styles.labelMain} title={card.label}>{labelMain}{labelSuffix ? ' ' : ''}</span>
             {labelSuffix && <span className={styles.labelSuffix}>{labelSuffix}</span>}
           </span>
-          {/* 둘째 줄 안내(매출이익 계산식) — 앞에 수식(∴) 아이콘(2026-11-05 요청: 수식임을 암시, Σ에서 교체) */}
-          {card.labelNote && (
-            <span className={styles.labelNote}>
-              <LineIcon kind="formula" size={12} className={styles.noteIcon} />
-              {card.labelNote}
-            </span>
-          )}
         </span>
         {/* 계획 값이 없으면(diffStr '') 차이 알약도 안 그림 */}
         {card.diffStr && (
@@ -64,19 +57,27 @@ const PerfCompareCard = ({ card }: { card: PerfCompareCardData }) => {
             {card.diffUp ? '▲' : '▼'} {card.diffStr}
           </span>
         )}
+        {/* 둘째 줄: 왼쪽 계산식(매출이익 카드) · 오른쪽 "계획 대비 N%" 나란히 한 줄(2026-11-05 요청 "카드 높이를 줄이기 위함").
+            예전엔 "계획 대비"가 값 위 별도 줄(.rateRow)이었음. 한 줄에 안 들어가는 좁은 폭에선 줄바꿈(CSS) */}
+        <div className={styles.noteRow}>
+          {card.labelNote && (
+            <span className={styles.labelNote}>
+              {/* 앞에 수식(∴) 아이콘(2026-11-05 요청: 수식임을 암시, Σ에서 교체) */}
+              <LineIcon kind="formula" size={12} className={styles.noteIcon} />
+              {card.labelNote}
+            </span>
+          )}
+          {card.rateStr && (
+            <span key={card.rateStr} className={styles.rate}
+              title={card.rateLabel ? `${card.rateLabel} 비율` : '계획 대비 추정 비율 (추정 ÷ 계획)'}>
+              {card.rateLabel ?? '계획 대비'} {card.rateStr}
+            </span>
+          )}
+        </div>
       </div>
 
       <div className={styles.body}>
         <div className={`${styles.valuesWrap}${card.sub ? ` ${styles.hasSub}` : ''}`}>
-          {/* 추정 값 위 "계획 대비 추정" 비율(2026-10-27) — 값이 없어도 줄은 남겨 카드마다 값 높이를 맞춤 */}
-          <div className={styles.rateRow}>
-            {card.rateStr && (
-              <span key={card.rateStr} className={styles.rate}
-                title={card.rateLabel ? `${card.rateLabel} 비율` : '계획 대비 추정 비율 (추정 ÷ 계획)'}>
-                {card.rateLabel ?? '계획 대비'} {card.rateStr}
-              </span>
-            )}
-          </div>
           <div className={styles.values}>
             <div className={styles.planRow}>
               {/* 마우스오버 = 억으로 줄이기 전 정확한 원 단위 값(2026-11-02 요청) */}
