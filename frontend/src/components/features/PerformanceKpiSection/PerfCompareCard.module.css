@@ -3,13 +3,16 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   /* 왼쪽 안쪽 여백 22 → 14px(2026-10-27 "왼쪽 여백 필요없을듯") — 값·제목이 카드 왼쪽 가장자리 쪽으로, 7개 카드 폭 확보. 위/오른쪽/아래는 그대로 */
-  padding: 20px 22px 16px 14px;
+  /* 위아래 여백을 같게 10px로(2026-11-05 요청 "패딩 위아래 맞추도록" — 예전 위 20 / 아래 16). 처음엔 아래만 8px로 줄이고 min-height를 140 → 132로 낮췄었는데,
+     min-height가 내용보다 커서 값 아래에 30px쯤 빈칸이 남았음 → min-height를 없애(0) 카드가 내용 높이만큼만 자라게 함.
+     같은 줄 카드는 flex stretch로 높이가 같음. 예전 값으로 되돌리려면 padding 20px 22px 16px 14px + min-height 140px */
+  padding: 10px 22px 10px 14px;
   display: flex;
   flex-direction: column;
   gap: 4px;
   position: relative;
   overflow: hidden;
-  min-height: 140px;
+  min-height: 0;
   height: 100%;
   container-type: inline-size;   /* 값 글자 크기를 카드 폭에 맞추는 기준(cqw) */
   box-sizing: border-box;
@@ -130,8 +133,9 @@
   min-width: 0;
   position: relative;
   z-index: 1;
-  /* 라벨-값 사이 간격은 .card의 gap(4px)만으로 충분 — 여기 margin까지 더해서
-     이중으로 벌어지지 않게(카드 높이를 perf-kpi-card 기준(140px)에 맞추려면 여백 절약 필요) */
+  /* 머리글-값 사이는 .card의 gap(4px)에 위 여백 2px만 더함(2026-11-05 요청 "마진 탑 1~2px정도만") — 카드를 내용 높이로 줄이면서 값이 머리글에 너무 붙어 보여서.
+     (예전엔 이중으로 벌어지지 않게 margin 없이 gap 4px만 썼음) */
+  margin-top: 2px;
 }
 
 /* 값(.values) + 바로 아래 보조 줄(.sub). .values의 세로 가운데 위치는 보조 줄이 없는 카드와 같게 유지 —
@@ -366,7 +370,7 @@
 :global([data-theme="dark"]) .card:hover { box-shadow: var(--shadow-md); }
 
 @media (max-width: 1024px) {
-  .card { min-height: 108px; padding: 16px 18px 12px 12px; }
+  .card { min-height: 104px; padding: 12px 18px 12px 12px; }
   .bars { height: 44px; margin-top: 14px; }
 }
 
