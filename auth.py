@@ -64,10 +64,17 @@ def _sign(emp: str, pw: str) -> str:
     return hmac.new(_SECRET.encode(), f"{emp}:{pw}".encode(), hashlib.sha256).hexdigest()
 
 
+def _safe_equal(a, b) -> bool:
+    """타이밍 안전 비교(hmac.compare_digest) — 둘 다 UTF-8 bytes로 바꿔서.
+    str 인자에 비 ASCII(한글 등)가 있으면 compare_digest가 TypeError를 내서, 한글 비밀번호 로그인·한글이 든 ?token=이
+    500이 되던 것을 막음(2026-11-04). 바이트로 비교해도 같은 글자끼리만 True라 판정은 그대로"""
+    return hmac.compare_digest(str(a).encode("utf-8", "surrogatepass"), str(b).encode("utf-8", "surrogatepass"))
+
+
 def login(emp: str, pw: str) -> "dict | None":
     """맞으면 {token, emp_no, name, role}, 틀리면 None."""
     acc = _ACCOUNTS.get(emp)
-    if not acc or not hmac.compare_digest(acc["password"], pw):
+    if not acc or not _safe_equal(acc["password"], pw):
         return None
     return {"token": f"{emp}.{_sign(emp, pw)}", "emp_no": emp, "name": acc["name"], "role": acc["role"]}
 
@@ -79,7 +86,7 @@ def current_user(req=None) -> "dict | None":
     token = req.headers.get("X-Extract-Key", "") or req.args.get("token", "")
     emp, _, sig = token.partition(".")
     acc = _ACCOUNTS.get(emp)
-    if not acc or not sig or not hmac.compare_digest(sig, _sign(emp, acc["password"])):
+    if not acc or not sig or not _safe_equal(sig, _sign(emp, acc["password"])):
         return None
     return {"emp_no": emp, "name": acc["name"], "role": acc["role"]}
 

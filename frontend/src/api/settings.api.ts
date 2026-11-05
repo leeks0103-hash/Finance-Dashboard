@@ -17,8 +17,11 @@ export const putPerfUpdateNote = (patch: Partial<PerfUpdateNote>): Promise<PerfU
   client.put<PerfUpdateNote>('/settings/perf-update', patch, { headers: authHeaders() }).then(r => r.data);
 
 /** 로그인을 요구하는지 — 로그인 전에도 부를 수 있음(화면이 로그인 화면을 그릴지 정하려고). 서버 data/access.json */
+// 시작 화면을 그리기 전에 기다리는 요청 — 서버가 바쁘면(AI 분석·추출 중) 기본 30초가 그대로 빈 화면이 되므로 8초로 끊음(2026-11-04, QA H1).
+// 끊기면 로그인 요구 '켜짐'(안전한 쪽)으로 처리돼 앱이 그려짐
+export const AUTH_STARTUP_TIMEOUT_MS = 8_000;
 export const getLoginRequired = (): Promise<boolean> =>
-  client.get<{ loginRequired: boolean }>('/settings/access').then(r => r.data.loginRequired);
+  client.get<{ loginRequired: boolean }>('/settings/access', { timeout: AUTH_STARTUP_TIMEOUT_MS }).then(r => r.data.loginRequired);
 
 /** 관리자만 — 로그인 요구 켜기/끄기. 응답은 저장된 값 */
 export const putLoginRequired = (loginRequired: boolean): Promise<boolean> =>

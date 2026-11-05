@@ -11,7 +11,7 @@ from flask import Blueprint, jsonify, request
 from markupsafe import escape as html_escape
 
 import headcount
-from shared import is_ranked_valid_code, safe_mtime, sort_frame, strip_part_prefix, PART_PREFIX_RE, open_excel_file
+from shared import is_ranked_valid_code, safe_mtime, sort_frame, strip_part_prefix, PART_PREFIX_RE, open_excel_file, nonblank, parse_page_args
 from auth import admin_required
 
 load_dotenv()
@@ -857,7 +857,9 @@ _PROGRESS_PRIORITY = ["제안", "협의", "착수", "중간", "완료", "인큐�
 # 진짜 원인이어서, 도넛은 행의 팀 기준(by_team)으로 바꾸고 제외는 없앰. 팀 "전체"에 K뉴딜TF만 고르면 세 팀 몫이 다 나옴
 
 def apply_perf_filters(df: pd.DataFrame) -> pd.DataFrame:
-    parts = request.args.getlist("part")
+    # 빈 값(`?part=`)은 필터 없음, 파트명은 원문자(①~)를 뗀 값으로 맞춤 — 입력도 같이 떼서 옵션 목록의
+    # "① AIㆍDS"를 그대로 넣어도 "AIㆍDS"와 같게 일치(2026-11-04). 같은 필터를 쓰는 모든 엔드포인트가 이 함수를 지남
+    parts = [strip_part_prefix(p) for p in nonblank(request.args.getlist("part"))]
     team  = request.args.get("team", "")
     if parts:
         stripped_part = df["part"].astype(str).apply(lambda p: PART_PREFIX_RE.sub("", p))
@@ -1108,34 +1110,46 @@ def apply_column_filters(rows: pd.DataFrame, raw: str) -> pd.DataFrame:
     import json
     try:
         specs = json.loads(raw)
-    except ValueError:
-        logger.warning("열 필터 해석 실패 — 무시: %r", raw[:200])
+    except (ValueError, RecursionError):
+        # 문법이 틀린 JSON, 닫지 않은 `[`가 수만 개인 입력(RecursionError)도 500이 아니라 무시(2026-11-04)
+        logger.warning("열 필터 해석 실패 — 무시: %r", str(raw)[:200])
         return rows
     if not isinstance(specs, list):
         return rows
     mask = pd.Series(True, index=rows.index)
     for f in specs:
-        if not isinstance(f, dict) or f.get("id") not in rows.columns:
+        # id·type·unit이 문자열이 아니면(리스트·객체 등 unhashable) `in`/`dict.get`에서 TypeError가 나므로 먼저 걸러냄
+        if not isinstance(f, dict) or not isinstance(f.get("id"), str) or f["id"] not in rows.columns:
             continue
-        col = rows[f["id"]]
-        kind = f.get("type")
-        if kind == "text":
-            q = str(f.get("q") or "").strip().lower()
-            if q:
-                mask &= col.astype(str).str.lower().str.contains(q, regex=False, na=False)
-        elif kind == "select":
-            values = {str(v) for v in (f.get("values") or [])}
-            if values:
-                text = col.fillna("").astype(str)
-                mask &= text.isin(values) | text.map(lambda v: PART_PREFIX_RE.sub("", v).strip()).isin(values)
-        elif kind == "number":
-            scale = _CF_UNIT_SCALE.get(f.get("unit"), 1)
-            num = pd.to_numeric(col, errors="coerce")
-            lo, hi = f.get("min"), f.get("max")
-            if isinstance(lo, (int, float)):
-                mask &= num >= lo * scale - 1e-9
-            if isinstance(hi, (int, float)):
-                mask &= num <= hi * scale + 1e-9
+        try:
+            col = rows[f["id"]]
+            kind = f.get("type")
+            if kind == "text":
+                q = f.get("q")
+                q = q.strip().lower() if isinstance(q, str) else ""
+                if q:
+                    mask &= col.astype(str).str.lower().str.contains(q, regex=False, na=False)
+            elif kind == "select":
+                raw_values = f.get("values")
+                if not isinstance(raw_values, list):
+                    continue
+                values = {str(v) for v in raw_values if isinstance(v, (str, int, float)) and not isinstance(v, bool)}
+                if values:
+                    text = col.fillna("").astype(str)
+                    mask &= text.isin(values) | text.map(lambda v: PART_PREFIX_RE.sub("", v).strip()).isin(values)
+            elif kind == "number":
+                unit = f.get("unit")
+                scale = _CF_UNIT_SCALE.get(unit, 1) if isinstance(unit, str) else 1
+                num = pd.to_numeric(col, errors="coerce")
+                lo, hi = f.get("min"), f.get("max")
+                # bool은 int의 하위 클래스라 True가 1로 걸리지 않게 제외
+                if isinstance(lo, (int, float)) and not isinstance(lo, bool):
+                    mask &= num >= lo * scale - 1e-9
+                if isinstance(hi, (int, float)) and not isinstance(hi, bool):
+                    mask &= num <= hi * scale + 1e-9
+        except (TypeError, ValueError, OverflowError):
+            logger.warning("열 필터 항목 적용 실패 — 무시: %r", str(f)[:200])
+            continue
     return rows[mask]
 
 
@@ -1184,11 +1198,7 @@ def api_perf_data():
         return jsonify({"data": [], "total": 0})
     total = len(rows)
 
-    try:
-        page      = max(1, int(request.args.get("page", 1)))
-        page_size = min(200, max(1, int(request.args.get("page_size", 30))))
-    except (ValueError, TypeError):
-        page, page_size = 1, 30
+    page, page_size = parse_page_args(request.args, 200)
 
     start = (page - 1) * page_size
     # 빈 칸(원가 짝 없음·재무 대조 대상 아님 등)은 NaN으로 남는데, NaN은 JSON이 아니라 브라우저가 응답 전체를 못 읽음
@@ -1382,7 +1392,8 @@ def build_plan_summary():
     full = get_perf_df("plan27")
     df = apply_perf_filters(full)
     _year, _sheet, _loaded = _plan_cache["year"], _plan_cache["sheet"], _plan_cache["loaded"]
-    if df.empty:
+    if full.empty:
+        # 계획 시트를 못 읽은 경우만 빈 응답 — 필터 결과 0건은 아래 정상 경로(합계 0·빈 목록, 키 집합 동일)
         return jsonify({"view": "plan27", "year": _year, "sheet": _sheet, "loaded_at": _loaded,
                         "total": {}, "by_part": {}, "by_team": {}, "monthly": []})
 
@@ -1528,9 +1539,15 @@ def api_perf_views():
 def api_perf_summary():
     if request_view() == "plan27":
         return build_plan_summary()
-    df = apply_perf_filters(get_perf_df())
-    if df.empty:
-        return jsonify({"total": {}, "by_part": {}, "by_progress": {}, "monthly": []})
+    _full = get_perf_df()
+    df = apply_perf_filters(_full)
+    if _full.empty:
+        # 시트를 아예 못 읽은 경우 — 그래도 정상 응답과 같은 키 집합(빈 값)을 유지
+        return jsonify({"total": {}, "by_part": {}, "by_team": {}, "by_progress": {}, "monthly": [],
+                        "loaded_at": _perf_last_loaded,
+                        "base": {"year": _perf_current_year, "month": _perf_current_month} if _perf_current_month else None})
+    # 필터 결과가 0건이어도(`part=zzz` 등) 아래 정상 경로를 그대로 지남 — 합계 0·빈 목록으로 정상 응답과 같은 키 집합이 나오고,
+    # 기준월(base)도 필터와 무관한 시트 기준월로 채워짐(예전엔 {total:{}, ...}만 줘서 프론트가 base 없다고 달력으로 짐작했음, 2026-11-04)
 
     rev  = df[df["category"] == "매출"]
     cost = df[df["category"] == "원가"]
@@ -1544,7 +1561,6 @@ def api_perf_summary():
 
     # 계획 칸 공통원가 — 시트 합계 블록의 사업계획 기준 값(전체 보기일 때만 유효). 팀·파트로 걸렀거나 못 읽으면
     # 예전처럼 추정 공통원가(매출행 BD)로 대체하고 plan_overhead_source="estimate"로 알림(프론트가 계획 글자를 빨갛게)
-    _full = get_perf_df()
     _blk  = _full.attrs.get("plan_overhead") if len(df) == len(_full) else None
     _est_overhead  = float(rev["cost_overhead"].sum())
     _plan_overhead = _blk if _blk is not None else _est_overhead
@@ -1916,12 +1932,20 @@ def _perf_breakdown_series(df, spec, s, key):
         if not m:
             return None, None, f"월 형식 오류: {key}"
         mm     = int(m.group(1))
+        if not 1 <= mm <= 12:
+            # 13월 등 — 예전엔 내부 열 이름('chk_m13')이 메시지에 그대로 노출됐음(2026-11-04)
+            return None, None, "월은 1~12월만 조회할 수 있습니다."
         months = range(1, mm + 1) if s.get("cumulative") else [mm]
         fields = [s["field"].format(mm=f"{k:02d}") for k in months]
         sub    = df[df["category"].isin(signs.keys())]
         key_label = key
     elif spec["dim"] == "part":
+        # key도 원문자(①~)를 뗀 값으로 — 옵션 목록의 "① AIㆍDS"를 그대로 넘겨도 "AIㆍDS"와 같게(필터 part와 같은 규칙, 2026-11-04)
+        key       = strip_part_prefix(key)
         stripped  = df["part"].astype(str).apply(lambda p: PART_PREFIX_RE.sub("", p).strip())
+        if not (stripped == key).any():
+            # 없는 파트는 "합계 0인 정상 응답"이 아니라 일관되게 available:false(호출부가 message로 내려줌)
+            return None, None, "해당 파트를 찾을 수 없습니다."
         sub       = df[(df["category"] == s["category"]) & (stripped == key)]
         key_label = key
     else:  # none — 전체 대상
@@ -1930,7 +1954,8 @@ def _perf_breakdown_series(df, spec, s, key):
 
     missing = [f for f in fields if f not in sub.columns]
     if missing:
-        return None, None, f"'{missing[0]}' 컬럼을 찾을 수 없습니다."
+        logger.warning("breakdown — 열 없음: %s", missing[0])   # 내부 열 이름은 로그로만, 응답엔 일반 문구
+        return None, None, "해당 항목의 데이터를 찾을 수 없습니다."
 
     # 부호가 섞이면(손익 = 매출 − 원가) 같은 프로젝트의 매출행·원가행을 한 줄 순액으로 묶음 —
     # 안 묶으면 한 프로젝트가 +/− 두 줄로 쪼개져 읽기 어려움. 단일 카테고리는 기존대로 행 단위

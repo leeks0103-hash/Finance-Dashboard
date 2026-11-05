@@ -11,3 +11,13 @@
 }
 .icon { font-size: 1.8rem; }
 .message { font-size: 0.86rem; color: var(--loss); text-align: center; }
+
+/* 한 줄 알림 — 가로 배치·작은 여백(2026-11-04, 페이지 위 "네트워크 끊김"·"조회 실패" 안내용) */
+.compact {
+  flex-direction: row;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 10px 16px;
+}
+.compact .icon { font-size: 1.1rem; }

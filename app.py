@@ -10,6 +10,7 @@ import numpy as np
 import ipaddress
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request
+from werkzeug.exceptions import HTTPException, InternalServerError
 from flask.json.provider import DefaultJSONProvider
 from openpyxl import load_workbook
 
@@ -58,6 +59,47 @@ app.register_blueprint(request_bp)
 app.register_blueprint(secret_mail_bp)
 
 
+# /api/* 오류는 HTML 오류 페이지·스택트레이스 대신 항상 {ok:false, error} JSON으로(2026-11-04) — 프론트·추출 스크립트가
+# 같은 모양으로 읽고, 내부 정보(경로·예외 문구)가 응답에 안 섞이게. 상세는 로그에만 남김. /api/ 밖 경로는 기존 동작 그대로
+_HTTP_ERROR_TEXT = {
+    400: "잘못된 요청입니다",
+    404: "찾을 수 없는 주소입니다",
+    405: "허용되지 않는 요청 방식입니다",
+    413: "요청 내용이 너무 큽니다",
+    415: "지원하지 않는 요청 형식입니다",
+}
+
+
+@app.errorhandler(HTTPException)
+def _handle_http_error(e: HTTPException):
+    if not request.path.startswith("/api/"):
+        return e
+    code = e.code or 500
+    resp = jsonify({"ok": False, "error": _HTTP_ERROR_TEXT.get(code, "요청을 처리할 수 없습니다")})
+    resp.status_code = code
+    if code == 405 and getattr(e, "valid_methods", None):
+        resp.headers["Allow"] = ", ".join(e.valid_methods)
+    return resp
+
+
+@app.errorhandler(Exception)
+def _handle_unexpected_error(e: Exception):
+    logger.exception("처리 중 예외: %s %s", request.method, request.path)
+    if not request.path.startswith("/api/"):
+        return InternalServerError()
+    resp = jsonify({"ok": False, "error": "서버 내부 오류가 발생했습니다"})
+    resp.status_code = 500
+    return resp
+
+
+
+def _empty_health() -> dict:
+    """비교할 데이터가 없을 때(재무·KPI 중 한쪽이 비었거나 열을 못 찾음)의 응답 — 정상 응답과 **같은 키 집합**(값은 빈 목록·0).
+    예전엔 {count, rows}만 줘서 프론트가 conflicts·acks 등 누락 키를 읽다 깨질 수 있었음(2026-11-04)"""
+    return {"acks": _valid_health_acks(), "count": 0, "rows": [], "conflicts": [],
+            "finished_anomalies": [], "read_failures": []}
+
+
 @app.route("/api/data-health")
 def api_data_health():
     """KPI/재무 데이터가 같은 PPT 파일을 각자 독립적으로 스캔한다 — 그 파일에서 뽑힌
@@ -71,12 +113,12 @@ def api_data_health():
     fin_df = get_df()
     kpi_df = get_kpi_df()
     if fin_df.empty or kpi_df.empty:
-        return jsonify({"count": 0, "rows": []})
+        return jsonify(_empty_health())
 
     kpi_code_col = next((c for c in kpi_df.columns if "프로젝트코드" in str(c)), None)
     kpi_file_col = next((c for c in kpi_df.columns if "파일명" in str(c)), None)
     if kpi_code_col is None or kpi_file_col is None:
-        return jsonify({"count": 0, "rows": []})
+        return jsonify(_empty_health())
 
     fin_by_file = fin_df.groupby("filename")["project_code"].apply(
         lambda s: frozenset(str(x).strip() for x in s)
@@ -651,7 +693,7 @@ def api_extract_coverage():
     """추출 현황 — NAS 폴더의 PPT 파일 수 vs 실제로 추출된 파일, 안 된 파일과 이유(관리자용 기능 모달).
     파일 이름 목록이 나가므로 관리자 키 필요. ?refresh=1이면 30초 캐시 무시하고 폴더를 다시 훑음"""
     if not _extract_key_valid(request):
-        return jsonify({"ok": False, "error": "권한이 없습니다"}), 403
+        return jsonify({"ok": False, "error": "관리자만 볼 수 있습니다"}), 403
     import extract_coverage
     try:
         return jsonify(extract_coverage.coverage(force=request.args.get("refresh") == "1"))

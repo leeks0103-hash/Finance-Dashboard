@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Navbar } from '@/layouts';
 import { TabLayout } from '@/layouts';
-import { FileOpenVisibleContext } from '@/components/ui';
+import { FileOpenVisibleContext, Spinner } from '@/components/ui';
 import { LoginScreen } from '@/components/features/LoginScreen';
 import AdminRoute from '@/components/features/Admin/AdminRoute';
 import { useVisible } from '@/hooks/useVisibility';
@@ -57,10 +57,14 @@ const App = () => {
   // 로그인을 요구하는지는 관리자 기능 토글(서버 저장, 2026-10-22) — 예전엔 코드 상수(LOGIN_REQUIRED)를 주석으로 껐다 켰음
   const { loginRequired, isLoading } = useLoginRequired();
   const auth = useAuthSession(loginRequired);
-  // 값이 오기 전엔 로그인 화면을 그릴지 몰라 비워 둠(잠깐) — 서버가 안 닿으면 '요구함'으로 처리
-  if (isLoading) return null;
+  // 값이 오기 전엔 로그인 화면을 그릴지 몰라 대시보드는 못 그림 — 예전엔 null이라 서버 응답이 느리면 완전한 빈 화면이었음.
+  // 스피너(0.12초 뒤 나타남 — 빨리 끝나면 안 번쩍임)를 그림(2026-11-04, QA H1 "#/admin 간헐적 빈 화면"). 서버가 안 닿으면 '요구함'으로 처리
+  if (isLoading) return <Spinner label="불러오는 중…" />;
+  // 저장된 토큰을 확인하는 동안(checking)도 같음 — 확인이 끝나야 대시보드 또는 로그인 화면이 정해짐
+  const verifying = loginRequired && auth.status === 'checking';
   return (
     <>
+      {verifying && <Spinner label="로그인 확인 중…" />}
       {/* 로그인 요구가 꺼져 있으면 로그인 화면 없이 바로 대시보드 */}
       {(!loginRequired || auth.status === 'in') && <Dashboard authChecking={auth.status === 'checking'} />}
       {loginRequired && auth.showLogin && <LoginScreen onLogin={auth.login} onDone={auth.dismissLogin} />}

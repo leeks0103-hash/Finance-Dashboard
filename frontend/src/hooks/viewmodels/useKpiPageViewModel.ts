@@ -59,6 +59,10 @@ export interface KpiSummaryRow {
 export interface KpiPageViewModel {
   isLoading:        boolean;
   isFetching:       boolean;
+  /** 요약 조회 실패 — 데이터 없음(available=false)과 구분(2026-11-04, QA UI M6) */
+  isError:          boolean;
+  /** 요약 다시 불러오기 */
+  refetch:          () => void;
   available:        boolean;
   message?:         string;
   chart:            KpiChartData;
@@ -100,7 +104,7 @@ export const useKpiPageViewModel = (summaryPart = '', anomalyOnly = false): KpiP
   const parts  = useKpiFilterStore(s => s.parts);
   const stages = useKpiFilterStore(s => s.stages);
 
-  const { data: summary, isLoading: sumLoading } = useKpiSummary(summaryPart);
+  const { data: summary, isLoading: sumLoading, isError: sumError, refetch: refetchSummary } = useKpiSummary(summaryPart);
   const {
     data,
     isLoading: dataLoading,
@@ -187,6 +191,8 @@ export const useKpiPageViewModel = (summaryPart = '', anomalyOnly = false): KpiP
   return {
     isLoading,
     isFetching,
+    isError: sumError,
+    refetch: () => { void refetchSummary(); },
     available: summary?.available ?? false,
     message:   summary?.message,
     chart,

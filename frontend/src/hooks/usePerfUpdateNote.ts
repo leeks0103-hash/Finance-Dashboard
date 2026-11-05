@@ -26,7 +26,12 @@ export const usePerfUpdateNote = () => {
     onSuccess: saved => qc.setQueryData(QUERY_KEY, saved),
   });
   return {
-    value:  data ?? DEFAULTS,
+    // 서버 응답에 label/note가 없거나 문자열이 아니어도({} 등) 기본값으로 — UpdateDateField가 s.trim()에서 터져 ErrorBoundary가 앱 전체를
+    // 교체했음(2026-11-04, QA UI M3)
+    value: {
+      label: typeof data?.label === 'string' ? data.label : DEFAULTS.label,
+      note:  typeof data?.note  === 'string' ? data.note  : DEFAULTS.note,
+    } as PerfUpdateNote,
     update: mutation.mutate,
   };
 };

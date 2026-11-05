@@ -15,11 +15,12 @@ from datetime import datetime
 
 import pandas as pd
 from openpyxl import Workbook
+from openpyxl.cell.cell import ILLEGAL_CHARACTERS_RE
 from openpyxl.comments import Comment
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
-from shared import strip_part_prefix
+from shared import nonblank, strip_part_prefix
 
 # 현대 9색 파생 — 화면과 같은 의미색
 _NAVY    = "002C5F"
@@ -58,6 +59,20 @@ _MAIN_COLS = [
     ("확인 사항",          "_check",           "txt", 30),
 ]
 _EMPH_FIELDS = {"operating_profit", "profit_rate"}
+
+
+# openpyxl 기본 목록(ILLEGAL_CHARACTERS_RE: 탭·줄바꿈 빼고 0x00~0x1F 제어문자)에 XML이 못 담는 U+FFFE·U+FFFF와
+# 짝 없는 서로게이트도 더함 — 기본 목록만으론 U+FFFE에서 저장 단계 ValueError로 500이 남(2026-11-04)
+_ILLEGAL_XML_RE = re.compile(ILLEGAL_CHARACTERS_RE.pattern + "|[￾￿\ud800-\udfff]")
+# 엑셀 셀 한 칸 글자 수 한도(32,767) — 넘으면 엑셀이 파일을 못 엶
+_MAX_CELL_CHARS = 32000
+
+
+def _clean_text(v) -> str:
+    """엑셀 셀에 쓸 글자 — 엑셀이 못 담는 제어문자를 지우고 길이를 제한.
+    검색어·열 필터 글자·프로젝트명 등 사용자/원본이 준 글자는 전부 이걸 거쳐야 함 —
+    안 그러면 검색어에 제어문자(%01 등)가 든 요청이 500(2026-11-04)"""
+    return _ILLEGAL_XML_RE.sub("", str(v))[:_MAX_CELL_CHARS]
 
 
 def _num(v):
@@ -139,7 +154,9 @@ def _write_value(cell, kind: str, v):
         cell.number_format = _WON if kind == "won" else _PCT if kind == "pct" else "0"
         cell.alignment = Alignment(horizontal="right", vertical="center")
     else:
-        cell.value = "" if v is None or (isinstance(v, float) and pd.isna(v)) else str(v)
+        cell.value = "" if v is None or (isinstance(v, float) and pd.isna(v)) else _clean_text(v)
+        if isinstance(cell.value, str) and cell.value.startswith("="):
+            cell.data_type = "s"   # "=..."로 시작하는 프로젝트명이 수식으로 해석되지 않게 글자로 고정
         cell.alignment = Alignment(vertical="center")
 
 
@@ -152,7 +169,7 @@ def build_project_detail_xlsx(rows: pd.DataFrame, condition: str, fin_counts: di
     # ── 머리말 3줄: 제목 · 조건 · 배지 범례 ──
     ws["A1"] = "프로젝트 상세"
     ws["A1"].font = Font(size=14, bold=True, color=_NAVY)
-    ws["A2"] = condition
+    ws["A2"] = _clean_text(condition)
     ws["A2"].font = Font(size=9, color=_MUTED)
     ws["A3"] = "상이"
     ws["A3"].font = Font(bold=True, color=_RED)
@@ -224,7 +241,7 @@ def build_project_detail_xlsx(rows: pd.DataFrame, condition: str, fin_counts: di
 
 
 def condition_text(args, base: dict | None) -> str:
-    parts = args.getlist("part")
+    parts = nonblank(args.getlist("part"))   # 빈 값(`?part=`)은 필터 없음 — performance.apply_perf_filters와 같은 기준
     bits = [f"다운로드 {datetime.now():%Y-%m-%d %H:%M}"]
     if base:
         bits.append(f"기준 {base.get('year')}년 {base.get('month')}월 시트")
@@ -239,20 +256,21 @@ def condition_text(args, base: dict | None) -> str:
 
 
 def _describe_cf(raw: str) -> list[str]:
-    """열 필터 → "매출 이익 ≥ 2.1억" 같은 글자(화면 칩과 같은 모양)"""
+    """열 필터 → "매출 이익 ≥ 2.1억" 같은 글자(화면 칩과 같은 모양).
+    performance.apply_column_filters와 같은 기준으로 타입이 틀린 항목은 건너뜀(2026-11-04)"""
     try:
         specs = json.loads(raw) if raw else []
-    except ValueError:
+    except (ValueError, RecursionError):
         return []
     titles = {field: title for title, field, _, _ in _MAIN_COLS}
     out = []
     for f in specs if isinstance(specs, list) else []:
-        if not isinstance(f, dict):
+        if not isinstance(f, dict) or not isinstance(f.get("id"), str):
             continue
-        t = titles.get(f.get("id"), f.get("id"))
-        if f.get("type") == "text" and f.get("q"):
+        t = titles.get(f["id"], f["id"])
+        if f.get("type") == "text" and isinstance(f.get("q"), str) and f["q"]:
             out.append(f"{t}: \"{f['q']}\"")
-        elif f.get("type") == "select" and f.get("values"):
+        elif f.get("type") == "select" and isinstance(f.get("values"), list) and f["values"]:
             out.append(f"{t}: {', '.join(map(str, f['values']))}")
         elif f.get("type") == "number":
             u = "억" if f.get("unit") == "eok" else "%"

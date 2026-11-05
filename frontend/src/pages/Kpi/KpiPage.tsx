@@ -4,7 +4,7 @@ import { useKpiPageViewModel } from '@/hooks/viewmodels/useKpiPageViewModel';
 import { useKpiFilterOptions } from '@/hooks/useKpiFilterOptions';
 import { useKpiFilterStore } from '@/store/kpiFilter.store';
 import { sortStages } from '@/utils/stageOrder';
-import { ChartCard, BarChart, DataTable, CopyText, HighlightText, Button, Spinner, QueryGate, FilterSelect, LineIcon } from '@/components/ui';
+import { ChartCard, BarChart, DataTable, CopyText, HighlightText, Button, Spinner, QueryGate, FilterSelect, LineIcon, ErrorFallback } from '@/components/ui';
 import { FadeInSection } from '@/components/FadeInSection';
 import { useSwapView } from '@/components/ui/useAnimatedClose';
 import KpiRawTable from '@/components/features/KpiRawTable/KpiRawTable';
@@ -162,6 +162,9 @@ const KpiPage = () => {
   return (
     <QueryGate
       loading={gate.shown}
+      // 서버 오류는 '추출 스크립트를 먼저 실행' 안내(데이터 없음)가 아니라 오류로 — 장애를 데이터 없음으로 오해하고 일반 사용자에게 개발자용 안내가 뜨던 것(2026-11-04, QA UI M6)
+      error={vm.isError}
+      errorView={<main className={styles.main}><ErrorFallback title="KPI 데이터 오류" description="데이터를 불러오지 못했습니다. 잠시 뒤 다시 시도해 주세요." onRetry={vm.refetch} /></main>}
       empty={!vm.available}
       loadingView={<main className={`${styles.main} ${gate.leaving ? 'swapOut' : ''}`}><Spinner label="KPI 데이터 불러오는 중…" /></main>}
       emptyView={emptyView}

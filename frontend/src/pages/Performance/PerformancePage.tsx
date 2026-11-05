@@ -8,7 +8,7 @@ import { useState } from 'react';
 // import PerformancePlanPage from './PerformancePlanPage';
 import { usePerformanceViewModel } from '@/hooks/viewmodels/usePerformanceViewModel';
 import { useFinanceCodes } from '@/hooks/useFinanceCodes';
-import { DataTable, InfoButton, FilterSelect, HrefDownloadButton, RefreshSpinner } from '@/components/ui';
+import { DataTable, InfoButton, FilterSelect, HrefDownloadButton, RefreshSpinner, ErrorFallback } from '@/components/ui';
 import { FinanceDetailButton } from '@/components/features/FinanceDataModal';
 // ErrorBoundary — 재무 검색 결과 섹션 비활성으로 미사용, 복구 시 함께 해제
 // import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -91,9 +91,18 @@ const PerformanceActualPage = () => {
   return (
     <main className={styles.main}>
 
+      {/* 요약 조회 문제 안내(2026-11-04, QA UI M2) — 필터를 바꿨는데 네트워크가 끊기거나 서버가 실패하면 화면엔 이전 필터의 숫자가 그대로 남아
+          칩과 어긋난 채 정상처럼 보였음. 카드가 아직 없으면(첫 로딩 실패) 아래 카드 자리가 대신 안내를 그림 */}
+      {vm.summaryIssue && vm.kpiCards.length > 0 && (
+        <ErrorFallback compact onRetry={vm.refetchSummary}
+          message={vm.summaryIssue === 'offline'
+            ? '네트워크 연결이 끊겨 새 조건의 데이터를 불러오지 못했습니다 — 아래 숫자는 이전 조건 기준입니다'
+            : '선택한 조건의 데이터를 불러오지 못했습니다 — 아래 숫자는 이전 조건 기준일 수 있습니다'} />
+      )}
+
       {/* KPI 카드 */}
       <FadeInSection delay={0} tourId="perf-kpi" refreshing={vm.isSummaryFetching}>
-        <PerformanceKpiSection cards={vm.kpiCards} />
+        <PerformanceKpiSection cards={vm.kpiCards} issue={vm.summaryIssue} onRetry={vm.refetchSummary} />
       </FadeInSection>
 
       {/* 차트 섹션 */}

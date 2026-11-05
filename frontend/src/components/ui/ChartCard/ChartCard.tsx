@@ -1,4 +1,4 @@
-import { Children, useState, type ReactNode } from 'react';
+import { Children, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/Button';
 import { useScrollLock } from '@/components/ui/useScrollLock';
@@ -43,6 +43,27 @@ const Root = ({ children, compact = true, expandable = true, modalContent, modal
   const { closing, close } = useAnimatedClose(() => setExpanded(false), CLOSE_MS);
   useEscToClose(close, expanded);
 
+  // 모달 포커스(2026-11-04, QA UI M5) — 열려도 포커스가 뒤의 ⤢ 버튼에 남고 Tab이 모달 밖(다른 카드·드래그 핸들)으로 나갔음.
+  // 열릴 때 패널로 포커스를 옮기고(공용 Modal(ModalShell)과 같은 방식), Tab은 패널 안에서만 순환. 닫을 때 원래 버튼으로 되돌리지는 않음 —
+  // ESC로 닫으면 그 버튼에 전역 :focus-visible 테두리(남색 2px)가 그려지던 것(ModalShell 주석 참고)
+  const panelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!expanded) return;
+    const panel = panelRef.current;
+    if (panel && !panel.contains(document.activeElement)) panel.focus({ preventScroll: true });
+  }, [expanded]);
+  const trapTab = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== 'Tab') return;
+    const panel = panelRef.current;
+    if (!panel) return;
+    const items = [...panel.querySelectorAll<HTMLElement>('a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])')]
+      .filter(el => el.offsetParent !== null);
+    if (items.length === 0) { e.preventDefault(); panel.focus(); return; }
+    const first = items[0], last = items[items.length - 1], active = document.activeElement;
+    if (e.shiftKey && (active === first || active === panel)) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && active === last) { e.preventDefault(); first.focus(); }
+  };
+
   const titleRow = (className: string) => (
     <div className={className}>
       <div className={styles.titleContent}>{title}</div>
@@ -69,9 +90,12 @@ const Root = ({ children, compact = true, expandable = true, modalContent, modal
       <div
         className={`${styles.modalCard} ${closing ? styles.closing : ''}`}
         style={modalHeight ? { height: modalHeight } : undefined}
+        ref={panelRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         onClick={e => e.stopPropagation()}
+        onKeyDown={trapTab}
       >
         <div className={styles.modalHeader}>
           <div className={styles.titleContent}>{title}</div>

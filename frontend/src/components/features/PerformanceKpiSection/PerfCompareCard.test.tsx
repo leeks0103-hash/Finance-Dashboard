@@ -5,7 +5,7 @@ import type { PerfCompareCardData } from '@/hooks/viewmodels/usePerformanceViewM
 import styles from './PerfCompareCard.module.css';
 
 const base: PerfCompareCardData = {
-  kind: 'compare', id: 'grossProfit', label: '당해 연도 매출이익 (계획/추정)', accent: 'profit',
+  kind: 'compare', id: 'grossProfit', label: '매출이익 (계획/추정)', accent: 'profit',
   planStr: '107.5억원', estStr: '114.4억원', planNum: 107.5, estNum: 114.4, diffStr: '+6.9억원', diffUp: true,
 };
 
@@ -15,7 +15,7 @@ describe('PerfCompareCard 제목 아래 안내(labelNote)', () => {
     const label = container.querySelector(`.${styles.label}`);
     const note = label?.querySelector(`.${styles.labelNote}`);
     expect(note?.textContent).toBe('매출 - (직접원가 + 공통원가)');
-    expect(label?.textContent).toBe('당해 연도 매출이익 (계획/추정)매출 - (직접원가 + 공통원가)');
+    expect(label?.textContent).toBe('매출이익 (계획/추정)매출 - (직접원가 + 공통원가)');   // 첫 줄 제목+(계획/추정), 둘째 줄 안내
     expect(label?.classList.contains(styles.labelNoted)).toBe(true);   // 매출이익 카드 제목 전용 클래스
   });
 
@@ -47,10 +47,13 @@ describe('PerfCompareCard 스파크라인(2026-10-27 삭제 요청 — 코드·C
 });
 
 describe('PerfCompareCard 제목·보조 줄 배치', () => {
-  it('"(계획/추정)"은 제목 앞부분과 다른 줄(.labelSuffix)로 그린다', () => {
+  it('"(계획/추정)"은 제목 앞부분 옆(같은 .titleLine)에 그린다 — 둘째 줄이 아님(2026-11-05)', () => {
     const { container } = render(<PerfCompareCard card={base} />);
-    expect(container.querySelector(`.${styles.labelMain}`)?.textContent?.trim()).toBe('당해 연도 매출이익');
-    expect(container.querySelector(`.${styles.labelSuffix}`)?.textContent).toBe('(계획/추정)');
+    expect(container.querySelector(`.${styles.labelMain}`)?.textContent?.trim()).toBe('매출이익');
+    const suffix = container.querySelector(`.${styles.labelSuffix}`);
+    expect(suffix?.textContent).toBe('(계획/추정)');
+    expect(suffix?.parentElement).toBe(container.querySelector(`.${styles.titleLine}`));
+    expect(container.querySelector(`.${styles.labelMain}`)?.parentElement).toBe(suffix?.parentElement);
   });
 
   it('sub는 값 바로 아래(.sub)에 그린다 — 제목 아래(.labelNote)가 아님', () => {
@@ -59,22 +62,22 @@ describe('PerfCompareCard 제목·보조 줄 배치', () => {
     expect(container.querySelector(`.${styles.labelNote}`)).toBeNull();
   });
 
-  it('subNote는 sub(매출 대비 N%)와 같은 .subs 줄의 왼쪽(첫째)에 그리고, 값 묶음에 높이 확보용 hasNote를 붙인다(2026-11-04)', () => {
+  it('계산식(labelNote)은 "(계획/추정)"이 있던 둘째 줄에, "매출 대비 N%"(sub)는 값 아래에 따로 그린다(2026-11-05)', () => {
     const { container } = render(
-      <PerfCompareCard card={{ ...base, sub: '매출 대비 32.5%', subRight: true, subNote: '매출-(직접/공통 원가)' }} />,
+      <PerfCompareCard card={{ ...base, sub: '매출 대비 32.5%', subRight: true, labelNote: '매출 - (직접/공통 원가)' }} />,
     );
-    const subs = container.querySelector(`.${styles.subs}`);
-    expect(subs?.children[0].classList.contains(styles.subNote)).toBe(true);
-    expect(subs?.children[0].textContent).toBe('매출-(직접/공통 원가)');
-    expect(subs?.children[1].classList.contains(styles.sub)).toBe(true);
-    expect(subs?.children[1].textContent).toBe('매출 대비 32.5%');
-    expect(container.querySelector(`.${styles.valuesWrap}`)?.classList.contains(styles.hasNote)).toBe(true);
+    const label = container.querySelector(`.${styles.label}`);
+    // 첫 줄(.titleLine) 다음 형제가 둘째 줄 안내
+    expect(label?.children[0].classList.contains(styles.titleLine)).toBe(true);
+    expect(label?.children[1].classList.contains(styles.labelNote)).toBe(true);
+    expect(label?.children[1].textContent).toBe('매출 - (직접/공통 원가)');
+    expect(container.querySelector(`.${styles.sub}`)?.textContent).toBe('매출 대비 32.5%');
+    expect(container.querySelector(`.${styles.subs}`)?.textContent).toBe('매출 대비 32.5%');   // 보조 줄 묶음엔 계산식이 없음
   });
 
-  it('subNote 없이 sub만 있으면 hasSub(한 줄 높이), 둘 다 없으면 보조 영역을 안 그린다', () => {
+  it('sub만 있으면 hasSub(한 줄 높이 확보), 없으면 보조 영역을 안 그린다', () => {
     const only = render(<PerfCompareCard card={{ ...base, sub: '매출 대비 5.3%' }} />);
     expect(only.container.querySelector(`.${styles.valuesWrap}`)?.classList.contains(styles.hasSub)).toBe(true);
-    expect(only.container.querySelector(`.${styles.subNote}`)).toBeNull();
     only.unmount();
     const none = render(<PerfCompareCard card={base} />);
     expect(none.container.querySelector(`.${styles.subs}`)).toBeNull();

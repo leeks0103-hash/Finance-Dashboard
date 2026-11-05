@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { usePerformancePlanSummary, usePerformancePlanData } from '@/hooks/usePerformancePlan';
 import { usePerformanceOptions } from '@/hooks/usePerformanceData';
 import { useDebouncedSearch } from '@/hooks/useDebouncedSearch';
@@ -194,6 +194,15 @@ const SEARCH_FIELD_OPTIONS = [
 export const usePerformancePlanViewModel = (): PerformancePlanViewModel => {
   const pagination = useReactPagination(20);
   const sort = useServerSort(pagination.resetToFirstPage, 'performance-plan-project');
+  // 상단 팀·파트 필터가 바뀌면 1쪽으로(2026-11-04, QA H2 — 실적 보기와 같은 문제·같은 처리, usePerformanceViewModel 참고)
+  const selectedParts = usePerfStore(s => s.selectedParts);
+  const selectedTeam  = usePerfStore(s => s.selectedTeam);
+  const scopeKey = `${selectedTeam}|${selectedParts.join(',')}`;
+  const prevScopeKey = useRef(scopeKey);
+  if (prevScopeKey.current !== scopeKey) {
+    prevScopeKey.current = scopeKey;
+    pagination.resetToFirstPage();
+  }
   const [searchField, setSearchField] = useState('');
   const [selectedProgress, setSelectedProgress] = useState('');
   const [columnFilters, setColumnFilters] = useState<ColumnFilterValue[]>([]);
@@ -210,9 +219,6 @@ export const usePerformancePlanViewModel = (): PerformancePlanViewModel => {
     sortBy: sort.sortBy ?? undefined, sortDir: sort.sortDir,
   }, selectedProgress, columnFilters);
   const { data: options } = usePerformanceOptions();
-
-  const selectedParts = usePerfStore(s => s.selectedParts);
-  const selectedTeam  = usePerfStore(s => s.selectedTeam);
 
   const filterOptions = useMemo<Record<string, string[]>>(() => ({
     progress: options?.progress ?? [],

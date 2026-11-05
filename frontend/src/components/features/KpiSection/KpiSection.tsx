@@ -18,7 +18,7 @@ const KpiSection = () => {
       }
       errorView={
         <ErrorFallback
-          title="KPI 데이터 오류"
+          title="재무 요약 데이터 오류"
           description="데이터를 불러오지 못했습니다. 갱신 버튼을 눌러 재시도해 주세요."
           onRetry={vm.refetch}
         />

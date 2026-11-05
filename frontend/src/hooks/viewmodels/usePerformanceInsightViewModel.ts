@@ -33,12 +33,13 @@ export const usePerformanceInsightViewModel = (): PerformanceInsightViewModel =>
     subValue:    p.filename,
   }));
 
-  const isEmpty = !data.comments.length && !missedBid.length;
+  const comments = data.comments ?? [];   // 응답에 comments가 없어도 안 죽게(2026-11-04, QA UI M1)
+  const isEmpty = !comments.length && !missedBid.length;
 
   return {
     isLoading: isLoading || missedBidLoading,
     isEmpty,
-    comments: data.comments,
+    comments,
     missedBid,
     missedBidProjects: missedBidData,
 

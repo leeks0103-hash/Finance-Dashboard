@@ -52,8 +52,13 @@ export const useChartViewModel = (): ChartViewModel => {
       datalabels: {
         anchor: 'end',
         align:  'end',
-        formatter: (v: number) =>
-          Math.abs(v) >= 1 ? `${v.toFixed(1)}억` : `${(v * 10).toFixed(0)}천만`,
+        // 값이 0이거나 0.05억 미만이면 예전엔 "0천만"으로 찍혔음(2026-11-04, QA L4) — 0은 "0억", 천만 단위로 반올림해도 0이 되는 작은 값은 만 단위로
+        formatter: (v: number) => {
+          if (v === 0) return '0억';
+          if (Math.abs(v) >= 1) return `${v.toFixed(1)}억`;
+          const cheon = Math.round(v * 10);
+          return cheon !== 0 ? `${cheon}천만` : `${Math.round(v * 10000)}만`;
+        },
       },
     },
   }), [showLabels, labelColor]);

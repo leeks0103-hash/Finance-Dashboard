@@ -13,7 +13,14 @@
 - **금액 단위**: 재무(`/api/data`·`/api/summary` 등) 원 · 실적현황(`/api/performance/*`) 천원 · 화면 표시용 억 변환은 프론트.
 - **서버 페이지 표**(`/api/data`·`/api/kpi/data`·`/api/performance/data`): `page`·`page_size`·`search`·`field`·`sort_by`·`sort_dir`를 받고
   `{ data: [...], total }`을 돌려준다(정렬은 페이지를 자르기 전 전체 기준).
-- 오류 응답은 `{ "ok": false, "error": "..." }` 꼴.
+- 오류 응답은 `{ "ok": false, "error": "..." }` 꼴. `/api/*`의 404·405·500도 같은 JSON(HTML 오류 페이지·스택트레이스·예외 문구 없음, 상세는 서버 로그) —
+  `app.py` 오류 핸들러(2026-11-04). 한글 등 비 ASCII 토큰·비밀번호는 500이 아니라 401/로그인 실패.
+- **필터 파라미터**(`year`·`part`·`stage`·`team`·`progress`): 값이 빈 문자열(`?part=`)이면 **필터 없음**(엔드포인트 공통, `shared.nonblank`).
+  실적 `part`는 원문자(①~)를 붙인 이름(`① AIㆍDS`, `/options` 값 그대로)과 뗀 이름(`AIㆍDS`) 둘 다 맞음 — `/summary/breakdown`의 `key`도 같음(없는 파트는 `available:false`).
+- **필터 결과 0건**이어도 응답은 정상 응답과 **같은 키 집합**(값은 0·null·빈 목록) — `/api/summary`·`/api/performance/summary`(`base`는 시트 기준월이라 0건에도 채움)·`/api/kpi/summary`(항목 9행)·`/api/data-health`.
+  시트 자체를 못 읽었을 때는 `total`이 빈 객체 `{}`.
+- **열 필터 `cf`**(`/api/performance/data`·`/data/export`): 해석 못 하는 JSON·타입이 틀린 항목은 오류가 아니라 **무시**(해당 항목만 필터 없음).
+- 서버 페이지 표 `page`·`page_size`는 따로 해석 — 숫자가 아닌 `page`는 1, `page_size`가 숫자가 아니거나 1 미만이면 30(기본), 상한 초과는 상한(`/api/data` 5000 · KPI·실적 200).
 
 ## 인증
 
@@ -94,7 +101,7 @@
 
 | 메서드 | 경로 | 설명 |
 |---|---|---|
-| GET | `/api/download` · `/api/download/<key>` | 받을 수 있는 엑셀 목록 / 파일(프로젝트 상세는 받을 때 새로 생성) |
+| GET | `/api/download` · `/api/download/<key>` | 받을 수 있는 엑셀 목록 / 파일(프로젝트 상세는 받을 때 새로 생성 — 쿼리와 상관없이 **필터 없는 전체**, 필터·검색은 `/api/performance/data/export`). 없는 키는 `404 {ok:false,error}` |
 | GET | `/api/ai/finance` · `/api/ai/kpi` | H-Chat 분석문(캐시 `data/ai_analysis_cache.json`, `?force=1` 재분석). **1회 90~100초** 걸림 |
 | GET | `/api/secret-mail` | **관리자** 명단 + 보낸 기록 + 보내는 계정(키는 응답에 없음) |
 | GET | `/api/secret-mail/account-diff` | **관리자** 명단 엑셀 vs `.env` 일반 회원 대조(읽기만) |

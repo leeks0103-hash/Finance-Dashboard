@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from dotenv import load_dotenv
 from flask import Blueprint, jsonify, request
-from shared import new_excel_app, safe_mtime, find_source_path, open_source_file, sort_frame
+from shared import new_excel_app, safe_mtime, find_source_path, open_source_file, sort_frame, nonblank, parse_page_args
 import paths
 
 load_dotenv()
@@ -428,12 +428,23 @@ def _exclude_by_file(df: pd.DataFrame, exclude_files: set[str] | None) -> pd.Dat
     return df[~df[file_col].astype(str).str.strip().isin(exclude_files)]
 
 
+def _zero_agg(kpi_items: list) -> list:
+    """집계할 행이 없을 때의 값 — 합계·평균형은 0.0, 신규/기존 건수형은 "신규:0건/기존:0건" 문자열.
+    예전엔 전부 0.0이라 건수형이 문자열이 아니게 돼 api_kpi_summary가 신규/기존 두 행으로 못 나누고
+    행이 1개 적게(8개, 정상 9개) 나갔고 plan_target도 한 칸씩 어긋났음(`?part=zzz` 등 0건 필터, 2026-11-04)"""
+    return [
+        "신규:0건/기존:0건"
+        if isinstance(k.get("target", 0), str) and "신규" in str(k.get("target", "")) else 0.0
+        for k in kpi_items
+    ]
+
+
 def _aggregate_kpi_col(kpi_items: list, col_keyword: str, part: str | None = None,
                         exclude_files: set[str] | None = None) -> list:
     df = _filter_part(_kpi_calc_df if not _kpi_calc_df.empty else _kpi_raw_df, part)
     df = _exclude_by_file(df, exclude_files)
     if df.empty:
-        return [0.0] * len(kpi_items)
+        return _zero_agg(kpi_items)
 
     target_cols = [
         c for c in df.columns
@@ -442,7 +453,7 @@ def _aggregate_kpi_col(kpi_items: list, col_keyword: str, part: str | None = Non
     if not target_cols:
         logger.warning("_aggregate_kpi_col: '%s' 컬럼 없음. 헤더: %s",
                        col_keyword, list(df.columns[:10]))
-        return [0.0] * len(kpi_items)
+        return _zero_agg(kpi_items)
 
     if len(target_cols) != len(kpi_items):
         logger.warning("_aggregate_kpi_col: '%s' 컬럼 수(%d) ≠ KPI 항목 수(%d)",
@@ -452,7 +463,7 @@ def _aggregate_kpi_col(kpi_items: list, col_keyword: str, part: str | None = Non
     for i, kpi in enumerate(kpi_items):
         col = target_cols[i] if i < len(target_cols) else None
         if col is None:
-            result.append(0.0)
+            result.append(_zero_agg([kpi])[0])
             continue
 
         is_count_type = isinstance(kpi.get("target", 0), str) and "신규" in str(kpi.get("target", ""))
@@ -572,9 +583,9 @@ def _compute_achieve_rates(kpi_items: list, part: str | None = None,
 
 
 def apply_kpi_filters(df: pd.DataFrame) -> pd.DataFrame:
-    years  = request.args.getlist("year")
-    parts  = request.args.getlist("part")
-    stages = request.args.getlist("stage")
+    years  = nonblank(request.args.getlist("year"))
+    parts  = nonblank(request.args.getlist("part"))
+    stages = nonblank(request.args.getlist("stage"))
     if years:
         df = df[df["수행연도"].isin(years)]
     if parts:
@@ -634,11 +645,7 @@ def api_kpi_data():
         df = df[mask]
 
     total = len(df)
-    try:
-        page      = max(1, int(request.args.get("page", 1)))
-        page_size = min(200, max(1, int(request.args.get("page_size", 30))))
-    except (ValueError, TypeError):
-        page, page_size = 1, 30
+    page, page_size = parse_page_args(request.args, 200)
 
     # 전체 기준 정렬(표 머리글 클릭) — 페이지를 자르기 전에
     # 지표 칸의 미입력 표기(화면엔 "N")는 빈 값으로 보고 맨 뒤로 — utils/kpiColumns.cellVal과 같은 표기
@@ -744,7 +751,8 @@ def api_kpi_summary():
 
     except Exception as e:
         logger.error("api_kpi_summary 오류: %s", e)
-        return jsonify({"available": False, "message": f"KPI 집계 오류: {e}"})
+        # 예외 문구엔 내부 열 이름·경로가 섞일 수 있어 응답엔 일반 문구만(상세는 위 로그) — 2026-11-04
+        return jsonify({"available": False, "message": "KPI 집계 중 오류가 발생했습니다."})
 
 
 _BD_METRIC_COL   = {"target": "PJ목표", "actual": "PJ실적", "prev": "PJ유사"}
@@ -900,7 +908,7 @@ def api_kpi_summary_breakdown():
 
     except Exception as e:
         logger.error("api_kpi_summary_breakdown 오류: %s", e)
-        return jsonify({"available": False, "message": f"KPI 상세 오류: {e}"})
+        return jsonify({"available": False, "message": "KPI 상세를 불러오는 중 오류가 발생했습니다."})
 
 
 @kpi_bp.route("/api/kpi/reload", methods=["POST"])

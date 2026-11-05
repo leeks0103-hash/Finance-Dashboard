@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import type { PerfCompareCardData } from '@/hooks/viewmodels/usePerformanceViewModel';
 import { useChartPalette } from '@/hooks/useChartPalette';
+import { LineIcon } from '@/components/ui/LineIcon';
 import { useCompareCardViewModel } from '@/hooks/viewmodels/useCompareCardViewModel';
 import { splitValueUnit } from '@/utils/format';
 import styles from './PerfCompareCard.module.css';
@@ -43,11 +44,19 @@ const PerfCompareCard = ({ card }: { card: PerfCompareCardData }) => {
     >
       <div className={styles.header}>
         <span className={`${styles.label} ${card.labelNote ? styles.labelNoted : ''}`}>
-          {/* "(계획/추정)"은 모든 카드에서 항상 둘째 줄(2026-10-27 요청) — 제목 앞부분과 따로 줄을 나눠 그림.
-              앞부분 끝 공백은 글자 모양엔 영향 없고 textContent("… (계획/추정)")만 예전 그대로 유지 */}
-          <span className={styles.labelMain} title={card.label}>{labelMain}{labelSuffix ? ' ' : ''}</span>
-          {labelSuffix && <span className={styles.labelSuffix}>{labelSuffix}</span>}
-          {card.labelNote && <span className={styles.labelNote}>{card.labelNote}</span>}
+          {/* 제목 + "(계획/추정)"을 한 줄에 나란히(2026-11-05 요청 — 예전엔 "(계획/추정)"이 항상 둘째 줄이었음, 10-27). 둘째 줄은 labelNote 자리
+              (매출이익 카드의 계산식). 앞부분 끝 공백은 글자 모양엔 영향 없고 textContent("… (계획/추정)")만 예전 그대로 유지 */}
+          <span className={styles.titleLine}>
+            <span className={styles.labelMain} title={card.label}>{labelMain}{labelSuffix ? ' ' : ''}</span>
+            {labelSuffix && <span className={styles.labelSuffix}>{labelSuffix}</span>}
+          </span>
+          {/* 둘째 줄 안내(매출이익 계산식) — 앞에 수식(∴) 아이콘(2026-11-05 요청: 수식임을 암시, Σ에서 교체) */}
+          {card.labelNote && (
+            <span className={styles.labelNote}>
+              <LineIcon kind="formula" size={12} className={styles.noteIcon} />
+              {card.labelNote}
+            </span>
+          )}
         </span>
         {/* 계획 값이 없으면(diffStr '') 차이 알약도 안 그림 */}
         {card.diffStr && (
@@ -58,7 +67,7 @@ const PerfCompareCard = ({ card }: { card: PerfCompareCardData }) => {
       </div>
 
       <div className={styles.body}>
-        <div className={`${styles.valuesWrap}${card.subNote ? ` ${styles.hasNote}` : card.sub ? ` ${styles.hasSub}` : ''}`}>
+        <div className={`${styles.valuesWrap}${card.sub ? ` ${styles.hasSub}` : ''}`}>
           {/* 추정 값 위 "계획 대비 추정" 비율(2026-10-27) — 값이 없어도 줄은 남겨 카드마다 값 높이를 맞춤 */}
           <div className={styles.rateRow}>
             {card.rateStr && (
@@ -77,11 +86,9 @@ const PerfCompareCard = ({ card }: { card: PerfCompareCardData }) => {
             <ValueUnit value={estText} className={styles.est} title={card.estTitle} />
           </div>
           {/* 값 바로 아래 보조 줄(관리비 "매출 대비 N%" 등) — 값 위치는 다른 카드와 같게 두려고 아래로 매닮 */}
-          {(card.sub || card.subNote) && (
+          {card.sub && (
             <div className={styles.subs}>
-              {/* 매출이익 계산식 — "매출 대비 N%"와 같은 줄 왼쪽, 회색(2026-11-04 요청). 카드가 좁으면 CSS가 아래 줄로 내림 */}
-              {card.subNote && <div className={styles.subNote}>{card.subNote}</div>}
-              {card.sub && <div key={card.sub} className={`${styles.sub}${card.subRight ? ` ${styles.subRight}` : ''}`}>{card.sub}</div>}
+              <div key={card.sub} className={`${styles.sub}${card.subRight ? ` ${styles.subRight}` : ''}`}>{card.sub}</div>
             </div>
           )}
         </div>

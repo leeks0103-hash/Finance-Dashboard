@@ -210,7 +210,7 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
     return !allSelected;
   }, [options, selectedCostTeam, selectedCostPart, headerTeam, headerParts]);
 
-  const monthlyLength = summary?.monthly.length ?? 12;
+  const monthlyLength = summary?.monthly?.length ?? 12;   // 응답에 monthly가 없어도(서버 장애 응답 등) 안 죽게 ?.(2026-11-04, QA)
 
   const monthlyOptions = useMemo(() => makeBarOptions(showLabels, labelColor, {
     // 세로 막대 + align:'end'(막대 위) — 최고값 막대의 수치가 캔버스 상단에 잘리지 않게 여백 확보
@@ -288,14 +288,15 @@ export const usePerformanceChartViewModel = (): PerformanceChartViewModel => {
   const chartData = useMemo(() => {
     if (!summary || isLoading) return null;
 
-    const monthly = summary.monthly;
-    const parts   = sortParts(Object.keys(summary.by_part));
+    // 서버가 키를 빠뜨린 응답({} 등)이어도 화면이 죽지 않게 빈 값으로(2026-11-04, QA UI M1 — 'Cannot read properties of undefined (reading length)')
+    const monthly = summary.monthly ?? [];
+    const parts   = sortParts(Object.keys(summary.by_part ?? {}));
     const progressEntries = sortProgress(Object.keys(summary.by_progress ?? {}));
 
     // 원가 비율 카드용 — 메인 필터 무관, 항상 전체 데이터 기준(summaryAll이 아직 안 왔으면
     // 잠깐 메인 summary로 대체 — 로딩 중 빈 화면 대신 뭐라도 보여줌)
     const costSummary = summaryAll ?? summary;
-    const costParts    = sortParts(Object.keys(costSummary.by_part));
+    const costParts    = sortParts(Object.keys(costSummary.by_part ?? {}));
     const costTotal    = costSummary.total;
 
     return {

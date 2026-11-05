@@ -175,6 +175,8 @@
 
 /* 닫을 때 — 들어올 때의 반대로 가라앉으며 사라짐. 길이는 ChartCard.tsx CLOSE_MS(240ms)와 맞출 것 */
 .modalOverlay.closing { animation: chartOverlayOut 0.24s ease-in forwards; pointer-events: none; }
+/* 열릴 때 포커스가 패널로 옮겨지므로(ChartCard.tsx) 마우스/프로그램 포커스에 테두리가 안 보이게 */
+.modalCard:focus, .modalCard:focus-visible { outline: none; }
 .modalCard.closing    { animation: chartCardOut 0.22s cubic-bezier(0.4, 0, 1, 1) forwards; }
 
 @keyframes chartOverlayIn { from { opacity: 0; } to { opacity: 1; } }

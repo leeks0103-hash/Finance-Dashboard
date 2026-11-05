@@ -6,7 +6,7 @@ import {
 import {
   SortableContext, rectSortingStrategy, useSortable, arrayMove,
 } from '@dnd-kit/sortable';
-import { KpiCard, Skeleton, useTableDndSensors } from '@/components/ui';
+import { KpiCard, Skeleton, ErrorFallback, useTableDndSensors } from '@/components/ui';
 import PerfCompareCard from './PerfCompareCard';
 import type { PerfKpiCard } from '@/hooks/viewmodels/usePerformanceViewModel';
 import { SORTABLE_TRANSITION, sortableItemStyle } from '@/components/ui/sortableMotion';
@@ -22,6 +22,9 @@ interface Props {
   cards: PerfKpiCard[];
   /** 카드 순서를 저장하는 localStorage 키 — 기본은 실적 보기. 2027 계획 보기는 따로 저장(같은 카드 id라 안 나누면 서로 순서를 덮어씀, 2026-10-29) */
   orderKey?: string;
+  /** 조회 문제 — 카드가 없는 채로 이 값이 있으면 스켈레톤 대신 안내(2026-11-04, QA UI M1: 요약이 실패하면 카드가 영구 스켈레톤이었음) */
+  issue?: 'error' | 'offline' | null;
+  onRetry?: () => void;
 }
 
 // 카드 전체가 아니라 그립 아이콘만 드래그 — 차트 섹션(ChartSection/PerformanceChartSection)과 동일 패턴,
@@ -43,7 +46,7 @@ function SortableCard({ id, wide, children }: SortableCardProps) {
   );
 }
 
-const PerformanceKpiSection = ({ cards, orderKey = LS_KPI_ORDER }: Props) => {
+const PerformanceKpiSection = ({ cards, orderKey = LS_KPI_ORDER, issue = null, onRetry }: Props) => {
   // order 자체가 항상 "화면에 쓸 완전한 순서"여야 drag가 실제로 반영됨 — 저장값이 없으면
   // 빈 배열이 아니라 DEFAULT_KPI_ORDER로 채워야 함 (PerformanceChartSection과 동일 패턴).
   // 이전 버전은 order를 빈 배열로 시작해두고 렌더 시에만 별도로 기본순서를 합성했는데,
@@ -84,6 +87,12 @@ const PerformanceKpiSection = ({ cards, orderKey = LS_KPI_ORDER }: Props) => {
   const sortedCards = order.map(id => byId.get(id)).filter((c): c is PerfKpiCard => !!c);
 
   // 아직 카드가 없을 때(첫 로딩) 빈 영역 대신 카드 자리 스켈레톤 — 도착할 때 아래 내용이 튀지 않음(2026-10-28)
+  if (sortedCards.length === 0 && issue) {
+    return (
+      <ErrorFallback compact onRetry={onRetry}
+        message={issue === 'offline' ? '네트워크 연결이 끊겨 카드를 불러오지 못했습니다' : '카드 데이터를 불러올 수 없습니다'} />
+    );
+  }
   if (sortedCards.length === 0) {
     return (
       <div className={styles.kpiGrid} aria-busy="true" aria-label="카드 불러오는 중">

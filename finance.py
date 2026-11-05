@@ -6,6 +6,7 @@ import re
 import threading
 from datetime import datetime
 from urllib.parse import quote
+from xml.sax.saxutils import escape as xml_escape
 
 import numpy as np
 import pandas as pd
@@ -13,7 +14,7 @@ from dotenv import load_dotenv
 from flask import Blueprint, jsonify, request, make_response
 from markupsafe import escape as html_escape
 
-from shared import is_ranked_valid_code, read_excel_via_com, safe_mtime, find_source_path, open_source_file, sort_frame
+from shared import is_ranked_valid_code, read_excel_via_com, safe_mtime, find_source_path, open_source_file, sort_frame, nonblank, parse_page_args
 import paths
 
 load_dotenv()
@@ -163,7 +164,9 @@ def load_excel():
 
     plain_str_cols = ["project_code", "part", "stage", "note", "filename", "missed_bid_reason"]
     for col in plain_str_cols:
-        df[col] = df[col].astype(str).str.strip().replace("nan", "")
+        # pandas 3의 string dtype은 astype(str) 뒤에도 결측을 "nan" 글자가 아닌 진짜 NA로 둬서 replace("nan","")로는 못 잡음 →
+        # 비고·미수사유가 빈 칸이면 응답에 null이 나갔음(data-schema는 str). fillna("")로 빈 문자열 통일(2026-11-04)
+        df[col] = df[col].astype(str).str.strip().replace("nan", "").fillna("")
 
     df["project_code"] = df["project_code"].str.replace(r"\s*\(", " (", regex=True)
     df = df[COLUMNS]
@@ -195,9 +198,9 @@ def get_df() -> pd.DataFrame:
 
 
 def apply_filters(df: pd.DataFrame) -> pd.DataFrame:
-    years  = request.args.getlist("year")
-    parts  = request.args.getlist("part")
-    stages = request.args.getlist("stage")
+    years  = nonblank(request.args.getlist("year"))
+    parts  = nonblank(request.args.getlist("part"))
+    stages = nonblank(request.args.getlist("stage"))
     if years:
         df = df[df["year"].isin(years)]
     if parts:
@@ -286,11 +289,7 @@ def api_data():
     # 전체 기준 정렬(표 머리글 클릭) — 지정이 없으면 위 보고단계 순서 그대로
     df = sort_frame(df, request.args.get("sort_by", ""), request.args.get("sort_dir", "asc"))
     total = len(df)
-    try:
-        page      = max(1, int(request.args.get("page", 1)))
-        page_size = min(5000, max(1, int(request.args.get("page_size", 30))))
-    except (ValueError, TypeError):
-        page, page_size = 1, 30
+    page, page_size = parse_page_args(request.args, 5000)
 
     start = (page - 1) * page_size
     paged = df.iloc[start:start + page_size].copy()
@@ -342,6 +341,9 @@ def api_summary():
             "total_revenue": 0, "total_expenditure": 0, "total_profit": 0,
             "avg_profit_rate": 0, "count": 0, "by_part": {}, "by_stage": {},
             "cost_breakdown": {"direct_cost": 0, "labor_cost": 0, "overhead": 0},
+            # 정상 응답과 같은 키 집합 유지(값은 null) — 필터 결과 0건에서 프론트가 키 누락으로 깨지지 않게(2026-11-04)
+            "expense_ratio": None, "profit_ratio": None, "avg_rate_trend": None,
+            "loaded_at": _last_loaded,
         })
 
     rates  = df.loc[df["profit_rate"] > 0, "profit_rate"]
@@ -630,7 +632,8 @@ def api_export_pdf():
     PROJECT_COL_W = [70*mm, 22*mm, 22*mm, 36*mm, 30*mm]
 
     def wrap_code(text: str) -> Paragraph:
-        return Paragraph(str(text), code_style)
+        # reportlab Paragraph는 XML 마크업을 해석 — 데이터 값에 `<`·`&`가 들어 있으면 깨지거나 500이라 이스케이프
+        return Paragraph(xml_escape(str(text)), code_style)
 
     def tbl_style(left_align_col0: bool = False):
         style = TableStyle([
@@ -652,9 +655,9 @@ def api_export_pdf():
 
     elements = []
 
-    _years  = request.args.getlist("year")
-    _parts  = request.args.getlist("part")
-    _stages = request.args.getlist("stage")
+    _years  = nonblank(request.args.getlist("year"))
+    _parts  = nonblank(request.args.getlist("part"))
+    _stages = nonblank(request.args.getlist("stage"))
     _filter_labels = []
     if _years:  _filter_labels.append(", ".join(f"{y}년" for y in _years))
     if _parts:  _filter_labels.append(", ".join(_parts))
@@ -664,7 +667,9 @@ def api_export_pdf():
     if _filter_labels:
         title_text += f" ({' | '.join(_filter_labels)})"
 
-    elements.append(Paragraph(title_text, title_style))
+    # 필터 값은 사용자가 쿼리로 준 글자 — `<b>x`·`<img src=...>` 같은 값이 reportlab 마크업으로 해석돼
+    # 500이 나거나 로컬 이미지가 PDF에 들어가던 것을 막으려고 이스케이프(2026-11-04)
+    elements.append(Paragraph(xml_escape(title_text), title_style))
     elements.append(Paragraph(f"출력일: {datetime.now().strftime('%Y-%m-%d %H:%M')}", normal_style))
     elements.append(Spacer(1, 4*mm))
 

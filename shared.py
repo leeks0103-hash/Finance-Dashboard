@@ -28,6 +28,32 @@ def strip_part_prefix(part) -> str:
     return PART_PREFIX_RE.sub("", str(part)).strip()
 
 
+def parse_page_args(args, max_page_size: int, default_page_size: int = 30) -> "tuple[int, int]":
+    """서버 페이지 표의 `page`·`page_size` 쿼리 → (page, page_size). 두 값을 따로 해석함.
+    예전엔 둘을 한 try 안에서 해석해 page가 숫자가 아니면(`abc`·`1e9`·`1.5`) 멀쩡한 page_size까지 기본 30으로 되돌아갔음(2026-11-04).
+    page: 숫자가 아니면 1, 1 미만은 1 / page_size: 숫자가 아니거나 1 미만(0·음수)이면 기본값, max_page_size 초과는 max로.
+    (0을 1행으로 줄이는 건 의도가 아니라 우연한 clamp 결과였음 — 잘못된 값은 기본값으로 통일)
+    상한은 엔드포인트마다 다름(재무 /api/data 5000, KPI·실적 200 — 원래 값 유지)"""
+    try:
+        page = max(1, int(args.get("page", 1)))
+    except (ValueError, TypeError):
+        page = 1
+    try:
+        size = int(args.get("page_size", default_page_size))
+    except (ValueError, TypeError):
+        size = default_page_size
+    if size < 1:
+        size = default_page_size
+    return page, min(max_page_size, size)
+
+
+def nonblank(values) -> list:
+    """필터 쿼리 값(`getlist` 결과)에서 빈 문자열·공백뿐인 값을 뺌.
+    `?part=`처럼 값이 빈 파라미터는 "필터 없음"으로 통일하기 위함 — 안 빼면 `isin([''])`이 되어 0건이 되고,
+    `team=`·`progress=`(단일 값, 빈 값이면 필터 안 함)과 엔드포인트마다 뜻이 달랐음(2026-11-04)"""
+    return [v for v in values if str(v).strip()]
+
+
 def safe_mtime(path):
     """파일 수정시각 — 없거나 못 읽으면 None (mtime 캐시 비교용)."""
     try:

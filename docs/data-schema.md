@@ -32,11 +32,11 @@
 | 9 | `overhead` | float | 공통원가 |
 | 10 | `operating_profit` | float | 경상이익 |
 | 11 | `profit_rate` | float | 이익율(%) |
-| 12 | `note` | str | 비고(`[미수주]` 태그가 있으면 미수주 프로젝트) |
+| 12 | `note` | str | 비고(`[미수주]` 태그가 있으면 미수주 프로젝트) — 빈 칸은 `""`(null 아님) |
 | 13 | `filename` | str | 원본 PPT 파일명 |
 | 14 | `processed_at` | str | 처리일 |
 | 15 | `reflected_at` | str | 반영일 |
-| 16 | `missed_bid_reason` | str | 미수 사유(PPT의 "★ 미수 사유" 텍스트박스) |
+| 16 | `missed_bid_reason` | str | 미수 사유(PPT의 "★ 미수 사유" 텍스트박스) — 빈 칸은 `""` |
 
 ## 처리 규칙
 

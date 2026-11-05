@@ -34,7 +34,8 @@ export const loginAdmin = (empNo: string, password: string): Promise<LoginResult
 
 /** 저장된 토큰이 아직 유효한지 + 역할 — 계정 삭제·비밀번호 변경이면 false. 서버에 못 닿으면 null(판단 보류) */
 export const verifySession = (): Promise<{ role: AuthRole; name: string } | false | null> =>
-  client.get<{ ok: boolean; role?: AuthRole; name?: string }>('/auth/me')
+  // 8초 제한(2026-11-04, QA H1) — 서버가 응답이 없을 때 로그인 확인 중 화면이 30초 넘게 비지 않게. 끊기면 null(저장된 역할로 들여보냄)
+  client.get<{ ok: boolean; role?: AuthRole; name?: string }>('/auth/me', { timeout: 8_000 })
     .then(r => (r.data.ok && r.data.role ? { role: r.data.role, name: r.data.name ?? '' } : false))
     .catch(() => null);
 

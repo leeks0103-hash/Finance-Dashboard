@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useEscToClose } from '@/components/ui/useEscToClose';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Toggle, Button, CopyText, NgvLogo } from '@/components/ui';
 import { usePresence } from '@/components/ui/useAnimatedClose';
@@ -126,6 +127,10 @@ const Navbar = () => {
     if (healthOpen) document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [healthOpen]);
+
+  // ESC로도 닫기(2026-11-04, QA L1 — 바깥 클릭으로만 닫혔고 ESC 뒤에도 aria-expanded=true로 열려 있었음). 공용 스택이라 모달과 겹치면 맨 위 하나만 닫힘
+  useEscToClose(() => setOpen(false), open);
+  useEscToClose(() => setHealthOpen(false), healthOpen);
 
   return (
     <header className={styles.header}>

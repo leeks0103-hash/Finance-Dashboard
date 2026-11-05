@@ -5,6 +5,28 @@
 
 ---
 
+## [2026-11-05] 비교 카드 제목: "당해 연도" 삭제 · "(계획/추정)"을 제목 옆으로 · 매출이익 계산식을 그 자리(둘째 줄)로
+
+- **요청**: "당해 연도" 삭제, "(계획/추정)"을 제목 옆으로(한 줄), "매출-(직접/공통 원가)"를 (계획/추정) 자리로 이동.
+- **VM**(`usePerformanceViewModel`): 카드 제목 7개에서 "당해 연도 " 삭제(`매출 (계획/추정)`·`직접 원가`·`공통원가`·`매출이익`·`인건비`·`관리비`·`경상손익`). 매출이익 계산식은 `subNote`(11-04)에서 **`labelNote`**(제목 아래 줄, 10-23 원래 쓰던 필드)로 — `PerfCompareCardData.subNote` 삭제. "매출 대비 32.5%"(`sub`)는 값 아래 오른쪽 그대로. 2027 계획 보기 카드 제목("27년 매출 (26 추정/27 계획)")은 손대지 않음(숨김 상태).
+- **카드**(`PerfCompareCard`): 제목 줄 `.titleLine`(flex, nowrap) 안에 `.labelMain`+`.labelSuffix`, 둘째 줄은 `.labelNote`. `.subNote`·`.hasNote`·좁은 폭 두 줄 대체(`@container 188px`)·`space-around` 규칙은 계산식이 제목 아래로 가면서 제거(11-04 항목 참고 — `.subs`는 "매출 대비" 한 줄만).
+- **폭 문제와 대응**: 제목 줄은 오른쪽 위 차이 배지와 폭을 나눠 써서 한 줄 7개일 때 좁으면 제목이 "직…"으로 줄거나(1600px) 사라짐(1366px). 계산식(.labelNote)은 둘째 줄이라 배지와 안 겹치므로 `overflow: visible`로 카드 폭만큼 다 보이게(배지 아래로 3px). **카드 내용 폭 ≤ 205px(`@container`)이면** `.titleLine`이 줄바꿈 → "(계획/추정)"을 제목 아래로 내리고(예전 모양) 계산식은 셋째 줄, 머리글 높이를 3줄 분량(`0.70rem × 1.3 × 3 + 3px`)으로 늘려 모든 카드의 값 위치를 같게 유지. 실측(msedge): 1920px(내용 212px)는 한 줄 · 1600px(167px)·1366px(134px)은 두 줄, 카드 높이 1920px 140 · 1600px 145 · 1366px 140 · 1280px(3개씩) 144. 205px 기준은 제목 길이("직접 원가")·글자 크기를 바꾸면 다시 잴 것.
+- **확인**: `tsc -b`·vitest 194개 통과(카드 테스트를 새 구조로 수정), 1920·1600·1366px 스크린샷. 커밋 안 함(11-04 밤 항목의 미커밋 변경과 같이 남아 있음).
+- **수식 아이콘(요청)**: 계산식 "매출-(직접/공통 원가)" 앞에 수식을 뜻하는 **Σ** 아이콘 — `LineIcon`에 `formula` kind 추가(`M18 5H6.5l6 7-6 7H18`), 카드 `.noteIcon`(12px·선 2.2·글자색 회색을 따라감). 11px·기본 선(1.5)에선 너무 가늘어 12px·굵게로 조정. 아이콘은 계산식 줄(`labelNote`)에만 붙음.
+- **Σ → ∴ 교체 + 문구 간격(요청)**: 아이콘을 ∴(따라서 기호, 점 3개)로 — 글꼴에 ∴가 없으면 대체 글꼴이 섞이므로 글자 대신 `LineIcon formula`에 원 3개(`r=2.6`, `fill=currentColor`)를 직접 그림(Σ 경로는 주석에 보존). 계산식 문구는 **"매출 - (직접/공통 원가)"**(빼기 앞뒤 공백, `labelNote`). 카드 테스트 기대 문구도 같이 수정. 폭이 공백 2칸만큼 늘어 좁은 폭에서 `.labelNote`(overflow visible)가 카드 끝에 닿는지는 화면 확인 필요.
+
+## [2026-11-04 밤] AI QA 지적사항 수정 (사용자 퇴근 중 — 커밋·푸시 안 함, 다음 날 확인 후 커밋)
+
+- **방식**: 아래 저녁 항목의 QA 지적을 심각도 순으로 수정. 백엔드는 에이전트(회귀 테스트 `tests/test_api_robustness.py` 106개 신규), 프론트는 직접. 실서버(5000/5188)는 안 건드림 — 임시 서버로만 검증. ⚠️ **`.py`가 바뀌어 Flask 재시작 필요**(`python dashboard_manager.py --start` — 인자 없이 `--help`도 토글이니 `--start`만).
+- **프론트**:
+  - **H1 `#/admin` 간헐적 빈 화면**: `App.tsx`가 로그인 설정 응답 전·저장 토큰 확인 중(`checking`)에 `null`/아무것도 안 그림 → `Spinner`("불러오는 중…"·"로그인 확인 중…", 0.12초 뒤 나타남). 시작 때 기다리는 `/settings/access`·`/auth/me`의 대기 상한을 30초 → 8초(끊기면 '요구함'/저장된 역할로 진행). 브라우저 확인: `me` 무응답이어도 스피너.
+  - **H2 마지막 페이지에서 팀·파트 필터 변경 → "검색 결과 없음"**: `usePerformanceViewModel`·`usePerformancePlanViewModel`이 상단 필터 변경 시 `resetToFirstPage()`를 안 불렀음 → 렌더 중 이전 필터 값과 비교해 1쪽으로(범위 밖 페이지 요청이 안 나감). 확인: 16/16쪽에서 팀 칩 → 1/6쪽·20행.
+  - **UI M1** 요약 500이면 카드 영구 스켈레톤 → `PerformanceKpiSection`에 `issue`/`onRetry` — 카드가 없을 땐 `ErrorFallback`(새 `compact` 한 줄 모양). 응답에 `monthly`·`by_part`·`comments`가 빠져도 안 죽게 `?? []`. **UI M2** 필터를 바꾼 뒤 오프라인/실패면 이전 숫자가 칩과 어긋난 채 정상처럼 보였음 → VM `summaryIssue`('error'|'offline', react-query `isPaused`)·`refetchSummary`, 페이지 위 안내. **UI M3** `perf-update`가 `{}`면 `UpdateDateField`의 `s.trim()`이 터져 앱 전체가 ErrorBoundary → `usePerfUpdateNote`가 문자열로 정규화. **UI M5** `ChartCard` 확대 모달: 열릴 때 패널로 포커스, Tab 순환 가둠(테스트 추가). **UI M6** KPI 요약 실패를 "추출 스크립트를 먼저 실행" 빈 상태와 구분(`KpiPageViewModel.isError/refetch`). 낮음: ⚙ 메뉴·건강 메뉴 ESC로 닫힘, 재무 막대 라벨 "0천만" → "0억"/만 단위, 재무 탭 오류 제목의 "KPI" 오기.
+  - 브라우저(msedge+임시 서버) 검증 5건 통과, `tsc -b`·vitest 194개 통과.
+- **백엔드(에이전트, pytest 237 통과·14 실패 = 변경 전부터인 `test_finance_api/load`와 동일 이름)**: `cf` 타입 틀린 JSON·`[`×20000 → 200(무시)·PDF 필터 값 이스케이프(`<b>x` 등)·엑셀 제어문자·`U+FFFE` 제거(+`=`로 시작하는 문자열이 수식으로 저장되던 것도 문자열 고정)·0건 응답이 정상과 같은 키 집합(실적 `base`, 재무 요약, `data-health`, KPI 9행)·빈 값 필터(`?part=`) 일관(`shared.nonblank`)·원문자 파트명 양쪽 허용(`strip_part_prefix`, breakdown key 포함)·비 ASCII 토큰/비밀번호 500 → 401(`auth._safe_equal`)·페이지 인자 따로 해석(`shared.parse_page_args`)·`/api/*` 오류를 JSON으로(`app.py` 오류 핸들러 신규 — 예외 문구·스택 미노출)·다운로드 오류 형식·내부 열 이름 비노출·`note`/`missed_bid_reason` 빈 칸 `""`·`/api/download/project_detail`가 쿼리를 무시(주석과 일치). `docs/api-spec.md`·`data-schema.md` 갱신. 직접 재확인: 임시 서버·테스트 클라이언트로 `cf` 오류·엑셀 `%01`·PDF `<b>x`·0건 요약(`base` 2026-09)·KPI 9행·`① AIㆍDS`/`AIㆍDS` 둘 다 57건·`/api/nonexistent` JSON 404 확인.
+- **건너뜀/보류(사용자 판단)**: L7 KPI `achieve_rate`를 목표 0일 때 null로(표시가 `0%`→`-`로 바뀌는 숫자 규칙 — 바꾸려면 `kpi.py`의 `else 0.0` 3곳+신규/기존 행). M8 reload 3개 무인증(추출 스크립트 의도) + `str(e)`를 그대로 내림(정보 노출 — 별도 판단). M9 재무 완료 단계 0 취급·착수+완료 이중 합산. M10 `/api/performance/data` 캐시(350ms~, 동시 40개면 최대 16초). L2 0건일 때 표 머리글 사라짐(가로 스크롤 방지 의도). UI M4 400px 이하 레이아웃(헤더 로고 겹침·⚙ 화면 밖 — 사내 데스크톱용이라 제외). `/api/settings/headcount`가 `updated_by`(관리자 사번)를 내려줌.
+- **다음에**: 커밋은 프론트·백엔드·문서를 한 번에 해도 되고 나눠도 됨(백엔드: `app/auth/downloads/finance/kpi/perf_export/performance/shared.py`+테스트+docs, 프론트는 위 목록). 실서버 재시작 후 `#/admin` 새로고침·필터 변경 시 1쪽 복귀를 눈으로 확인.
+
 ## [2026-11-04 저녁] AI QA 시범 · 매출이익 카드 "매출 대비 N%" + 계산식 아래 왼쪽 회색
 
 - **AI QA 시범(보고만, 코드 수정 없음)**: 격리 서버(백엔드 5001·프론트 5189, 로그인만 끈 임시 프로세스, 실서버·`data/access.json` 무접촉)에 화면(Playwright)·API(GET 위주) QA 에이전트를 돌림. 메일 발송·추출·파일 열기·설정 저장·AI·NAS는 금지. 핵심 발견(직접 재현 확인한 것 위주):

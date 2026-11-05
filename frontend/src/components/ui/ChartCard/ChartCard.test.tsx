@@ -40,6 +40,29 @@ describe('ChartCard', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 
+  it('확대 모달이 열리면 포커스가 패널로 옮겨지고 Tab이 모달 밖으로 나가지 않는다(2026-11-04, QA UI M5)', () => {
+    render(
+      <div>
+        <button type="button">모달 밖 버튼</button>
+        <ChartCard>
+          <ChartCard.Title>제목</ChartCard.Title>
+          <ChartCard.Body>내용</ChartCard.Body>
+        </ChartCard>
+      </div>,
+    );
+    fireEvent.click(screen.getByLabelText('차트 확대'));
+    const dialog = screen.getByRole('dialog');
+    expect(document.activeElement).toBe(dialog);
+
+    // 마지막 포커스 가능 요소(닫기)에서 Tab → 첫 요소로 순환(모달 안), Shift+Tab은 반대
+    const close = within(dialog).getByLabelText('닫기');
+    close.focus();
+    fireEvent.keyDown(close, { key: 'Tab' });
+    expect(dialog.contains(document.activeElement)).toBe(true);
+    fireEvent.keyDown(dialog, { key: 'Tab', shiftKey: true });
+    expect(dialog.contains(document.activeElement)).toBe(true);
+  });
+
   it('hides the expand button when expandable={false}', () => {
     render(
       <ChartCard expandable={false}>

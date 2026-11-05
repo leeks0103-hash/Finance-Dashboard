@@ -1,4 +1,4 @@
-export type LineIconKind = 'search' | 'list' | 'chart' | 'note' | 'inbox';
+export type LineIconKind = 'search' | 'list' | 'chart' | 'note' | 'inbox' | 'formula';
 
 interface Props {
   kind:       LineIconKind;
@@ -37,6 +37,15 @@ export const LineIcon = ({ kind, size = 28, className }: Props) => (
         <path d="M6 3.5h8.5L19 8v12.5H6z" />
         <path d="M14.5 3.5V8H19M9 12.5h7M9 16h5" />
       </>
+    )}
+    {/* 수식(∴ 따라서 기호, 점 3개) — 계산식 문구 앞에 붙이는 아이콘(2026-11-05, 매출이익 카드 "매출 - (직접/공통 원가)").
+        처음엔 Σ(`M18 5H6.5l6 7-6 7H18`)였다가 ∴로 교체. 글꼴 유무에 안 흔들리게 글자 대신 점 3개를 직접 그림 */}
+    {kind === 'formula' && (
+      <g fill="currentColor" stroke="none">
+        <circle cx="12" cy="6" r="2.6" />
+        <circle cx="5.5" cy="17.5" r="2.6" />
+        <circle cx="18.5" cy="17.5" r="2.6" />
+      </g>
     )}
     {kind === 'inbox' && (
       <>
