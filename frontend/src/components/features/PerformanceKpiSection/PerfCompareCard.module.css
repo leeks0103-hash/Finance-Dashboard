@@ -46,7 +46,7 @@
   /* 모든 카드 머리글을 같은 높이(제목 두 줄 분량 = .label 0.70rem × 2.6)로 고정 — 폭과 상관없이 값·막대 위치가 카드마다 같은 줄에 오게(2026-10-23).
      둘째 줄(.noteRow)에 계산식(매출이익 카드)·계획 대비 %가 들어감 */
   /* 제목 / (계획/추정) 두 줄 분량 — 매출이익 계산식도 값 아래 줄(.sub)로 옮겨(2026-10-27) 제목 아래 3번째 줄은 더 안 씀 */
-  min-height: calc(0.70rem * 2.6 + 3px);   /* +3px = 계산식 줄(.labelNote)의 margin-top(2026-11-05) */
+  min-height: calc(0.70rem * 2.6 + 5px);   /* +5px = 둘째 줄(.noteRow)의 margin-top(2026-11-05) */
 }
 
 /* 둘째 줄 = 왼쪽 계산식(.labelNote) · 오른쪽 "계획 대비 N%"(.rate) 나란히 한 줄(2026-11-05 요청 — 카드 높이 축소).
@@ -58,7 +58,7 @@
   flex-wrap: wrap;
   align-items: baseline;
   column-gap: 6px;
-  margin-top: 3px;
+  margin-top: 5px;   /* 3 → 2px로 줄였다가 "계획 대비가 배지(차이 알약)와 너무 붙음"으로 5px(2026-11-05) — 아래 .header min-height의 + 5px도 같이 */
   font-size: 0.70rem;
   line-height: 1.3;
   text-transform: none;
@@ -380,7 +380,7 @@
    모든 카드의 값 위치를 같게 유지. 기준 205px = 카드 내용 폭(실측: 1920px 화면 212px는 한 줄에 들어가고, 1700px 182px부터 안 들어감)(2026-11-05) */
 @container (max-width: 205px) {
   /* 4줄 = 제목 / "(계획/추정)" / 계산식 / "계획 대비 N%" — 계산식 + 계획 대비가 한 줄에 안 들어가 .noteRow가 줄바꿈되는 폭(매출이익 카드)에 맞춰 모든 카드 같은 높이 */
-  .header { min-height: calc(0.70rem * 1.3 * 2 + 3px + 0.70rem * 1.15 * 2); }   /* 제목 2줄(1.3) + 둘째 줄 묶음 2줄(1.15, 아래) + margin-top 3px */
+  .header { min-height: calc(0.70rem * 1.3 * 2 + 5px + 0.70rem * 1.15 * 2); }   /* 제목 2줄(1.3) + 둘째 줄 묶음 2줄(1.15, 아래) + margin-top 5px */
   .noteRow { line-height: 1.15; row-gap: 0; }
   .titleLine { flex-wrap: wrap; column-gap: 0.3em; row-gap: 0; }
   .labelMain { overflow: visible; text-overflow: clip; }

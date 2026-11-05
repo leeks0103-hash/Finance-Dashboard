@@ -285,7 +285,7 @@ export const usePerformanceViewModel = (): PerformanceViewModel => {
 
     const compareCards = [
       mk('revenue',     '매출 (계획/추정)', 'brand',  total.plan_initial,   total.jun_check_total, 'revenue'),
-      { ...mk('cost',   '직접 원가 (계획/추정)', 'purple', total.plan_cost,      total.jun_cost, 'costDirect'),
+      { ...mk('cost',   '직접원가 (계획/추정)', 'purple', total.plan_cost,      total.jun_cost, 'costDirect'),
         sub: revRatioSub(total.est_cost_rate), subRight: true },
       // 공통원가 카드(2026-10-27) — 직접 원가와 매출이익 카드 사이. 계획 = 시트 합계 블록의 사업계획 기준 값(plan_overhead),
       // 추정 = 매출행 BD 합(cost_overhead). 팀·파트 필터 중엔 계획도 추정 공통원가로 대체됨(plan_overhead_source 'estimate').
