@@ -702,6 +702,40 @@ def api_extract_coverage():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@app.route("/api/notifications")
+def api_notifications():
+    """관리자 알림(상단 바 종) — 매일 아침 8시에 센 추출 현황의 '아직 안 읽음·열기 실패·원본 수정됨' 파일 수(extract_alerts.py).
+    저장된 값만 돌려줘서 NAS를 훑지 않음. 파일 수만 나가지만 관리자 기능이라 관리자 키 필요"""
+    if not _extract_key_valid(request):
+        return jsonify({"ok": False, "error": "관리자만 볼 수 있습니다"}), 403
+    import extract_alerts
+    return jsonify(_alerts_body())
+
+
+def _alerts_body() -> dict:
+    """알림 응답 — 저장된 체크 결과 + 설정(시각·빈도) + 다음 확인 시각(서버가 계산, extract_alerts.next_check)"""
+    import extract_alerts
+    state, settings = extract_alerts.read(), extract_alerts.read_settings()
+    return {"ok": True, **state, "settings": settings,
+            "slots": extract_alerts.day_slots(settings),   # 하루에 확인하는 시각 목록(정해진 시각이면 그대로, 일정 간격이면 풀어서)
+            "next_check": extract_alerts.next_check(datetime.now(), state, settings)}
+
+
+@app.route("/api/settings/notifications", methods=["PUT"])
+def api_put_notifications_settings():
+    """알림 확인 시각·빈도 바꾸기(관리자 기능 > 데이터 > 추출 알림) — 바꾼 항목만 보내면 나머지는 유지.
+    `{enabled, days:[0~6, 월=0], mode: times|interval, times:["HH:MM"…≤6], interval_minutes: 30~720, window_start, window_end}`.
+    응답은 알림 조회와 같은 모양"""
+    if not _extract_key_valid(request):
+        return jsonify({"ok": False, "error": "권한이 없습니다"}), 403
+    import extract_alerts
+    try:
+        extract_alerts.write_settings(request.get_json(silent=True) or {})
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    return jsonify(_alerts_body())
+
+
 # ── 화면 공개 범위(관리자용 기능 모달) ─────────────────────────────────────
 # 예전엔 브라우저마다 localStorage에 저장돼 관리자가 바꿔도 자기 화면에만 적용됐음 →
 # 서버 파일 하나에 두고 모든 화면이 같은 값을 읽음(2026-10-06). 노출만 관리 — API 접근 자체는 막지 않음.
@@ -898,6 +932,9 @@ if __name__ == "__main__":
         ipaddress.ip_address(API_HOST)
     except ValueError:
         raise SystemExit(f"API_HOST={API_HOST!r}는 IP 주소가 아닙니다 — 127.0.0.1(이 PC만) 또는 0.0.0.0(모든 곳) 같은 IP 하나만 쓸 수 있습니다")
+    # 추출 알림 — 매일 아침 8시에 추출 현황을 세어 저장(놓쳤으면 지금 한 번). import 때가 아니라 여기서만 시작(extract_alerts.py)
+    import extract_alerts
+    extract_alerts.start_scheduler()
     try:
         from waitress import serve
         print(f"서버 시작: http://{API_HOST}:5000")

@@ -1,0 +1,81 @@
+/* 관리자 기능 > 알림 탭(2026-11-05) — 그룹 카드·힌트·토글 줄은 AdminSections.module.css 공용, 여기엔 이 탭 전용만 */
+.total { color: var(--danger, #e63312); font-weight: 700; }
+
+.list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.item { display: flex; gap: 10px; align-items: baseline; font-size: 0.8rem; }
+.source { flex: none; width: 36px; font-weight: 700; color: var(--text-sub); }
+.counts { display: flex; flex-wrap: wrap; gap: 2px 14px; color: var(--text-sub); }
+.counts b { color: var(--danger, #e63312); font-weight: 700; }
+
+.foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+
+/* 확인 일정 — 왼쪽 이름 / 오른쪽 선택 상자·입력 */
+.toggleRow { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.row { display: grid; grid-template-columns: 84px 1fr; align-items: start; gap: 10px; }
+.rowLabel { font-size: 0.78rem; font-weight: 700; color: var(--text-sub); padding-top: 7px; }
+.toggleRow .rowLabel { padding-top: 0; }
+.controls { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-width: 0; }
+
+/* 선택 상자·시각 입력 — 사번 입력칸(.authInput)과 같은 톤, 같은 높이·폭 */
+.select {
+  box-sizing: border-box;
+  min-width: 180px;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  color: var(--text-primary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 4px);
+}
+.select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-bg); }
+.select:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* 요일 직접 선택 — 월~일 작은 켜고 끄는 버튼 */
+.days { display: flex; gap: 4px; flex-wrap: wrap; }
+.days .dayBtn {
+  min-width: 34px;
+  padding: 4px 0;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.days .dayOn,
+.days .dayOn:hover:not(:disabled) {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+  font-weight: 700;
+}
+:global([data-theme="dark"]) .days .dayOn { color: #04263a; }
+
+/* 정해진 시각 한 줄 — 입력 + 지우기 */
+.timeItem { display: flex; align-items: center; gap: 6px; }
+.tilde { color: var(--text-muted); }
+.timeItem .select { min-width: 130px; }
+.addBtn { align-self: flex-start; }
+
+/* 시각 지우기 — 작은 둥근 ×(업데이트 요청 목록의 지우기와 같은 모양) */
+.removeBtn,
+.removeBtn:hover:not(:disabled) { box-shadow: none; }
+.removeBtn {
+  background: transparent;
+  border: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.removeBtn svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+.removeBtn:hover:not(:disabled) { background: var(--danger-bg, rgba(230,51,18,0.12)); color: var(--danger, #e63312); }
+.removeBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+@media (max-width: 600px) {
+  .row { grid-template-columns: 1fr; }
+  .rowLabel { padding-top: 0; }
+}

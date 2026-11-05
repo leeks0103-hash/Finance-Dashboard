@@ -40,6 +40,9 @@ const ExtractFilePicker = ({ selected, onChange, targets, disabled }: Props) => 
   const { data, isLoading } = useExtractCoverage(true, undefined);
   const { data: health } = useDataHealth();
   const [query, setQuery] = useState('');
+  // 처음 열 때 이미 골라져 있던 파일(노란 "!"의 [N개 선택 추출로 열기]·추출 현황에서 체크해 온 파일)은 목록 맨 위로(2026-11-05 요청).
+  // 열린 뒤에 직접 체크하는 파일은 자리를 안 옮김 — 클릭할 때마다 목록이 뛰지 않게 처음 값만 기억
+  const [pinned] = useState(() => new Set(selected));
 
   // 데이터 이상("!")에 걸린 파일 → 이유. '생성 예정'류(pending)는 배지에 안 뜨므로 제외
   const issuesByFile = useMemo(() => {
@@ -69,11 +72,11 @@ const ExtractFilePicker = ({ selected, onChange, targets, disabled }: Props) => 
         map.set(it.file, r);
       }
     }
-    // 데이터 이상 파일이 맨 위, 그다음 상태(실패·미처리 …) 순
-    const rank = (r: Row) => (r.issues ? (r.ack ? -20 : -10) : 0) + Math.min(
+    // 처음부터 골라져 온 파일이 맨 위, 그다음 데이터 이상 파일, 그다음 상태(실패·미처리 …) 순
+    const rank = (r: Row) => (pinned.has(r.file) ? -100 : 0) + (r.issues ? (r.ack ? -20 : -10) : 0) + Math.min(
       r.finance ? STATUS_RANK[r.finance] : 9, r.kpi ? STATUS_RANK[r.kpi] : 9);
     return [...map.values()].sort((a, b) => rank(a) - rank(b) || a.file.localeCompare(b.file, 'ko'));
-  }, [data, issuesByFile, health]);
+  }, [data, issuesByFile, health, pinned]);
 
   const selectedSet = useMemo(() => new Set(selected), [selected]);
   const q = query.trim().toLowerCase();

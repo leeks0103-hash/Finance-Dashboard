@@ -91,6 +91,8 @@
 | POST | `/api/extract/cancel` | **관리자** 진행 중 추출 중지 |
 | GET | `/api/extract/coverage` | **관리자** 추출 현황(원본 폴더 파일 수 vs 추출된 것, 안 된 이유) |
 | POST | `/api/extract/open-file` | **관리자** 추출 현황 목록의 원본 열기 |
+| GET | `/api/notifications` | **관리자** 상단 바 알림 종 — 관리자가 정한 일정(기본 매일 08:00 한 번, `extract_alerts.py`)에 센 추출 현황 `{checked_at, last_attempt, last_error, finance:{pending,failed,modified}, kpi:{…}, total, settings, slots, next_check}`(아직 안 읽음·열기 실패·원본 수정됨 파일 수, 합계 0이면 배지 없음). `settings`=아래 일정, `slots`=하루 확인 시각 목록("HH:MM" — 서버가 정해진 시각이면 그대로·일정 간격이면 시간대 안 간격마다로 풀어 줌), `next_check`=서버가 계산한 다음 확인 시각(끔이면 null). 저장된 값만 돌려줌(NAS를 안 훑음) |
+| PUT | `/api/settings/notifications` | **관리자** 확인 일정 — `{enabled: bool, days: [0~6 (월=0)], mode: "times"|"interval", times: ["HH:MM"…1~6개], interval_minutes: 30/60/120/180/240/360/480/720, window_start: "HH:MM", window_end: "HH:MM"(시작<끝)}` — 바꾼 항목만 보내면 나머지 유지, 잘못된 값은 400 `{ok:false,error}`. 응답은 위 조회와 같은 모양. 예전 `{frequency,time,interval_hours}`는 파일에 남아 있어도 읽을 때 새 모양으로 바꿈 |
 | GET | `/api/data-health` | 데이터 이상 배지(KPI↔재무 코드 충돌·완료 보고 이상 등) |
 | POST | `/api/data-health/ack` | `{file, done}` "수정 완료" 표시(로그인한 누구나) |
 | POST | `/api/extract-requests/check` · `/api/extract-requests` | 업데이트(재추출) 요청 확인 / 남기기(로그인한 누구나) |

@@ -14,7 +14,9 @@ import { useDataHealth, useDataHealthAck } from '@/hooks/useDataHealth';
 import HealthAckButton from './HealthAckButton';
 import AdminExtractModal from '@/components/features/Admin/AdminExtractModal';
 import AdminModal from '@/components/features/Admin/AdminModal';
+import type { AdminTabId } from '@/components/features/Admin/AdminModal';
 import ExtractRequestBadge from './ExtractRequestBadge';
+import NotificationBell from './NotificationBell';
 import { useChartLabelToggle } from '@/hooks/useChartLabelToggle';
 import { useKeyShortcuts } from '@/hooks/useKeyShortcuts';
 import { toast } from '@/utils/dialog';
@@ -47,6 +49,14 @@ const PersonIcon = () => (
   </svg>
 );
 
+/** 설정 아이콘(톱니바퀴) — 글자 ⚙ 대신 SVG(2026-11-05). ⚙ 글리프는 글꼴·브라우저 버전마다 em 박스 안 위치가 달라
+ *  "정중앙에 있다가 갑자기 위로 올라가" 보였음 → 사람·종 아이콘처럼 viewBox 가운데에 정확히 그림. 글자색(currentColor)을 따름 */
+const GearIcon = () => (
+  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+    <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
+  </svg>
+);
+
 const Navbar = () => {
   const { theme, toggle: toggleTheme } = useTheme();
   const { showRawValues, toggleRawValues, showFinCompare, toggleFinCompare } = useUiStore();
@@ -68,6 +78,8 @@ const Navbar = () => {
   // const [financeModalOpen, setFinanceModalOpen] = useState(false);   // ⚙ > 재무데이터 확인 주석 처리(2026-10-29)
   // 관리자 기능 창 — 관리자 페이지(#/admin)는 주석 처리하고 다시 모달로(2026-10-29). 헤더의 사람 아이콘이 연다
   const [adminOpen, setAdminOpen] = useState(false);
+  // 어느 탭으로 열지 — 사람 아이콘은 기본(데이터), 알림 종의 [알림 설정·현황 열기]는 '알림' 탭(2026-11-05 요청)
+  const [adminTab, setAdminTab] = useState<AdminTabId>('data');
   // PPT 추출 창 — 노란 "!"의 "추출로 열기"·"추출 중…" 배지가 관리자 페이지로 넘어가지 않고 이 창을 연다(2026-10-23 요청)
   const [extractOpen, setExtractOpen] = useState(false);
   const [extractPreset, setExtractPreset] = useState<string[] | undefined>();
@@ -304,12 +316,17 @@ const Navbar = () => {
           {adminAuthed && (
             <Button unstyled
               className={`${styles.settingsBtn} ${styles.adminBtn}`}
-              onClick={() => setAdminOpen(true)}
+              onClick={() => { setAdminTab('data'); setAdminOpen(true); }}
               aria-label="관리자 기능"
               title={extractJob.isRunning ? '관리자 기능 (PPT 추출 중…)' : '관리자 기능'}
             >
               <PersonIcon />
             </Button>
+          )}
+
+          {/* 알림 종 — 관리자에게만, 사람 아이콘과 ⚙ 사이(2026-11-05). 추출 현황의 안 읽음·열기 실패·원본 수정됨이 있으면 빨간 숫자 배지 */}
+          {adminAuthed && (
+            <NotificationBell onOpenAlerts={() => { setAdminTab('alert'); setAdminOpen(true); }} />
           )}
 
           <div className={styles.settings} ref={ref} data-tour="settings">
@@ -319,7 +336,7 @@ const Navbar = () => {
             aria-label="설정"
             aria-expanded={open}
           >
-            ⚙
+            <GearIcon />
           </Button>
 
           {settingsDrop.mounted && (
@@ -430,7 +447,7 @@ const Navbar = () => {
       </div>
 
       {/* {financeModalOpen && <FinanceDataModal onClose={() => setFinanceModalOpen(false)} />} */}
-      {adminOpen && adminAuthed && <AdminModal onClose={() => setAdminOpen(false)} />}
+      {adminOpen && adminAuthed && <AdminModal initialTab={adminTab} onClose={() => setAdminOpen(false)} />}
       {extractOpen && adminAuthed && (
         <AdminExtractModal extractJob={extractJob} initialSelected={extractPreset}
           onClose={() => { setExtractOpen(false); setExtractPreset(undefined); }} />

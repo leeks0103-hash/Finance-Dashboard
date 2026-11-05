@@ -6,17 +6,21 @@ import AdminChartColorSection from './AdminChartColorSection';
 import AdminExtractSection from './AdminExtractSection';
 import PerfUpdatePanel from './PerfUpdatePanel';
 import FinMismatch from './FinMismatch';
+import AdminNotificationPanel from './AdminNotificationPanel';
 import SecretMailPanel from './SecretMailPanel';
 // 파트별 인원은 관리자 기능에서 뺌(2026-10-29 요청) — 실적 탭 "파트별 인원" 카드 오른쪽 끝의 [인원 입력]에서만(AdminQuickActions). 관리자만 고칠 수 있는 건 그대로
 // import PartHeadcountPanel from './PartHeadcountPanel';
 import styles from './AdminModal.module.css';
 
-type TabId = 'data' | 'view' | 'mail';
+export type AdminTabId = 'data' | 'view' | 'alert' | 'mail';
+type TabId = AdminTabId;
 // | 'headcount'
 
 const TABS: { id: TabId; label: string; desc: string }[] = [
   { id: 'data', label: '데이터',        desc: '실적 파일 · PPT 추출 · 재무 불일치' },
   { id: 'view', label: '화면·접근',     desc: '공개 범위 · 로그인 요구 · 차트 색상' },
+  // 알림 탭(2026-11-05 요청) — 화면·접근과 시크릿 키 메일 사이. 상단 바 종의 [알림 설정·현황 열기]가 이 탭으로 엶
+  { id: 'alert', label: '알림', desc: '추출 확인 시각 · 빈도' },
   { id: 'mail', label: '시크릿 키 메일', desc: '임직원 로그인 키 발송' },
   // { id: 'headcount', label: '파트별 인원', desc: '인당 매출·손익·관리비 계산용' },
 ];
@@ -45,16 +49,17 @@ const Step = ({ no, title, desc, children }: StepProps) => (
 
 /**
  * 관리자 기능 창(2026-10-29) — 관리자 페이지(#/admin)가 불편하다는 의견으로 다시 모달로.
- * 열기 버튼 카드 대신 내용을 창 안에 바로 펼침. 왼쪽 탭 3개:
+ * 열기 버튼 카드 대신 내용을 창 안에 바로 펼침. 왼쪽 탭 4개:
  *  · 데이터 — 실적현황 파일 → PPT 추출 → 재무 불일치(한 흐름이라 세트로, 위에서 아래로)
  *  · 화면·접근 — 공개 범위·로그인 요구·AI 인사이트 + 차트 색상
+ *  · 알림 — 추출 현황 확인 시각·빈도(상단 바 종 아이콘, 2026-11-05)
  *  · 시크릿 키 메일
  * 여는 곳은 상단 바 관리자 아이콘(Navbar, 관리자에게만 보임) — 서버 관리자 API는 따로 403.
  * 훅은 여기서 하나 만들어 PPT 추출에 넘김(진행 상태·인증을 탭 표시와 맞추려고)
  */
-const AdminModal = ({ onClose }: { onClose: () => void }) => {
+const AdminModal = ({ onClose, initialTab = 'data' }: { onClose: () => void; initialTab?: AdminTabId }) => {
   const extractJob = useExtractJob();
-  const [tab, setTab] = useState<TabId>('data');
+  const [tab, setTab] = useState<TabId>(initialTab);
 
   return (
     <ModalShell onClose={onClose} className={styles.panel}>
@@ -114,6 +119,12 @@ const AdminModal = ({ onClose }: { onClose: () => void }) => {
                     <AdminChartColorSection />
                   </Step>
                 </>
+              )}
+
+              {tab === 'alert' && (
+                <Step title="알림" desc="추출 현황의 안 읽음 · 열기 실패 · 원본 수정됨을 정한 시각에 확인해 상단 바 종에 숫자로 알림">
+                  <AdminNotificationPanel onGoData={() => setTab('data')} />
+                </Step>
               )}
 
               {tab === 'mail' && (

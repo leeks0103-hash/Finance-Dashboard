@@ -173,6 +173,7 @@ dashboard/
 ├── perf_autoupdate.py        # 새 실적 파일 열 맞추기(자동·H-chat)·계산식 검증·상태 기록
 ├── perf_export.py            # 프로젝트 상세 엑셀(1뎁스 + 배지) 만들기
 ├── paths.py                  # 데이터 경로(실적 파일 고르기 perf_excel_candidates)
+├── extract_alerts.py         # 관리자 알림 종 — 추출 현황(안 읽음·열기 실패·원본 수정됨)을 관리자가 정한 일정(요일·정해진 시각 또는 간격, 기본 매일 08:00 한 번, 관리자 기능 > 알림 탭)에 세어 data/extract_alerts.json에 저장(서버 시작 시 스케줄러, /api/notifications)
 ├── auth.py / shared.py / downloads.py / ai_insight.py
 ├── scripts/                  # 추출 스크립트, check_perf_headers.py, fill_user_accounts.py
 ├── data/                     # 엑셀·상태 json (git 제외) — 경영실적 히스토리/ 에 지난 실적 파일

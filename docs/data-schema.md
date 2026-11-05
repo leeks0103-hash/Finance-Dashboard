@@ -11,7 +11,7 @@
 | `KPI 지표 데이터 추출.xlsx` | `scripts/extract_kpi_ppt.py` | `kpi.py` |
 | `*사업계획 통합관리 파일*.xlsx` | 회사 파일을 `data/`에 넣기만 | `performance.py` + `perf_autoupdate.py` |
 | `사용자 목록/현대엔지비사용자목록_*.xlsx` | 직접 넣음(이름순 마지막 파일) | `secret_mail.py` · `scripts/fill_user_accounts.py` |
-| `*.json` (설정·상태·기록) | 서버 | 서버 — `headcount`(파트별 인원, 관리자 수기)·`access`(로그인 요구)·`visibility`(공개 범위)·`perf_update`·`perf_update_status`(최상위=실적 뷰, `plan27` 키=2027 계획 뷰)·`perf_col_maps`·`perf_ref_labels`(뷰별 마지막 정상 시트의 머리글·열 맵 스냅샷 — 새 시트 열 맞출 기준)·`health_ack`·`extract_requests`·`secret_mail_sent`·`ai_analysis_cache` |
+| `*.json` (설정·상태·기록) | 서버 | 서버 — `headcount`(파트별 인원, 관리자 수기)·`access`(로그인 요구)·`visibility`(공개 범위)·`perf_update`·`perf_update_status`(최상위=실적 뷰, `plan27` 키=2027 계획 뷰)·`perf_col_maps`·`perf_ref_labels`(뷰별 마지막 정상 시트의 머리글·열 맵 스냅샷 — 새 시트 열 맞출 기준)·`health_ack`·`extract_requests`·`extract_alerts`(정한 시각·빈도에 센 추출 현황 알림 숫자, `extract_alerts.py`)·`extract_alerts_settings`(알림 확인 일정 — 사용 여부·요일·정해진 시각 또는 간격+시간대, 관리자 기능 > 알림 탭)·`secret_mail_sent`·`ai_analysis_cache` |
 
 ⚠ 재무·KPI 엑셀을 Excel로 열지 말 것(AIP 레이블이 붙어 암호화되면 openpyxl이 못 읽음) — CLAUDE.md 참고.
 

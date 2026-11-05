@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Button, CopyText, Modal, confirmDialog } from '@/components/ui';
+import { Button, Modal, confirmDialog } from '@/components/ui';   // CopyText는 반영 명령 주석 처리로 안 씀(2026-11-05) — 복구하려면 같이 import
 import { useSecretMail, useSecretMailAccountDiff } from '@/hooks/useSecretMail';
 import type { SecretMailRow } from '@/types/secretMail.types';
 import SecretMailPreviewModal from './SecretMailPreviewModal';
@@ -135,8 +135,12 @@ const SecretMailPanel = ({ inline = false }: { inline?: boolean }) => {
                     <span className={styles.diffNames}>{g.items.map(personText).join(', ')}</span>
                   </div>
                 ))}
+                {/* 반영 명령(python scripts/fill_user_accounts.py … --no-name --apply)은 화면에서 숨김 — 주석 처리(2026-11-05 요청 "안 보여도 될 듯").
+                    복구하려면 아래 두 줄을 풀고, 위 안내 문구를 원래대로("반영하려면 서버 PC 터미널에서 아래 명령(클릭하면 복사) → Flask 재시작(python dashboard_manager.py --start). 키가 바뀐 사람은 반영 뒤 다시 보내세요.")
                 <span className={styles.muted}>반영하려면 서버 PC 터미널에서 아래 명령(클릭하면 복사) → Flask 재시작(python dashboard_manager.py --start). 키가 바뀐 사람은 반영 뒤 다시 보내세요.</span>
                 <CopyText text={d.command} className={styles.diffCmd} />
+                */}
+                <span className={styles.muted}>키가 바뀐 사람은 계정 반영 뒤 다시 보내세요.</span>
               </div>
             );
           })()}
