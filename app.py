@@ -434,6 +434,9 @@ _EXTRACT_SCRIPTS = {
 }
 _EXTRACT_MODES = {"incremental", "force", "reset", "failed", "selected"}
 _SELECTED_MAX = 300  # mode=selected 한 번에 고를 수 있는 파일 수
+# 추출 스크립트 한 번(재무 또는 KPI)의 제한 시간 — 전체(264개)·초기화 추출이 30분을 넘겨 중단됐음(2026-11-06) → 60분.
+# ⚠️ 시간 초과로 kill되면 스크립트의 finally(저장)가 안 돌아 그 실행에서 읽은 결과가 통째로 사라짐
+_EXTRACT_TIMEOUT_SEC = 3600
 # Navbar에서 "PPT 데이터 추출" 자체를 보이게/실행 가능하게 하는 공용 키 — 아직 배포 전이라
 # LAN에 공유돼도 아무나 못 누르게(2026-09-23, 본인+책임님만 권한). 비어있으면 무조건 거부(안전 기본값)
 EXTRACT_ADMIN_KEY = os.environ.get("EXTRACT_ADMIN_KEY", "").strip()
@@ -483,11 +486,11 @@ def _run_extract_script(name: str, mode: str, only_list: "str | None" = None) ->
         _extract_proc = proc
 
     try:
-        stdout, stderr = proc.communicate(timeout=1800)  # dashboard_update.py와 동일(대량 재수정 대비)
+        stdout, stderr = proc.communicate(timeout=_EXTRACT_TIMEOUT_SEC)
     except subprocess.TimeoutExpired:
         proc.kill()
         stdout, stderr = proc.communicate()
-        return False, f"{name} 추출이 30분을 넘겨 중단됐습니다"
+        return False, f"{name} 추출이 {_EXTRACT_TIMEOUT_SEC // 60}분을 넘겨 중단됐습니다"
     finally:
         with _extract_lock:
             _extract_proc = None

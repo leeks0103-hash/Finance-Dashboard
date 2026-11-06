@@ -441,6 +441,23 @@ def local_copy_if_drm(path: str) -> "str | None":
     return tmp
 
 
+def save_workbook_atomic(wb, path: str) -> None:
+    """추출 중간 저장용 — 임시 파일에 먼저 쓰고 교체해서, 저장 도중 프로세스가 죽어도(제한 시간 초과 kill 등)
+    결과 엑셀이 반쪽 파일로 남지 않게 함(2026-11-06). 추출은 마지막에 한 번만 저장해서 30분 제한에 걸리면
+    그 실행에서 읽은 결과가 통째로 사라졌음 → 파일 N개마다 호출.
+    교체가 안 되면(서버가 그 엑셀을 읽는 중 등) 직접 저장으로 대신함. 저장 자체가 실패하면 예외 그대로."""
+    tmp = path + ".partial"
+    try:
+        wb.save(tmp)
+        os.replace(tmp, path)
+    except Exception:
+        try:
+            os.remove(tmp)
+        except OSError:
+            pass
+        wb.save(path)
+
+
 def build_open_url(path: str, folder: bool = False) -> str:
     """접속자 PC에서 파일·폴더를 열 때 쓰는 주소 — hmcopen://f/<경로> (폴더는 d/).
     경로는 UTF-8을 base64url(= 없이)로 감싼 것 — 한글·공백이 든 NAS 경로를 주소에 안전하게 싣고 길이를 줄이려고.

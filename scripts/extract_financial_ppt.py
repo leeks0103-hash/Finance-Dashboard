@@ -13,9 +13,13 @@ from openpyxl import Workbook, load_workbook
 import sys as _sys_boot, os as _os_boot
 _sys_boot.path.insert(0, _os_boot.path.dirname(_os_boot.path.dirname(_os_boot.path.abspath(__file__))))
 import paths as _paths
-from shared import strip_stage_suffix as _shared_strip_stage_suffix, local_copy_if_drm
+from shared import strip_stage_suffix as _shared_strip_stage_suffix, local_copy_if_drm, save_workbook_atomic
 
 load_dotenv()  # .env 파일이 있으면 환경변수로 로드 (없으면 무시)
+
+# 파일 N개 처리할 때마다 결과 엑셀을 중간 저장 — 예전엔 맨 끝에 한 번만 저장해서, 대시보드의 제한 시간(kill)에 걸리면
+# 그 실행에서 읽은 결과가 통째로 사라졌음(2026-11-06). 중단돼도 그때까지는 남고 다음 증분 추출이 이어서 함
+CHECKPOINT_EVERY_FILES = 10
 
 # =========================
 # 설정값
@@ -1101,6 +1105,13 @@ def main():
         log(f"[시작] 출력 파일: {TARGET_EXCEL}")
 
         for ppt_path in target_files:
+            # 중간 저장 — 이번에 처리 끝낸 파일(total_files개)의 행·이력이 한 묶음으로 들어간 시점(파일 하나는 항상 끝까지 처리한 뒤)
+            if total_files and total_files % CHECKPOINT_EVERY_FILES == 0:
+                try:
+                    save_workbook_atomic(wb, TARGET_EXCEL)
+                    log(f"[중간 저장] {total_files}/{len(target_files)}개 처리")
+                except Exception as e:
+                    log(f"[경고] 중간 저장 실패(계속 진행): {type(e).__name__}: {e}")
             signature = build_file_signature(ppt_path)
             total_files += 1
 
