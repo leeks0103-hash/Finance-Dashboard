@@ -589,6 +589,15 @@ def _extract_job(targets: list, mode: str, files: "list | None" = None):
             ok_all = False
             logs.append(f"[캐시 갱신] 실패: {e}")
 
+    # 상단 알림 종 배지 — 추출이 끝난(중지·실패 포함, 거기까지 반영된) 지금 추출 현황을 다시 세서 저장(2026-11-06).
+    # 예전엔 정해진 시각(기본 08:00)에만 세서, 추출로 다 해결해도 아침의 "99+"가 다음 확인까지 남았음.
+    # 상태를 "끝남"으로 바꾸기 전에 해야 화면이 완료를 보고 알림을 다시 불러올 때 새 숫자가 들어 있음(NAS 훑기 6초쯤)
+    try:
+        import extract_alerts
+        extract_alerts.check_now()
+    except Exception:   # noqa: BLE001 — 알림 갱신 실패가 추출 결과 표시를 막으면 안 됨
+        logger.exception("추출 후 알림 갱신 실패")
+
     with _extract_lock:
         _extract_cancel_requested = False
         _extract_status.update({
