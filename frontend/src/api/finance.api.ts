@@ -47,9 +47,11 @@ export interface OpenFileResult {
   locked?:  boolean;
   /** check=true 요청에 대한 응답(실제로 열지는 않음) */
   checked?: boolean;
+  /** 실제 열기 요청의 응답 — 서버는 열지 않고 이 주소(hmcopen://…)만 줌. 브라우저가 각 PC의 파일 열기 도구에 넘겨 그 PC에서 연다 */
+  open_url?: string;
 }
 
-/** 파일명으로 원본 PPT 위치를 찾아 서버(로컬 PC)에서 직접 실행.
+/** 파일명으로 원본 PPT 위치를 찾아 열기 주소(open_url)를 받음 — 서버는 열지 않고, 브라우저가 이 PC의 파일 열기 도구로 연다(2026-11-06).
  *  실패(404 못 찾음 · 409 이미 열려있음)도 axios가 던지는 예외가 아니라
  *  { ok:false, message } 형태로 정상 resolve — 호출부가 항상 .then(r => r.ok)만 보면 되게 */
 export const openFinanceFile = (filename: string, check = false, folder = false): Promise<OpenFileResult> =>

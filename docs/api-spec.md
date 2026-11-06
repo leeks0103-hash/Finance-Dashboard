@@ -39,7 +39,7 @@
 | GET | `/api/insights` | 이익율 상위 / 저수익·손실 / 코멘트 |
 | GET | `/api/finance/missed-bid` | 미수주 프로젝트(비고의 `[미수주]` 태그) |
 | GET | `/api/finance/codes` | 재무 이력이 있는 프로젝트코드 → 건수(실적 표의 숫자 배지용) |
-| POST | `/api/finance/open-file` | 처리이력 기준으로 서버 PC에서 원본 PPT(또는 폴더) 열기 |
+| POST | `/api/finance/open-file` | 처리이력 기준으로 원본 PPT(또는 폴더) **열기 주소** 받기 `{filename, check?, folder?}` — 서버는 열지 않음(2026-11-06). `check`면 `{ok, checked}`만, 실제 요청은 `{ok, open_url:"hmcopen://f/<b64url경로>"}`(폴더는 `d/`) — 브라우저가 각 PC의 파일 열기 도구에 넘김. DRM 403 `blocked`·열람 중 409 `locked`·위치 없음 404는 그대로. KPI·추출 현황 열기도 같은 응답 |
 | POST | `/api/reload` | 재무 엑셀 캐시 다시 읽기(로그인 불필요) |
 | GET | `/api/export/pdf` | 현재 필터 기준 PDF |
 
@@ -103,6 +103,7 @@
 
 | 메서드 | 경로 | 설명 |
 |---|---|---|
+| GET | `/api/open-tool/download?origin=` | 파일 열기 도구 설치 zip(`HmcOpen.zip`, 소스 `tools/HmcOpen/`) — 받을 때 만들어서 `root.txt`(도구가 열어도 되는 NAS 보고서 폴더 = `paths.PPT_SOURCE_DIR`)와, `origin`이 `http(s)://호스트[:포트]` 꼴일 때 `url.txt`(설치 후 `/?opentool=1`로 열 대시보드 주소)를 넣음. 링크라 토큰은 `?token=` |
 | GET | `/api/download` · `/api/download/<key>` | 받을 수 있는 엑셀 목록 / 파일(프로젝트 상세는 받을 때 새로 생성 — 쿼리와 상관없이 **필터 없는 전체**, 필터·검색은 `/api/performance/data/export`). 없는 키는 `404 {ok:false,error}` |
 | GET | `/api/ai/finance` · `/api/ai/kpi` | H-Chat 분석문(캐시 `data/ai_analysis_cache.json`, `?force=1` 재분석). **1회 90~100초** 걸림 |
 | GET | `/api/secret-mail` | **관리자** 명단 + 보낸 기록 + 보내는 계정(키는 응답에 없음) |

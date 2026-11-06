@@ -1,0 +1,14 @@
+/* 파일 열기 도구 설치 안내 창(2026-11-06) — 바탕·헤더는 Modal 공통 */
+.lead { margin: 0 0 14px; font-size: 0.86rem; line-height: 1.55; color: var(--text-primary); }
+
+.steps { margin: 0 0 14px; padding-left: 20px; display: flex; flex-direction: column; gap: 12px; font-size: 0.86rem; line-height: 1.5; color: var(--text-primary); }
+.steps li > div { margin-bottom: 6px; }
+.hint { display: block; margin-top: 2px; font-size: 0.78rem; color: var(--text-sub); }
+
+.note { margin: 0 0 14px; padding: 10px 12px; font-size: 0.78rem; line-height: 1.5; color: var(--text-sub); background: var(--bg-subtle); border-radius: 8px; }
+
+.status { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 0.82rem; }
+.ok { color: var(--text-primary); font-weight: 600; }
+.muted { color: var(--text-sub); }
+
+code { font-family: inherit; padding: 1px 5px; border-radius: 4px; background: var(--bg-subtle); border: 1px solid var(--border); font-size: 0.92em; }

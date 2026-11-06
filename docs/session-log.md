@@ -5,6 +5,20 @@
 
 ---
 
+## [2026-11-06] 파일·폴더 바로가기 — 서버 PC가 아니라 접속자 PC에서 열리게 (각 PC에 "파일 열기 도구" 설치)
+
+- **증상**: 다른 PC에서 내 IP로 접속해 ↗·폴더 바로가기를 누르면 **내 PC(서버)** 에서 파일·폴더가 열림. **원인**: 열기는 처음부터 서버가 `os.startfile`/`explorer`로 서버 PC에서 실행했음(코드상 접속자 PC에서 열던 경로는 이력에 없음). 일반 회원에겐 공개 범위 기본값이 `admin`이라 버튼이 안 보여 드러나지 않다가, `data/visibility.json`이 **11-05 15:15에 `fileOpen`·`folderOpen` = `all`로 바뀌며** 모두가 누를 수 있게 됨. 코드 변경이 아니라 설정 변경이 계기.
+- **결정**(회의, 사용자 전달): 설치가 필요하더라도 **클릭 한 번에 접속자 PC에서 열리는** 방향. 경로 복사·`.url` 다운로드는 채택 안 함. 관리자(본인)도 같은 방식(서버 직접 열기는 없앰 — 서버가 열게 두면 같은 사고가 재발).
+- **구조**: 서버 `shared.open_source_file`은 검사(위치·DRM·열람 중)만 하고 `open_url = hmcopen://f|d/<UTF-8 경로 base64url>`을 응답 → 프론트(`hooks/useOpenFile.ts`)가 `<a>` 클릭으로 브라우저에 넘김 → 각 PC에 등록된 `hmcopen` 프로토콜 → `launch.vbs`(창 안 깜빡이게) → `open.ps1`이 NAS 파일을 `Start-Process`/`explorer /select,`. 서버가 열던 창 앞으로 가져오기(`_visible_windows`·`_bring_new_window_to_front`, pywin32)는 불필요해져 삭제. 설치 소스 `tools/HmcOpen/`, 서버가 `/api/open-tool/download`로 zip을 만들어 줌(받을 때 `root.txt`·`url.txt` 생성).
+- **보안**: 아무 웹페이지나 `hmcopen://` 주소를 만들 수 있으므로 **도구가 주소를 믿지 않음** — `root.txt`(=`paths.PPT_SOURCE_DIR`) 아래 PPT 확장자만, `..`·같은 접두사 형제 폴더(`…_evil`) 거절, `launch.vbs`는 정해진 주소 모양만 통과. 설치는 HKCU만(관리자 권한 불필요), 설치 때 등록 명령 그대로 한 번 돌려 동작 확인(회사 보안 정책이 스크립트를 막으면 설치 단계에서 걸림). DRM 파일은 서버 check 단계 차단 유지.
+- **버튼 표시(요청 "설치 전엔 안 보이다 설치하면 보이게")**: 공개 범위(서버) **그리고** `ui.store.openToolInstalled`(브라우저 localStorage)가 둘 다 켜져야 ↗·폴더 버튼이 보임(`App.tsx`의 `FileOpenVisibleContext`). 서버(.env·DB)는 접속자 PC의 설치 여부를 모르므로 브라우저에 저장. 켜는 법: ① 설치 프로그램이 끝나며 대시보드를 `/?opentool=1`로 열면 `useOpenToolMarker`가 표시하고 주소에서 지움 ② 다른 브라우저는 안내 창의 "이미 설치했어요". 입구 = ⚙ 메뉴 > "파일 열기 도구"(공개 범위가 열려 있을 때만 보임, `OpenToolSetupModal`).
+- **검증**: pytest `tests/test_open_tool.py` 28개(서버가 `os.startfile`·`Popen`을 부르면 즉시 실패하도록 막고 `open_url` 확인, DRM·열람 중 유지, zip 내용·잘못된 origin 무시, BOM, **핸들러 거절 케이스를 실제 PowerShell로** — 루트 밖·`..`·접두사 형제·.exe/.bat/.lnk·없는 파일·한글 공백 경로 루트), vitest 9개(`useOpenFile`·`useOpenToolMarker`), 전체 pytest 152·vitest 243 통과, `tsc -b` 통과. **설치 프로그램을 이 PC에서 실제로 실행**(임시 폴더로 `LOCALAPPDATA` 지정, 레지스트리 `HKCU\Software\Classes\hmcopen` 등록·`ping` 동작 확인·등록 명령 모양 확인) 후 **제거해 원상복구**(키 없음 확인).
+- **미확인(실제 화면·다른 PC에서 봐야 함)**: ① Edge/Chrome이 `<a>` 클릭으로 `hmcopen://`을 넘길 때의 첫 "열도록 허용" 창 모양과 "항상 허용" 동작 ② 설치 후 `/?opentool=1` 자동 열림 → 버튼 등장 ③ 실제 NAS 파일이 PowerPoint로 열리는지(핸들러 테스트는 열기 직전 거절까지만, 앱을 띄우지 않음) ④ 회사 보안 정책(SmartScreen·스크립트 차단·AppLocker) 영향 — 설치 중 동작 확인이 막히면 IT 확인 필요 ⑤ 각 PC의 NAS 접근 권한.
+- ⚠️ **배포 순서**: Flask 재시작(`shared.py`·`downloads.py`) → 프론트는 Vite라 새로고침. **재시작 전 서버는 옛 방식(서버 PC에서 열고 `open_url` 없음)** 이라 프론트가 아무것도 안 넘김. 설치 전에는 **관리자(본인)에게도** 버튼이 안 보임 — 본인 PC에도 설치해야 함(⚙ > 파일 열기 도구). 스크립트를 고치면 각자 zip을 다시 받아 설치. `PPT_SOURCE_DIR` 변경 시도 동일.
+- **남긴 것/한계**: 설치 여부를 서버가 모름(브라우저 표시는 자기 신고라 PC에서 도구를 지워도 표시가 남음 — 그땐 눌러도 안 열림, 토스트로 안내). IT가 그룹 정책으로 일괄 배포하면 사용자 설치가 없어짐(`install.bat` 로그온 스크립트, `url.txt` 없으면 브라우저 안 열림). 미커밋.
+- **장애(같은 날 낮, 내 버그) — 설치해도 "안 보인다" / 화면이 에러 화면**: Navbar에 `useVisible('fileOpen') || useVisible('folderOpen')`을 썼는데, `||`는 앞이 참이면 뒤 훅을 건너뜀 → 공개 범위 응답이 오기 전(기본 admin=false, 훅 2개)과 온 뒤(all=true, 훅 1개)에 **훅 호출 순서가 바뀌어** React가 "order of Hooks" 오류를 내고 ErrorBoundary가 화면 전체를 대체함(Playwright로 재현 — 콘솔 오류·본문이 "Cannot read properties of undefined (reading 'length')"). 공개 범위를 "전체"로 둔 사용자(책임님 PC·내 PC)에서만 터져서 내 테스트(관리자만 기본값)에선 안 드러났음. **수정**: 판단을 `useOpenToolViewModel.offered`로 옮겨 훅을 항상 둘 다 부른 뒤 합침, 재발 방지 테스트 `useOpenToolViewModel.test.tsx` 4개(응답이 늦게 오는 상황 재현 — `||`로 되돌리면 2개 실패함을 확인). 교훈: 브라우저 실제 렌더 확인을 먼저 했어야 함(단위 테스트·tsc는 훅 순서 오류를 못 잡음). **프론트만 고쳐서 새로고침이면 반영**(Flask 재시작 불필요).
+- **실제 Edge(Playwright)로 확인한 공개 조건**(공개 범위는 브라우저에서 응답만 바꿔 시험, 실서버 설정 무접촉): ① 미설치 + 공개=전체 → 파일·폴더 버튼 없음, ⚙ 메뉴 "설치하고 바로가기 켜기" ② `/?opentool=1`로 열면 설치 표시 켜지고 주소 정리 ③ 설치됨 + 공개=전체 → 셀 팝업(프로젝트 상세·재무 상세 표의 파일명 칸 클릭)에 파일·폴더 버튼 ④ 설치됨 + 공개=관리자만(일반 회원) → 버튼·⚙ 메뉴 항목 모두 없음 ⑤ 다른 브라우저(표시 없음) → 없음. ※ 파일·폴더 버튼은 표에 상시 노출이 아니라 **파일명 칸을 눌러 열리는 셀 팝업 안**에 있음.
+
 ## [2026-11-05 오후] 관리자 알림 종 — 추출 현황 이상을 매일 아침 8시에 확인해 상단 바에 빨간 숫자 배지
 
 - **요청**: 관리자에게만, 사람 아이콘과 ⚙ 사이에 알림 아이콘(종) + 우측 하단 빨간 동그라미 숫자. 데이터 > 추출 현황의 **아직 안 읽음 · 열기 실패 · 원본 수정됨**이 0이 아니면 뜨고 0이면 안 뜸, **매일 아침 8시마다 체크**.
