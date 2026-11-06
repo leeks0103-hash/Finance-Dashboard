@@ -453,6 +453,7 @@
 .accountName { font-size: 0.82rem; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* 관리자 계정이면 이름 옆에 (관리자) */
 .accountRole { margin-left: 4px; font-size: 0.74rem; font-weight: 600; color: var(--text-sub); }
+.accountHint { display: block; margin-top: 6px; font-size: 0.72rem; color: var(--text-muted); line-height: 1.4; }
 
 /* 코드 충돌 파일 줄 — 파일명 + 오른쪽 '수정 완료' 표시 */
 .healthAckLine {

@@ -201,7 +201,26 @@
   .legend { display: none; }
 }
 
-/* 야간 장미 차트(PartAchievementRose, 2026-11-06) — 카드 본문을 채우고 캔버스가 이 크기를 따라감 */
+/* 막대/장미 토글(PartAchievementChart, 2026-11-06) — 카드 본문 왼쪽 아래. 본문은 남는 높이를 채우고 토글은 아래에 붙음 */
+.chartWrap { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.chartMain { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+.chartMain > * { flex: 1 1 auto; min-height: 0; }
+.viewToggle { display: flex; gap: 4px; padding-top: 8px; justify-content: flex-start; }
+button.viewBtn {
+  padding: 2px 12px;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  border-radius: 9999px;
+  color: var(--text-muted);
+}
+button.viewBtnActive {
+  background: var(--brand-mid);
+  border-color: var(--brand-mid);
+  color: #fff;
+}
+[data-theme="dark"] button.viewBtnActive { background: var(--brand-light); border-color: var(--brand-light); color: #04263a; }
+
+/* 장미 차트(PartAchievementRose, 2026-11-06) — 카드 본문을 채우고 캔버스가 이 크기를 따라감 */
 .rose {
   position: relative;
   height: 100%;

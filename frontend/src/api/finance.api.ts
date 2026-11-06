@@ -47,6 +47,8 @@ export interface OpenFileResult {
   locked?:  boolean;
   /** check=true 요청에 대한 응답(실제로 열지는 않음) */
   checked?: boolean;
+  /** 열기 전 경고(2026-11-06) — 최근 30분 안에 다른 사람이 열었거나 잠금파일이 있을 때. 열기를 막지 않고 확인창 문구에만 씀 */
+  notice?: { kind: 'recent' | 'locked'; message: string; name?: string; minutes?: number; locked?: boolean };
   /** 실제 열기 요청의 응답 — 서버는 열지 않고 이 주소(hmcopen://…)만 줌. 브라우저가 각 PC의 파일 열기 도구에 넘겨 그 PC에서 연다 */
   open_url?: string;
 }

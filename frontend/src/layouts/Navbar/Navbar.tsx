@@ -24,6 +24,7 @@ import { useExtractJob } from '@/hooks/useExtractJob';
 import { useOpenFile } from '@/hooks/useOpenFile';
 import { useUiStore } from '@/store';
 import { useOpenToolViewModel } from '@/hooks/viewmodels/useOpenToolViewModel';
+import { useAccountMenuViewModel } from '@/hooks/viewmodels/useAccountMenuViewModel';
 import { pathToTab } from '@/utils/routing';
 import { useLoginRequired } from '@/hooks/useLoginRequired';
 import styles from './Navbar.module.css';
@@ -64,6 +65,8 @@ const Navbar = () => {
   const adminAuthed = useUiStore(s => s.adminAuthed);
   // 파일 열기 도구 메뉴(2026-11-06) — 보일지 여부(offered)는 뷰모델이 판단(공개 범위가 이 사용자에게 열려 있을 때만)
   const openTool = useOpenToolViewModel();
+  // 일반 사용자용 계정 드롭다운(2026-11-06) — 사람 아이콘이 관리자에겐 관리자 기능 창, 일반 사용자에겐 이 드롭다운(사번·설치됨 표시)
+  const account = useAccountMenuViewModel();
   const { loginRequired } = useLoginRequired();
   // 그래프 수치 — 켤 때/끌 때 페이드(끌 때는 투명해진 뒤 숨김)
   const chartLabels = useChartLabelToggle();
@@ -118,10 +121,13 @@ const Navbar = () => {
   const healthTotal = healthRows.length + healthConflicts.length + finishedAnomalies.length + readFailures.length;
   const [healthOpen, setHealthOpen] = useState(false);
   const healthRef = useRef<HTMLDivElement>(null);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const accountRef = useRef<HTMLDivElement>(null);
   // 닫힐 때도 퇴장 애니메이션 동안 남겨둠(index.css .closingDrop) — 예전엔 뚝 사라졌음
   // 설정 패널은 자체 퇴장(Navbar.module.css .dropdown.closing, 0.32s) — 그 길이만큼 남겨둠
   const settingsDrop = usePresence(open, 320);
   const healthDrop   = usePresence(healthOpen);
+  const accountDrop  = usePresence(accountOpen && account.visible, 320);   // 설정 패널과 같은 펼침·걷힘 길이
   // "추출 중…" 배지 — 추출이 끝나도 퇴장 애니메이션 동안 남겨둠
   const extractBadge = usePresence(extractJob.isAuthed && extractJob.isRunning);
   // PPT 파일명 옆 ↗ 바로가기(CopyText onOpen) — 2026-09-15 주석 처리했다가 2026-09-29 복구
@@ -143,9 +149,18 @@ const Navbar = () => {
     return () => document.removeEventListener('mousedown', handler);
   }, [healthOpen]);
 
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (accountRef.current && !accountRef.current.contains(e.target as Node)) setAccountOpen(false);
+    };
+    if (accountOpen) document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [accountOpen]);
+
   // ESC로도 닫기(2026-11-04, QA L1 — 바깥 클릭으로만 닫혔고 ESC 뒤에도 aria-expanded=true로 열려 있었음). 공용 스택이라 모달과 겹치면 맨 위 하나만 닫힘
   useEscToClose(() => setOpen(false), open);
   useEscToClose(() => setHealthOpen(false), healthOpen);
+  useEscToClose(() => setAccountOpen(false), accountOpen);
 
   return (
     <header className={styles.header}>
@@ -325,6 +340,54 @@ const Navbar = () => {
             >
               <PersonIcon />
             </Button>
+          )}
+
+          {/* 일반 사용자 — 같은 자리 사람 아이콘이 계정 드롭다운을 폄(2026-11-06). 사번과, 이 브라우저에 "파일 열기 도구 설치됨"을 표시하는 버튼.
+              설치 직후 자동 표시가 다른 브라우저·접속 주소로 가면 파일·폴더 버튼이 안 보이는데(서버는 설치 여부를 모름) 그때 여기서 직접 켬 */}
+          {account.visible && (
+            <div className={styles.settings} ref={accountRef}>
+              <Button unstyled
+                className={`${styles.settingsBtn} ${styles.adminBtn}`}
+                onClick={() => setAccountOpen(v => !v)}
+                aria-label="내 계정"
+                aria-expanded={accountOpen}
+              >
+                <PersonIcon />
+              </Button>
+
+              {accountDrop.mounted && (
+                <div className={`${styles.dropdown} ${accountDrop.closing ? styles.closing : ''}`}>
+                  <div className={styles.section}>
+                    <span className={styles.sectionLabel}>내 계정</span>
+                    <div className={styles.accountRow}>
+                      <span className={styles.accountName}>
+                        {account.name ? `${account.name} · ` : ''}사번 {account.empNo || '-'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {account.toolOffered && (
+                    <>
+                      <div className={styles.divider} />
+                      <div className={styles.section}>
+                        <span className={styles.sectionLabel}>파일 열기 도구</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className={styles.financeBtn}
+                          aria-pressed={account.installed}
+                          onClick={account.installed ? account.clearInstalled : account.markInstalled}
+                          title={account.installed ? '누르면 표시를 해제합니다' : '이 PC에 이미 설치했다면 눌러 파일·폴더 바로가기 버튼을 보이게 합니다'}
+                        >
+                          {account.installed ? '✓ 이 브라우저: 설치됨 (해제)' : '✓ 이 브라우저: 설치됨으로 표시'}
+                        </Button>
+                        <span className={styles.accountHint}>아직 설치 전이면 ⚙ 설정 &gt; 파일 열기 도구에서 설치하세요.</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
           )}
 
           {/* 알림 종 — 관리자에게만, 사람 아이콘과 ⚙ 사이(2026-11-05). 추출 현황의 안 읽음·열기 실패·원본 수정됨이 있으면 빨간 숫자 배지 */}

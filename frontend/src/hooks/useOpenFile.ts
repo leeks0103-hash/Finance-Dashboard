@@ -5,7 +5,11 @@ import { alertDialog, confirmDialog, toast } from '@/utils/dialog';
 import { queryClient } from './queryClient';
 import type { FileOpener } from '@/types/fileOpen.types';
 
-interface OpenResult { ok: boolean; message?: string; locked?: boolean; blocked?: boolean; checked?: boolean; open_url?: string }
+interface OpenResult {
+  ok: boolean; message?: string; locked?: boolean; blocked?: boolean; checked?: boolean; open_url?: string;
+  /** 열기 전 경고(2026-11-06) — 최근 30분 안에 다른 사람이 열었거나 잠금파일이 있을 때. 열기를 막지 않고 확인창 문구에만 씀 */
+  notice?: { kind: 'recent' | 'locked'; message: string; name?: string; minutes?: number; locked?: boolean };
+}
 type OpenApi = (filename: string, check?: boolean, folder?: boolean) => Promise<OpenResult>;
 
 /**
@@ -37,8 +41,10 @@ const alertFailure = (r: OpenResult) => {
 
 /**
  * 원본 PPT 열기 공통 흐름(2026-09-30 요청) — 실제 파일이 열리는 동작이라 한 번 묻는다(2026-11-06부터 이 PC에서 열림).
- * ① 열 수 있는지만 확인(check) → 열람 중·위치 없음이면 확인창 없이 바로 안내
- * ② "진짜 열까요?" 확인 → ③ 실제로 열기(그 사이 누가 열었으면 ③에서 열람 중 안내)
+ * ① 열 수 있는지만 확인(check) → 위치 없음·DRM이면 확인창 없이 바로 안내
+ * ② "진짜 열까요?" 확인 → ③ 실제로 열기
+ * 열람 중이어도 막지 않는다(2026-11-06): 서버가 notice("N분 전 ○○님이 열었습니다" 등)를 주면 ②의 확인창 문구에 넣고 [그래도 열기].
+ * 30분이 지나 기록이 없으면 notice가 없어 평소 확인창만 뜸
  * apis를 순서대로 찾아 원본이 있는 첫 곳에서 연다(재무 → KPI 처리이력 폴백용).
  */
 const confirmAndOpen = async (filename: string, apis: OpenApi[]): Promise<OpenResult> => {
@@ -55,9 +61,14 @@ const confirmAndOpen = async (filename: string, apis: OpenApi[]): Promise<OpenRe
   // 재시작 전 옛 서버는 check를 몰라서 확인 단계에서 이미 열어버림 — 그땐 묻지 않고 끝
   if (!found.pre.checked) return found.pre;
 
-  const ok = await confirmDialog(`${filename}\n\n이 PC에서 이 파일을 여시겠습니까?`, {
-    title: '파일 열기', confirmText: '열기', cancelText: '취소',
-  });
+  const notice = found.pre.notice;
+  const ok = notice
+    ? await confirmDialog(`${filename}\n\n**${notice.message}**\n\n그래도 이 PC에서 여시겠습니까?`, {
+        title: '열람 중일 수 있습니다', confirmText: '그래도 열기', cancelText: '취소',
+      })
+    : await confirmDialog(`${filename}\n\n이 PC에서 이 파일을 여시겠습니까?`, {
+        title: '파일 열기', confirmText: '열기', cancelText: '취소',
+      });
   if (!ok) return { ok: false };
   const r = await found.api(filename);
   if (!r.ok) alertFailure(r);

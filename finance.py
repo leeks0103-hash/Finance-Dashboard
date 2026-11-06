@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 from flask import Blueprint, jsonify, request, make_response
 from markupsafe import escape as html_escape
 
-from shared import is_ranked_valid_code, read_excel_via_com, safe_mtime, find_source_path, open_source_file, sort_frame, nonblank, parse_page_args
+from shared import is_ranked_valid_code, read_excel_via_com, safe_mtime, find_source_path, open_source_file, current_opener, sort_frame, nonblank, parse_page_args
 import paths
 
 load_dotenv()
@@ -600,7 +600,8 @@ def api_finance_open_file():
     # 처리이력 시트의 전체경로로 서버 PC에서 직접 실행 (AIP 암호화돼도 COM 우회 — read_sheet_cached)
     path = find_source_path(EXCEL_PATH, "처리이력", filename)
     logger.info("[파일 열기/재무] filename=%s -> path=%s", filename, path)
-    body, status = open_source_file(path, check_only=bool(data.get("check")), folder=bool(data.get("folder")))
+    body, status = open_source_file(path, check_only=bool(data.get("check")), folder=bool(data.get("folder")),
+                                        opener=current_opener(request))
     return jsonify(body), status
 
 

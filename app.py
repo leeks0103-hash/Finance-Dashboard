@@ -911,14 +911,15 @@ def api_extract_open_file():
     if not _extract_key_valid(request):
         return jsonify({"ok": False, "message": "권한이 없습니다"}), 403
     import extract_coverage
-    from shared import open_source_file
+    from shared import open_source_file, current_opener
     data = request.get_json(silent=True) or {}
     filename = str(data.get("filename", "")).strip()
     if not filename:
         return jsonify({"ok": False, "message": "파일명이 없습니다."}), 400
     path = extract_coverage.find_path(filename)
     logger.info("[파일 열기/추출 현황] filename=%s -> path=%s", filename, path)
-    body, status = open_source_file(path, check_only=bool(data.get("check")), folder=bool(data.get("folder")))
+    body, status = open_source_file(path, check_only=bool(data.get("check")), folder=bool(data.get("folder")),
+                                        opener=current_opener(request))
     return jsonify(body), status
 
 

@@ -78,10 +78,121 @@ def test_drm_file_is_still_blocked_even_for_remote_open(pptx, monkeypatch):
         assert status == 403 and body["blocked"] is True and "open_url" not in body
 
 
-def test_locked_file_is_still_blocked(pptx, monkeypatch):
+# ── 열람 경고(2026-11-06) — 막지 않고 "N분 전 ○○님이 열었습니다"를 알려 줌 ──────────────
+
+ME = {"emp": "1001", "name": "김하나"}
+OTHER = {"emp": "2002", "name": "박둘"}
+
+
+@pytest.fixture
+def history(tmp_path, monkeypatch):
+    """열람 기록 파일을 임시 위치로, 잠금파일은 없는 것으로 — 실제 data/를 건드리지 않음"""
+    monkeypatch.setattr(shared, "OPEN_HISTORY_PATH", str(tmp_path / "open_history.json"))
+    monkeypatch.setattr(shared, "is_file_locked", lambda p: False)
+    return tmp_path
+
+
+def _at(monkeypatch, minutes_later):
+    """shared 안의 시계를 지금보다 minutes_later분 뒤로"""
+    import time
+    import types
+    t0 = time.time()
+    monkeypatch.setattr(shared, "time", types.SimpleNamespace(time=lambda: t0 + minutes_later * 60 + 3))
+
+
+def test_lock_alone_does_not_block_anymore_but_warns(pptx, history, monkeypatch):
     monkeypatch.setattr(shared, "is_file_locked", lambda p: True)
-    body, status = shared.open_source_file(pptx)
-    assert status == 409 and body["locked"] is True and "open_url" not in body
+    body, status = shared.open_source_file(pptx, check_only=True, opener=ME)
+    assert status == 200 and body["ok"] is True and body["checked"] is True
+    assert body["notice"]["kind"] == "locked" and "name" not in body["notice"]
+    # 확인 뒤 실제 열기도 막지 않음 — 남은 잠금파일에 영영 막히던 문제
+    body, status = shared.open_source_file(pptx, opener=ME)
+    assert status == 200 and "open_url" in body
+
+
+def test_recent_open_by_other_warns_with_name_and_minutes(pptx, history, monkeypatch):
+    shared.open_source_file(pptx, opener=OTHER)
+    _at(monkeypatch, 5)
+    body, _ = shared.open_source_file(pptx, check_only=True, opener=ME)
+    n = body["notice"]
+    assert n["kind"] == "recent" and n["name"] == "박둘" and n["minutes"] == 5 and n["locked"] is False
+    assert "5분 전 박둘님이 이 파일을 열었습니다" in n["message"] and "닫았을 수도" in n["message"]
+
+
+def test_recent_open_with_lock_says_still_open(pptx, history, monkeypatch):
+    shared.open_source_file(pptx, opener=OTHER)
+    monkeypatch.setattr(shared, "is_file_locked", lambda p: True)
+    body, _ = shared.open_source_file(pptx, check_only=True, opener=ME)
+    assert body["notice"]["locked"] is True and "지금도 열려 있는" in body["notice"]["message"]
+    assert "방금 전" in body["notice"]["message"]
+
+
+def test_notice_goes_away_after_30_minutes(pptx, history, monkeypatch):
+    shared.open_source_file(pptx, opener=OTHER)
+    _at(monkeypatch, 29)
+    assert "notice" in shared.open_source_file(pptx, check_only=True, opener=ME)[0]
+    _at(monkeypatch, 31)
+    body, status = shared.open_source_file(pptx, check_only=True, opener=ME)
+    assert status == 200 and body == {"ok": True, "checked": True}
+
+
+def test_own_recent_open_does_not_warn_me(pptx, history):
+    shared.open_source_file(pptx, opener=ME)
+    body, _ = shared.open_source_file(pptx, check_only=True, opener=ME)
+    assert "notice" not in body
+
+
+def test_check_only_and_folder_open_and_anonymous_open_record_nothing(pptx, history):
+    shared.open_source_file(pptx, check_only=True, opener=OTHER)
+    shared.open_source_file(pptx, folder=True, opener=OTHER)
+    shared.open_source_file(pptx, opener=None)
+    assert "notice" not in shared.open_source_file(pptx, check_only=True, opener=ME)[0]
+    assert not os.path.exists(shared.OPEN_HISTORY_PATH)
+
+
+def test_latest_opener_wins_and_old_records_are_pruned(pptx, history, monkeypatch, tmp_path):
+    other_file = tmp_path / "다른 파일.pptx"
+    other_file.write_bytes(b"PK")
+    shared.open_source_file(str(other_file), opener=OTHER)
+    _at(monkeypatch, 40)   # 40분 뒤 — 위 기록은 오래됨
+    shared.open_source_file(pptx, opener=OTHER)
+    import json
+    with open(shared.OPEN_HISTORY_PATH, encoding="utf-8") as f:
+        saved = json.load(f)
+    assert len(saved) == 1   # 오래된 파일 기록은 이때 정리됨
+
+
+def test_drm_still_blocked_even_with_opener(pptx, history, monkeypatch):
+    monkeypatch.setattr(shared, "is_drm_file", lambda p: True)
+    body, status = shared.open_source_file(pptx, check_only=True, opener=ME)
+    assert status == 403 and body["blocked"] is True and "notice" not in body
+
+
+def test_current_opener_prefers_account_name_then_roster_then_emp(monkeypatch):
+    import auth
+    monkeypatch.setattr(shared, "_roster_names", lambda: {"1001": "김하나"})
+    monkeypatch.setattr(auth, "current_user", lambda req=None: {"emp_no": "1001", "name": "1001", "role": "user"})
+    assert shared.current_opener() == {"emp": "1001", "name": "김하나"}          # 계정엔 사번뿐 → 명단 이름
+    monkeypatch.setattr(auth, "current_user", lambda req=None: {"emp_no": "1001", "name": "홍길동", "role": "user"})
+    assert shared.current_opener() == {"emp": "1001", "name": "홍길동"}          # 계정 이름이 있으면 그대로
+    monkeypatch.setattr(shared, "_roster_names", lambda: {})
+    monkeypatch.setattr(auth, "current_user", lambda req=None: {"emp_no": "3003", "name": "3003", "role": "user"})
+    assert shared.current_opener() == {"emp": "3003", "name": "3003"}            # 명단에도 없으면 사번
+    monkeypatch.setattr(auth, "current_user", lambda req=None: None)
+    assert shared.current_opener() is None
+
+
+def test_open_routes_pass_the_logged_in_user_so_the_next_person_is_warned(client, pptx, history, monkeypatch):
+    """실제 라우트로 — 한 사람이 열면 다음 사람이 확인할 때 이름이 보임"""
+    import auth
+    import finance
+    monkeypatch.setattr(finance, "find_source_path", lambda *a, **k: pptx)
+    users = iter([{"emp_no": "2002", "name": "박둘", "role": "user"},   # 열기
+                  {"emp_no": "1001", "name": "김하나", "role": "user"}])  # 확인
+    monkeypatch.setattr(auth, "current_user", lambda req=None: next(users))
+    assert client.post("/api/finance/open-file", json={"filename": "x.pptx"}).get_json()["open_url"]
+    body = client.post("/api/finance/open-file", json={"filename": "x.pptx", "check": True}).get_json()
+    assert body["notice"]["name"] == "박둘" and body["notice"]["kind"] == "recent"
 
 
 def test_url_is_ascii_only_and_short_enough_for_korean_unc_path():

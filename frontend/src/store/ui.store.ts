@@ -32,6 +32,10 @@ interface UiStore {
   planNoteDismissed: boolean;
   dismissPlanNote: () => void;
 
+  /** "파트별 매출 실적 진행 현황" 보기 — 기존 막대('bars') / 장미('rose')(2026-11-06). 카드 왼쪽 아래 토글로 고르고 이 브라우저에 기억 */
+  achieveView: 'bars' | 'rose';
+  setAchieveView: (v: 'bars' | 'rose') => void;
+
   /** 이 브라우저(=이 PC)에 "파일 열기 도구"를 설치했는지(2026-11-06). 브라우저는 PC에 뭐가 깔렸는지 직접 볼 수 없어서,
    *  설치 프로그램이 끝나면 대시보드를 ?opentool=1로 열어 표시하거나(useOpenToolMarker), 설치 안내 창의 "설치했어요"로 켠다.
    *  서버(.env·DB)에 두지 않는 이유: PC마다 다른 값이고 서버는 접속자 PC를 알 수 없음. 꺼져 있으면 파일·폴더 바로가기 버튼이 안 보임 */
@@ -78,6 +82,9 @@ export const useUiStore = create<UiStore>()(
       planNoteDismissed: false,
       dismissPlanNote: () => set({ planNoteDismissed: true }),
 
+      achieveView: 'bars',
+      setAchieveView: (v) => set({ achieveView: v === 'rose' ? 'rose' : 'bars' }),
+
       openToolInstalled: false,
       setOpenToolInstalled: (v) => set({ openToolInstalled: v }),
       openToolModalOpen: false,
@@ -95,7 +102,7 @@ export const useUiStore = create<UiStore>()(
       // 그래프 수치·표 실제값·재무 대조·투어 시청 여부·차트 색만 로컬에 저장 — 나머지는 세션 한정
       partialize: (s) => ({
         showChartLabels: s.showChartLabels, showRawValues: s.showRawValues, showFinCompare: s.showFinCompare, tourSeen: s.tourSeen,
-        chartColors: s.chartColors, planNoteDismissed: s.planNoteDismissed, openToolInstalled: s.openToolInstalled,
+        chartColors: s.chartColors, planNoteDismissed: s.planNoteDismissed, openToolInstalled: s.openToolInstalled, achieveView: s.achieveView,
       }),
       // 저장된 차트 색이 깨졌거나(직접 고친 localStorage·옛 형식) 모르는 값이면 버림
       merge: (persisted, current) => {
