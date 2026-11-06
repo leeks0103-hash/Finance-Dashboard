@@ -201,9 +201,48 @@
   .legend { display: none; }
 }
 
+/* 야간 장미 차트(PartAchievementRose, 2026-11-06) — 카드 본문을 채우고 캔버스가 이 크기를 따라감 */
+.rose {
+  position: relative;
+  height: 100%;
+  min-height: 260px;
+}
+
 /* 차트 카드 안에 넣는 변형(bare, 2026-10-23) — 카드가 좁아(4칸) 열 폭을 줄이고 테두리·배경은 카드가 담당 */
 .bare { height: 100%; }
 .bare .wrap, .bare .wrapOpen { border-color: transparent; background: transparent; flex: 1; }
-.bare .body { padding: 6px 2px 4px; gap: 12px; justify-content: space-around; }
+.bare .body { padding: 6px 2px 4px; gap: 12px; justify-content: center; }   /* space-around → center: 행이 적을 때 카드 전체에 흩어지지 않고 헤더+행이 한 묶음으로 가운데에 */
 .bare .row { grid-template-columns: 104px minmax(36px, 1fr) 46px auto; gap: 8px; }
 .bare .vals { font-size: 12px; }
+
+/* 행이 카드 높이를 나눠 채움(2026-11-06) — 예전엔 행이 내용 크기 그대로라 파트를 골라 4~7개로 줄면 위아래가 비었음. 행마다 최대 높이를 둬서 1~2개일 때 과하게 늘진 않음 */
+.bare .row { flex: 1 1 0; max-height: 58px; }
+
+/* 행이 적을 때(FEW_ROWS 이하) — 파트마다 [이름 · 퍼센트] / 굵은 막대 / [누계 / 추정] 세 줄짜리 큰 블록으로 카드를 채움(2026-11-06) */
+.few .body { gap: 16px; }   /* 헤더·파트 블록을 늘리지 않고 한 묶음으로 카드 가운데에(늘리면 헤더가 막대에서 멀어져 떠 보임) */
+.few .row {
+  grid-template-columns: 1fr auto;
+  grid-template-areas: "name pct" "bar bar" "vals vals";
+  row-gap: 12px;
+  flex: 0 0 auto;
+  max-height: none;
+}
+.few .headerRow { grid-template-areas: none; row-gap: 0; margin-bottom: -4px; }   /* .few .row의 블록용 영역·행 간격이 헤더 행에 새지 않게 */
+.few .partName { grid-area: name; font-size: 18px; font-weight: 700; }
+.few .pct      { grid-area: pct;  font-size: 26px; }
+.few .barWrap  { grid-area: bar;  height: 18px; }
+.few .vals     { grid-area: vals; text-align: left; font-size: 14px; }
+/* 1~2개일 땐 한 단계 더 크게(3개는 위 크기 — 더 키우면 카드 높이를 넘어 잘림) */
+.fewBig .body { gap: 30px; }
+.fewBig .row { row-gap: 14px; }
+.fewBig .headerRow { margin-bottom: -16px; }
+.fewBig .partName { font-size: 20px; }
+.fewBig .pct      { font-size: 32px; }
+.fewBig .barWrap  { height: 22px; }
+.fewBig .vals     { font-size: 15px; }
+.fewBig .thresholdMark { top: -7px; bottom: -7px; }
+.few .thresholdMark { top: -6px; bottom: -6px; }
+/* 위쪽 30/60/100% 헤더 — 막대가 가로 전체를 쓰므로 헤더도 한 칸(빈 칸·"누계매출 / 추정매출" 라벨은 숨김, 라벨은 vals 줄이 대신) */
+.few .headerRow { grid-template-columns: 1fr; }
+.few .headerRow > span { display: none; }
+.few .thresholdHeaderLabel { font-size: 10px; }

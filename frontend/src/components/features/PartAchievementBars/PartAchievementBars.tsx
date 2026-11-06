@@ -42,12 +42,15 @@ export const PartAchievementLegend = () => (
   </span>
 );
 
+// 팀·파트를 골라 행이 이것 이하로 줄면 막대·글자를 키우고 묶음을 카드 가운데로(2026-11-06) — 예전엔 행 1~3개가 카드 높이 전체에 흩어져 뚝뚝 떨어져 보였음
+const FEW_ROWS = 3;
+
 const PartAchievementBars = ({ rows, month, info, onPartClick, bare = false }: Props) => {
   const sorted = sortByPart(rows, r => r.part);   // 담당자 지정 고정 순서
 
 
   return (
-    <div className={`${styles.sectionGroup} ${bare ? styles.bare : ''}`}>
+    <div className={`${styles.sectionGroup} ${bare ? styles.bare : ''} ${sorted.length <= FEW_ROWS ? styles.few : ''} ${sorted.length <= 2 ? styles.fewBig : ''}`}>
       {!bare && (
         <div className={styles.header}>
           <span className={styles.title}>파트별 매출 실적 진행 현황 ({month}기준)</span>
