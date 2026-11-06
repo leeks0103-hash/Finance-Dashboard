@@ -9,11 +9,6 @@ import type { DaysPreset } from '@/utils/notificationSchedule';
 import sections from './AdminSections.module.css';
 import styles from './AdminNotificationPanel.module.css';
 
-interface Props {
-  /** "추출 현황 보기" — 데이터 탭(PPT 추출 > 추출 현황)으로 */
-  onGoData: () => void;
-}
-
 interface TimeRow { id: number; v: string }
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -21,14 +16,15 @@ const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 const ADD_CANDIDATES = ['12:00', '13:00', '15:00', '17:00', '10:00', '14:00', '16:00', '09:00', '11:00', '18:00'];
 
 /**
- * 관리자 기능 > 알림 탭(2026-11-05 요청) — 상단 바 종의 [알림 설정·현황 열기]가 여는 곳.
- *  · 지금 알림: 추출 현황의 '아직 안 읽음·열기 실패·원본 수정됨' 건수 + 마지막/다음 확인 + [추출 현황 보기]
+ * 관리자 기능 > 알림 탭(2026-11-05 요청) — 상단 바 종의 [알림 설정]이 여는 곳. **설정만** 있음(2026-11-06 요청 — 예전엔 맨 위에
+ * "지금 알림 N건·마지막/다음 확인·[추출 현황 보기]"도 있었는데, 저장된 옛 값이 그대로 보여 틀려 보이고 설정 화면에 현황은 필요 없다고 뺌.
+ * 현황은 종 드롭다운·알림 팝업·데이터 탭의 추출 현황에서 봄).
  *  · 확인 일정: 사용 여부(토글) · 요일(선택 상자: 매일/평일/주말/직접 선택) · 방식(선택 상자: 정해진 시각 / 일정 간격)
  *    - 정해진 시각: 하루 최대 6개(시각 입력 + 지우기, [+ 시각 추가])
  *    - 일정 간격: 간격(선택 상자 30분~12시간) + 확인 시간대(시작~끝)
  *    고르는 즉시 서버에 저장(시각 입력은 칸을 벗어나거나 Enter일 때). 처음엔 "매일 오전 8시에 한 번"
  */
-const AdminNotificationPanel = ({ onGoData }: Props) => {
+const AdminNotificationPanel = () => {
   const vm = useAdminNotificationViewModel();
   const s = vm.settings;
 
@@ -51,7 +47,6 @@ const AdminNotificationPanel = ({ onGoData }: Props) => {
   if (!s) return <span className={sections.hint}>불러오는 중…</span>;
 
   const preset: DaysPreset = customDays ? 'custom' : daysPreset(s.days);
-  const sum = vm.summary;
   const busy = vm.saving;
 
   const onPreset = (v: DaysPreset) => {
@@ -92,33 +87,6 @@ const AdminNotificationPanel = ({ onGoData }: Props) => {
 
   return (
     <div className={sections.groups}>
-      {/* 지금 알림 */}
-      <section className={sections.group}>
-        <div className={sections.labelRow}>
-          <span className={sections.label}>지금 알림{sum.total > 0 && <b className={styles.total}> {sum.total}건</b>}</span>
-          <span className={sections.lastRun}>{sum.checkedAt ? `마지막 확인 ${sum.checkedAt}` : '아직 확인 전'}</span>
-        </div>
-        {!sum.enabled ? (
-          <span className={sections.hint}>확인이 꺼져 있습니다 — 아래에서 사용을 켜면 다시 확인합니다</span>
-        ) : sum.total > 0 ? (
-          <ul className={styles.list}>
-            {sum.groups.map(g => (
-              <li key={g.key} className={styles.item}>
-                <span className={styles.source}>{g.label}</span>
-                <span className={styles.counts}>{g.items.map(i => <span key={i.label}>{i.label} <b>{i.count}</b></span>)}</span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <span className={sections.hint}>확인이 필요한 파일이 없습니다</span>
-        )}
-        {sum.checkFailed && <span className={sections.error}>마지막 확인은 원본 폴더에 접근하지 못해 실패했습니다(위 숫자는 이전 확인 결과 — 곧 다시 시도)</span>}
-        <div className={styles.foot}>
-          <span className={sections.hint}>{vm.nextCheck ? `다음 확인 ${vm.nextCheck}` : '다음 확인 없음(꺼짐)'}</span>
-          <Button variant="ghost" size="sm" onClick={onGoData}>추출 현황 보기</Button>
-        </div>
-      </section>
-
       {/* 확인 일정 */}
       <section className={sections.group}>
         <div className={sections.labelRow}>
@@ -129,7 +97,7 @@ const AdminNotificationPanel = ({ onGoData }: Props) => {
         <div className={styles.toggleRow}>
           <div className={sections.toggleText}>
             <span className={styles.rowLabel}>알림 확인 사용</span>
-            <span className={sections.toggleDesc}>끄면 종에 숫자가 안 뜨고 서버도 확인하지 않습니다</span>
+            <span className={sections.toggleDesc}>끄면 알림 팝업·종의 빨간 점이 안 뜨고 서버도 확인하지 않습니다</span>
           </div>
           <Toggle checked={s.enabled} onChange={() => vm.update({ enabled: !s.enabled })} disabled={busy} />
         </div>
@@ -227,7 +195,7 @@ const AdminNotificationPanel = ({ onGoData }: Props) => {
         <span className={sections.hint}>
           {vm.saveError
             ? <span className={sections.error}>{vm.saveError}</span>
-            : '서버가 이 일정에 맞춰 추출 현황(아직 안 읽음·열기 실패·원본 수정됨)을 세어 종에 숫자로 보여 줍니다. 서버가 예정 시각에 꺼져 있었다면 켜질 때 한 번 확인합니다.'}
+            : '서버가 이 일정에 맞춰 추출 현황(아직 안 읽음·열기 실패·원본 수정됨)을 확인합니다. 확인할 파일이 있으면 알림 팝업이 뜨고 종에 빨간 점이 켜지며, 종을 열어 확인하면 꺼집니다(0건이면 아무것도 안 뜸). 서버가 예정 시각에 꺼져 있었다면 켜질 때 한 번 확인합니다.'}
         </span>
       </section>
     </div>

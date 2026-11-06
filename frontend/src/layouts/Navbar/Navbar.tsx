@@ -390,9 +390,13 @@ const Navbar = () => {
             </div>
           )}
 
-          {/* 알림 종 — 관리자에게만, 사람 아이콘과 ⚙ 사이(2026-11-05). 추출 현황의 안 읽음·열기 실패·원본 수정됨이 있으면 빨간 숫자 배지 */}
+          {/* 알림 종 — 관리자에게만, 사람 아이콘과 ⚙ 사이(2026-11-05). 추출 현황의 안 읽음·열기 실패·원본 수정됨이 새로 생기면 알림 팝업 + 종에 빨간 점(숫자 없음,
+              종을 열어 확인하면 꺼짐 — 2026-11-06). 팝업·드롭다운의 [추출 현황 열기] → 데이터 탭, [알림 설정] → 알림 탭(확인 시각·빈도만 있음) */}
           {adminAuthed && (
-            <NotificationBell onOpenAlerts={() => { setAdminTab('alert'); setAdminOpen(true); }} />
+            <NotificationBell
+              onOpenData={() => { setAdminTab('data'); setAdminOpen(true); }}
+              onOpenSettings={() => { setAdminTab('alert'); setAdminOpen(true); }}
+            />
           )}
 
           <div className={styles.settings} ref={ref} data-tour="settings">

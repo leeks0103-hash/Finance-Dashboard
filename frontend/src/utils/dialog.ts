@@ -26,11 +26,25 @@ interface ConfirmOptions {
   title?:       string;
   /** true면 확인 버튼이 danger 색 — 초기화처럼 되돌리기 어려운 작업에 사용 */
   danger?:      boolean;
-  /** 'warning'이면 빨간 느낌표 아이콘 — 확인 버튼 색·기본 포커스는 그대로(경고만 하고 계속 진행할 수 있는 확인창용, 2026-11-06) */
-  icon?:        'warning';
+  /** 'warning'이면 빨간 느낌표 아이콘 — 확인 버튼 색·기본 포커스는 그대로(경고만 하고 계속 진행할 수 있는 확인창용, 2026-11-06)
+   *  'mail'이면 봉투 아이콘 — "새 알림이 도착했습니다" 같은 메일함 느낌의 안내용(2026-11-06) */
+  icon?:        'warning' | 'mail';
   confirmText?: string;
   cancelText?:  string;
 }
+
+/** 봉투 아이콘 — 글자색(currentColor)을 따라 info 아이콘 테두리와 같은 브랜드 색 */
+const MAIL_ICON_HTML =
+  '<svg viewBox="0 0 24 24" width="46" height="46" fill="none" stroke="currentColor" stroke-width="1.7" '
+  + 'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+  + '<rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="m3.6 7.6 8.4 6.2 8.4-6.2"/></svg>';
+
+/**
+ * 지금 확인·알림 창이 떠 있는지(토스트는 제외) — 새 창을 띄우면 열린 창이 닫히며 확인창이 "취소"로 처리되므로,
+ * 저절로 뜨는 안내(알림 팝업 등)는 이게 true인 동안 미뤄야 함
+ */
+export const isDialogOpen = (): boolean =>
+  Swal.isVisible() && !Swal.getPopup()?.classList.contains('swal2-toast');
 
 /** 메시지를 HTML로 — 전부 이스케이프한 뒤 **굵게** 표기만 <strong>으로(파일명의 &·< 같은 글자가 깨지지 않게, 줄바꿈은 CSS pre-line) */
 const toHtml = (message: string): string =>
@@ -46,7 +60,9 @@ export const confirmDialog = async (message: string, opts: ConfirmOptions = {}):
   const res = await Swal.fire({
     title: opts.title,
     html: toHtml(message),   // **굵게** 지원(2026-10-22)
-    icon: opts.icon ?? (opts.danger ? 'warning' : 'question'),
+    // 'mail'은 SweetAlert 기본 아이콘이 아니라 info 틀에 봉투 SVG(iconHtml)를 넣음
+    icon: opts.icon === 'mail' ? 'info' : (opts.icon ?? (opts.danger ? 'warning' : 'question')),
+    ...(opts.icon === 'mail' ? { iconHtml: MAIL_ICON_HTML } : {}),
     showCancelButton: true,
     confirmButtonText: opts.confirmText ?? '확인',
     cancelButtonText: opts.cancelText ?? '취소',
