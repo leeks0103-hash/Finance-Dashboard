@@ -159,6 +159,16 @@ return <KpiCard value={vm.revenue} />;
 - 합계/평균: 항목명에 `건수`·`매출액`이 있으면 합계, 아니면 평균. 26년 목표(사업계획)는 고정값(`_PLAN_TARGETS`)
 - KPI 취합 표(화면)는 전체 행 그대로, 집계에만 위 규칙. 화면의 미입력·0·하이픈은 "N"
 
+### 파일·폴더 바로가기(↗) — 접속자 PC에서 열림 (2026-11-06)
+- **서버는 파일을 열지 않는다.** `shared.open_source_file`은 검사(위치·DRM·열람 중)만 하고 `open_url`(`hmcopen://f|d/<base64url 경로>`)을 돌려줌 →
+  브라우저가 각 PC에 설치한 **파일 열기 도구**(`tools/HmcOpen`, HKCU 프로토콜 등록·관리자 권한 불필요)로 넘겨 그 PC에서 연다.
+  예전엔 서버 PC에서 `os.startfile`로 열어, 다른 PC 접속자가 눌러도 서버 PC에서 창이 열렸음. **서버에서 다시 직접 열게 하지 말 것**
+- **보안은 도구(`open.ps1`)가 책임**: 주소의 경로를 믿지 않고 `root.txt`(= `paths.PPT_SOURCE_DIR`) 아래 PPT 확장자(.ppt/.pptx/.pptm/.pps/.ppsx)만 연다(..·슬래시·같은 접두사 폴더 거절).
+  `PPT_SOURCE_DIR`을 바꾸면 도구를 다시 받아 설치해야 함. DRM(`SCDSA`) 파일은 서버가 check 단계에서 막음 — PC마다 DRM 에이전트가 원본을 제자리 재암호화했던 사고(2026-09-23) 때문
+- **버튼은 설치한 브라우저에서만 보임**: 공개 범위(`visibility.json`, 서버)와 `ui.store.openToolInstalled`(브라우저 localStorage) 둘 다 켜져야 함. 서버(.env·DB)는 접속자 PC의 설치 여부를 알 수 없어 브라우저에 저장.
+  설치 프로그램이 끝나며 대시보드를 `/?opentool=1`로 열어 표시(`useOpenToolMarker`), 다른 브라우저는 안내 창의 "이미 설치했어요". ⚙ 메뉴 > "파일 열기 도구"가 설치 입구
+- `tools/HmcOpen/*.ps1`은 **UTF-8 BOM** 필수(없으면 Windows PowerShell 5.1이 한글을 깨뜨림 — `tests/test_open_tool.py`가 확인). 스크립트 고치면 사용자는 zip을 다시 받아 설치해야 반영
+
 ### 공통
 - 코드(.py) 바꾸면 **Flask 재시작** 필요(`python dashboard_manager.py --start`). `/api/*/reload`는 엑셀만 다시 읽음
 - `data/`의 xlsx·json(학습 맵·상태·공개 범위·업데이트 메모)은 git 제외. 비밀번호·`.env`는 절대 커밋 금지
@@ -175,6 +185,7 @@ dashboard/
 ├── paths.py                  # 데이터 경로(실적 파일 고르기 perf_excel_candidates)
 ├── extract_alerts.py         # 관리자 알림 종 — 추출 현황(안 읽음·열기 실패·원본 수정됨)을 관리자가 정한 일정(요일·정해진 시각 또는 간격, 기본 매일 08:00 한 번, 관리자 기능 > 알림 탭)에 세어 data/extract_alerts.json에 저장(서버 시작 시 스케줄러, /api/notifications)
 ├── auth.py / shared.py / downloads.py / ai_insight.py
+├── tools/HmcOpen/            # 접속자 PC에 설치하는 "파일 열기 도구"(hmcopen:// 핸들러) — 서버가 zip으로 내려줌(/api/open-tool/download)
 ├── scripts/                  # 추출 스크립트, check_perf_headers.py, fill_user_accounts.py
 ├── data/                     # 엑셀·상태 json (git 제외) — 경영실적 히스토리/ 에 지난 실적 파일
 ├── README.md                 # 프로젝트 설명 (한국어)

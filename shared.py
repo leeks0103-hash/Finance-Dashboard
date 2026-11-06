@@ -67,10 +67,10 @@ _STAGE_SUFFIXES = ["사전검토", "착수", "중간", "완료", "제안"]
 
 def is_file_locked(path: str) -> bool:
     """Office가 파일을 편집 모드로 열어둔 동안 같은 폴더에 남기는 숨김 잠금파일(~$파일명)이
-    있는지 확인 — 대시보드 "파일 열기"가 os.startfile()로 여는 건 항상 일반(읽기/쓰기) 열기라
+    있는지 확인 — 대시보드 "파일 열기"(각 PC의 파일 열기 도구가 ShellExecute로 여는 건) 항상 일반(읽기/쓰기) 열기라
     이 잠금파일이 생긴다. 추출 스크립트의 win32com ReadOnly 자동화 열기는 보통 이 잠금파일을
     남기지 않아(닫으면 즉시 사라짐) 정상적인 재추출 중에는 오탐이 거의 없다.
-    한 대의 PC(호스트)를 여러 사람이 공유해서 보는 구조라, 이미 열려있는 파일을 "파일 열기"
+    NAS 원본을 여러 사람이 각자 PC에서 여는 구조라, 이미 열려있는 파일을 "파일 열기"
     버튼으로 다시 열려는 걸 막을 때 이 여부만 확인하면 된다 — 닫혔는지는 잠금파일이 사라졌는지로
     판단하면 되므로 "언제 껐는지"를 따로 추적할 필요가 없다."""
     directory = os.path.dirname(path)
@@ -439,71 +439,33 @@ def local_copy_if_drm(path: str) -> "str | None":
     return tmp
 
 
-def _visible_windows() -> set:
-    """지금 화면에 보이는 최상위 창 핸들(제목 있는 것만)."""
-    import win32gui
-    out = set()
-    def cb(h, _):
-        if win32gui.IsWindowVisible(h) and win32gui.GetWindowText(h):
-            out.add(h)
-    win32gui.EnumWindows(cb, None)
-    return out
-
-
-def _bring_new_window_to_front(before: set, timeout: float = 15.0) -> None:
-    """서버가 연 파일·폴더 창을 앞으로(2026-10-06). 서버는 사용자가 보고 있는 프로그램이 아니라 Windows가 새 창을
-    앞에 못 띄우게 막아 작업표시줄에서만 깜빡였음 → 열기 전 창 목록과 비교해 새로 생긴 창을 찾아 앞으로.
-    Alt 키를 한 번 눌렀다 떼는 건 Windows의 '앞으로 가져오기' 제한을 푸는 흔한 방법. 백그라운드 스레드에서 몇 초만 지켜봄"""
-    import threading
-    import time
-
-    def run():
-        try:
-            import win32api
-            import win32con
-            import win32gui
-            end = time.time() + timeout
-            while time.time() < end:
-                new = [h for h in _visible_windows() - before if win32gui.IsWindow(h)]
-                if new:
-                    time.sleep(0.3)  # 창이 다 그려질 틈
-                    h = new[-1]
-                    if win32gui.IsIconic(h):
-                        win32gui.ShowWindow(h, win32con.SW_RESTORE)
-                    win32api.keybd_event(win32con.VK_MENU, 0, 0, 0)
-                    win32api.keybd_event(win32con.VK_MENU, 0, win32con.KEYEVENTF_KEYUP, 0)
-                    win32gui.SetForegroundWindow(h)
-                    return
-                time.sleep(0.25)
-        except Exception as e:  # 앞으로 못 가져와도 창은 열려 있음 — 기능엔 영향 없음
-            logger.info("새 창 앞으로 가져오기 실패: %s", e)
-
-    threading.Thread(target=run, daemon=True).start()
+def build_open_url(path: str, folder: bool = False) -> str:
+    """접속자 PC에서 파일·폴더를 열 때 쓰는 주소 — hmcopen://f/<경로> (폴더는 d/).
+    경로는 UTF-8을 base64url(= 없이)로 감싼 것 — 한글·공백이 든 NAS 경로를 주소에 안전하게 싣고 길이를 줄이려고.
+    이 주소를 받아 실제로 여는 건 각 PC에 설치한 '파일 열기 도구'(tools/HmcOpen) — 도구가 허용 폴더·PPT 확장자를
+    스스로 다시 검사하므로 서버가 준 주소라도 그대로 믿지 않는다."""
+    import base64
+    token = base64.urlsafe_b64encode(os.path.normpath(path).encode("utf-8")).decode("ascii").rstrip("=")
+    return f"hmcopen://{'d' if folder else 'f'}/{token}"
 
 
 def open_source_file(path: "str | None", check_only: bool = False, folder: bool = False) -> "tuple[dict, int]":
-    """원본 파일을 서버 PC에서 연다 — (응답 dict, HTTP 상태)를 돌려주고 jsonify는 라우트에서.
-    한 대의 PC(호스트)를 여러 사람이 공유해서 보는 구조라, 누군가 이미 열어둔 파일은 막는다
-    (닫혔는지는 잠금파일이 사라졌는지로 자동 판단 — is_file_locked 참고).
-    check_only=True면 열지 않고 "열 수 있는지"만 — 프론트가 열람 중이면 안내, 아니면 "진짜 열까요?"
-    확인창을 띄운 뒤 다시 호출한다(2026-09-30). 응답의 checked=True로 확인만 했음을 알림.
-    DRM 파일은 check 단계부터 거절(blocked=True) — 확인창 없이 바로 "열 수 없는 파일" 안내."""
+    """원본 파일을 **요청한 사람의 PC**에서 열 수 있게 준비한다 — (응답 dict, HTTP 상태)를 돌려주고 jsonify는 라우트에서.
+    예전(2026-11-06 이전)엔 서버 PC에서 os.startfile/explorer로 직접 열어서, 다른 PC에서 접속한 사람이 누르면
+    서버를 켜 둔 PC에서 창이 열렸다. 지금은 서버가 아무것도 실행하지 않고 열기 주소(open_url)만 돌려주며,
+    브라우저가 그 주소를 각 PC의 '파일 열기 도구'에 넘겨 그 PC에서 연다.
+    서버가 하는 일은 검사뿐 — 위치 확인, DRM 차단, 열람 중(NAS 잠금파일) 확인은 어느 PC에서 열든 같다.
+    check_only=True면 "열 수 있는지"만(응답 checked=True) — 프론트가 열람 중이면 안내, 아니면 "진짜 열까요?"
+    확인창을 띄운 뒤 다시 호출한다(2026-09-30). 두 번째 호출 응답의 open_url을 프론트가 브라우저로 넘긴다.
+    DRM 파일은 check 단계부터 거절(blocked=True) — PC마다 DRM 에이전트가 원본을 제자리 재암호화할 수 있어서(2026-09-23)."""
     if not path or not os.path.exists(path):
         return {"ok": False, "message": "원본 위치를 찾을 수 없습니다 — 폴더가 이동했거나 재추출이 필요할 수 있습니다."}, 404
     if folder:
-        # 폴더 바로가기(2026-10-06) — 탐색기로 그 파일이 든 폴더를 열고 파일을 선택해 둠. 파일 자체는 안 열어서
-        # DRM·열람 중 검사도 필요 없음(NAS 원본을 건드리지 않음). explorer.exe는 성공해도 종료코드 1이라 결과는 안 봄
+        # 폴더 바로가기(2026-10-06) — 그 파일이 든 폴더를 탐색기로 열고 파일을 선택해 둠. 파일 자체는 안 열어서
+        # DRM·열람 중 검사도 필요 없음(NAS 원본을 건드리지 않음)
         if check_only:
             return {"ok": True, "checked": True}, 200
-        try:
-            import subprocess
-            before = _visible_windows()
-            subprocess.Popen(["explorer", "/select,", os.path.normpath(path)])
-            _bring_new_window_to_front(before, timeout=8.0)
-        except Exception as e:
-            logger.error("폴더 열기 실패(%s): %s", path, e)
-            return {"ok": False, "message": f"폴더 열기 실패: {e}"}, 500
-        return {"ok": True}, 200
+        return {"ok": True, "open_url": build_open_url(path, folder=True)}, 200
     if is_drm_file(path):
         logger.warning("DRM 파일 열기 차단: %s", path)
         return {"ok": False, "blocked": True,
@@ -512,14 +474,7 @@ def open_source_file(path: "str | None", check_only: bool = False, folder: bool 
         return {"ok": False, "locked": True, "message": "다른 사람이 열람 중인 파일입니다 — 닫힌 뒤 다시 시도해주세요."}, 409
     if check_only:
         return {"ok": True, "checked": True}, 200
-    try:
-        before = _visible_windows()
-        os.startfile(path)
-        _bring_new_window_to_front(before)
-    except Exception as e:
-        logger.error("파일 열기 실패(%s): %s", path, e)
-        return {"ok": False, "message": f"파일 실행 실패: {e}"}, 500
-    return {"ok": True}, 200
+    return {"ok": True, "open_url": build_open_url(path)}, 200
 
 
 def sort_frame(df, sort_by: str, sort_dir: str, empty_values=()):

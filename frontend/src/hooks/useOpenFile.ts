@@ -5,8 +5,24 @@ import { alertDialog, confirmDialog, toast } from '@/utils/dialog';
 import { queryClient } from './queryClient';
 import type { FileOpener } from '@/types/fileOpen.types';
 
-interface OpenResult { ok: boolean; message?: string; locked?: boolean; blocked?: boolean; checked?: boolean }
+interface OpenResult { ok: boolean; message?: string; locked?: boolean; blocked?: boolean; checked?: boolean; open_url?: string }
 type OpenApi = (filename: string, check?: boolean, folder?: boolean) => Promise<OpenResult>;
+
+/**
+ * 서버가 준 열기 주소(hmcopen://…)를 브라우저에 넘겨 **이 PC**의 파일 열기 도구(tools/HmcOpen)가 열게 함(2026-11-06).
+ * 예전엔 서버가 자기 PC에서 직접 열어서, 다른 PC에서 눌러도 대시보드를 켜 둔 PC에서 열렸음.
+ * 도구가 안 깔려 있으면 브라우저는 아무 일도 안 하므로 안내 토스트로 알림(바로가기 버튼은 설치 표시가 있을 때만 보임).
+ * 응답에 open_url이 없으면(재시작 전 옛 서버 — 그쪽이 직접 열었음) 아무것도 안 함
+ */
+const launchOpenUrl = (r: OpenResult): void => {
+  if (!r.open_url) return;
+  const a = document.createElement('a');
+  a.href = r.open_url;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  toast('이 PC에서 여는 중… 열리지 않으면 ⚙ 설정의 "파일 열기 도구"를 확인해 주세요');
+};
 
 /** 실패 안내 — 누가 열람 중이면 오류가 아니라 안내(ⓘ), DRM 파일은 열기 차단, 그 외(위치 없음·실행 실패)는 오류 */
 const alertFailure = (r: OpenResult) => {
@@ -20,7 +36,7 @@ const alertFailure = (r: OpenResult) => {
 };
 
 /**
- * 원본 PPT 열기 공통 흐름(2026-09-30 요청) — 서버 PC에서 실제 파일이 열리는 동작이라 한 번 묻는다.
+ * 원본 PPT 열기 공통 흐름(2026-09-30 요청) — 실제 파일이 열리는 동작이라 한 번 묻는다(2026-11-06부터 이 PC에서 열림).
  * ① 열 수 있는지만 확인(check) → 열람 중·위치 없음이면 확인창 없이 바로 안내
  * ② "진짜 열까요?" 확인 → ③ 실제로 열기(그 사이 누가 열었으면 ③에서 열람 중 안내)
  * apis를 순서대로 찾아 원본이 있는 첫 곳에서 연다(재무 → KPI 처리이력 폴백용).
@@ -39,24 +55,25 @@ const confirmAndOpen = async (filename: string, apis: OpenApi[]): Promise<OpenRe
   // 재시작 전 옛 서버는 check를 몰라서 확인 단계에서 이미 열어버림 — 그땐 묻지 않고 끝
   if (!found.pre.checked) return found.pre;
 
-  const ok = await confirmDialog(`${filename}\n\n이 파일을 여시겠습니까?`, {
+  const ok = await confirmDialog(`${filename}\n\n이 PC에서 이 파일을 여시겠습니까?`, {
     title: '파일 열기', confirmText: '열기', cancelText: '취소',
   });
   if (!ok) return { ok: false };
   const r = await found.api(filename);
   if (!r.ok) alertFailure(r);
+  else launchOpenUrl(r);
   return r;
 };
 
 /**
- * 폴더 바로가기(2026-10-06) — 서버 PC 탐색기로 그 파일이 든 폴더를 열고 파일을 선택해 둠. 파일은 안 열어서
+ * 폴더 바로가기(2026-10-06) — 이 PC 탐색기로 그 파일이 든 폴더를 열고 파일을 선택해 둠. 파일은 안 열어서
  * 확인창 없이 바로(열람 중·DRM이어도 됨). apis를 순서대로 찾아 원본 위치가 있는 첫 곳에서
  */
 const openFolderVia = async (filename: string, apis: OpenApi[]): Promise<OpenResult> => {
   let last: OpenResult = { ok: false };
   for (const api of apis) {
     last = await api(filename, false, true);
-    if (last.ok) return last;
+    if (last.ok) { launchOpenUrl(last); return last; }
   }
   alertFailure(last);
   return last;
@@ -105,7 +122,7 @@ export const openCoverageFileOrAlert = opener([openCoverageFile], false);   // �
 const openAnyFile = opener([openFinanceFile, openKpiFile]);
 
 /**
- * 파일명으로 원본 PPT를 서버(로컬 PC)에서 직접 연다(확인창 포함).
+ * 파일명으로 원본 PPT를 이 PC에서 연다(확인창 포함 — 서버는 열기 주소만 주고 각 PC의 파일 열기 도구가 연다).
  * 재무 처리이력을 먼저 찾고, 없으면 KPI 처리이력에서 찾는다(같은 원본 PPT를 두 파이프라인이
  * 각자 독립적으로 기록해서 어느 한쪽에만 이력이 남는 경우가 있음).
  */

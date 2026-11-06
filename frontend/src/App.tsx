@@ -6,9 +6,12 @@ import { TabLayout } from '@/layouts';
 import { FileOpenVisibleContext, Spinner } from '@/components/ui';
 import { LoginScreen } from '@/components/features/LoginScreen';
 import AdminRoute from '@/components/features/Admin/AdminRoute';
+import OpenToolSetupModal from '@/components/features/OpenToolSetup/OpenToolSetupModal';
 import { useVisible } from '@/hooks/useVisibility';
 import { useAuthSession } from '@/hooks/useAuthSession';
 import { useLoginRequired } from '@/hooks/useLoginRequired';
+import { useOpenToolMarker } from '@/hooks/useOpenToolMarker';
+import { useUiStore } from '@/store';
 import styles from './App.module.css';
 
 // 관리자 페이지(#/admin)는 2026-10-29에 주석 처리 — 관리자 기능은 다시 모달(AdminModal)로. 페이지 파일(pages/Admin)은 그대로 둠(나중에 다시 쓸 수 있게).
@@ -21,12 +24,16 @@ const Dashboard = ({ authChecking }: { authChecking: boolean }) => {
   const fileVisible = useVisible('fileOpen');
   const folderVisible = useVisible('folderOpen');
   const requestVisible = useVisible('extractRequest');
+  // 파일·폴더 바로가기는 파일 열기 도구를 설치한 브라우저에서만 보임(2026-11-06) — 열기가 서버 PC가 아니라 이 PC에서 일어나서,
+  // 도구가 없으면 눌러도 아무 일도 없기 때문. 공개 범위(서버 설정)와 설치 표시(이 브라우저) 둘 다 만족해야 함
+  const toolInstalled = useUiStore(s => s.openToolInstalled);
   const fileOpenVisible = useMemo(
-    () => ({ file: fileVisible, folder: folderVisible, request: requestVisible }),
-    [fileVisible, folderVisible, requestVisible],
+    () => ({ file: fileVisible && toolInstalled, folder: folderVisible && toolInstalled, request: requestVisible }),
+    [fileVisible, folderVisible, requestVisible, toolInstalled],
   );
   return (
     <FileOpenVisibleContext.Provider value={fileOpenVisible}>
+      <OpenToolSetupModal />
       <div className={styles.root}>
         <Navbar />
         <Routes>
@@ -57,6 +64,7 @@ const App = () => {
   // 로그인을 요구하는지는 관리자 기능 토글(서버 저장, 2026-10-22) — 예전엔 코드 상수(LOGIN_REQUIRED)를 주석으로 껐다 켰음
   const { loginRequired, isLoading } = useLoginRequired();
   const auth = useAuthSession(loginRequired);
+  useOpenToolMarker();   // 설치 프로그램이 끝나며 연 주소(?opentool=1)면 이 브라우저에 "설치됨"을 표시
   // 값이 오기 전엔 로그인 화면을 그릴지 몰라 대시보드는 못 그림 — 예전엔 null이라 서버 응답이 느리면 완전한 빈 화면이었음.
   // 스피너(0.12초 뒤 나타남 — 빨리 끝나면 안 번쩍임)를 그림(2026-11-04, QA H1 "#/admin 간헐적 빈 화면"). 서버가 안 닿으면 '요구함'으로 처리
   if (isLoading) return <Spinner label="불러오는 중…" />;

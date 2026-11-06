@@ -41,9 +41,11 @@ interface KpiOpenFileResult {
   message?: string;
   locked?:  boolean;
   checked?: boolean;
+  /** 실제 열기 응답 — 서버는 열지 않고 열기 주소(hmcopen://…)만 줌(finance.api.ts OpenFileResult 참고) */
+  open_url?: string;
 }
 
-/** 파일명으로 원본 PPT 위치를 찾아 서버(로컬 PC)에서 직접 실행.
+/** 파일명으로 원본 PPT 위치를 찾아 열기 주소를 받음(서버는 열지 않고, 브라우저가 이 PC의 파일 열기 도구로 연다).
  *  실패(404 못 찾음 · 409 이미 열려있음)도 axios가 던지는 예외가 아니라
  *  { ok:false, message } 형태로 정상 resolve — 호출부가 항상 .then(r => r.ok)만 보면 되게 */
 export const openKpiFile = (filename: string, check = false, folder = false): Promise<KpiOpenFileResult> =>

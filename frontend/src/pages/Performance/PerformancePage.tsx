@@ -18,7 +18,8 @@ import type { PerfBreakdownTarget } from '@/hooks/viewmodels/usePerfBreakdownVie
 import PerformanceChartSection from '@/components/features/PerformanceChartSection/PerformanceChartSection';
 import PerformanceKpiSection from '@/components/features/PerformanceKpiSection/PerformanceKpiSection';
 import PerformanceInsightSection from '@/components/features/PerformanceInsightSection';
-import PartAchievementBars, { PartAchievementLegend } from '@/components/features/PartAchievementBars/PartAchievementBars';
+import { PartAchievementLegend } from '@/components/features/PartAchievementBars/PartAchievementBars';
+import PartAchievementChart from '@/components/features/PartAchievementBars/PartAchievementChart';
 import { perfColumnSet } from '@/components/features/PerformanceTable/columns';
 import FinanceCrossCheckPanel from '@/components/features/PerformanceTable/FinanceCrossCheckPanel';
 // FinanceSearchResults·INFO_FINANCE_SEARCH — 재무 검색 결과 섹션 비활성(아래 주석), 복구 시 함께 해제
@@ -114,8 +115,7 @@ const PerformanceActualPage = () => {
             info:  infoAchievementBars(vm.period.actualRange),
             legend: <PartAchievementLegend />,
             body: (
-              <PartAchievementBars
-                bare
+              <PartAchievementChart
                 rows={vm.byPart}
                 month={vm.period.month}
                 onPartClick={part => setAchieveBreakdown({ chart: 'partAchievement', series: 0, key: part })}

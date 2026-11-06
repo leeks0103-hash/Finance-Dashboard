@@ -23,6 +23,7 @@ import { toast } from '@/utils/dialog';
 import { useExtractJob } from '@/hooks/useExtractJob';
 import { useOpenFile } from '@/hooks/useOpenFile';
 import { useUiStore } from '@/store';
+import { useOpenToolViewModel } from '@/hooks/viewmodels/useOpenToolViewModel';
 import { pathToTab } from '@/utils/routing';
 import { useLoginRequired } from '@/hooks/useLoginRequired';
 import styles from './Navbar.module.css';
@@ -61,6 +62,8 @@ const Navbar = () => {
   const { theme, toggle: toggleTheme } = useTheme();
   const { showRawValues, toggleRawValues, showFinCompare, toggleFinCompare } = useUiStore();
   const adminAuthed = useUiStore(s => s.adminAuthed);
+  // 파일 열기 도구 메뉴(2026-11-06) — 보일지 여부(offered)는 뷰모델이 판단(공개 범위가 이 사용자에게 열려 있을 때만)
+  const openTool = useOpenToolViewModel();
   const { loginRequired } = useLoginRequired();
   // 그래프 수치 — 켤 때/끌 때 페이드(끌 때는 투명해진 뒤 숨김)
   const chartLabels = useChartLabelToggle();
@@ -408,6 +411,26 @@ const Navbar = () => {
 
               <div className={styles.divider} />
               */}
+
+              {/* 파일 열기 도구(2026-11-06) — 파일·폴더 바로가기가 서버 PC가 아니라 이 PC에서 열리게 하는 PC별 설치 프로그램.
+                  설치 표시가 켜지기 전까진 바로가기 버튼이 안 보이므로 설치 입구가 여기 */}
+              {openTool.offered && (
+                <>
+                  <div className={styles.section}>
+                    <span className={styles.sectionLabel}>파일 열기 도구</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={styles.financeBtn}
+                      onClick={() => { setOpen(false); openTool.openModal(); }}
+                    >
+                      {openTool.installed ? '설치 안내 · 다시 받기' : '설치하고 바로가기 켜기'}
+                    </Button>
+                  </div>
+
+                  <div className={styles.divider} />
+                </>
+              )}
 
               <div className={styles.section}>
                 <span className={styles.sectionLabel}>도움말</span>
