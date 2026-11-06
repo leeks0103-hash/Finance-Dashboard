@@ -26,6 +26,8 @@ interface ConfirmOptions {
   title?:       string;
   /** true면 확인 버튼이 danger 색 — 초기화처럼 되돌리기 어려운 작업에 사용 */
   danger?:      boolean;
+  /** 'warning'이면 빨간 느낌표 아이콘 — 확인 버튼 색·기본 포커스는 그대로(경고만 하고 계속 진행할 수 있는 확인창용, 2026-11-06) */
+  icon?:        'warning';
   confirmText?: string;
   cancelText?:  string;
 }
@@ -44,7 +46,7 @@ export const confirmDialog = async (message: string, opts: ConfirmOptions = {}):
   const res = await Swal.fire({
     title: opts.title,
     html: toHtml(message),   // **굵게** 지원(2026-10-22)
-    icon: opts.danger ? 'warning' : 'question',
+    icon: opts.icon ?? (opts.danger ? 'warning' : 'question'),
     showCancelButton: true,
     confirmButtonText: opts.confirmText ?? '확인',
     cancelButtonText: opts.cancelText ?? '취소',

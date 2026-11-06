@@ -64,7 +64,7 @@ const confirmAndOpen = async (filename: string, apis: OpenApi[]): Promise<OpenRe
   const notice = found.pre.notice;
   const ok = notice
     ? await confirmDialog(`${filename}\n\n**${notice.message}**\n\n그래도 이 PC에서 여시겠습니까?`, {
-        title: '열람 중일 수 있습니다', confirmText: '그래도 열기', cancelText: '취소',
+        title: '열람 중일 수 있습니다', icon: 'warning', confirmText: '그래도 열기', cancelText: '취소',   // 빨간 느낌표(2026-11-06 요청)
       })
     : await confirmDialog(`${filename}\n\n이 PC에서 이 파일을 여시겠습니까?`, {
         title: '파일 열기', confirmText: '열기', cancelText: '취소',

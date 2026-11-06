@@ -89,9 +89,10 @@ describe('열람 경고 — 막지 않고 확인창에 안내, 30분 지나면 �
       .mockResolvedValueOnce({ ok: true, checked: true, notice })
       .mockResolvedValueOnce({ ok: true, open_url: 'hmcopen://f/QUJD' });
     await openFinanceFileOrAlert('a.pptx');
-    const [text, opts] = confirmDialog.mock.calls[0] as [string, { confirmText: string }];
+    const [text, opts] = confirmDialog.mock.calls[0] as [string, { confirmText: string; icon?: string }];
     expect(text).toContain('5분 전 박둘님이 이 파일을 열었습니다');
     expect(opts.confirmText).toBe('그래도 열기');
+    expect(opts.icon).toBe('warning');   // 빨간 느낌표
     expect(alertDialog).not.toHaveBeenCalled();
     expect(clicked).toEqual(['hmcopen://f/QUJD']);
   });
@@ -109,7 +110,8 @@ describe('열람 경고 — 막지 않고 확인창에 안내, 30분 지나면 �
       .mockResolvedValueOnce({ ok: true, checked: true })
       .mockResolvedValueOnce({ ok: true, open_url: 'hmcopen://f/QUJD' });
     await openFinanceFileOrAlert('a.pptx');
-    const [text, opts] = confirmDialog.mock.calls[0] as [string, { confirmText: string }];
+    const [text, opts] = confirmDialog.mock.calls[0] as [string, { confirmText: string; icon?: string }];
+    expect(opts.icon).toBeUndefined();   // 평소 확인창은 기본 아이콘
     expect(text).toContain('이 PC에서 이 파일을 여시겠습니까?');
     expect(text).not.toContain('열었습니다');
     expect(opts.confirmText).toBe('열기');
