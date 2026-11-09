@@ -756,12 +756,16 @@ _VISIBILITY_PATH = Path(__file__).parent / "data" / "visibility.json"
 # folderOpen: 폴더 바로가기 — 파일 바로가기(↗)와 따로(2026-10-20). 기본값은 저장값이 없을 때 예전과 같게 fileOpen 따라감(_read_visibility)
 # aiInsight: AI 인사이트 버튼 — 관리자 기능 토글로 켜고 끔(전체/숨김, 2026-10-20). 기본 숨김(10-02부터 숨겨 둔 상태 유지)
 _VISIBILITY_DEFAULTS = {"fileOpen": "admin", "folderOpen": "admin", "achieveRate": "none", "aiInsight": "none",
-                       "extractRequest": "none"}   # extractRequest: 업데이트 요청 버튼 — 전체/관리자/숨김(2026-10-22, 기본 숨김 — 관리자 기능에서 켬)
+                       "extractRequest": "none",   # extractRequest: 업데이트 요청 버튼 — 전체/관리자/숨김(2026-10-22, 기본 숨김 — 관리자 기능에서 켬)
+                       # kpiAnomaly: KPI 탭의 "보고단계가 완료가 아닌데 실적이 이미 입력된 항목 N건" 안내 배너(2026-11-09).
+                       # 기존엔 항상 모두에게 보였으므로 기본 전체(저장값이 없어도 예전과 같게). 관리자가 배너의 ×로 닫으면 none(모두에게 숨김),
+                       # 관리자 기능 > 화면·접근 > 공개 범위에서 다시 켬
+                       "kpiAnomaly": "all"}
 # 달성률은 처음엔 '전체'를 막았다가(저조한 팀이 모두에게 드러나지 않게, 2026-09-29) 관리자가 고를 수 있게 열어 둠(2026-10-14 요청).
 # 기본값은 그대로 숨김
 _VISIBILITY_CHOICES = {"fileOpen": {"all", "admin", "none"}, "folderOpen": {"all", "admin", "none"},
                        "achieveRate": {"all", "admin", "none"}, "aiInsight": {"all", "admin", "none"},
-                       "extractRequest": {"all", "admin", "none"}}
+                       "extractRequest": {"all", "admin", "none"}, "kpiAnomaly": {"all", "admin", "none"}}
 _visibility_lock = threading.Lock()
 
 

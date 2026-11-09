@@ -44,6 +44,16 @@ export const VISIBILITY_ITEMS: { key: keyof VisibilitySettings; label: string; o
       { value: 'none',  label: '숨김',   title: '아무에게도 표시 안 함' },
     ],
   },
+  {
+    // KPI 탭 "보고단계가 완료가 아닌데 실적이 이미 입력된 항목 N건" 안내 배너. 기본 전체(예전부터 항상 보였음).
+    // 관리자가 배너의 ×로 닫으면 '숨김'이 되고(모든 사람에게 안 보임), 여기서 '전체'로 바꾸면 다시 모두에게 보임(2026-11-09 요청)
+    key: 'kpiAnomaly', label: 'KPI 조기입력 의심 안내',
+    options: [
+      { value: 'all',   label: '전체',   title: '모든 사람에게 안내 배너 표시' },
+      { value: 'admin', label: '관리자', title: '관리자 인증한 브라우저에만 표시' },
+      { value: 'none',  label: '숨김',   title: '아무에게도 표시 안 함(배너의 ×로 닫으면 이 값이 됨)' },
+    ],
+  },
 ];
 
 /**

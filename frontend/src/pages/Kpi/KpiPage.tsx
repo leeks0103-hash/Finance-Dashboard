@@ -242,7 +242,8 @@ const KpiPage = () => {
 
       {/* KPI 취합 — flat / rowspan 토글 (툴바에 통합). 누구나(2026-10-12 원복) */}
       <FadeInSection delay={200} tourId="kpi-raw">
-          {vm.anomalyCount > 0 && (
+          {/* 공개 범위(kpiAnomaly)를 따름 — 관리자가 ×로 닫으면 모든 사람에게 안 보임(2026-11-09). 다시 켜기: 관리자 기능 > 화면·접근 */}
+          {vm.showAnomalyNotice && (
             <div className={styles.anomalyBanner}>
               <span className={styles.anomalyIcon}>⚠</span>
               <span className={styles.anomalyText}>
@@ -260,6 +261,12 @@ const KpiPage = () => {
                   vm.serverPagination.onPageChange(1);
                 }}>
                   한눈에 보기
+                </Button>
+              )}
+              {vm.canCloseAnomalyNotice && (
+                <Button unstyled className={styles.anomalyClose} onClick={() => { void vm.closeAnomalyNotice(); }}
+                  aria-label="이 안내 닫기" title="이 안내 닫기 — 모든 사람에게 안 보임(관리자 기능 > 화면·접근에서 다시 켬)">
+                  <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" /></svg>
                 </Button>
               )}
             </div>

@@ -201,6 +201,22 @@
   color: #fff !important;
 }
 
+/* 배너 닫기 × — 관리자에게만(모든 사람에게 숨기는 동작이라). 작은 둥근 버튼, 호버에서 위험색 바탕 */
+.anomalyClose {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.anomalyClose svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+.anomalyClose:hover { background: var(--danger); color: #fff; }
+
 /* ─ 태블릿 단계(2026-09-29 통일): 1280 / 1024 / 768. 768 미만(모바일)은 대상 아님 ─ */
 @media (max-width: 1024px) {
   .titleWithFilter { flex-wrap: wrap; gap: 8px; }

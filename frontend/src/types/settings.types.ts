@@ -13,6 +13,9 @@ export interface VisibilitySettings {
   aiInsight: Visibility;
   /** 업데이트(재추출) 요청 버튼 — 전체/관리자/숨김(2026-10-22) */
   extractRequest: Visibility;
+  /** KPI 탭 "보고단계가 완료가 아닌데 실적이 이미 입력된 항목 N건" 안내 — 기본 전체. 관리자가 배너의 ×로 닫으면 none(모두에게 숨김),
+   *  공개 범위에서 다시 켬(2026-11-09) */
+  kpiAnomaly: Visibility;
 }
 
 /** 실적 탭 필터바 오른쪽 "경영실적 현황 업데이트" 칸 — 서버(data/perf_update.json) 저장, 관리자만 고침 */
