@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Button, Modal, confirmDialog } from '@/components/ui';   // CopyText는 반영 명령 주석 처리로 안 씀(2026-11-05) — 복구하려면 같이 import
+import { Button, Modal, Spinner, confirmDialog } from '@/components/ui';   // CopyText는 반영 명령 주석 처리로 안 씀(2026-11-05) — 복구하려면 같이 import
 import { useSecretMail, useSecretMailAccountDiff } from '@/hooks/useSecretMail';
 import type { SecretMailRow } from '@/types/secretMail.types';
 import SecretMailPreviewModal from './SecretMailPreviewModal';
@@ -89,7 +89,8 @@ const SecretMailPanel = ({ inline = false }: { inline?: boolean }) => {
   // 명단·계정 대조·보내기 본문 — 버튼 → 모달(기본)과 관리자 창 탭에 바로 펼침(inline) 둘이 같은 내용을 씀(2026-10-29)
   const body = (
         <div className={styles.body}>
-          {mail.isLoading && <span className={styles.muted}>명단·Outlook 확인 중…</span>}
+          {/* 명단은 서버가 Outlook 계정까지 확인하느라 몇 초 걸림 — 작은 회색 글자만 있으면 멈춘 것처럼 보여 스피너로(2026-11-06 요청) */}
+          {mail.isLoading && <Spinner size="md" fullPage={false} label="명단·Outlook 확인 중…" />}
           {mail.loadError && (
             <span className={styles.error}>
               {mail.loadError}{' '}

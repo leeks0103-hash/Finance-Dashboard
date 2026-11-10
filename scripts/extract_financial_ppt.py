@@ -13,9 +13,14 @@ from openpyxl import Workbook, load_workbook
 import sys as _sys_boot, os as _os_boot
 _sys_boot.path.insert(0, _os_boot.path.dirname(_os_boot.path.dirname(_os_boot.path.abspath(__file__))))
 import paths as _paths
-from shared import strip_stage_suffix as _shared_strip_stage_suffix, local_copy_if_drm
+import shared
+from shared import strip_stage_suffix as _shared_strip_stage_suffix, local_copy_if_drm, save_workbook_atomic
 
 load_dotenv()  # .env 파일이 있으면 환경변수로 로드 (없으면 무시)
+
+# 파일 N개 처리할 때마다 결과 엑셀을 중간 저장 — 예전엔 맨 끝에 한 번만 저장해서, 대시보드의 제한 시간(kill)에 걸리면
+# 그 실행에서 읽은 결과가 통째로 사라졌음(2026-11-06). 중단돼도 그때까지는 남고 다음 증분 추출이 이어서 함
+CHECKPOINT_EVERY_FILES = 10
 
 # =========================
 # 설정값
@@ -314,16 +319,11 @@ def extract_part_from_path(filepath):
 # 엑셀 초기화 / 로드
 # =========================
 def ensure_workbook(excel_path):
-    if os.path.exists(excel_path):
-        try:
-            wb = load_workbook(excel_path)
-        except Exception as e:
-            log(f"[경고] 엑셀 파일 손상 감지, 새로 생성합니다: {e}")
-            os.remove(excel_path)
-            wb = Workbook()
-            default_ws = wb.active
-            wb.remove(default_ws)
-    else:
+    # 열기에 실패해도 파일을 지우지 않음 — 예전엔 보안 암호화(AIP)로 안 열리면 '손상'으로 보고 지워서 이력이 통째로 사라졌음(2026-11-10).
+    # 백업·암호화 복원은 shared.load_output_workbook. 복원도 못 하면 예외 → 추출 중단(기존 이력 보호). 초기화 추출은 새로 시작
+    shared.backup_output_file(excel_path)
+    wb, status = shared.load_output_workbook(excel_path, log, allow_recreate=RESET_OUTPUT_ON_START)
+    if wb is None:
         wb = Workbook()
         default_ws = wb.active
         wb.remove(default_ws)
@@ -482,7 +482,9 @@ def build_data_index(data_ws):
 def cleanup_deleted_files(data_ws, history_ws, base_dir):
     """소스 폴더에서 삭제된 파일의 데이터 행을 취합·처리이력 시트에서 자동 제거."""
     current_filenames = set()
-    for root, _, files in os.walk(base_dir):
+    walk_errors = []
+    # os.walk는 못 읽는 폴더를 조용히 건너뜀(NAS 권한·연결 문제) — 오류를 모아 두었다가 목록이 불완전하면 정리를 안 함
+    for root, _, files in os.walk(base_dir, onerror=walk_errors.append):
         for name in files:
             if os.path.splitext(name)[1].lower() in SUPPORTED_EXTENSIONS:
                 if not is_temp_or_hidden_office_file(name):
@@ -495,6 +497,13 @@ def cleanup_deleted_files(data_ws, history_ws, base_dir):
         if normalize_text(data_ws.cell(row=row_num, column=13).value) not in current_filenames
         and normalize_text(data_ws.cell(row=row_num, column=13).value) != ""
     ]
+    # 안전장치(2026-11-10): 원본 폴더 목록이 불완전하게 읽힌 것 같으면(오류·0개·행의 절반 넘게 사라짐) 삭제하지 않음 —
+    # NAS가 잠깐 안 읽혀도 이력이 통째로 지워지던 경로를 막음. 정말 파일을 많이 지운 거라면 초기화 추출로 정리
+    total_rows = max(data_ws.max_row - 1, 0)
+    if walk_errors or (total_rows and not current_filenames) or (len(rows_to_delete) > 10 and len(rows_to_delete) > total_rows * 0.5):
+        log(f"[정리 건너뜀] 원본 폴더 목록이 불완전해 보입니다(읽기 오류 {len(walk_errors)}건, 파일 {len(current_filenames)}개, "
+            f"지울 후보 {len(rows_to_delete)}/{total_rows}행) — 기존 이력은 그대로 둡니다")
+        return 0
     for row_num in reversed(rows_to_delete):
         data_ws.delete_rows(row_num)
     if rows_to_delete:
@@ -1101,6 +1110,13 @@ def main():
         log(f"[시작] 출력 파일: {TARGET_EXCEL}")
 
         for ppt_path in target_files:
+            # 중간 저장 — 이번에 처리 끝낸 파일(total_files개)의 행·이력이 한 묶음으로 들어간 시점(파일 하나는 항상 끝까지 처리한 뒤)
+            if total_files and total_files % CHECKPOINT_EVERY_FILES == 0:
+                try:
+                    save_workbook_atomic(wb, TARGET_EXCEL)
+                    log(f"[중간 저장] {total_files}/{len(target_files)}개 처리")
+                except Exception as e:
+                    log(f"[경고] 중간 저장 실패(계속 진행): {type(e).__name__}: {e}")
             signature = build_file_signature(ppt_path)
             total_files += 1
 

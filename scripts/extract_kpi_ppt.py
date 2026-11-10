@@ -30,6 +30,7 @@ import sys as _sys
 import sys as _sys_boot, os as _os_boot
 _sys_boot.path.insert(0, _os_boot.path.dirname(_os_boot.path.dirname(_os_boot.path.abspath(__file__))))
 import paths as _paths
+import shared as _shared
 from shared import strip_stage_suffix as _shared_strip_stage_suffix, local_copy_if_drm
 # EXTRACT_ONLY_LIST: 대시보드 "실패 파일만 다시 추출"이 넘기는 경로 목록 파일 — 그 파일만 처리(부분 실행, 2026-10-01)
 ONLY_LIST = _os_boot.environ.get("EXTRACT_ONLY_LIST", "").strip()
@@ -373,15 +374,15 @@ def get_file_meta(file_path: Path) -> Dict[str, str]:
 # Excel 처리
 # =========================================
 def load_or_create_workbook(excel_path: Path):
+    # 열기에 실패해도 파일을 지우지 않음 — 예전엔 보안 암호화(AIP)로 안 열리면 '손상'으로 보고 지워서 이력이 통째로 사라졌음
+    # (2026-09-28·11-02·11-06·11-10). 백업·암호화 복원은 shared.load_output_workbook, 복원도 못 하면 예외로 중단(기존 이력 보호)
     if excel_path.exists():
-        try:
-            logger.info(f"기존 엑셀 파일 로드: {excel_path}")
-            wb = load_workbook(excel_path)
+        logger.info(f"기존 엑셀 파일 로드: {excel_path}")
+        _shared.backup_output_file(str(excel_path))
+        wb, status = _shared.load_output_workbook(
+            str(excel_path), logger.warning, allow_recreate=os.environ.get("RESET_OUTPUT_ON_START", "0") == "1")
+        if wb is not None:
             return wb
-        except Exception as e:
-            logger.warning(f"기존 엑셀 파일 로드 실패: {e}")
-            logger.warning("손상된 파일로 판단되어 삭제 후 새로 생성합니다.")
-            excel_path.unlink()
 
     logger.info(f"새 엑셀 파일 생성: {excel_path}")
     wb = Workbook()
@@ -544,6 +545,13 @@ def cleanup_deleted_files(data_ws, processed_filenames: set) -> int:
         if normalize_text(data_ws.cell(row=row_idx, column=FILENAME_COL).value) not in processed_filenames
         and normalize_text(data_ws.cell(row=row_idx, column=FILENAME_COL).value) != ""
     ]
+    # 안전장치(2026-11-10): 원본 목록이 비었거나 행의 절반 넘게 사라지는 정리는 목록을 못 읽은 걸로 보고 건너뜀 —
+    # NAS가 잠깐 안 읽혀도 이력이 통째로 지워지던 경로를 막음. 정말 많이 지운 거라면 초기화 추출로 정리
+    total_rows = max(data_ws.max_row - 1, 0)
+    if (total_rows and not processed_filenames) or (len(rows_to_delete) > 10 and len(rows_to_delete) > total_rows * 0.5):
+        logger.warning(f"[정리 건너뜀] 원본 폴더 목록이 불완전해 보입니다(파일 {len(processed_filenames)}개, "
+                       f"지울 후보 {len(rows_to_delete)}/{total_rows}행) — 기존 이력은 그대로 둡니다")
+        return 0
     for row_idx in reversed(rows_to_delete):
         data_ws.delete_rows(row_idx)
     if rows_to_delete:

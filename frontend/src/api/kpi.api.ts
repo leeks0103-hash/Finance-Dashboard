@@ -41,6 +41,8 @@ interface KpiOpenFileResult {
   message?: string;
   locked?:  boolean;
   checked?: boolean;
+  /** 열기 전 경고(2026-11-06) — 최근 30분 안에 다른 사람이 열었거나 잠금파일이 있을 때. 열기를 막지 않고 확인창 문구에만 씀 */
+  notice?: { kind: 'recent' | 'locked'; message: string; name?: string; minutes?: number; locked?: boolean };
   /** 실제 열기 응답 — 서버는 열지 않고 열기 주소(hmcopen://…)만 줌(finance.api.ts OpenFileResult 참고) */
   open_url?: string;
 }

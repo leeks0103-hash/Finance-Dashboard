@@ -201,6 +201,9 @@
   color: #fff !important;
 }
 
+/* 배너 닫기 × — 기본 ModalCloseButton 모양 그대로, 여기선 위치만(관리자에게만 보임) */
+.anomalyClose { margin-left: 2px; }
+
 /* ─ 태블릿 단계(2026-09-29 통일): 1280 / 1024 / 768. 768 미만(모바일)은 대상 아님 ─ */
 @media (max-width: 1024px) {
   .titleWithFilter { flex-wrap: wrap; gap: 8px; }

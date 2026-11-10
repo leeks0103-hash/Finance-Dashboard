@@ -270,3 +270,30 @@ def test_stored_file_is_valid_json(monkeypatch):
     monkeypatch.setattr(ec, "coverage", lambda force=False: _cov(f=(1, 0, 0)))
     ea.check_now()
     assert json.loads(ea._PATH.read_text(encoding="utf-8"))["total"] == 1
+
+
+def test_results_changed_after_outside_replacement(tmp_path, monkeypatch):
+    """백업 복원처럼 추출 작업 밖에서 결과 엑셀이 바뀌면 알림을 다시 센다(2026-11-10). 쓰는 중(가만히 있지 않음)엔 안 셈"""
+    import os
+    import paths
+    import extract_alerts as ea
+    from datetime import datetime, timedelta
+
+    fin, kpi = tmp_path / "f.xlsx", tmp_path / "k.xlsx"
+    fin.write_bytes(b"x")
+    kpi.write_bytes(b"x")
+    monkeypatch.setattr(paths, "FINANCE_EXCEL_PATH", str(fin))
+    monkeypatch.setattr(paths, "KPI_EXCEL_PATH", str(kpi))
+    now = datetime.now()
+    state = {"checked_at": (now - timedelta(hours=1)).strftime("%Y-%m-%d %H:%M:%S")}
+    old = (now - timedelta(hours=2)).timestamp()
+    os.utime(fin, (old, old))
+    os.utime(kpi, (old, old))
+    assert not ea.results_changed(now, state)                      # 체크 뒤로 안 바뀜
+    recent = (now - timedelta(minutes=10)).timestamp()
+    os.utime(fin, (recent, recent))
+    assert ea.results_changed(now, state)                          # 체크 뒤 바뀌고 가만히 있음 → 다시 셈
+    just = now.timestamp() - 5
+    os.utime(fin, (just, just))
+    assert not ea.results_changed(now, state)                      # 방금까지 쓰는 중 → 기다림
+    assert not ea.results_changed(now, {"checked_at": None})       # 한 번도 체크 안 했으면 _due가 처리

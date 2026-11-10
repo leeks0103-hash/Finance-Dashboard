@@ -48,6 +48,24 @@ describe('SecretMailPanel', () => {
     expect(screen.getByRole('button', { name: /전체 보내기/ })).toBeInTheDocument();
   });
 
+  it('명단을 읽는 동안엔 스피너로 "확인 중"을 보여 주고, 명단이 오면 사라진다(멈춘 것처럼 보이지 않게)', () => {
+    useSecretMail.mockReturnValue({
+      data: undefined, isLoading: true, loadError: null, refetch: vi.fn(), job: undefined, running: false,
+      start: vi.fn(), isStarting: false, startError: null, cancel: vi.fn(), isCancelling: false,
+    });
+    const { rerender } = render(<SecretMailPanel inline />);
+    expect(screen.getByRole('status', { name: '명단·Outlook 확인 중…' })).toBeInTheDocument();
+    expect(screen.queryByText('홍길동')).toBeNull();
+
+    useSecretMail.mockReturnValue({
+      data: roster, isLoading: false, loadError: null, refetch: vi.fn(), job: roster.job, running: false,
+      start: vi.fn(), isStarting: false, startError: null, cancel: vi.fn(), isCancelling: false,
+    });
+    rerender(<SecretMailPanel inline />);
+    expect(screen.queryByRole('status')).toBeNull();
+    expect(screen.getByText('홍길동')).toBeInTheDocument();
+  });
+
   it('inline에서도 미리보기는 따로 창으로 열린다', () => {
     render(<SecretMailPanel inline />);
     fireEvent.click(screen.getByRole('button', { name: '메일 미리보기' }));

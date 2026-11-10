@@ -19,7 +19,7 @@ type TabId = AdminTabId;
 const TABS: { id: TabId; label: string; desc: string }[] = [
   { id: 'data', label: '데이터',        desc: '실적 파일 · PPT 추출 · 재무 불일치' },
   { id: 'view', label: '화면·접근',     desc: '공개 범위 · 로그인 요구 · 차트 색상' },
-  // 알림 탭(2026-11-05 요청) — 화면·접근과 시크릿 키 메일 사이. 상단 바 종의 [알림 설정·현황 열기]가 이 탭으로 엶
+  // 알림 탭(2026-11-05 요청) — 화면·접근과 시크릿 키 메일 사이. 상단 바 종의 [알림 설정]이 이 탭으로 엶(현황은 여기 없고 설정만, 2026-11-06)
   { id: 'alert', label: '알림', desc: '추출 확인 시각 · 빈도' },
   { id: 'mail', label: '시크릿 키 메일', desc: '임직원 로그인 키 발송' },
   // { id: 'headcount', label: '파트별 인원', desc: '인당 매출·손익·관리비 계산용' },
@@ -122,8 +122,8 @@ const AdminModal = ({ onClose, initialTab = 'data' }: { onClose: () => void; ini
               )}
 
               {tab === 'alert' && (
-                <Step title="알림" desc="추출 현황의 안 읽음 · 열기 실패 · 원본 수정됨을 정한 시각에 확인해 상단 바 종에 숫자로 알림">
-                  <AdminNotificationPanel onGoData={() => setTab('data')} />
+                <Step title="알림" desc="추출 현황의 안 읽음 · 열기 실패 · 원본 수정됨을 정한 시각에 확인해 확인할 게 있으면 알림 팝업과 종의 빨간 점으로 알림">
+                  <AdminNotificationPanel />
                 </Step>
               )}
 

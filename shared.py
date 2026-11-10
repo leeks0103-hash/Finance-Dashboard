@@ -1,7 +1,9 @@
+import json
 import logging
 import os
 import re
 import threading
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -439,6 +441,88 @@ def local_copy_if_drm(path: str) -> "str | None":
     return tmp
 
 
+def save_workbook_atomic(wb, path: str) -> None:
+    """추출 중간 저장용 — 임시 파일에 먼저 쓰고 교체해서, 저장 도중 프로세스가 죽어도(제한 시간 초과 kill 등)
+    결과 엑셀이 반쪽 파일로 남지 않게 함(2026-11-06). 추출은 마지막에 한 번만 저장해서 30분 제한에 걸리면
+    그 실행에서 읽은 결과가 통째로 사라졌음 → 파일 N개마다 호출.
+    교체가 안 되면(서버가 그 엑셀을 읽는 중 등) 직접 저장으로 대신함. 저장 자체가 실패하면 예외 그대로."""
+    tmp = path + ".partial"
+    try:
+        wb.save(tmp)
+        os.replace(tmp, path)
+    except Exception:
+        try:
+            os.remove(tmp)
+        except OSError:
+            pass
+        wb.save(path)
+
+
+def backup_output_file(path: str, keep: int = 5, tag: str = "") -> "str | None":
+    """추출 결과 엑셀을 data/backup/에 시각을 붙여 복사(최근 keep개만 남김). 실패해도 추출은 계속(None).
+    예전엔 결과 엑셀이 보안 암호화(AIP)로 읽히지 않으면 스크립트가 '손상'으로 보고 지우고 새로 만들어
+    그때까지 추출한 이력이 통째로 사라졌음(2026-11-02·11-06·11-10) — 실행마다 복사본을 남겨 둠(2026-11-10)."""
+    import shutil
+    from datetime import datetime
+    try:
+        if not os.path.exists(path):
+            return None
+        folder = os.path.join(os.path.dirname(path), "backup")
+        os.makedirs(folder, exist_ok=True)
+        stem, ext = os.path.splitext(os.path.basename(path))
+        dest = os.path.join(folder, f"{stem}{tag}_{datetime.now():%Y%m%d_%H%M%S}{ext}")
+        shutil.copy2(path, dest)
+        mine = sorted((f for f in os.listdir(folder) if f.startswith(f"{stem}{tag}_") and f.endswith(ext)), reverse=True)
+        for old in mine[keep:]:
+            try:
+                os.remove(os.path.join(folder, old))
+            except OSError:
+                pass
+        return dest
+    except Exception:   # noqa: BLE001 — 백업 실패가 추출을 막으면 안 됨
+        logger.exception("추출 결과 백업 실패: %s", path)
+        return None
+
+
+def load_output_workbook(path: str, log, allow_recreate: bool = False):
+    """추출 결과 엑셀 열기 — 있으면 (워크북, 상태), 없으면 (None, 'new').
+    **열기에 실패해도 파일을 지우지 않는다.** 백업을 남기고, 보안 암호화(OLE2)면 Excel COM으로 값을 읽어 평문 워크북으로 복원
+    ('recovered'). 복원도 못 하면 예외 — 추출을 멈춰 기존 이력이 빈 파일로 덮어써지는 걸 막음.
+    allow_recreate=True(초기화 추출처럼 어차피 비우고 시작하는 경우)면 백업만 남기고 새로 시작('recreated').
+    복원은 값만 — 서식은 호출한 쪽이 다시 입히고, 시트 이름·머리글·행은 그대로."""
+    from openpyxl import Workbook, load_workbook
+    if not os.path.exists(path):
+        return None, "new"
+    try:
+        return load_workbook(path), "loaded"
+    except Exception as e:   # noqa: BLE001
+        reason = f"{type(e).__name__}: {e}"
+    log(f"[경고] 결과 엑셀을 못 열었습니다({reason}) — 파일은 지우지 않고 백업합니다")
+    bk = backup_output_file(path, keep=10, tag=".열기실패")
+    if bk:
+        log(f"[백업] {bk}")
+    if allow_recreate:
+        log("[안내] 초기화 추출이라 새 파일로 시작합니다")
+        return None, "recreated"
+    if is_ole2_file(path):
+        try:
+            wb = Workbook()
+            wb.remove(wb.active)
+            with ComExcelFile(path) as xf:
+                for name in xf.sheet_names:
+                    ws = wb.create_sheet(name)
+                    for row in xf._sheet_values(name):
+                        ws.append(list(row))
+            log(f"[복원] 암호화된 결과 엑셀을 Excel로 읽어 평문으로 복원했습니다: 시트 {len(wb.sheetnames)}개")
+            return wb, "recovered"
+        except Exception as e2:   # noqa: BLE001
+            reason += f" / Excel로 읽기도 실패: {type(e2).__name__}: {e2}"
+    raise RuntimeError(
+        f"결과 엑셀을 읽을 수 없어 추출을 중단합니다(기존 이력 보호) — {reason}. "
+        f"백업: {bk or '못 만듦'}. 엑셀이 다른 곳에서 열려 있으면 닫고 다시 실행하거나, 이력을 버려도 되면 '초기화' 방식으로 추출하세요."
+    )
+
+
 def build_open_url(path: str, folder: bool = False) -> str:
     """접속자 PC에서 파일·폴더를 열 때 쓰는 주소 — hmcopen://f/<경로> (폴더는 d/).
     경로는 UTF-8을 base64url(= 없이)로 감싼 것 — 한글·공백이 든 NAS 경로를 주소에 안전하게 싣고 길이를 줄이려고.
@@ -449,20 +533,126 @@ def build_open_url(path: str, folder: bool = False) -> str:
     return f"hmcopen://{'d' if folder else 'f'}/{token}"
 
 
-def open_source_file(path: "str | None", check_only: bool = False, folder: bool = False) -> "tuple[dict, int]":
+# ── 파일 열람 기록·경고(2026-11-06) ───────────────────────────────────────────────
+# 서버는 파일이 "닫혔는지" 알 수 없다 — 그래서 막지 않고, 열 때 "N분 전 ○○님이 열었습니다" 경고(확인창)만 보여 준다.
+# 기록은 대시보드로 연 것만(열기 주소를 내준 시각 기준 — 브라우저 허용 창에서 취소했어도 남는 한계 있음).
+# 경고는 OPEN_NOTICE_SEC(30분) 안의 기록에만 — 지나면 기록 기반 경고는 없음. 잠금파일(~$)만 있고 기록이 없으면 "누군가 열고 있는 듯"만 알림.
+# 어느 경우든 열기는 막지 않는다(남은 잠금파일에 영영 막히던 문제 해결). DRM 차단만 그대로.
+OPEN_NOTICE_SEC = 30 * 60
+OPEN_HISTORY_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "open_history.json")
+_open_lock = threading.Lock()
+
+
+def _open_key(path: str) -> str:
+    return os.path.normcase(os.path.normpath(path))
+
+
+def _load_open_history() -> dict:
+    try:
+        with open(OPEN_HISTORY_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+_roster_cache: "tuple[str, float, dict[str, str]] | None" = None
+
+
+def _roster_names() -> "dict[str, str]":
+    """사번 → 이름 — 로그인 계정(.env)엔 사번만 있어서 시크릿 키 메일 명단 엑셀에서 가져옴(수정 시각이 바뀔 때만 다시 읽음).
+    명단을 못 읽으면 빈 dict(이름 대신 사번이 보임)"""
+    global _roster_cache
+    try:
+        import secret_mail
+        path = secret_mail.latest_roster_path()
+        if not path:
+            return {}
+        mtime = os.path.getmtime(path)
+        if _roster_cache and _roster_cache[0] == path and _roster_cache[1] == mtime:
+            return _roster_cache[2]
+        names = {r["emp"]: r["name"] for r in secret_mail.read_roster(path) if r.get("name")}
+        _roster_cache = (path, mtime, names)
+        return names
+    except Exception as e:  # 명단 없음·형식 오류·엑셀 열기 실패 — 이름은 선택 정보라 조용히 넘어감
+        logger.info("열람 기록용 이름 명단을 못 읽음: %s", e)
+        return {}
+
+
+def current_opener(req=None) -> "dict | None":
+    """열기 요청을 한 로그인 사용자 {emp, name} — 로그인 안 했거나 로그인 요구가 꺼져 있으면 None(기록·이름 없는 경고만)"""
+    try:
+        import auth
+        user = auth.current_user(req)
+    except Exception:
+        return None
+    if not user:
+        return None
+    emp = str(user.get("emp_no", ""))
+    name = str(user.get("name") or "")
+    if not name or name == emp:   # 계정에 이름이 없으면(사번만) 명단에서
+        name = _roster_names().get(emp, "") or emp
+    return {"emp": emp, "name": name}
+
+
+def record_file_open(path: str, opener: "dict | None") -> None:
+    """이 파일을 방금 연 사람을 기록(파일당 가장 최근 1건). 오래된 기록은 이때 같이 정리. 실패해도 열기는 막지 않음"""
+    if not opener:
+        return
+    now = time.time()
+    try:
+        with _open_lock:
+            hist = {k: v for k, v in _load_open_history().items()
+                    if isinstance(v, dict) and now - float(v.get("at", 0)) <= OPEN_NOTICE_SEC}
+            hist[_open_key(path)] = {"emp": opener["emp"], "name": opener["name"], "at": now}
+            os.makedirs(os.path.dirname(OPEN_HISTORY_PATH), exist_ok=True)
+            tmp = OPEN_HISTORY_PATH + ".tmp"
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump(hist, f, ensure_ascii=False)
+            os.replace(tmp, OPEN_HISTORY_PATH)
+    except Exception as e:
+        logger.warning("파일 열람 기록 실패: %s", e)
+
+
+def open_notice(path: str, opener: "dict | None") -> "dict | None":
+    """열기 전에 보여 줄 경고 — 없으면 None.
+    ① 30분 안에 **다른 사람**이 연 기록 → "N분 전 ○○님이 열었습니다"(잠금파일이 있으면 "지금도 열려 있는 것으로 보임")
+    ② 내가 직접 연 기록이 가장 최근 → 경고 없음(내 파일을 내가 다시 여는 것)
+    ③ 기록이 없는데 잠금파일(~$)만 있음 → 누군가 열고 있는 듯(누구인지는 모름 — 대시보드 밖에서 연 사람 포함)"""
+    locked = is_file_locked(path)
+    entry = _load_open_history().get(_open_key(path))
+    now = time.time()
+    if isinstance(entry, dict) and now - float(entry.get("at", 0)) <= OPEN_NOTICE_SEC:
+        if opener and entry.get("emp") == opener["emp"]:
+            return None
+        minutes = max(0, int((now - float(entry["at"])) // 60))
+        ago = "방금 전" if minutes < 1 else f"{minutes}분 전"
+        who = entry.get("name") or entry.get("emp") or "다른 사용자"
+        tail = "지금도 열려 있는 것으로 보입니다." if locked else "이미 닫았을 수도 있습니다."
+        return {"kind": "recent", "name": who, "minutes": minutes, "locked": locked,
+                "message": f"{ago} {who}님이 이 파일을 열었습니다.\n{tail}"}
+    if locked:
+        return {"kind": "locked", "locked": True,
+                "message": "다른 사람이 열고 있는 것으로 보입니다.\n(누가 열었는지는 알 수 없습니다)"}
+    return None
+
+
+def open_source_file(path: "str | None", check_only: bool = False, folder: bool = False,
+                     opener: "dict | None" = None) -> "tuple[dict, int]":
     """원본 파일을 **요청한 사람의 PC**에서 열 수 있게 준비한다 — (응답 dict, HTTP 상태)를 돌려주고 jsonify는 라우트에서.
     예전(2026-11-06 이전)엔 서버 PC에서 os.startfile/explorer로 직접 열어서, 다른 PC에서 접속한 사람이 누르면
     서버를 켜 둔 PC에서 창이 열렸다. 지금은 서버가 아무것도 실행하지 않고 열기 주소(open_url)만 돌려주며,
     브라우저가 그 주소를 각 PC의 '파일 열기 도구'에 넘겨 그 PC에서 연다.
-    서버가 하는 일은 검사뿐 — 위치 확인, DRM 차단, 열람 중(NAS 잠금파일) 확인은 어느 PC에서 열든 같다.
-    check_only=True면 "열 수 있는지"만(응답 checked=True) — 프론트가 열람 중이면 안내, 아니면 "진짜 열까요?"
-    확인창을 띄운 뒤 다시 호출한다(2026-09-30). 두 번째 호출 응답의 open_url을 프론트가 브라우저로 넘긴다.
+    서버가 하는 일은 검사·경고·기록뿐 — 위치 확인, DRM 차단은 어느 PC에서 열든 같다.
+    check_only=True면 "열 수 있는지"만(응답 checked=True) — 열람 경고가 있으면 notice에 담아 주고, 프론트가 그 문구를 넣어
+    "진짜 열까요?" 확인창을 띄운 뒤 다시 호출한다(2026-09-30). 두 번째 호출 응답의 open_url을 프론트가 브라우저로 넘긴다.
+    열람 중이어도 막지 않는다(2026-11-06 — 이전엔 잠금파일이 있으면 409로 막아, 남은 잠금파일에 영영 막혔음). 열었다는 기록만 남김.
     DRM 파일은 check 단계부터 거절(blocked=True) — PC마다 DRM 에이전트가 원본을 제자리 재암호화할 수 있어서(2026-09-23)."""
     if not path or not os.path.exists(path):
         return {"ok": False, "message": "원본 위치를 찾을 수 없습니다 — 폴더가 이동했거나 재추출이 필요할 수 있습니다."}, 404
     if folder:
         # 폴더 바로가기(2026-10-06) — 그 파일이 든 폴더를 탐색기로 열고 파일을 선택해 둠. 파일 자체는 안 열어서
-        # DRM·열람 중 검사도 필요 없음(NAS 원본을 건드리지 않음)
+        # DRM·열람 검사도 기록도 필요 없음(NAS 원본을 건드리지 않음)
         if check_only:
             return {"ok": True, "checked": True}, 200
         return {"ok": True, "open_url": build_open_url(path, folder=True)}, 200
@@ -470,10 +660,13 @@ def open_source_file(path: "str | None", check_only: bool = False, folder: bool 
         logger.warning("DRM 파일 열기 차단: %s", path)
         return {"ok": False, "blocked": True,
                 "message": "문서보안(DRM) 암호화 파일이라 대시보드에서 열 수 없습니다.\n원본 담당자에게 확인해주세요."}, 403
-    if is_file_locked(path):
-        return {"ok": False, "locked": True, "message": "다른 사람이 열람 중인 파일입니다 — 닫힌 뒤 다시 시도해주세요."}, 409
     if check_only:
-        return {"ok": True, "checked": True}, 200
+        body: dict = {"ok": True, "checked": True}
+        notice = open_notice(path, opener)
+        if notice:
+            body["notice"] = notice
+        return body, 200
+    record_file_open(path, opener)
     return {"ok": True, "open_url": build_open_url(path)}, 200
 
 

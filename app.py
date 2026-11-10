@@ -97,7 +97,52 @@ def _empty_health() -> dict:
     """비교할 데이터가 없을 때(재무·KPI 중 한쪽이 비었거나 열을 못 찾음)의 응답 — 정상 응답과 **같은 키 집합**(값은 빈 목록·0).
     예전엔 {count, rows}만 줘서 프론트가 conflicts·acks 등 누락 키를 읽다 깨질 수 있었음(2026-11-04)"""
     return {"acks": _valid_health_acks(), "count": 0, "rows": [], "conflicts": [],
-            "finished_anomalies": [], "read_failures": []}
+            "finished_anomalies": [], "read_failures": [], "excepted": []}
+
+
+def _collect_health():
+    """데이터 이상 후보를 전부(관리자 기준 — '생성 예정' 참고 건 포함) 모음. 비교할 데이터가 없으면 None.
+    → (rows, conflicts, finished_anomalies, read_failures). 요청자별 숨김·예외 처리는 호출하는 쪽에서"""
+    fin_df = get_df()
+    kpi_df = get_kpi_df()
+    if fin_df.empty or kpi_df.empty:
+        return None
+
+    kpi_code_col = next((c for c in kpi_df.columns if "프로젝트코드" in str(c)), None)
+    kpi_file_col = next((c for c in kpi_df.columns if "파일명" in str(c)), None)
+    if kpi_code_col is None or kpi_file_col is None:
+        return None
+
+    fin_by_file = fin_df.groupby("filename")["project_code"].apply(
+        lambda s: frozenset(str(x).strip() for x in s)
+    )
+    kpi_by_file = kpi_df.groupby(kpi_file_col)[kpi_code_col].apply(
+        lambda s: frozenset(str(x).strip() for x in s)
+    )
+
+    rows = []
+    for f in set(fin_by_file.index) & set(kpi_by_file.index):
+        fset, kset = fin_by_file[f], kpi_by_file[f]
+        if fset == kset:
+            continue
+        if not any(_real_code(c) for c in fset | kset):
+            continue  # 둘 다 placeholder일 때만 다름 — 실제 오류 아님
+        # 한쪽이 아직 코드 미발급("생성예정"·"생성 예정"·"(생성 필요)")이면 오류가 아님 — 관리자에게만 참고로 보임(응답 단계에서 거름)
+        # (10-19 처음엔 아예 뺐다가 같은 날 "관리자만 볼 수 있게"로 변경)
+        rows.append({
+            "file": f,
+            "finance_codes": sorted(fset),
+            "kpi_codes": sorted(kset),
+            "pending": _all_pending_code(fset) or _all_pending_code(kset),
+        })
+
+    conflicts, read_failures = _read_code_conflicts()
+    # 같은 프로젝트가 단계별로 재보고된 것으로 판정된 건(likely_same_project)은 문제 아님 — 응답에서 뺌(2026-10-06)
+    conflicts = [c for c in conflicts if c["verdict"] != "likely_same_project"]
+    # 코드 자체가 '생성 예정'류(아직 미발급)인 충돌은 서로 다른 프로젝트가 같은 문구를 쓴 것뿐 — 오류 아님, 관리자에게만(2026-10-19)
+    for c in conflicts:
+        c["pending"] = _all_pending_code([c["code"]])
+    return rows, conflicts, _read_finished_report_anomalies(fin_df), read_failures
 
 
 @app.route("/api/data-health")
@@ -109,62 +154,153 @@ def api_data_health():
     둘 다 정식 코드 형식이 아닌 값끼리만 다른 경우(예: "0" vs "-", "코드 생성 예정" 류)는
     실제 오류가 아니라 placeholder 문구 차이일 뿐이라 제외 — 정식 코드가 한쪽이라도
     있는데 서로 안 맞을 때만 경고 대상으로 남긴다.
+
+    관리자가 '예외 처리'한 파일의 이상은 빨간 "!"(rows·conflicts·finished_anomalies·count)에서 빠지고,
+    관리자 응답의 `excepted`에만 남는다(2026-11-10)
     """
-    fin_df = get_df()
-    kpi_df = get_kpi_df()
-    if fin_df.empty or kpi_df.empty:
+    collected = _collect_health()
+    if collected is None:
         return jsonify(_empty_health())
-
-    kpi_code_col = next((c for c in kpi_df.columns if "프로젝트코드" in str(c)), None)
-    kpi_file_col = next((c for c in kpi_df.columns if "파일명" in str(c)), None)
-    if kpi_code_col is None or kpi_file_col is None:
-        return jsonify(_empty_health())
-
-    fin_by_file = fin_df.groupby("filename")["project_code"].apply(
-        lambda s: frozenset(str(x).strip() for x in s)
-    )
-    kpi_by_file = kpi_df.groupby(kpi_file_col)[kpi_code_col].apply(
-        lambda s: frozenset(str(x).strip() for x in s)
-    )
-
-    rows = []
+    rows, conflicts, anomalies, read_failures = collected
     admin = is_admin()
-    for f in set(fin_by_file.index) & set(kpi_by_file.index):
-        fset, kset = fin_by_file[f], kpi_by_file[f]
-        if fset == kset:
-            continue
-        if not any(_real_code(c) for c in fset | kset):
-            continue  # 둘 다 placeholder일 때만 다름 — 실제 오류 아님
-        # 한쪽이 아직 코드 미발급("생성예정"·"생성 예정"·"(생성 필요)")이면 오류가 아님 — 관리자에게만 참고로 보임
-        # (10-19 처음엔 아예 뺐다가 같은 날 "관리자만 볼 수 있게"로 변경)
-        pending = _all_pending_code(fset) or _all_pending_code(kset)
-        if pending and not admin:
-            continue
-        rows.append({
-            "file": f,
-            "finance_codes": sorted(fset),
-            "kpi_codes": sorted(kset),
-            "pending": pending,
-        })
 
-    conflicts, read_failures = _read_code_conflicts()
-    # 같은 프로젝트가 단계별로 재보고된 것으로 판정된 건(likely_same_project)은 문제 아님 — 응답에서 뺌(2026-10-06)
-    conflicts = [c for c in conflicts if c["verdict"] != "likely_same_project"]
-    # 코드 자체가 '생성 예정'류(아직 미발급)인 충돌은 서로 다른 프로젝트가 같은 문구를 쓴 것뿐 — 오류 아님, 관리자에게만(2026-10-19)
-    for c in conflicts:
-        c["pending"] = _all_pending_code([c["code"]])
-    if not admin:
+    # 관리자 예외 처리 — 이상의 '내용'이 예외 처리할 때와 같을 때만 적용(내용이 바뀌면 자동으로 풀려 다시 "!")
+    issue_map = _issue_map(rows, conflicts, anomalies)
+    active = _apply_health_exceptions(issue_map, can_prune=not read_failures)
+    hidden = lambda files: bool(files) and all(f in active for f in files)   # noqa: E731
+    rows = [r for r in rows if not hidden([r["file"]])]
+    conflicts = [c for c in conflicts if not hidden(c["files"])]
+    anomalies = [a for a in anomalies if not hidden([a["filename"]])]
+    excepted = [
+        {"file": f, "issues": [text for _, text in issue_map[f]], "by": exc.get("by", ""), "at": exc.get("at", ""),
+         "reason": exc.get("reason", "")}
+        for f, exc in sorted(active.items())
+    ] if admin else []
+
+    if not admin:   # 참고용('생성 예정') 건은 관리자에게만
+        rows = [r for r in rows if not r["pending"]]
         conflicts = [c for c in conflicts if not c["pending"]]
-    finished_anomalies = _read_finished_report_anomalies(fin_df)
     return jsonify({
         "acks": _valid_health_acks(),
-        "count": len(rows) + len(conflicts) + len(finished_anomalies) + len(read_failures),
+        "count": len(rows) + len(conflicts) + len(anomalies) + len(read_failures),
         "rows": rows,
         "conflicts": conflicts,
-        "finished_anomalies": finished_anomalies,
+        "finished_anomalies": anomalies,
         # 코드충돌 시트를 COM으로도 못 읽은 쪽 — "충돌 0건"과 "읽지 못해 모름"을 화면에서 구분
         "read_failures": read_failures,
+        "excepted": excepted,
     })
+
+
+# ── 데이터 이상 "관리자 예외 처리"(2026-11-10) ───────────────────────────────────────────
+# 한 파일에 프로젝트 코드가 둘인데 KPI는 하나인 것처럼 '의도한' 불일치를 관리자가 빨간 "!"에서 뺄 수 있게.
+# · 관리자만 처리·해제. 처리하면 모든 사람 화면에서 그 파일의 이상이 "!"에서 빠지고, 관리자 응답(excepted)에는 남음
+# · 예외 처리 때 그 파일의 이상 '내용'(코드 집합·충돌 코드 등)의 서명을 같이 저장 → PPT가 고쳐져 내용이 달라지면
+#   서명이 안 맞아 저절로 풀려 다시 "!"(조용히 가려진 채 새 문제가 묻히지 않게). 이상이 사라져도 정리
+# · "수정 완료"(담당자가 고쳤다고 표시 — 재추출되면 사라짐)와는 별개
+_EXC_PATH = Path(__file__).parent / "data" / "health_exceptions.json"
+_exc_lock = threading.Lock()
+
+
+def _read_health_exceptions() -> dict:
+    import json
+    try:
+        data = json.loads(_EXC_PATH.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else {}
+    except FileNotFoundError:
+        return {}
+    except Exception:
+        logger.warning("예외 처리 파일을 못 읽음 — 무시: %s", _EXC_PATH)
+        return {}
+
+
+def _write_health_exceptions(data: dict) -> None:
+    import json
+    _EXC_PATH.parent.mkdir(exist_ok=True)
+    tmp = _EXC_PATH.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    os.replace(tmp, _EXC_PATH)
+
+
+def _issue_map(rows, conflicts, anomalies) -> dict:
+    """파일명 → [(내용 키, 관리자 화면 문구)] — 키는 이상의 내용(예외 처리 서명 재료), 문구는 사람이 읽는 설명"""
+    out: dict = {}
+
+    def add(f, key, text):
+        out.setdefault(f, []).append((key, text))
+
+    for r in rows:
+        add(r["file"], f"row|{'/'.join(r['finance_codes'])}|{'/'.join(r['kpi_codes'])}",
+            f"KPI↔재무 코드 불일치 — 재무 {', '.join(r['finance_codes']) or '—'} / KPI {', '.join(r['kpi_codes']) or '—'}")
+    for c in conflicts:
+        files = sorted(c["files"])
+        for f in files:
+            add(f, f"conflict|{c['source']}|{c['code']}|{'/'.join(files)}",
+                f"코드 충돌({c['source']}) — {c['code']}")
+    for a in anomalies:
+        add(a["filename"], f"anomaly|{a['project_code']}|" + ",".join(f"{x['label']}={x['value']}" for x in a["fields"]),
+            f"완료보고 이상 — {a['project_code']}")
+    return out
+
+
+def _signature(items) -> str:
+    import hashlib
+    return hashlib.sha1("\n".join(sorted(k for k, _ in items)).encode("utf-8")).hexdigest()[:16]
+
+
+def _apply_health_exceptions(issue_map: dict, can_prune: bool = True) -> dict:
+    """지금도 유효한 예외 처리만 돌려줌(파일명 → 기록). 서명이 달라졌거나 이상이 사라진 건 정리.
+    can_prune=False(코드충돌 시트를 못 읽어 이상 목록이 불완전)면 못 찾은 건 지우지 않고 그대로 둠 — 적용도 안 함"""
+    with _exc_lock:
+        saved = _read_health_exceptions()
+        if not saved:
+            return {}
+        active, keep = {}, {}
+        for f, exc in saved.items():
+            items = issue_map.get(f)
+            if items and exc.get("sig") == _signature(items):
+                active[f] = keep[f] = exc
+            elif not can_prune:
+                keep[f] = exc
+            else:
+                logger.info("[데이터 이상] 예외 처리 해제(내용이 바뀌었거나 해소됨): %s", f)
+        if keep != saved:
+            _write_health_exceptions(keep)
+        return active
+
+
+@app.route("/api/data-health/exception", methods=["POST"])
+def api_data_health_exception():
+    """**관리자** {files, done, reason?} — done=true면 그 파일들의 지금 이상을 예외 처리(빨간 "!"에서 뺌), false면 해제"""
+    if not _extract_key_valid(request):
+        return jsonify({"ok": False, "error": "권한이 없습니다"}), 403
+    body = request.get_json(silent=True) or {}
+    files = [str(f).strip() for f in (body.get("files") or []) if str(f).strip()]
+    files = list(dict.fromkeys(files))
+    if not files or len(files) > 20 or any(len(f) > 300 for f in files):
+        return jsonify({"ok": False, "error": "파일명이 없거나 너무 많습니다"}), 400
+    done = bool(body.get("done", True))
+    reason = str(body.get("reason") or "").strip()[:200]
+    user = current_admin(request) or {}
+    who = user.get("name") or user.get("emp_no") or ""
+
+    with _exc_lock:
+        saved = _read_health_exceptions()
+        if done:
+            collected = _collect_health()
+            issue_map = _issue_map(*collected[:3]) if collected else {}
+            missing = [f for f in files if not issue_map.get(f)]
+            if missing:
+                return jsonify({"ok": False, "error": f"지금 이상이 없는 파일입니다: {missing[0]}"}), 400
+            now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            for f in files:
+                saved[f] = {"sig": _signature(issue_map[f]), "at": now, "by": who, "reason": reason}
+        else:
+            for f in files:
+                saved.pop(f, None)
+        _write_health_exceptions(saved)
+    logger.info("[데이터 이상] 관리자 예외 처리 %s(%s): %s", "설정" if done else "해제", who, ", ".join(files))
+    return jsonify({"ok": True})
 
 
 # ── 데이터 이상 "수정 완료" 표시(2026-10-20) ──────────────────────────────────────────
@@ -434,6 +570,9 @@ _EXTRACT_SCRIPTS = {
 }
 _EXTRACT_MODES = {"incremental", "force", "reset", "failed", "selected"}
 _SELECTED_MAX = 300  # mode=selected 한 번에 고를 수 있는 파일 수
+# 추출 스크립트 한 번(재무 또는 KPI)의 제한 시간 — 전체(264개)·초기화 추출이 30분을 넘겨 중단됐음(2026-11-06) → 60분.
+# ⚠️ 시간 초과로 kill되면 스크립트의 finally(저장)가 안 돌아 그 실행에서 읽은 결과가 통째로 사라짐
+_EXTRACT_TIMEOUT_SEC = 3600
 # Navbar에서 "PPT 데이터 추출" 자체를 보이게/실행 가능하게 하는 공용 키 — 아직 배포 전이라
 # LAN에 공유돼도 아무나 못 누르게(2026-09-23, 본인+책임님만 권한). 비어있으면 무조건 거부(안전 기본값)
 EXTRACT_ADMIN_KEY = os.environ.get("EXTRACT_ADMIN_KEY", "").strip()
@@ -483,11 +622,11 @@ def _run_extract_script(name: str, mode: str, only_list: "str | None" = None) ->
         _extract_proc = proc
 
     try:
-        stdout, stderr = proc.communicate(timeout=1800)  # dashboard_update.py와 동일(대량 재수정 대비)
+        stdout, stderr = proc.communicate(timeout=_EXTRACT_TIMEOUT_SEC)
     except subprocess.TimeoutExpired:
         proc.kill()
         stdout, stderr = proc.communicate()
-        return False, f"{name} 추출이 30분을 넘겨 중단됐습니다"
+        return False, f"{name} 추출이 {_EXTRACT_TIMEOUT_SEC // 60}분을 넘겨 중단됐습니다"
     finally:
         with _extract_lock:
             _extract_proc = None
@@ -585,6 +724,15 @@ def _extract_job(targets: list, mode: str, files: "list | None" = None):
         except Exception as e:
             ok_all = False
             logs.append(f"[캐시 갱신] 실패: {e}")
+
+    # 상단 알림 종 배지 — 추출이 끝난(중지·실패 포함, 거기까지 반영된) 지금 추출 현황을 다시 세서 저장(2026-11-06).
+    # 예전엔 정해진 시각(기본 08:00)에만 세서, 추출로 다 해결해도 아침의 "99+"가 다음 확인까지 남았음.
+    # 상태를 "끝남"으로 바꾸기 전에 해야 화면이 완료를 보고 알림을 다시 불러올 때 새 숫자가 들어 있음(NAS 훑기 6초쯤)
+    try:
+        import extract_alerts
+        extract_alerts.check_now()
+    except Exception:   # noqa: BLE001 — 알림 갱신 실패가 추출 결과 표시를 막으면 안 됨
+        logger.exception("추출 후 알림 갱신 실패")
 
     with _extract_lock:
         _extract_cancel_requested = False
@@ -744,12 +892,16 @@ _VISIBILITY_PATH = Path(__file__).parent / "data" / "visibility.json"
 # folderOpen: 폴더 바로가기 — 파일 바로가기(↗)와 따로(2026-10-20). 기본값은 저장값이 없을 때 예전과 같게 fileOpen 따라감(_read_visibility)
 # aiInsight: AI 인사이트 버튼 — 관리자 기능 토글로 켜고 끔(전체/숨김, 2026-10-20). 기본 숨김(10-02부터 숨겨 둔 상태 유지)
 _VISIBILITY_DEFAULTS = {"fileOpen": "admin", "folderOpen": "admin", "achieveRate": "none", "aiInsight": "none",
-                       "extractRequest": "none"}   # extractRequest: 업데이트 요청 버튼 — 전체/관리자/숨김(2026-10-22, 기본 숨김 — 관리자 기능에서 켬)
+                       "extractRequest": "none",   # extractRequest: 업데이트 요청 버튼 — 전체/관리자/숨김(2026-10-22, 기본 숨김 — 관리자 기능에서 켬)
+                       # kpiAnomaly: KPI 탭의 "보고단계가 완료가 아닌데 실적이 이미 입력된 항목 N건" 안내 배너(2026-11-09).
+                       # 기존엔 항상 모두에게 보였으므로 기본 전체(저장값이 없어도 예전과 같게). 관리자가 배너의 ×로 닫으면 none(모두에게 숨김),
+                       # 관리자 기능 > 화면·접근 > 공개 범위에서 다시 켬
+                       "kpiAnomaly": "all"}
 # 달성률은 처음엔 '전체'를 막았다가(저조한 팀이 모두에게 드러나지 않게, 2026-09-29) 관리자가 고를 수 있게 열어 둠(2026-10-14 요청).
 # 기본값은 그대로 숨김
 _VISIBILITY_CHOICES = {"fileOpen": {"all", "admin", "none"}, "folderOpen": {"all", "admin", "none"},
                        "achieveRate": {"all", "admin", "none"}, "aiInsight": {"all", "admin", "none"},
-                       "extractRequest": {"all", "admin", "none"}}
+                       "extractRequest": {"all", "admin", "none"}, "kpiAnomaly": {"all", "admin", "none"}}
 _visibility_lock = threading.Lock()
 
 
@@ -911,14 +1063,15 @@ def api_extract_open_file():
     if not _extract_key_valid(request):
         return jsonify({"ok": False, "message": "권한이 없습니다"}), 403
     import extract_coverage
-    from shared import open_source_file
+    from shared import open_source_file, current_opener
     data = request.get_json(silent=True) or {}
     filename = str(data.get("filename", "")).strip()
     if not filename:
         return jsonify({"ok": False, "message": "파일명이 없습니다."}), 400
     path = extract_coverage.find_path(filename)
     logger.info("[파일 열기/추출 현황] filename=%s -> path=%s", filename, path)
-    body, status = open_source_file(path, check_only=bool(data.get("check")), folder=bool(data.get("folder")))
+    body, status = open_source_file(path, check_only=bool(data.get("check")), folder=bool(data.get("folder")),
+                                        opener=current_opener(request))
     return jsonify(body), status
 
 

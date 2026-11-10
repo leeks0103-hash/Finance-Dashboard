@@ -47,15 +47,37 @@ interface Props {
   plugins?: Plugin<'bar'>[];
 }
 
+/** 세로 막대 위쪽 모서리 반지름(px) — 월별 차트가 쓰던 값 */
+const BAR_RADIUS = 4;
+
 // rgba(r,g,b,a) → rgba(r,g,b,1) — 호버 시 완전 불투명으로 밝게
 const toHoverColor = (c: string) => c.replace(/[\d.]+\)$/, '1)');
 
 const BarChart = ({ labels, datasets, horizontal = false, options, onClick, exportable = false, plugins }: Props) => {
   const chartRef = useRef<Chart<'bar'> | null>(null);
 
-  const boosted = datasets.map(d => (
+  // 세로 막대는 전부 위쪽 모서리를 둥글게(2026-11-06 요청 — 차트마다 둥근 것·네모난 것이 섞여 있었음), 가로 막대는 각 차트 설정 그대로.
+  // 막대 방향은 horizontal prop이 아니라 최종 indexAxis로 판단(options로 indexAxis: 'y'만 넘기는 차트도 있어서).
+  // 누적 막대(원가분석: 직접원가 + 공통원가)는 층마다 둥글게 하면 층 사이가 파여 보이므로 각 묶음의 맨 위 층만 둥글게.
+  // 둥글게 해도 막대 아래(기준선 쪽) 모서리는 Chart.js 기본(borderSkipped)이 각지게 둠
+  const vertical = (options?.indexAxis ?? (horizontal ? 'y' : 'x')) === 'x';
+  const stackedX = Boolean((options?.scales as { x?: { stacked?: boolean } } | undefined)?.x?.stacked);
+  const topOfStack = new Map<string, number>();
+  datasets.forEach((d, i) => {
+    if (d.type === 'line') return;
+    // 누적 축이면 같은 stack 키끼리(키 없으면 전부 한 묶음), 아니면 막대마다 따로
+    topOfStack.set(stackedX ? String((d as { stack?: string }).stack ?? '') : `solo-${i}`, i);
+  });
+  const radiusOf = (d: (typeof datasets)[number], i: number): number | undefined => {
+    if (!vertical) return undefined;
+    const key = stackedX ? String((d as { stack?: string }).stack ?? '') : `solo-${i}`;
+    return topOfStack.get(key) === i ? BAR_RADIUS : 0;
+  };
+
+  const boosted = datasets.map((d, i) => (
     d.type === 'line' ? d : {
       ...d,
+      ...(vertical ? { borderRadius: radiusOf(d, i) } : {}),
       hoverBackgroundColor: typeof d.backgroundColor === 'string'
         ? toHoverColor(d.backgroundColor)
         : Array.isArray(d.backgroundColor)

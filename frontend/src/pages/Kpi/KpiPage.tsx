@@ -4,7 +4,7 @@ import { useKpiPageViewModel } from '@/hooks/viewmodels/useKpiPageViewModel';
 import { useKpiFilterOptions } from '@/hooks/useKpiFilterOptions';
 import { useKpiFilterStore } from '@/store/kpiFilter.store';
 import { sortStages } from '@/utils/stageOrder';
-import { ChartCard, BarChart, DataTable, CopyText, HighlightText, Button, Spinner, QueryGate, FilterSelect, LineIcon, ErrorFallback } from '@/components/ui';
+import { ChartCard, BarChart, DataTable, CopyText, HighlightText, Button, Spinner, QueryGate, FilterSelect, LineIcon, ErrorFallback, ModalCloseButton } from '@/components/ui';
 import { FadeInSection } from '@/components/FadeInSection';
 import { useSwapView } from '@/components/ui/useAnimatedClose';
 import KpiRawTable from '@/components/features/KpiRawTable/KpiRawTable';
@@ -242,7 +242,8 @@ const KpiPage = () => {
 
       {/* KPI 취합 — flat / rowspan 토글 (툴바에 통합). 누구나(2026-10-12 원복) */}
       <FadeInSection delay={200} tourId="kpi-raw">
-          {vm.anomalyCount > 0 && (
+          {/* 공개 범위(kpiAnomaly)를 따름 — 관리자가 ×로 닫으면 모든 사람에게 안 보임(2026-11-09). 다시 켜기: 관리자 기능 > 화면·접근 */}
+          {vm.showAnomalyNotice && (
             <div className={styles.anomalyBanner}>
               <span className={styles.anomalyIcon}>⚠</span>
               <span className={styles.anomalyText}>
@@ -261,6 +262,10 @@ const KpiPage = () => {
                 }}>
                   한눈에 보기
                 </Button>
+              )}
+              {/* 닫기 × — 모달 등에서 쓰는 기본 ModalCloseButton 그대로(2026-11-09 "우리 쓰던 x버튼"). 관리자에게만 보임 */}
+              {vm.canCloseAnomalyNotice && (
+                <ModalCloseButton className={styles.anomalyClose} onClick={() => { void vm.closeAnomalyNotice(); }} />
               )}
             </div>
           )}

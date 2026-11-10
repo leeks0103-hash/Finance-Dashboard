@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from dotenv import load_dotenv
 from flask import Blueprint, jsonify, request
-from shared import new_excel_app, safe_mtime, find_source_path, open_source_file, sort_frame, nonblank, parse_page_args
+from shared import new_excel_app, safe_mtime, find_source_path, open_source_file, current_opener, sort_frame, nonblank, parse_page_args
 import paths
 
 load_dotenv()
@@ -932,5 +932,6 @@ def api_kpi_open_file():
         return jsonify({"ok": False, "message": "파일명이 없습니다."}), 400
     path = find_source_path(KPI_EXCEL_PATH, "처리 이력", filename)
     logger.info("[파일 열기/KPI] filename=%s -> path=%s", filename, path)
-    body, status = open_source_file(path, check_only=bool(data.get("check")), folder=bool(data.get("folder")))
+    body, status = open_source_file(path, check_only=bool(data.get("check")), folder=bool(data.get("folder")),
+                                        opener=current_opener(request))
     return jsonify(body), status

@@ -1,6 +1,8 @@
 import { useState, useMemo } from 'react';
 import { useKpiSummary, useKpiDataPaged } from '@/hooks/useKpiSummary';
 import { useDebouncedSearch } from '@/hooks/useDebouncedSearch';
+import { useVisible, useVisibilitySettings } from '@/hooks/useVisibility';
+import { confirmDialog } from '@/utils/dialog';
 import { buildServerPagination, buildServerSearch } from './serverTableProps';
 import { useReactPagination } from '@/lib/pagination';
 import { useKpiFilterStore } from '@/store/kpiFilter.store';
@@ -76,6 +78,12 @@ export interface KpiPageViewModel {
   /** 보고단계 완료 전인데 실적 조기입력된 행 수 — 0이면 배너 미노출 */
   anomalyCount:     number;
   anomalies:        KpiAnomaly[];
+  /** 조기입력 의심 배너를 보여줄지 — 공개 범위(kpiAnomaly)가 이 사람에게 열려 있고 의심 행이 1건 이상일 때 */
+  showAnomalyNotice:     boolean;
+  /** 배너 ×(닫기)를 보여줄지 — 모든 사람 화면에 영향을 주므로 관리자만 */
+  canCloseAnomalyNotice: boolean;
+  /** 배너 닫기 — 확인창 뒤 공개 범위를 '숨김'으로(모두에게 안 보임). 다시 켜는 건 관리자 기능 > 화면·접근 */
+  closeAnomalyNotice:    () => Promise<void>;
 }
 
 // KPI 탭 숫자 — 자릿수 맞춤 없이 값 그대로, 소수점은 둘째 자리까지 (2026-10-01 담당자 지정.
@@ -104,6 +112,14 @@ export const useKpiPageViewModel = (summaryPart = '', anomalyOnly = false): KpiP
   const parts  = useKpiFilterStore(s => s.parts);
   const stages = useKpiFilterStore(s => s.stages);
 
+  // 조기입력 의심 안내 배너 — 공개 범위(kpiAnomaly)를 따름. 관리자가 × 로 닫으면 '숨김'이 돼 모든 사람에게 안 보이고(2026-11-09),
+  // 관리자 기능 > 화면·접근 > 공개 범위에서 다시 켬. 닫는 건 모두에게 영향이라 관리자만 ×가 보임
+  const noticeAllowed = useVisible('kpiAnomaly');
+  const isAdmin = useUiStore(s => s.adminAuthed);
+  const { update: updateVisibility } = useVisibilitySettings();
+  // 배너가 숨겨지면 "한눈에 보기" 필터도 풀림 — 안 풀리면 [전체 보기] 버튼이 없는데 표가 계속 의심 행만 보여 줌
+  const anomalyFilter = anomalyOnly && noticeAllowed;
+
   const { data: summary, isLoading: sumLoading, isError: sumError, refetch: refetchSummary } = useKpiSummary(summaryPart);
   const {
     data,
@@ -113,8 +129,16 @@ export const useKpiPageViewModel = (summaryPart = '', anomalyOnly = false): KpiP
     { page: pagination.page, pageSize: pagination.pageSize, search: search.debouncedValue, field: searchField,
       sortBy: sort.sortBy ?? undefined, sortDir: sort.sortDir },
     { years, parts, stages },
-    anomalyOnly,
+    anomalyFilter,
   );
+
+  const closeAnomalyNotice = async () => {
+    const ok = await confirmDialog(
+      '이 안내를 닫으면 모든 사람에게 보이지 않습니다.\n다시 보이게 하려면 관리자 기능 > 화면·접근 > 공개 범위에서 "KPI 조기입력 의심 안내"를 전체로 바꾸세요.',
+      { title: '조기입력 안내 닫기', confirmText: '닫기', cancelText: '취소' },
+    );
+    if (ok) updateVisibility({ kpiAnomaly: 'none' });
+  };
 
   const isLoading = sumLoading || dataLoading;
   const items     = summary?.items ?? [];
@@ -201,6 +225,9 @@ export const useKpiPageViewModel = (summaryPart = '', anomalyOnly = false): KpiP
     rawCols,
     anomalyCount: summary?.anomaly_count ?? 0,
     anomalies:    summary?.anomalies ?? [],
+    showAnomalyNotice: noticeAllowed && (summary?.anomaly_count ?? 0) > 0,
+    canCloseAnomalyNotice: isAdmin,
+    closeAnomalyNotice,
 
     serverSorting: sort,
 

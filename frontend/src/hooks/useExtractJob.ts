@@ -10,7 +10,7 @@ import type { ExtractTarget, ExtractMode } from '@/types/extract.types';
 /**
  * Navbar ⚙ → PPT 데이터 추출. 권한(EXTRACT_ADMIN_KEY) 있는 사람에게만 보여야 해서, 인증
  * 여부도 이 훅이 갖고 있다가 통과 전엔 상태 폴링 자체를 안 함(2026-09-23 — "권한 있는 사람만
- * PPT 데이터 추출이 보일 수 있도록"). 실행은 서버 백그라운드 스레드로 돌고(최대 30분) 즉시
+ * PPT 데이터 추출이 보일 수 있도록"). 실행은 서버 백그라운드 스레드로 돌고(스크립트당 최대 60분) 즉시
  * 응답이 오므로, 진행 상태는 짧은 주기로 폴링해서 반영한다.
  */
 /** 관리자 로그인해야 받을 수 있는 조회 — 로그아웃 때 캐시에서 지움 */
@@ -54,8 +54,11 @@ export const useExtractJob = () => {
     if (!status) return;
     const prev = lastFinishedRef.current;
     lastFinishedRef.current = status.finished_at;
-    if (prev !== undefined && status.finished_at !== prev && !status.running && status.ok) {
-      qc.invalidateQueries();
+    if (prev !== undefined && status.finished_at !== prev && !status.running) {
+      if (status.ok) qc.invalidateQueries();
+      // 알림 종 배지 — 서버가 추출을 마칠 때(실패·중지 포함, 거기까지는 반영됨) 추출 현황을 다시 세어 저장하므로 바로 새로 받음.
+      // 안 하면 5분 주기·창 복귀 때까지 옛 숫자("99+")가 남음(2026-11-06). 성공이면 위에서 전부 무효화돼 이미 포함
+      else qc.invalidateQueries({ queryKey: ['notifications'] });
     }
   }, [status, qc]);
 

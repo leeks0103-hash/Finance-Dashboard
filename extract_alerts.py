@@ -296,10 +296,30 @@ def next_check(now: datetime, state: dict, settings: "dict | None" = None) -> "s
     return None
 
 
+_SETTLE_SEC = 45   # 결과 엑셀이 이만큼 가만히 있은 뒤에야 다시 셈(추출 중 중간 저장마다 세지 않게)
+
+
+def results_changed(now: datetime, state: dict) -> bool:
+    """마지막 체크 뒤에 결과 엑셀(재무·KPI)이 바뀌었나(그리고 지금은 가만히 있나) — 추출 작업 밖에서 파일이 바뀐 경우
+    (백업에서 복원·사람이 직접 교체 등)에도 알림 숫자를 다시 세기 위함. 2026-11-10: 복원했는데 종 알림은 '아직 안 읽음 264'가
+    그대로였음(숫자는 마지막 체크 시점 저장값이라 추출 작업이 끝날 때만 갱신됐음)"""
+    import paths
+    from shared import safe_mtime
+    done = _parse(state.get("checked_at"))
+    if done is None:
+        return False
+    for p in (paths.FINANCE_EXCEL_PATH, paths.KPI_EXCEL_PATH):
+        mt = safe_mtime(str(p))
+        if mt and datetime.fromtimestamp(mt) > done and (now.timestamp() - mt) >= _SETTLE_SEC:
+            return True
+    return False
+
+
 def _loop() -> None:
     while True:
         try:
-            if _due(datetime.now(), read(), read_settings()):
+            now, state, st = datetime.now(), read(), read_settings()
+            if _due(now, state, st) or (st["enabled"] and results_changed(now, state)):
                 check_now()
         except Exception:   # noqa: BLE001
             logger.exception("추출 알림 예약 확인 실패")
