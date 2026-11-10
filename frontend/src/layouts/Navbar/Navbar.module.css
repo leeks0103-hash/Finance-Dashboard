@@ -141,7 +141,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow-md);
-  width: 680px;   /* 600 → 680: 글자 키우며(2026-10-20 "너무 작다") 파일명이 덜 줄바꿈되게 */
+  width: 750px;   /* 600 → 680(2026-10-20 "너무 작다", 파일명이 덜 줄바꿈되게) → 750(2026-11-10 "width 늘려라" — 예외 처리 버튼이 줄에 붙으며, 860은 과해서 750) */
   max-width: 92vw;
   z-index: 200;
   animation: dropIn 0.15s cubic-bezier(0.16, 1, 0.3, 1) both;
