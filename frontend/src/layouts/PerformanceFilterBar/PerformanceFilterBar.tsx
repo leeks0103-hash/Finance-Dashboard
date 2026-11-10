@@ -106,7 +106,9 @@ const PerformanceFilterBar = () => {
         <div className={styles.chips}>
           {!ready && <ChipSkeleton widths={TEAM_SKELETON} />}
           {ready && <>
-            <FilterChip label="전체" checked={!selectedTeam} onChange={() => handleTeamChange('')} />
+            {/* 팀 칩이 하나도 안 맞는 선택(파트 하나만, 정해 둔 팀 조합이 아닌 임의 조합)이면 "전체"도 끔 —
+                "전체"는 모든 파트가 선택됐을 때만 켜짐(2026-11-10). 선택 자체는 그대로 필터에 적용됨 */}
+            <FilterChip label="전체" checked={!selectedTeam && allPartsSelected} onChange={() => handleTeamChange('')} />
             {teams.map(team => (
               <FilterChip key={team} label={team} checked={selectedTeam === team}
                 onChange={() => handleTeamChange(team)} />
