@@ -458,6 +458,71 @@ def save_workbook_atomic(wb, path: str) -> None:
         wb.save(path)
 
 
+def backup_output_file(path: str, keep: int = 5, tag: str = "") -> "str | None":
+    """추출 결과 엑셀을 data/backup/에 시각을 붙여 복사(최근 keep개만 남김). 실패해도 추출은 계속(None).
+    예전엔 결과 엑셀이 보안 암호화(AIP)로 읽히지 않으면 스크립트가 '손상'으로 보고 지우고 새로 만들어
+    그때까지 추출한 이력이 통째로 사라졌음(2026-11-02·11-06·11-10) — 실행마다 복사본을 남겨 둠(2026-11-10)."""
+    import shutil
+    from datetime import datetime
+    try:
+        if not os.path.exists(path):
+            return None
+        folder = os.path.join(os.path.dirname(path), "backup")
+        os.makedirs(folder, exist_ok=True)
+        stem, ext = os.path.splitext(os.path.basename(path))
+        dest = os.path.join(folder, f"{stem}{tag}_{datetime.now():%Y%m%d_%H%M%S}{ext}")
+        shutil.copy2(path, dest)
+        mine = sorted((f for f in os.listdir(folder) if f.startswith(f"{stem}{tag}_") and f.endswith(ext)), reverse=True)
+        for old in mine[keep:]:
+            try:
+                os.remove(os.path.join(folder, old))
+            except OSError:
+                pass
+        return dest
+    except Exception:   # noqa: BLE001 — 백업 실패가 추출을 막으면 안 됨
+        logger.exception("추출 결과 백업 실패: %s", path)
+        return None
+
+
+def load_output_workbook(path: str, log, allow_recreate: bool = False):
+    """추출 결과 엑셀 열기 — 있으면 (워크북, 상태), 없으면 (None, 'new').
+    **열기에 실패해도 파일을 지우지 않는다.** 백업을 남기고, 보안 암호화(OLE2)면 Excel COM으로 값을 읽어 평문 워크북으로 복원
+    ('recovered'). 복원도 못 하면 예외 — 추출을 멈춰 기존 이력이 빈 파일로 덮어써지는 걸 막음.
+    allow_recreate=True(초기화 추출처럼 어차피 비우고 시작하는 경우)면 백업만 남기고 새로 시작('recreated').
+    복원은 값만 — 서식은 호출한 쪽이 다시 입히고, 시트 이름·머리글·행은 그대로."""
+    from openpyxl import Workbook, load_workbook
+    if not os.path.exists(path):
+        return None, "new"
+    try:
+        return load_workbook(path), "loaded"
+    except Exception as e:   # noqa: BLE001
+        reason = f"{type(e).__name__}: {e}"
+    log(f"[경고] 결과 엑셀을 못 열었습니다({reason}) — 파일은 지우지 않고 백업합니다")
+    bk = backup_output_file(path, keep=10, tag=".열기실패")
+    if bk:
+        log(f"[백업] {bk}")
+    if allow_recreate:
+        log("[안내] 초기화 추출이라 새 파일로 시작합니다")
+        return None, "recreated"
+    if is_ole2_file(path):
+        try:
+            wb = Workbook()
+            wb.remove(wb.active)
+            with ComExcelFile(path) as xf:
+                for name in xf.sheet_names:
+                    ws = wb.create_sheet(name)
+                    for row in xf._sheet_values(name):
+                        ws.append(list(row))
+            log(f"[복원] 암호화된 결과 엑셀을 Excel로 읽어 평문으로 복원했습니다: 시트 {len(wb.sheetnames)}개")
+            return wb, "recovered"
+        except Exception as e2:   # noqa: BLE001
+            reason += f" / Excel로 읽기도 실패: {type(e2).__name__}: {e2}"
+    raise RuntimeError(
+        f"결과 엑셀을 읽을 수 없어 추출을 중단합니다(기존 이력 보호) — {reason}. "
+        f"백업: {bk or '못 만듦'}. 엑셀이 다른 곳에서 열려 있으면 닫고 다시 실행하거나, 이력을 버려도 되면 '초기화' 방식으로 추출하세요."
+    )
+
+
 def build_open_url(path: str, folder: bool = False) -> str:
     """접속자 PC에서 파일·폴더를 열 때 쓰는 주소 — hmcopen://f/<경로> (폴더는 d/).
     경로는 UTF-8을 base64url(= 없이)로 감싼 것 — 한글·공백이 든 NAS 경로를 주소에 안전하게 싣고 길이를 줄이려고.
