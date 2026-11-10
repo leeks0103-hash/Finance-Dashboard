@@ -55,9 +55,24 @@ export interface DataHealthAck {
   by: string;   // 누른 사람 이름(로그인 안 했으면 빈 값)
 }
 
+/**
+ * 관리자가 '예외 처리'한 파일 — 빨간 "!"에서는 빠지고 관리자 응답에만 남음(2026-11-10).
+ * 이상의 내용이 바뀌면(PPT가 고쳐짐) 서버가 저절로 풀어 다시 "!"가 뜸
+ */
+export interface DataHealthExcepted {
+  file:    string;
+  /** 예외 처리된 이상의 내용(사람이 읽는 문구) */
+  issues:  string[];
+  by:      string;   // 처리한 관리자
+  at:      string;   // YYYY-MM-DD HH:MM:SS
+  reason?: string;
+}
+
 export interface DataHealthResponse {
   /** 파일명 → 수정 완료 표시. 구버전 서버면 없음 */
   acks?: Record<string, DataHealthAck>;
+  /** 관리자 응답에만 — 예외 처리된 이상(빨간 "!"·count에는 안 들어감). 구버전 서버·일반 사용자면 없음/빈 목록 */
+  excepted?: DataHealthExcepted[];
   count: number;
   rows: DataHealthRow[];
   conflicts: DataHealthConflict[];
@@ -73,3 +88,7 @@ export const getDataHealth = (): Promise<DataHealthResponse> =>
 /** '수정 완료' 표시(done=true) / 취소(false) — 응답은 바뀐 뒤의 전체 표시 */
 export const ackDataHealth = (file: string, done: boolean): Promise<{ ok: boolean; acks: Record<string, DataHealthAck> }> =>
   client.post('/data-health/ack', { file, done }).then(r => r.data);
+
+/** **관리자** 예외 처리(done=true) / 해제(false) — 한 번에 여러 파일(코드 충돌은 관련 파일 전부) */
+export const exceptDataHealth = (files: string[], done: boolean): Promise<{ ok: boolean; error?: string }> =>
+  client.post('/data-health/exception', { files, done }).then(r => r.data);

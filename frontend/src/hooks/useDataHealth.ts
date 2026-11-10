@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ackDataHealth, getDataHealth } from '@/api/dataHealth.api';
+import { ackDataHealth, exceptDataHealth, getDataHealth } from '@/api/dataHealth.api';
 import type { DataHealthResponse } from '@/api/dataHealth.api';
 import { STALE_5MIN, GC_10MIN } from './queryClient';
 import { useUiStore } from '@/store/ui.store';
@@ -47,4 +47,20 @@ export const useDataHealthAck = () => {
     onSettled: () => qc.invalidateQueries({ queryKey: ['data-health'] }),
   });
   return { toggle: (file: string, done: boolean) => mutation.mutate({ file, done }) };
+};
+
+/**
+ * 관리자 예외 처리 켜고 끄기(2026-11-10) — 서버가 판정(그 파일에 지금 이상이 있어야 함)하므로 낙관적 반영 없이
+ * 응답 뒤 data-health를 다시 받음. 실패 이유(`error`)는 호출한 쪽이 보여 줌
+ */
+export const useDataHealthException = () => {
+  const qc = useQueryClient();
+  const mutation = useMutation({
+    mutationFn: ({ files, done }: { files: string[]; done: boolean }) => exceptDataHealth(files, done),
+    onSettled: () => qc.invalidateQueries({ queryKey: ['data-health'] }),
+  });
+  return {
+    pending: mutation.isPending,
+    set: (files: string[], done: boolean) => mutation.mutateAsync({ files, done }),
+  };
 };

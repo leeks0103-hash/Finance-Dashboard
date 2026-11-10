@@ -12,6 +12,7 @@ import { useProductTour } from '@/components/features/ProductTour';
 import { useTheme } from '@/hooks';
 import { useDataHealth, useDataHealthAck } from '@/hooks/useDataHealth';
 import HealthAckButton from './HealthAckButton';
+import HealthExceptionButton from './HealthExceptionButton';
 import AdminExtractModal from '@/components/features/Admin/AdminExtractModal';
 import AdminModal from '@/components/features/Admin/AdminModal';
 import type { AdminTabId } from '@/components/features/Admin/AdminModal';
@@ -240,6 +241,7 @@ const Navbar = () => {
                           <li key={`${c.source}-${c.code}`} className={styles.healthItem}>
                             <div className={styles.healthFileRow}>
                               <CopyText text={c.code} className={`${styles.healthFile} ${styles.healthCode}`} />
+                              {adminAuthed && <HealthExceptionButton files={c.files} />}
                             </div>
                             <div className={styles.healthCodes}>
                               <span className={styles.healthDesc}>{c.source} · {c.files.length}개 파일이 같은 코드 사용</span>
@@ -269,6 +271,7 @@ const Navbar = () => {
                             <div className={styles.healthFileRow}>
                               <CopyText text={row.file} className={styles.healthFile} onOpen={openFile} />
                               <HealthAckButton ack={healthAcks[row.file]} onToggle={done => healthAck.toggle(row.file, done)} />
+                              {adminAuthed && <HealthExceptionButton files={[row.file]} />}
                             </div>
                             <div className={styles.healthCodes}>
                               <span>재무 : {row.finance_codes.join(', ') || '—'}</span>
@@ -293,6 +296,7 @@ const Navbar = () => {
                             <div className={styles.healthFileRow}>
                               <CopyText text={a.filename} className={styles.healthFile} onOpen={openFile} />
                               <HealthAckButton ack={healthAcks[a.filename]} onToggle={done => healthAck.toggle(a.filename, done)} />
+                              {adminAuthed && <HealthExceptionButton files={[a.filename]} />}
                             </div>
                             <div className={styles.healthCodes}>
                               <span>{a.part} · <CopyText text={a.project_code} /></span>

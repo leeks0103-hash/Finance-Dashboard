@@ -95,6 +95,7 @@
 | PUT | `/api/settings/notifications` | **관리자** 확인 일정 — `{enabled: bool, days: [0~6 (월=0)], mode: "times"|"interval", times: ["HH:MM"…1~6개], interval_minutes: 30/60/120/180/240/360/480/720, window_start: "HH:MM", window_end: "HH:MM"(시작<끝)}` — 바꾼 항목만 보내면 나머지 유지, 잘못된 값은 400 `{ok:false,error}`. 응답은 위 조회와 같은 모양. 예전 `{frequency,time,interval_hours}`는 파일에 남아 있어도 읽을 때 새 모양으로 바꿈 |
 | GET | `/api/data-health` | 데이터 이상 배지(KPI↔재무 코드 충돌·완료 보고 이상 등) |
 | POST | `/api/data-health/ack` | `{file, done}` "수정 완료" 표시(로그인한 누구나) |
+| POST | `/api/data-health/exception` | **관리자** `{files, done}` 데이터 이상 예외 처리/해제 — 예외 처리한 파일의 이상은 `/api/data-health`의 `rows`·`conflicts`·`finished_anomalies`·`count`에서 빠지고 관리자 응답 `excepted`에만 남음. 이상의 내용이 바뀌면 자동 해제. 지금 이상이 없는 파일은 400 |
 | POST | `/api/extract-requests/check` · `/api/extract-requests` | 업데이트(재추출) 요청 확인 / 남기기(로그인한 누구나) |
 | GET | `/api/extract-requests` | **관리자** 남은 요청 목록 |
 | POST | `/api/extract-requests/dismiss` | **관리자** 요청 지우기 |

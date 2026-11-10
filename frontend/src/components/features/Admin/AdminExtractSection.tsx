@@ -6,6 +6,7 @@ import {
 import type { ExtractTarget } from '@/types/extract.types';
 import ExtractCoverage from './ExtractCoverage';
 import ExtractFilePicker from './ExtractFilePicker';
+import HealthExceptionList from './HealthExceptionList';
 import styles from './AdminSections.module.css';
 
 interface Props {
@@ -130,6 +131,9 @@ const AdminExtractSection = ({ extractJob, initialSelected }: Props) => {
         onRetryFailed={vm.retryFailed} retryDisabled={locked}
         selectedFiles={selectedFiles} onPick={vm.pickFromCoverage}
         onClearSelected={() => vm.setSelectedFiles([])} onRunSelected={vm.runSelected} />
+
+      {/* 관리자가 빨간 "!"에서 뺀(예외 처리한) 데이터 이상 — 데이터는 여기 남음. 없으면 안 그려짐(2026-11-10) */}
+      <HealthExceptionList />
     </div>
   );
 };
