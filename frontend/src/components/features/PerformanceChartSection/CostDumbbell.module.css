@@ -1,0 +1,40 @@
+/* 원가분석 덤벨(2026-11-10) — 카드 본문을 채우고 SVG가 이 크기를 따라감. 글씨는 전부 보통 굵기(볼드·보통이 섞여 뒤죽박죽이라는 지적) */
+.wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 300px;
+  width: 100%;
+  overflow: hidden;
+}
+/* 그림 영역 — 범례를 뺀 나머지. 행이 적으면 위아래 가운데, 많아서 넘치면 이 안에서 스크롤 */
+.plot {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  /* 위 여백은 컴포넌트가 정수 px로 넣음(paddingTop) — flex 가운데 정렬은 반 픽셀에 걸려 글씨가 흐려짐 */
+}
+.svg { display: block; flex: none; max-width: 100%; }
+
+.svg text { text-rendering: optimizeLegibility; }   /* 글꼴은 컴포넌트가 막대 차트와 같은 Pretendard로 지정 */
+.formula { font-size: 12px; }
+.revenue { font-size: 13px; }
+.gap { font-size: 12px; }
+.clickable { cursor: pointer; }
+.svg text.clickable:hover { text-decoration: underline; }
+
+/* 범례 — 카드 아래 작게. 색은 인라인(팔레트 역할 그대로) */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;   /* 범례는 가운데(2026-11-10 요청) */
+  align-items: center;
+  gap: 4px 14px;
+  padding: 2px 4px 0;
+  font-size: 0.74rem;
+  color: var(--text-primary);
+}
+.legend span { display: inline-flex; align-items: center; gap: 5px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; }

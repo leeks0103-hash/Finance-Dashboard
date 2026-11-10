@@ -36,6 +36,10 @@ interface UiStore {
   achieveView: 'bars' | 'rose';
   setAchieveView: (v: 'bars' | 'rose') => void;
 
+  /** "원가분석(파트별 추정 매출/원가)" 보기 — 기존 막대('bars') / 덤벨('dumbbell')(2026-11-10). 카드 왼쪽 아래 토글로 고르고 이 브라우저에 기억 */
+  costView: 'bars' | 'dumbbell';
+  setCostView: (v: 'bars' | 'dumbbell') => void;
+
   /** 알림 종에서 마지막으로 "확인한" 시점의 항목별 건수(2026-11-06) — 이보다 늘어난 게 있을 때만 빨간 점·팝업(메일함처럼).
    *  관리자마다 따로 봐야 해서 서버가 아니라 이 브라우저에 저장. 판정은 utils/notificationSeen */
   notificationSeen: Record<string, number> | null;
@@ -90,6 +94,9 @@ export const useUiStore = create<UiStore>()(
       achieveView: 'bars',
       setAchieveView: (v) => set({ achieveView: v === 'rose' ? 'rose' : 'bars' }),
 
+      costView: 'bars',
+      setCostView: (v) => set({ costView: v === 'dumbbell' ? 'dumbbell' : 'bars' }),
+
       notificationSeen: null,
       setNotificationSeen: (v) => set({ notificationSeen: v }),
 
@@ -110,7 +117,7 @@ export const useUiStore = create<UiStore>()(
       // 그래프 수치·표 실제값·재무 대조·투어 시청 여부·차트 색만 로컬에 저장 — 나머지는 세션 한정
       partialize: (s) => ({
         showChartLabels: s.showChartLabels, showRawValues: s.showRawValues, showFinCompare: s.showFinCompare, tourSeen: s.tourSeen,
-        chartColors: s.chartColors, planNoteDismissed: s.planNoteDismissed, openToolInstalled: s.openToolInstalled, achieveView: s.achieveView,
+        chartColors: s.chartColors, planNoteDismissed: s.planNoteDismissed, openToolInstalled: s.openToolInstalled, achieveView: s.achieveView, costView: s.costView,
         notificationSeen: s.notificationSeen,
       }),
       // 저장된 차트 색이 깨졌거나(직접 고친 localStorage·옛 형식) 모르는 값이면 버림

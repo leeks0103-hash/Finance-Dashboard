@@ -14,6 +14,8 @@
  *   costOverhead — 원가구성 도넛: 공통원가 (Sky Blue에 검정 30% 섞은 톤 — 원색은 너무 연해서)
  *   costMgmt     — 원가구성 도넛: 관리비 (Hyundai Gold — 파랑 3톤과 구분되는 유일한 브랜드색)
  *   costProfit   — 원가구성 도넛: 경상손익 (기본은 loss와 같은 Active Red — 2026-10-19 따로 고를 수 있게 분리)
+ *   gain         — 이익(매출 − 원가) — 원가분석 덤벨의 이익 구간(2026-11-10). 기존에 없던 역할이라 초록으로 새로 정함 — 파랑(revenue·profit)과
+ *                  빨강(loss)에 안 섞이는 색, "초록 = 남는 돈"
  *   plan         — 계획·목표 등 비교 기준선 계열 (Sand/블루그레이 중립 — 실적 계열과 겹치지 않게). 계획 막대는 이 색으로 통일
  *   planLabel    — 계획 막대 위 수치 글자색 (plan을 불투명·진하게 — 반투명 plan 그대로면 글자가 흐려서, 막대색은 유지)
  *   planRevenue  — "파트별 추정 매출/원가" 확대 모달 전용 매출 계획선 (매출과 같은 파랑 계열, 밝기만 다르게)
@@ -32,6 +34,7 @@ export interface ChartPalette {
   costOverhead: string;
   costMgmt:     string;
   costProfit:   string;
+  gain:         string;
   plan:         string;
   planLabel:    string;
   planRevenue:  string;
@@ -76,6 +79,7 @@ const basePalette = (dark: boolean): ChartPalette => dark ? {
   costOverhead: 'rgba(119,141,161,1)',  /* Sky Blue에 검정 30% — 원래 Sky Blue는 흰 배경에서 너무 연했음(2026-09-29) */
   costMgmt:     'rgba(199,148,113,1)',  /* Hyundai Gold tint */
   costProfit:   'rgba(255,106,77,1)',   /* Active Red tint — loss와 같은 기본값 */
+  gain:         'rgba(76,193,137,1)',   /* Green tint — 이익 구간(다크 가독성) */
   plan:         'rgba(159,179,196,0.55)', /* 블루그레이 중립 — 계획·목표 */
   planLabel:    'rgba(159,179,196,1)',  /* plan 불투명 — 수치 글자용 */
   planRevenue:  'rgba(170,202,230,1)',  /* Sky Blue — revenue tint보다 밝게 */
@@ -91,6 +95,7 @@ const basePalette = (dark: boolean): ChartPalette => dark ? {
   costOverhead: 'rgba(119,141,161,1)',  /* Sky Blue에 검정 30% — 원래 Sky Blue는 흰 배경에서 너무 연했음(2026-09-29) */
   costMgmt:     'rgba(163,107,79,1)',   /* Hyundai Gold */
   costProfit:   'rgba(230,51,18,1)',    /* Active Red — loss와 같은 기본값 */
+  gain:         'rgba(46,158,107,1)',   /* Green — 이익 구간 */
   plan:         'rgba(107,98,87,0.45)',  /* Sand 계열 중립 — 계획·목표 */
   planLabel:    'rgba(132,129,125,1)',  /* plan의 흰 배경 실효색(188,184,179)에 검정 30% — 수치 글자가 흐리다는 피드백(2026-09-29) */
   planRevenue:  'rgba(0,170,210,1)',    /* Active Blue — Hyundai Blue 막대 위에서도 보이게 */
@@ -110,7 +115,7 @@ const basePalette = (dark: boolean): ChartPalette => dark ? {
 
 type Rgb = readonly [number, number, number];
 
-export type SwatchId = 'navy' | 'activeBlue' | 'skyDeep' | 'sky' | 'gold' | 'goldDeep' | 'red' | 'neutral';
+export type SwatchId = 'navy' | 'activeBlue' | 'skyDeep' | 'sky' | 'gold' | 'goldDeep' | 'red' | 'neutral' | 'green';
 /** 견본 ID 또는 사용자가 직접 넣은 색('#rrggbb', 소문자) */
 export type ChartColorValue = SwatchId | `#${string}`;
 
@@ -124,11 +129,12 @@ export const CHART_SWATCHES: Record<SwatchId, { name: string; light: Rgb; dark: 
   goldDeep:   { name: 'Gold (진하게)',     light: [92, 54, 34],   dark: [214, 176, 146] },
   red:        { name: 'Active Red',       light: [230, 51, 18],  dark: [255, 106, 77] },
   neutral:    { name: 'Sand (회색)',       light: [107, 98, 87],  dark: [159, 179, 196] },
+  green:      { name: 'Green (이익)',      light: [46, 158, 107], dark: [76, 193, 137] },
 };
 export const SWATCH_IDS = Object.keys(CHART_SWATCHES) as SwatchId[];
 
 export type ColorRole =
-  | 'revenue' | 'cost' | 'profit' | 'loss' | 'plan'
+  | 'revenue' | 'cost' | 'profit' | 'loss' | 'gain' | 'plan'
   | 'costDirect' | 'costLabor' | 'costOverhead' | 'costMgmt' | 'costProfit';
 
 export type ChartColorOverrides = Partial<Record<ColorRole, ChartColorValue>>;
@@ -145,6 +151,7 @@ export const COLOR_ROLES: { role: ColorRole; label: string; desc: string; group:
   { role: 'plan',         label: '계획·목표',   desc: '계획·목표 막대(반투명)',            group: 'bar',   default: 'neutral' },
   { role: 'profit',       label: '이익·이익율', desc: '재무 탭 이익액·이익율 막대',        group: 'bar',   default: 'navy' },
   { role: 'loss',         label: '손실',        desc: '손실 파트·마이너스 값',             group: 'bar',   default: 'red' },
+  { role: 'gain',         label: '이익(매출−원가)', desc: '원가분석 덤벨의 이익 구간',    group: 'bar',   default: 'green' },
   { role: 'costDirect',   label: '직접원가',    desc: '원가 비율 도넛',                    group: 'donut', default: 'navy' },
   { role: 'costLabor',    label: '인건비',      desc: '원가 비율 도넛',                    group: 'donut', default: 'activeBlue' },
   { role: 'costOverhead', label: '공통원가',    desc: '원가 비율 도넛',                    group: 'donut', default: 'skyDeep' },
@@ -157,6 +164,7 @@ const ROLE_SET = new Set<string>(COLOR_ROLES.map(r => r.role));
  *  매출↔이익은 같은 차트에 안 나와서(이익액은 단독 토글) 기본값도 둘 다 Hyundai Blue */
 const CO_SHOWN: [ColorRole, ColorRole][] = [
   ['revenue', 'cost'], ['revenue', 'plan'], ['revenue', 'loss'], ['cost', 'plan'], ['cost', 'loss'], ['profit', 'loss'],
+  ['gain', 'loss'], ['gain', 'revenue'], ['gain', 'cost'], ['gain', 'costOverhead'],
   ['costDirect', 'costLabor'], ['costDirect', 'costOverhead'], ['costDirect', 'costMgmt'],
   ['costLabor', 'costOverhead'], ['costLabor', 'costMgmt'], ['costOverhead', 'costMgmt'],
   ['costDirect', 'costProfit'], ['costLabor', 'costProfit'], ['costOverhead', 'costProfit'], ['costMgmt', 'costProfit'],
@@ -302,6 +310,8 @@ export const getChartPalette = (dark: boolean, overrides: ChartColorOverrides = 
   if (profit) { p.profit = rgba(profit); p.rate = rgba(profit); }
   const loss = pick('loss');
   if (loss) p.loss = rgba(loss);
+  const gain = pick('gain');
+  if (gain) p.gain = rgba(gain);
   const plan = pick('plan');
   if (plan) {
     const alpha = dark ? 0.55 : 0.45;

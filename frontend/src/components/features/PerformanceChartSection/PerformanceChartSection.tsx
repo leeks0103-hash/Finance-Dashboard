@@ -23,6 +23,8 @@ import type { Plugin, Chart, LegendItem, LegendElement, ChartEvent } from 'chart
 import CostFilterPopover from './CostFilterPopover';
 import PerfBreakdownModal from '@/components/features/PerfBreakdownModal/PerfBreakdownModal';
 import CostBreakdownModal from './CostBreakdownModal';
+import CostDumbbell from './CostDumbbell';
+import CostChartSwitch from './CostChartSwitch';
 import { canPerfBreakdown, type PerfBreakdownTarget } from '@/hooks/viewmodels/usePerfBreakdownViewModel';
 import type { PerfBreakdownChart } from '@/api/performance.api';
 import {
@@ -1462,6 +1464,23 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
           plugins={[costRatePlugin, layerBoostPlugin, tightLabelsPlugin, tightTicksPlugin]}
         />
       );
+      // 덤벨 보기(2026-11-10) — 보이는 파트만, 막대와 같은 값(억). 직접원가 색은 막대와 같은 palette.cost, 공통원가 palette.costOverhead
+      const dumbbellEl = (
+        <CostDumbbell
+          rows={visibleLabels.map((part, k) => ({
+            part, revenue: pick(vm.profitRate.revenues)[k], direct: directs[k], overhead: overheads[k],
+          }))}
+          colors={{
+            revenue: palette.revenue, direct: palette.cost, overhead: palette.costOverhead,
+            overheadText: dark ? palette.costOverhead : 'rgb(78,99,122)',   // 글씨는 같은 회청색 계열의 진한 톤(라이트 배경에서 연해 안 보였음)
+            gain: palette.gain, gainText: dark ? palette.gain : 'rgb(28,122,78)', loss: palette.loss, rate: dark ? 'rgb(0,170,210)' : 'rgb(0,119,147)',
+            label: labelColor, tick: tickColor, grid: gridColor,
+            name: dark ? '#FFFFFF' : tickColor,   // 파트명 = 막대 차트 x축 파트명과 같은 색
+          }}
+          showLabels={vm.showLabels}
+          onSelect={handleAxisToggle}
+        />
+      );
       // 확대 모달 전용 — 목표선(매출/원가 계획)을 캔버스 플러그인으로 겹쳐 그려서 계획 대비
       // 실제를 바로 대조 + 표로 전체 파트 검증. line 데이터셋으로 넣으면 그룹 막대(매출/원가)
       // 사이 카테고리 중앙에 점이 찍히는 문제가 있어(planLinePlugin 주석 참고) 대신 실제 막대
@@ -1569,7 +1588,10 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
             </span>
             */}
           </ChartCard.Title>
-          <ChartCard.Body>{chartEl}</ChartCard.Body>
+          {/* 막대 ↔ 덤벨 — 관리자에게만 토글이 보임(CostChartSwitch). 덤벨은 같은 값·같은 색 역할(이익만 새 역할 gain, 초록) */}
+          <ChartCard.Body>
+            <CostChartSwitch bars={chartEl} dumbbell={dumbbellEl} />
+          </ChartCard.Body>
         </ChartCard>
       );
     },
