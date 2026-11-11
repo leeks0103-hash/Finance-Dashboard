@@ -1,5 +1,5 @@
-import { useQuery, keepPreviousData } from '@tanstack/react-query';
-import { getKpiSummary, getKpiData } from '@/api/kpi.api';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import { getKpiSummary, getKpiData, setKpiAnomalyException } from '@/api/kpi.api';
 import { useKpiExcludeStore } from '@/store/kpiExclude.store';
 import type { PageParams, Filters } from '@/types/finance.types';
 import { STALE_5MIN, GC_10MIN } from './queryClient';
@@ -23,7 +23,23 @@ export const useKpiSummary = (part = '') => {
   });
 };
 
-export const useKpiDataPaged = (page: PageParams, filters: Filters = EMPTY_FILTERS, anomalyOnly = false) => {
+/** 조기입력 의심 예외 처리/해제 — 끝나면 건수(요약)와 빨간 행(취합 표)을 다시 불러옴 */
+export const useKpiAnomalyException = () => {
+  const qc = useQueryClient();
+  const mutation = useMutation({
+    mutationFn: ({ ids, done }: { ids: string[]; done: boolean }) => setKpiAnomalyException(ids, done),
+    onSettled: () => Promise.all([
+      qc.invalidateQueries({ queryKey: ['kpi-summary'] }),
+      qc.invalidateQueries({ queryKey: ['kpi-data-paged'] }),
+    ]),
+  });
+  return {
+    pending: mutation.isPending,
+    set: (ids: string[], done: boolean) => mutation.mutateAsync({ ids, done }),
+  };
+};
+
+export const useKpiDataPaged =(page: PageParams, filters: Filters = EMPTY_FILTERS, anomalyOnly = false) => {
   return useQuery({
     queryKey:          ['kpi-data-paged', page, filters, anomalyOnly],
     queryFn:           () => getKpiData(filters, page, anomalyOnly),

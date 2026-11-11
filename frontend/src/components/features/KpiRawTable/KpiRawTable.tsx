@@ -268,7 +268,8 @@ const KpiRawTable = ({ data, isLoading, isFetching, title, toolbarExtra, searchE
                   <tr key={`${code}-${stage}-${mi}`}
                     className={[
                       mi % 2 === 0 ? styles.even : '',
-                      (isImplausibleScoreRow(row, m.key) || isPrematureActualRow(row, m.key)) ? styles.suspicious : '',
+                      // 관리자가 예외 처리한 조기입력 건(서버가 _anomaly_excepted로 표시)은 빨간 의심 행으로 안 칠함
+                      (isImplausibleScoreRow(row, m.key) || (!row['_anomaly_excepted'] && isPrematureActualRow(row, m.key))) ? styles.suspicious : '',
                     ].join(' ')}
                   >
                     {orderedCols.map(col => {

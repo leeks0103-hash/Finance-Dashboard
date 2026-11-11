@@ -10,6 +10,7 @@ import { useSwapView } from '@/components/ui/useAnimatedClose';
 import KpiRawTable from '@/components/features/KpiRawTable/KpiRawTable';
 import KpiBreakdownModal from '@/components/features/KpiBreakdownModal/KpiBreakdownModal';
 import KpiExcludeIndicator from '@/components/features/KpiExcludeIndicator/KpiExcludeIndicator';
+import KpiAnomalyAdmin from '@/components/features/KpiAnomalyAdmin/KpiAnomalyAdmin';
 import { cellVal, isKpiMetricCol, kpiCellTint, kpiColKind, kpiColLabel, kpiRawColSize } from '@/utils/kpiColumns';
 import type { KpiRawRow } from '@/types/kpi.types';
 import type { KpiSummaryRow } from '@/hooks/viewmodels/useKpiPageViewModel';
@@ -247,7 +248,7 @@ const KpiPage = () => {
             <div className={styles.anomalyBanner}>
               <span className={styles.anomalyIcon}>⚠</span>
               <span className={styles.anomalyText}>
-                보고단계가 <b>완료</b>가 아닌데 실적이 이미 입력된 항목이 <b>{vm.anomalyCount}건</b> 있습니다 —
+                보고단계가 <b>완료</b>가 아닌데 실적이 이미 입력된 프로젝트가 <b>{vm.anomalyCount}건</b> 있습니다 —
                 조기입력 오류일 수 있으니 확인해주세요.
               </span>
               {anomalyOnly ? (
@@ -268,6 +269,16 @@ const KpiPage = () => {
                 <ModalCloseButton className={styles.anomalyClose} onClick={() => { void vm.closeAnomalyNotice(); }} />
               )}
             </div>
+          )}
+          {/* 관리자 전용 — 의심 건마다 [예외 처리], 예외 처리한 건 [해제](2026-11-11). 한 건 = 프로젝트 하나 */}
+          {vm.canExceptAnomaly && (
+            <KpiAnomalyAdmin
+              items={vm.anomalies}
+              showItems={vm.showAnomalyNotice}
+              excepted={vm.exceptedAnomalies}
+              pending={vm.exceptPending}
+              onExcept={(a, done) => { void vm.exceptAnomaly(a, done); }}
+            />
           )}
           {(() => {
             const viewToggle = (

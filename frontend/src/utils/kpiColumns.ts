@@ -8,7 +8,7 @@ const METRICS = ['NPS', '전략기술과정_건수', '전략기술과정_적절�
 /** KPI 취합 원본 컬럼 정렬 — 식별자 앞으로, 비고 계열 제외, KPI 지표 순서 유지 */
 export const sortKpiRawCols = (rows: KpiRawRow[]): string[] => {
   if (!rows.length) return [];
-  const all   = Object.keys(rows[0]).filter(c => !/비고/.test(c) && c !== '_row_num');
+  const all   = Object.keys(rows[0]).filter(c => !/비고/.test(c) && c !== '_row_num' && c !== '_anomaly_excepted');
   const front = FRONT.filter(c => all.includes(c));
   const tail  = TAIL.filter(c => all.includes(c));
   const rest  = all.filter(c => !FRONT.includes(c) && !TAIL.includes(c));
