@@ -21,6 +21,9 @@
 .code { font-size: 0.82rem; font-weight: 700; color: var(--text-primary); }
 .stage { font-size: 0.74rem; color: var(--text-sub); flex: 1; min-width: 0; }
 .file { font-size: 0.74rem; color: var(--text-sub); word-break: break-all; }
+/* CopyText 기본 padding(1px 4px)·margin-block(-1px)을 이 목록에선 뺌 — 부모 .item 왼쪽 선에 글자를 맞춤.
+   `.item .file`로 CopyText.module.css의 .root보다 우선하게(번들 순서와 무관) */
+.item .file { padding: 0; margin-block: 0; }
 .metrics { font-size: 0.74rem; color: var(--text-sub); line-height: 1.5; }
 .note { font-size: 0.7rem; color: var(--text-muted); }
 
