@@ -28,7 +28,8 @@ export interface DumbbellColors {
   tick:     string;
   /** 파트명(축) 글자색 — 막대 차트 x축 파트명과 같게(다크는 흰색, 라이트는 tick). 없으면 label */
   name?:    string;
-  grid:     string;
+  /** 눈금선 색 — 막대 차트와 같은 공용 gridColor(없으면 라이트 gridColor 값). 축선은 막대 차트처럼 Chart.js 기본 테두리색 고정 */
+  grid?:    string;
 }
 
 interface Props {
@@ -53,6 +54,10 @@ const CAP_W = 58;      // 총원가 끝 캡슐 폭(고정 — 직접:공통 비�
 const OVH_MIN_W = 4;   // 공통원가 조각 최소 폭(px) — 비율대로면 1~2px 선이 되어 안 보임. 너무 크게 잡으면(10px) 모든 파트가 최소 폭에 걸려 비율이 다 같아 보였음 → 캡슐을 넓히고 최소 폭은 작게(2026-11-10)
 const CAP_H = 16;
 const DOT_R = 8;
+/** 막대 차트 축선(Chart.js 기본 테두리색) — 막대 차트는 눈금선만 gridColor로 바꾸고 축선은 이 기본값 그대로(주간·야간 모두) */
+const AXIS_STROKE = 'rgba(0,0,0,0.1)';
+/** colors.grid가 없을 때의 눈금선 — 막대 차트 라이트 gridColor와 같은 값 */
+const GRID_FALLBACK = 'rgba(0,44,95,0.08)';
 const STEPS = [5, 10, 20, 25, 50, 100, 200, 250, 500];
 
 const f1 = (v: number) => v.toFixed(1);   // 항상 소수 첫째 자리 — "29"·"6.1"처럼 들쭉날쭉하면 더하기 확인이 어려움
@@ -62,6 +67,12 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), M
 const q = Math.round;
 /** 짝수로 — 가운데 y를 정수에 두면 위아래가 정수 픽셀에 떨어져 가장자리가 또렷함 */
 const even = (v: number) => 2 * Math.round(v / 2);
+
+/** 축 글씨(파트명) 추정 폭 — 한글·CJK는 글자 크기 그대로, 영문 대문자·숫자는 약 0.68배, 나머지(소문자·기호)는 약 0.54배 */
+const textWidth = (s: string) => [...s].reduce((w, ch) => {
+  const c = ch.charCodeAt(0);
+  return w + (c >= 0x1100 ? AXIS_FONT_PX : /[A-Z0-9]/.test(ch) ? AXIS_FONT_PX * 0.68 : AXIS_FONT_PX * 0.54);
+}, 0);
 
 /** 눈금 간격 — 눈금이 5개 안팎이 되는 가장 작은 간격 */
 const niceTicks = (maxVal: number): number[] => {
@@ -108,7 +119,9 @@ const CostDumbbell = ({ rows, colors, showLabels = true, onSelect }: Props) => {
   const maxVal = Math.max(1, ...rows.flatMap(r => [r.revenue, r.direct + r.overhead]));
   const ticks = niceTicks(maxVal);
   const axisMax = ticks[ticks.length - 1];
-  const L = clamp(Math.max(0, ...rows.map(r => r.part.length)) * AXIS_FONT_PX + 24, 64, 200);
+  // 왼쪽 여백 = 가장 긴 파트명의 추정 폭 + 여유 — 글자 수 × 14px + 24는 영문·가운뎃점까지 한글 폭으로 쳐서 "K뉴딜TF"가 108px(실제 약 57px)을 잡아 왼쪽이 휑했음(2026-11-11)
+  const gridStroke = colors.grid ?? GRID_FALLBACK;
+  const L = clamp(Math.ceil(Math.max(0, ...rows.map(r => textWidth(r.part)))) + 16, 48, 200);
   const R = showLabels ? 62 * k : 16;
   const plotW = Math.max(size.w - L - R, 80);
   const x = (v: number) => q(L + (plotW * v) / axisMax);
@@ -118,12 +131,20 @@ const CostDumbbell = ({ rows, colors, showLabels = true, onSelect }: Props) => {
       <div ref={ref} className={styles.plot} style={{ paddingTop: padTop }}>
       <svg className={styles.svg} width={size.w} height={svgH} style={{ fontFamily: FONT_FAMILY }} role="img"
         aria-label="파트별 추정 매출과 원가(직접원가·공통원가)의 차이를 보여 주는 덤벨 차트">
+        {/* 선 색은 막대 차트와 같게(2026-11-11 "막대처럼 잘 안 보였으면") — 눈금선은 공용 gridColor, 축선은 Chart.js 기본 테두리색(rgba(0,0,0,0.1)).
+            1px 선이 흐려지지 않게 +0.5(정수 좌표에 걸치면 반 픽셀씩 두 줄로 번져 색이 반으로 옅어 보임) */}
         {ticks.map(t => (
           <g key={t}>
-            <line x1={x(t)} x2={x(t)} y1={TOP} y2={TOP + plotH} stroke={colors.grid} />
+            <line x1={x(t) + 0.5} x2={x(t) + 0.5} y1={TOP} y2={TOP + plotH} stroke={gridStroke} data-testid="dumbbell-grid" />
             <text x={x(t)} y={TOP + plotH + 20} textAnchor="middle" style={{ fontSize: AXIS_FONT_PX }} fill={colors.tick}>{t}억</text>
           </g>
         ))}
+        {/* 축선은 그래프 영역 안에서 끝남 — 눈금 표시를 밖으로 빼거나 선을 더 길게 그으면 "선이 튀어나온다"는 지적(2026-11-11) */}
+        <line x1={L + 0.5} x2={L + 0.5} y1={TOP} y2={TOP + plotH + 1} stroke={AXIS_STROKE} data-testid="dumbbell-axis-y" />
+        <line x1={L} x2={x(axisMax) + 1} y1={TOP + plotH + 0.5} y2={TOP + plotH + 0.5} stroke={AXIS_STROKE} data-testid="dumbbell-axis-x" />
+        {/* 위쪽 가로선 — 막대 차트의 맨 위 눈금선처럼 눈금선 색. 세로 눈금선만 있어 위가 뚫려 보였음. 오른쪽은 마지막 눈금선이 테두리 */}
+        <line x1={L} x2={x(axisMax) + 1} y1={TOP + 0.5} y2={TOP + 0.5} stroke={gridStroke} data-testid="dumbbell-axis-top" />
+
 
         {rows.map((r, i) => {
           const cost = r.direct + r.overhead;
