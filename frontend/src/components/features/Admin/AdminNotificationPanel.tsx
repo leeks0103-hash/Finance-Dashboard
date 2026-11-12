@@ -42,7 +42,7 @@ const AdminNotificationPanel = () => {
   useEffect(() => { if (s) setEndDraft(s.window_end); }, [s?.window_end]);              // eslint-disable-line react-hooks/exhaustive-deps
 
   if (vm.loadFailed) {
-    return <span className={sections.error}>알림 설정을 불러오지 못했습니다 — 서버가 켜져 있는지, 알림 기능이 들어간 최신 코드로 재시작했는지(python dashboard_manager.py --start) 확인한 뒤 다시 열어 주세요</span>;
+    return <span className={sections.error}>알림 설정을 불러오지 못했습니다. 서버가 켜져 있는지, 알림 기능이 들어간 최신 코드로 재시작했는지(python dashboard_manager.py --start) 확인한 뒤 다시 열어 주세요</span>;
   }
   if (!s) return <span className={sections.hint}>불러오는 중…</span>;
 
@@ -183,7 +183,7 @@ const AdminNotificationPanel = () => {
                         onKeyDown={e => { if (e.key === 'Enter') commitWindow(); }} />
                     </div>
                     <span className={sections.hint}>
-                      하루 {vm.slots.length}회 — {vm.slots.join(' · ')}
+                      하루 {vm.slots.length}회: {vm.slots.join(' · ')}
                     </span>
                   </div>
                 </div>

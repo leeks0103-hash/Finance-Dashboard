@@ -33,7 +33,7 @@ const alertFailure = (r: OpenResult) => {
   if (r.blocked) {
     alertDialog(r.message ?? '문서보안(DRM) 암호화 파일이라 대시보드에서 열 수 없습니다.', { title: '열 수 없는 파일', error: true });
   } else if (r.locked) {
-    alertDialog(r.message ?? '다른 사람이 열람 중인 파일입니다 — 닫힌 뒤 다시 시도해주세요.', { title: '열람 중' });
+    alertDialog(r.message ?? '다른 사람이 열람 중인 파일입니다. 닫힌 뒤 다시 시도해주세요.', { title: '열람 중' });
   } else {
     alertDialog(r.message ?? '파일을 열 수 없습니다.', { error: true });
   }
@@ -105,7 +105,7 @@ const requestUpdate = async (filename: string): Promise<{ ok: boolean }> => {
       // 앞의 "⚠ 마지막 추출 뒤로 원본이 바뀌지 않았습니다 —"는 뺌, 이 한 줄만 굵게(2026-10-22 요청). 저장만 하고 열어 둔 채면 안 바뀐 걸로 보일 수 있어 '닫기'까지 묻는 문구
       ? `**PPT 파일을 저장 후 닫으셨나요?**\n(${last} · 원본 수정 ${s.modified})`
       : `원본 수정 시각을 확인하지 못했습니다. (${last})`;
-  const already = s.requested ? `\n\n이미 요청돼 있습니다 — ${s.requested.at}${s.requested.by ? ` · ${s.requested.by}` : ''}` : '';
+  const already = s.requested ? `\n\n이미 요청돼 있습니다. ${s.requested.at}${s.requested.by ? ` · ${s.requested.by}` : ''}` : '';
   const ok = await confirmDialog(`${filename}\n\n${state}${already}\n\n관리자에게 다시 추출을 요청할까요?`, {
     title: '업데이트 요청', confirmText: '요청', cancelText: '취소',
   });
@@ -113,7 +113,7 @@ const requestUpdate = async (filename: string): Promise<{ ok: boolean }> => {
   try { await sendExtractRequest(filename); }
   catch { alertDialog('요청을 남기지 못했습니다.', { error: true }); return { ok: false }; }
   queryClient.invalidateQueries({ queryKey: ['extract-requests'] });
-  toast('업데이트 요청을 남겼습니다 — 관리자가 확인 후 다시 추출합니다');
+  toast('업데이트 요청을 남겼습니다. 관리자가 확인 후 다시 추출합니다');
   return { ok: true };
 };
 

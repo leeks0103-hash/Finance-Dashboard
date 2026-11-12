@@ -98,7 +98,7 @@ const AdminModal = ({ onClose, initialTab = 'data' }: { onClose: () => void; ini
             <div className={styles.pane} key={tab}>
               {tab === 'data' && (
                 <>
-                  <Step no={1} title="실적현황 파일" desc="새 실적 엑셀을 넣으면 열 맞추기·계산식 검증 후 자동 반영 — 반영 상태·실패 이유 확인">
+                  <Step no={1} title="실적현황 파일" desc="새 실적 엑셀을 넣으면 열 맞추기·계산식 검증 후 자동 반영, 반영 상태·실패 이유 확인">
                     <div className={styles.card}><PerfUpdatePanel /></div>
                   </Step>
                   <Step no={2} title="PPT 추출" desc="재무·KPI PPT를 다시 읽어 데이터에 반영 · 추출 현황과 안 된 파일 이유">
@@ -112,10 +112,10 @@ const AdminModal = ({ onClose, initialTab = 'data' }: { onClose: () => void; ini
 
               {tab === 'view' && (
                 <>
-                  <Step title="화면 설정" desc="공개 범위 · 로그인 요구 · AI 인사이트 — 바꾸면 접속한 모든 사람에게 적용">
+                  <Step title="화면 설정" desc="공개 범위 · 로그인 요구 · AI 인사이트, 바꾸면 접속한 모든 사람에게 적용">
                     <AdminSettingsSection />
                   </Step>
-                  <Step title="차트 색상" desc="역할별 색 선택 — 이 브라우저에만 저장">
+                  <Step title="차트 색상" desc="역할별 색 선택: 이 브라우저에만 저장">
                     <AdminChartColorSection />
                   </Step>
                 </>

@@ -12,7 +12,7 @@ import { useNewAlertPopup } from './useNewAlertPopup';
 const markSeen = vi.fn();
 const onOpen = vi.fn();
 const src = (over: Partial<Parameters<typeof useNewAlertPopup>[0]> = {}) => ({
-  unread: true, total: 7, summaryLines: ['재무 — 열기 실패 7'], markSeen, ...over,
+  unread: true, total: 7, summaryLines: ['재무: 열기 실패 7'], markSeen, ...over,
 });
 /** 비동기 확인창 결과까지 흘려보냄 */
 const flush = () => act(async () => { await Promise.resolve(); await Promise.resolve(); });
@@ -33,7 +33,7 @@ describe('useNewAlertPopup — 새 알림이 있으면 봉투 아이콘 팝업, 
     expect(confirmDialog).toHaveBeenCalledTimes(1);
     const [text, opts] = confirmDialog.mock.calls[0] as [string, { icon: string; title: string; confirmText: string; cancelText: string }];
     expect(text).toContain('확인이 필요한 파일 7건');
-    expect(text).toContain('재무 — 열기 실패 7');
+    expect(text).toContain('재무: 열기 실패 7');
     expect(opts).toMatchObject({ icon: 'mail', title: '새 알림이 도착했습니다', confirmText: '추출 현황 열기', cancelText: '나중에' });
   });
 
@@ -65,7 +65,7 @@ describe('useNewAlertPopup — 새 알림이 있으면 봉투 아이콘 팝업, 
     await flush();
     expect(confirmDialog).toHaveBeenCalledTimes(1);
 
-    rerender({ s: src({ total: 9, summaryLines: ['재무 — 열기 실패 7', 'KPI — 열기 실패 2'] }) });
+    rerender({ s: src({ total: 9, summaryLines: ['재무: 열기 실패 7', 'KPI: 열기 실패 2'] }) });
     await flush();
     expect(confirmDialog).toHaveBeenCalledTimes(2);
   });

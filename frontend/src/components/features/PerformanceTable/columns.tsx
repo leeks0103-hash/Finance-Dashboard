@@ -101,7 +101,7 @@ const buildColumns = (_PERF_MONTH: string, finCompare: boolean) => [
         <span className={styles.codeCell}>
           <HighlightText text={code} query={i.table.options.meta?.searchQuery} />
           {n > 0 && (
-            <span className={styles.histBadge} title={`재무 이력 ${n}건 — 더블클릭하면 펼쳐집니다`}>
+            <span className={styles.histBadge} title={`재무 이력 ${n}건: 더블클릭하면 펼쳐집니다`}>
               {n}
             </span>
           )}

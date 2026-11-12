@@ -104,7 +104,7 @@ const SecretMailPanel = ({ inline = false }: { inline?: boolean }) => {
               <dd>{mail.data.sender
                 ? <b>{mail.data.sender}</b>
                 : <span className={styles.error}>{mail.data.sender_error ?? 'Outlook 계정을 찾지 못함'}</span>}
-                <span className={styles.muted}> — 이 서버 PC Outlook 기본 계정</span></dd>
+                <span className={styles.muted}> (이 서버 PC Outlook 기본 계정)</span></dd>
               <dt>제목</dt><dd>{mail.data.subject}</dd>
               <dt>명단</dt>
               <dd>{mail.data.file ?? '-'} <span className={styles.muted}>· {rows.length}명 · 보냄 {sentCount}명</span></dd>
@@ -113,7 +113,7 @@ const SecretMailPanel = ({ inline = false }: { inline?: boolean }) => {
 
           {/* 명단 엑셀 vs .env 일반 회원 — 보여 주기만, 반영은 터미널에서 직접(계정 정보는 화면 버튼으로 안 바꿈) */}
           {diff.isLoading && <span className={styles.muted}>명단 엑셀과 로그인 계정(.env) 대조 중…</span>}
-          {diff.error && <span className={styles.error}>계정 대조 실패 — {diff.error}</span>}
+          {diff.error && <span className={styles.error}>계정 대조 실패: {diff.error}</span>}
           {diff.data?.ok && (() => {
             const d = diff.data;
             const groups = [
@@ -122,12 +122,12 @@ const SecretMailPanel = ({ inline = false }: { inline?: boolean }) => {
               { label: '삭제(명단에서 빠짐)', items: d.removed },
             ].filter(g => g.items.length);
             if (!groups.length) {
-              return <span className={styles.muted}>로그인 계정(.env) {d.users}명 — 명단 엑셀과 같음 ({shortTime(d.checked_at)} 확인)</span>;
+              return <span className={styles.muted}>로그인 계정(.env) {d.users}명: 명단 엑셀과 같음 ({shortTime(d.checked_at)} 확인)</span>;
             }
             return (
               <div className={styles.diffBox}>
                 <div className={styles.diffHead}>
-                  <span>명단 엑셀이 로그인 계정(.env)과 다릅니다 — {groups.map(g => `${g.label.split('(')[0]} ${g.items.length}명`).join(' · ')}</span>
+                  <span>명단 엑셀이 로그인 계정(.env)과 다릅니다. {groups.map(g => `${g.label.split('(')[0]} ${g.items.length}명`).join(' · ')}</span>
                   <Button variant="ghost" size="sm" loading={diff.isFetching} onClick={diff.refetch}>다시 확인</Button>
                 </div>
                 {groups.map(g => (
@@ -151,7 +151,7 @@ const SecretMailPanel = ({ inline = false }: { inline?: boolean }) => {
             <div className={styles.progress}>
               <div className={styles.progressHead}>
                 <span>보내는 중 {(job.done ?? 0) + (job.failed?.length ?? 0)}/{job.total}
-                  {job.current && <span className={styles.muted}> — {job.current}</span>}</span>
+                  {job.current && <span className={styles.muted}>: {job.current}</span>}</span>
                 <Button variant="danger" size="sm" loading={mail.isCancelling} onClick={handleCancel}>중지</Button>
               </div>
               <div className={styles.bar}><div className={styles.barFill} style={{ width: `${pct}%` }} /></div>
@@ -162,11 +162,11 @@ const SecretMailPanel = ({ inline = false }: { inline?: boolean }) => {
             <div className={job.error || job.failed?.length ? styles.resultBad : styles.result}>
               {job.error
                 ? job.error
-                : `${job.cancelled ? '중지됨' : '완료'} (${shortTime(job.finished_at)}) — 보냄 ${job.done ?? 0}명`
+                : `${job.cancelled ? '중지됨' : '완료'} (${shortTime(job.finished_at)}): 보냄 ${job.done ?? 0}명`
                   + (job.failed?.length ? ` / 실패 ${job.failed.length}명` : '')}
               {!!job.failed?.length && (
                 <ul className={styles.failList}>
-                  {job.failed.map(f => <li key={f.emp}>{f.name || f.emp} ({f.mail}) — {f.error}</li>)}
+                  {job.failed.map(f => <li key={f.emp}>{f.name || f.emp} ({f.mail}): {f.error}</li>)}
                 </ul>
               )}
             </div>
@@ -192,7 +192,7 @@ const SecretMailPanel = ({ inline = false }: { inline?: boolean }) => {
                 {visible.map(r => (
                   <li key={r.emp}>
                     <label className={`${styles.item} ${r.key_ok ? '' : styles.itemOff}`}
-                      title={r.key_ok ? undefined : '로그인 비밀번호(.env)와 엑셀 시크릿키가 다르거나 계정이 없음 — 보낼 수 없음'}>
+                      title={r.key_ok ? undefined : '로그인 비밀번호(.env)와 엑셀 시크릿키가 다르거나 계정이 없음. 보낼 수 없음'}>
                       <input type="checkbox" checked={selectedSet.has(r.emp)} onChange={() => toggle(r.emp)}
                         disabled={locked || !r.key_ok} />
                       <span className={styles.name}>{r.name || '-'}</span>
@@ -221,7 +221,7 @@ const SecretMailPanel = ({ inline = false }: { inline?: boolean }) => {
                 <Button variant="danger" size="sm" disabled={locked || !allTargets.length || !!allBlocked.length || !mail.data?.sender}
                   onClick={handleSendAll}
                   title={allBlocked.length ? `키 불일치 ${allBlocked.length}명이 있어 전체 보내기를 할 수 없음` : undefined}>
-                  {allTargets.length ? `전체 보내기 (안 보낸 ${allTargets.length}명)` : '전체 보내기 — 모두 보냄'}
+                  {allTargets.length ? `전체 보내기 (안 보낸 ${allTargets.length}명)` : '전체 보내기: 모두 보냄'}
                 </Button>
               </div>
               <span className={styles.muted}>

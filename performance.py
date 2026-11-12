@@ -699,7 +699,7 @@ def load_perf_excel():
                     int((df["category"] == "매출").sum()),
                     int((df["category"] == "원가").sum()))
         return df
-    raise ValueError("읽을 수 있는 실적 파일이 없습니다 — " + " | ".join(errors))
+    raise ValueError("읽을 수 있는 실적 파일이 없습니다. " + " | ".join(errors))
 
 
 def _load_perf_simple():
@@ -783,7 +783,7 @@ def load_plan_excel() -> pd.DataFrame:
         return df
     _plan_cache.update(df=pd.DataFrame(), path=None, mtime=None, year=0, sheet=None, loaded=None)
     if errors:
-        raise ValueError("읽을 수 있는 사업계획 시트가 없습니다 — " + " | ".join(errors))
+        raise ValueError("읽을 수 있는 사업계획 시트가 없습니다. " + " | ".join(errors))
     return _plan_cache["df"]
 
 
@@ -1319,7 +1319,7 @@ def api_perf_upload():
             same = cur.read() == data
         if same:
             st = _update_status_payload()
-            st["notice"] = "이미 data 폴더에 있는 같은 파일입니다 — 지금 반영된 상태 그대로"
+            st["notice"] = "이미 data 폴더에 있는 같은 파일입니다. 지금 반영된 상태 그대로"
             return jsonify(st)
         hist = os.path.join(DATA_DIR, "경영실적 히스토리")
         os.makedirs(hist, exist_ok=True)
@@ -1328,7 +1328,7 @@ def api_perf_upload():
         try:
             os.replace(dest, moved)
         except OSError:
-            return jsonify({"ok": False, "error": "기존 같은 이름 파일이 열려 있어 바꿀 수 없습니다 — Excel에서 닫고 다시 올려 주세요"}), 409
+            return jsonify({"ok": False, "error": "기존 같은 이름 파일이 열려 있어 바꿀 수 없습니다. Excel에서 닫고 다시 올려 주세요"}), 409
         notice = f"같은 이름의 이전 파일은 '경영실적 히스토리/{os.path.basename(moved)}'로 옮기고 새 파일로 바꿨습니다"
         logger.info("실적 파일 같은 이름 교체 — 이전 파일 보관: %s", moved)
     tmp = dest + ".uploading"
@@ -1795,7 +1795,7 @@ def api_perf_insights():
             "type": "warning", "icon": "",
             "project_code": str(lrow["project_code"]),
             "project_name": str(lrow["project_name"]),
-            "text": f"손실 {_bil_perf(lrow['operating_profit'])} — 확인 필요",
+            "text": f"손실 {_bil_perf(lrow['operating_profit'])}: 확인 필요",
         })
 
     worst_rows = valid_achieve[valid_achieve["achieve_rate"] < 70].nsmallest(2, "achieve_rate")
@@ -1804,7 +1804,7 @@ def api_perf_insights():
             "type": "warning", "icon": "",
             "project_code": str(wrow["project_code"]),
             "project_name": str(wrow["project_name"]),
-            "text": f"({html_escape(str(wrow['part']))}) 달성률 {wrow['achieve_rate']}% — 목표 대비 부진",
+            "text": f"({html_escape(str(wrow['part']))}) 달성률 {wrow['achieve_rate']}%: 목표 대비 부진",
         })
 
     part_stats = (
@@ -1819,7 +1819,7 @@ def api_perf_insights():
             gap = round(best_row["avg_achieve"] - worst_row["avg_achieve"], 1)
             comments.append({
                 "type": "warning", "icon": "",
-                "text": f"<b>{html_escape(str(worst_row['part']))}</b> 평균 달성률 {round(worst_row['avg_achieve'], 1)}% — "
+                "text": f"<b>{html_escape(str(worst_row['part']))}</b> 평균 달성률 {round(worst_row['avg_achieve'], 1)}%: "
                         f"{html_escape(str(best_row['part']))} 대비 -{gap}%p",
             })
 
@@ -1877,7 +1877,7 @@ _PERF_BREAKDOWN = {
             {"label": "매출", "category": "매출", "field": "jun_check_total",
              "field_desc": "매출행의 연간 점검 합계 (엑셀 BH열)"},
             {"label": "직접원가", "category": "원가", "field": "jun_check_total",
-             "field_desc": "원가행의 연간 점검 합계 (엑셀 BH열) — 매출행 '직접원가(BB열)'와 1:1로 대응"},
+             "field_desc": "원가행의 연간 점검 합계 (엑셀 BH열), 매출행 '직접원가(BB열)'와 1:1로 대응"},
             # 원가 막대 위층(2026-10-20) — 손익의 공통원가(매출행 BD열, 연간 기준)
             {"label": "공통원가", "category": "매출", "field": "cost_overhead",
              "field_desc": "매출행의 공통원가 (엑셀 BD열, 연간 기준)"},
@@ -1908,7 +1908,7 @@ _PERF_BREAKDOWN = {
             {"label": "관리비", "category": "매출", "field": "cost_mgmt",
              "field_desc": "매출행의 관리비 (엑셀 BE열)"},
             {"label": "경상손익", "category": "매출", "field": "operating_profit",
-             "field_desc": "매출행의 경상손익 (엑셀 BF열) — 매출 − 모든 원가"},
+             "field_desc": "매출행의 경상손익 (엑셀 BF열), 매출 − 모든 원가"},
         ],
     },
 }

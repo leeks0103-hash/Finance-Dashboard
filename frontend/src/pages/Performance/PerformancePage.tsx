@@ -97,8 +97,8 @@ const PerformanceActualPage = () => {
       {vm.summaryIssue && vm.kpiCards.length > 0 && (
         <ErrorFallback compact onRetry={vm.refetchSummary}
           message={vm.summaryIssue === 'offline'
-            ? '네트워크 연결이 끊겨 새 조건의 데이터를 불러오지 못했습니다 — 아래 숫자는 이전 조건 기준입니다'
-            : '선택한 조건의 데이터를 불러오지 못했습니다 — 아래 숫자는 이전 조건 기준일 수 있습니다'} />
+            ? '네트워크 연결이 끊겨 새 조건의 데이터를 불러오지 못했습니다. 아래 숫자는 이전 조건 기준입니다'
+            : '선택한 조건의 데이터를 불러오지 못했습니다. 아래 숫자는 이전 조건 기준일 수 있습니다'} />
       )}
 
       {/* KPI 카드 */}
@@ -184,7 +184,7 @@ const PerformanceActualPage = () => {
                 <HrefDownloadButton
                   href={vm.exportHref}
                   confirmText="지금 표의 필터·검색·정렬 그대로 전체 프로젝트를 받습니다."
-                  title="프로젝트 상세 엑셀 — 상이·착수↑ 배지 포함"
+                  title="프로젝트 상세 엑셀: 상이·착수↑ 배지 포함"
                 />
               </>
             }

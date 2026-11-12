@@ -29,15 +29,15 @@ interface Props {
 
 const INFO_MONTHLY = '1~12월 값은 실적이 아니라 시트에 입력된 27 사업계획의 월별 분배입니다(기준월·실적 누계 없음). 팀·파트 필터 적용. ' +
   '원가 막대 위 % = 원가율 = 원가 ÷ 매출(원가는 직접원가), 제목 옆 숫자는 27 계획 연간 합계.';
-const INFO_COMPOSITION = '27 계획 매출의 구성 — 직접원가 + 인건비 + 공통원가 + 관리비 + 경상손익 = 매출(경상손익이 마이너스면 왼쪽으로). ' +
+const INFO_COMPOSITION = '27 계획 매출의 구성: 직접원가 + 인건비 + 공통원가 + 관리비 + 경상손익 = 매출(경상손익이 마이너스면 왼쪽으로). ' +
   '막대 안 % = 그 항목 ÷ 매출, 막대 끝 (%) = 원가율 = 원가(직접+공통) ÷ 매출. ' +
   '파이는 하나씩 보는 용도(전체·팀·파트를 이 카드에서 따로 선택), 막대는 파트 전체를 나란히 비교하는 용도. 막대는 상단 팀·파트 필터를 따름.';
-const INFO_PVP = '파트별 매출 합계 — 26 연간 추정(시트의 "2026년 연간 추정" 열)과 27 사업계획을 나란히. 막대 끝 % = 27 계획 ÷ 26 추정(백엔드 계산). 팀·파트 필터 적용.';
-const INFO_REVCOST = '파트별 27 계획 매출(시트 "2027년 사업계획 합계" 열, 구분=매출)과 원가를 나란히 — 원가 막대는 아래 직접원가(구분=원가) + 위 공통원가(매출행 공통원가) 2층, ' +
+const INFO_PVP = '파트별 매출 합계: 26 연간 추정(시트의 "2026년 연간 추정" 열)과 27 사업계획을 나란히. 막대 끝 % = 27 계획 ÷ 26 추정(백엔드 계산). 팀·파트 필터 적용.';
+const INFO_REVCOST = '파트별 27 계획 매출(시트 "2027년 사업계획 합계" 열, 구분=매출)과 원가를 나란히, 원가 막대는 아래 직접원가(구분=원가) + 위 공통원가(매출행 공통원가) 2층, ' +
   '막대 위 숫자는 두 층의 합입니다. 막대 위 % = 원가율 = 원가(직접+공통) ÷ 매출. 직접원가가 매출보다 큰 파트(매출이익 마이너스)는 원가 막대가 손실색. ' +
   '공통원가 층은 얇아서 층 높이만 보기 좋게 키웠고(전체 높이·숫자·툴팁은 실제값) 팀·파트 필터를 따릅니다.';
 const infoPerHead = (what: string) =>
-  `파트별 27 계획 ${what} ÷ 파트 인원 — 인원은 관리자가 수기 입력한 **2027 인원**(관리자 페이지 > 파트별 인원 > 2027년 인원, 2026 인원과 따로)입니다. ` +
+  `파트별 27 계획 ${what} ÷ 파트 인원: 인원은 관리자가 수기 입력한 **2027 인원**(관리자 페이지 > 파트별 인원 > 2027년 인원, 2026 인원과 따로)입니다. ` +
   '인원이 입력되지 않은 파트, 팀 필터를 걸었을 때 여러 팀에 걸친 파트(K뉴딜TF)는 제외합니다. 억 단위 소수 둘째 자리(버림).';
 
 const COMP_KEYS = ['direct', 'labor', 'overhead', 'mgmt', 'profit'] as const;
@@ -358,7 +358,7 @@ const PerformancePlanChartSection = ({ chart, composition }: Props) => {
                   {partialParts.length > 0 && missingParts.length === 0
                     ? '팀 필터 중에는 여러 팀에 걸친 파트의 인당 값을 구할 수 없습니다'
                     : isAdmin
-                      ? '2027 파트 인원이 아직 입력되지 않았습니다 — 위 "파트별 인원 (2027)" 카드 오른쪽 [인원 입력]에서 입력하세요'
+                      ? '2027 파트 인원이 아직 입력되지 않았습니다. 위 "파트별 인원 (2027)" 카드 오른쪽 [인원 입력]에서 입력하세요'
                       : '2027 파트 인원이 아직 입력되지 않았습니다'}
                 </div>
               : <BarChart horizontal labels={labels} datasets={[{ label: `${title}(억)`, data: values, backgroundColor: color }]}
@@ -441,7 +441,7 @@ const PerformancePlanChartSection = ({ chart, composition }: Props) => {
         >
           <ChartCard.Title>
             <span className={styles.chartTitle}>
-              {isPie ? `파트별 27 계획 매출 구성 — ${pieScope}` : '파트별 27 계획 매출 구성'}
+              {isPie ? `파트별 27 계획 매출 구성, ${pieScope}` : '파트별 27 계획 매출 구성'}
               <InfoButton>{INFO_COMPOSITION}</InfoButton>
             </span>
           </ChartCard.Title>
@@ -485,7 +485,7 @@ const PerformancePlanChartSection = ({ chart, composition }: Props) => {
               {chart.headcount.labels.length === 0
                 ? <span className={actualStyles.headcountEmpty}>
                     {isAdmin
-                      ? '2027 파트 인원이 아직 입력되지 않았습니다 — 오른쪽 [인원 입력]에서 입력하세요'
+                      ? '2027 파트 인원이 아직 입력되지 않았습니다. 오른쪽 [인원 입력]에서 입력하세요'
                       : '2027 파트 인원이 아직 입력되지 않았습니다'}
                   </span>
                 : <>

@@ -108,7 +108,7 @@ const ExtractFilePicker = ({ selected, onChange, targets, disabled }: Props) => 
         {visible.map(r => {
           const usable = inTargets(r);
           const tip = [r.file, ...(r.issues ?? []).map(w => `! ${w}`),
-            ...(r.ack ? [`✓ 수정 완료${r.ack.by ? ` · ${r.ack.by}` : ''} · ${r.ack.at} — 다시 추출하세요`] : []),
+            ...(r.ack ? [`✓ 수정 완료${r.ack.by ? ` · ${r.ack.by}` : ''} · ${r.ack.at}: 다시 추출하세요`] : []),
             ...(usable ? [] : ['지금 고른 대상(재무/KPI)의 추출 범위가 아닌 파일'])].join('\n');
           return (
             <li key={r.file}>

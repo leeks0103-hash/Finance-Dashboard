@@ -138,7 +138,7 @@ def _merge_rise_mega_rows(df: pd.DataFrame, code_col: str) -> pd.DataFrame:
     if len(group) != len(_RISE_MEGA_CODES):
         if len(group) > 0:
             logger.warning(
-                "RISE-MEGA 병합 스킵 — 기대한 %d행이 아니라 %d행 발견(재추출로 데이터가 바뀌었을 수 있음)",
+                "RISE-MEGA 병합 스킵, 기대한 %d행이 아니라 %d행 발견(재추출로 데이터가 바뀌었을 수 있음)",
                 len(_RISE_MEGA_CODES), len(group),
             )
         return df

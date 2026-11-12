@@ -16,6 +16,6 @@ export const useOpenToolMarker = (): void => {
     params.delete('opentool');
     const rest = params.toString();
     window.history.replaceState(null, '', window.location.pathname + (rest ? `?${rest}` : '') + window.location.hash);
-    toast('파일 열기 도구 설치를 확인했어요 — 이제 파일·폴더 바로가기를 쓸 수 있습니다');
+    toast('파일 열기 도구 설치를 확인했어요. 이제 파일·폴더 바로가기를 쓸 수 있습니다');
   }, []);
 };

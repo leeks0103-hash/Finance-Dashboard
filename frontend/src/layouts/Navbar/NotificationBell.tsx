@@ -66,7 +66,7 @@ const NotificationBell = ({ onOpenData, onOpenSettings }: Props) => {
         onClick={toggle}
         aria-label={vm.unread ? '새 알림이 있습니다' : '알림'}
         aria-expanded={open}
-        title={vm.unread ? `확인이 필요한 파일 ${vm.total}건 — 눌러서 확인` : hasAlert ? '알림 (확인함)' : '알림 없음'}
+        title={vm.unread ? `확인이 필요한 파일 ${vm.total}건: 눌러서 확인` : hasAlert ? '알림 (확인함)' : '알림 없음'}
       >
         <BellIcon />
         {vm.unread && <span className={styles.bellDot} aria-hidden />}

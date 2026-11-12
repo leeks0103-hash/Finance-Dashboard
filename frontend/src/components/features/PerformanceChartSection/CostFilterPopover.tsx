@@ -39,7 +39,7 @@ const CostFilterPopover = ({ teams, selectedTeam, onTeamChange, parts, selectedP
   return (
     <span
       className={styles.wrap}
-      title={differs ? '상단 필터와 다른 범위를 보고 있습니다 — 이 카드는 상단 필터와 따로 고릅니다' : '이 카드만의 팀/파트 선택(상단 필터와 같은 범위)'}
+      title={differs ? '상단 필터와 다른 범위를 보고 있습니다. 이 카드는 상단 필터와 따로 고릅니다' : '이 카드만의 팀/파트 선택(상단 필터와 같은 범위)'}
     >
     {/* 상단 필터바와 같은 깔때기 — 상단 필터와 범위가 다르면 빨간색(2026-10-21) */}
     <FilterIcon className={`${styles.icon} ${differs ? styles.iconDiff : ''}`} />

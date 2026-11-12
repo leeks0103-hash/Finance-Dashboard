@@ -102,7 +102,7 @@ export const UpdateDateField = ({
             size={Math.max(labelDraft.value.length, 4) + 2}
             placeholder={LABEL_PLACEHOLDER}
             aria-label={LABEL_PLACEHOLDER}
-            title="항목 이름 고치기 — Enter로 저장"
+            title="항목 이름 고치기: Enter로 저장"
             {...labelDraft}
           />
           <span className={styles.label}>:</span>
@@ -114,7 +114,7 @@ export const UpdateDateField = ({
         className={styles.input}
         placeholder={placeholder}
         aria-label={label || LABEL_PLACEHOLDER}
-        title="직접 입력 — Enter로 저장"
+        title="직접 입력: Enter로 저장"
         {...noteDraft}
       />
       <Button unstyled className={styles.calBtn} onClick={() => setOpen(o => !o)}

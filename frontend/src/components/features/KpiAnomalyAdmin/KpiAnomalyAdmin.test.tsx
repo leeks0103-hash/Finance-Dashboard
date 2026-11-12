@@ -14,7 +14,7 @@ describe('KpiAnomalyAdmin', () => {
     render(<KpiAnomalyAdmin items={[item]} showItems excepted={[]} pending={false} onExcept={() => {}} />);
     expect(screen.getByText(/의심 항목 · 1건/)).toBeInTheDocument();
     expect(screen.getAllByRole('listitem')).toHaveLength(1);
-    expect(screen.getByText(/지표 3개 — NPS 4.5 · AI활용 10 · AI적용 3/)).toBeInTheDocument();
+    expect(screen.getByText(/지표 3개: NPS 4.5 · AI활용 10 · AI적용 3/)).toBeInTheDocument();
   });
 
   it('[예외 처리]·[해제]는 그 건을 넘겨 호출', () => {

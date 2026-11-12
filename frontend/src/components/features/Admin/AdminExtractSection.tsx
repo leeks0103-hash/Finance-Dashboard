@@ -57,7 +57,7 @@ const AdminExtractSection = ({ extractJob, initialSelected }: Props) => {
                 className={`${styles.segBtn} ${mode === m ? styles.segActive : ''}`}
                 onClick={() => vm.setMode(m)}
                 disabled={locked || DISABLED_MODES.has(m)}
-                title={DISABLED_MODES.has(m) ? '지금은 쓰지 않는 방식 — 증분·초기화를 쓰세요' : undefined}
+                title={DISABLED_MODES.has(m) ? '지금은 쓰지 않는 방식: 증분·초기화를 쓰세요' : undefined}
               >{EXTRACT_MODE_INFO[m].label}</Button>
             ))}
           </div>
@@ -108,7 +108,7 @@ const AdminExtractSection = ({ extractJob, initialSelected }: Props) => {
         {extractJob.isRunning && extractJob.status?.started_at && (
           <span className={styles.result}>
             {extractJob.status.started_by ? `${extractJob.status.started_by} · ` : ''}
-            {extractJob.status.started_at} 시작 — 이 페이지를 떠나도 계속 진행됩니다
+            {extractJob.status.started_at} 시작: 이 페이지를 떠나도 계속 진행됩니다
           </span>
         )}
         {extractJob.startResult?.ok === false && (
@@ -120,7 +120,7 @@ const AdminExtractSection = ({ extractJob, initialSelected }: Props) => {
               ? `완료 (${extractJob.status.finished_at})`
               : extractJob.status.cancelled
                 ? '중지됨'
-                : `실패 — ${extractJob.status.message.slice(0, 300)}`}
+                : `실패: ${extractJob.status.message.slice(0, 300)}`}
           </span>
         )}
       </section>

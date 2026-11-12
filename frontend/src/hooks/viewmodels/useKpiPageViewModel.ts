@@ -160,7 +160,7 @@ export const useKpiPageViewModel = (summaryPart = '', anomalyOnly = false): KpiP
       const r = await exception.set([item.id], done);
       if (!r.ok) await alertDialog(r.error ?? '처리하지 못했습니다', { error: true });
     } catch {
-      await alertDialog('처리하지 못했습니다 — 잠시 뒤 다시 시도하세요', { error: true });
+      await alertDialog('처리하지 못했습니다. 잠시 뒤 다시 시도하세요', { error: true });
     }
   };
 

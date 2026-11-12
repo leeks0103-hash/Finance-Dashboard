@@ -24,7 +24,7 @@ const HealthExceptionList = () => {
       const r = await ex.set([file], false);
       if (!r.ok) await alertDialog(r.error ?? '해제하지 못했습니다', { error: true });
     } catch {
-      await alertDialog('해제하지 못했습니다 — 잠시 뒤 다시 시도하세요', { error: true });
+      await alertDialog('해제하지 못했습니다. 잠시 뒤 다시 시도하세요', { error: true });
     }
   };
 

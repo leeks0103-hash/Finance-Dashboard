@@ -22,7 +22,7 @@ const Row = ({ a, action, note }: { a: KpiAnomaly; action: React.ReactNode; note
       {action}
     </div>
     <CopyText text={a.file} className={styles.file} />
-    <span className={styles.metrics}>실적이 채워진 지표 {a.metrics.length}개 — {metricsText(a)}</span>
+    <span className={styles.metrics}>실적이 채워진 지표 {a.metrics.length}개: {metricsText(a)}</span>
     {note && <span className={styles.note}>{note}</span>}
   </li>
 );

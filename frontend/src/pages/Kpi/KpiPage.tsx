@@ -248,7 +248,7 @@ const KpiPage = () => {
             <div className={styles.anomalyBanner}>
               <span className={styles.anomalyIcon}>⚠</span>
               <span className={styles.anomalyText}>
-                보고단계가 <b>완료</b>가 아닌데 실적이 이미 입력된 프로젝트가 <b>{vm.anomalyCount}건</b> 있습니다 —
+                보고단계가 <b>완료</b>가 아닌데 실적이 이미 입력된 프로젝트가 <b>{vm.anomalyCount}건</b> 있습니다.
                 조기입력 오류일 수 있으니 확인해주세요.
               </span>
               {anomalyOnly ? (

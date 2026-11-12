@@ -172,7 +172,7 @@ const Navbar = () => {
           <Link
             to="/performance"
             className={styles.home}
-            aria-label="경영현황 통합 대시보드 — 첫 화면으로"
+            aria-label="경영현황 통합 대시보드: 첫 화면으로"
             onClick={() => window.scrollTo({ top: 0 })}
           >
             <NgvLogo className={styles.logo} />
@@ -221,7 +221,7 @@ const Navbar = () => {
                               <CopyText text={f.file} className={styles.healthFile} />
                             </div>
                             <div className={styles.healthCodes}>
-                              <span>{f.source} 추출 엑셀 — 암호화(AIP) 후 Excel 자동 열기도 실패. 서버 로그 확인 또는 재추출 필요</span>
+                              <span>{f.source} 추출 엑셀: 암호화(AIP) 후 Excel 자동 열기도 실패. 서버 로그 확인 또는 재추출 필요</span>
                             </div>
                           </li>
                         ))}
@@ -274,8 +274,8 @@ const Navbar = () => {
                               {adminAuthed && <HealthExceptionButton files={[row.file]} />}
                             </div>
                             <div className={styles.healthCodes}>
-                              <span>재무 : {row.finance_codes.join(', ') || '—'}</span>
-                              <span>KPI : {row.kpi_codes.join(', ') || '—'}</span>
+                              <span>재무 : {row.finance_codes.join(', ') || '-'}</span>
+                              <span>KPI : {row.kpi_codes.join(', ') || '-'}</span>
                             </div>
                           </li>
                         ))}
@@ -288,7 +288,7 @@ const Navbar = () => {
                       <div className={styles.healthHeader}>
                         <span className={styles.healthIcon}>▤</span>
                         완료보고 이상 · {finishedAnomalies.length}건
-                        <span className={styles.healthHeaderSub}>매출·직접원가 외 값이 채워짐 — PPT 확인 필요</span>
+                        <span className={styles.healthHeaderSub}>매출·직접원가 외 값이 채워짐, PPT 확인 필요</span>
                       </div>
                       <ul className={styles.healthList}>
                         {finishedAnomalies.map(a => (
@@ -326,7 +326,7 @@ const Navbar = () => {
             <Button unstyled
               className={`${styles.extractRunningBadge} ${extractBadge.closing ? 'closingDrop' : ''}`}
               onClick={() => { setExtractPreset(undefined); setExtractOpen(true); }}
-              title="PPT 데이터 추출이 진행 중입니다 — 클릭해서 자세히 보기"
+              title="PPT 데이터 추출이 진행 중입니다. 클릭해서 자세히 보기"
             >
               <span className={styles.extractSpinner} aria-hidden />
               추출 중…

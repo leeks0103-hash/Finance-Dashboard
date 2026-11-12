@@ -103,7 +103,7 @@ def read_roster(path: str) -> list[dict]:
             seen.add(emp)
             out.append({"emp": emp, "name": name, "mail": mail, "key": key})
     if errors:
-        raise RosterError("명단 오류 — " + " / ".join(errors))
+        raise RosterError("명단 오류: " + " / ".join(errors))
     return out
 
 
@@ -274,7 +274,7 @@ def _run_job(people: list[dict]):
     except Exception as e:  # noqa: BLE001 — Outlook 연결 자체 실패
         logger.exception("시크릿 키 메일 — Outlook 연결 실패")
         with _job_lock:
-            _job["error"] = f"Outlook에 연결하지 못했습니다 — Outlook이 켜져 있는지 확인하세요 ({e})"
+            _job["error"] = f"Outlook에 연결하지 못했습니다. Outlook이 켜져 있는지 확인하세요 ({e})"
     finally:
         with _job_lock:
             _job["running"] = False
@@ -292,7 +292,7 @@ def _load_for_api():
     except RosterError as e:
         return path, None, str(e)
     except Exception as e:  # noqa: BLE001
-        return path, None, f"명단 엑셀을 못 읽었습니다 — Excel로 열려 있거나 보호(AIP)가 걸렸는지 확인하세요 ({e})"
+        return path, None, f"명단 엑셀을 못 읽었습니다. Excel로 열려 있거나 보호(AIP)가 걸렸는지 확인하세요 ({e})"
 
 
 from auth import admin_required, current_admin  # noqa: E402
@@ -312,7 +312,7 @@ def api_roster():
         finally:
             pythoncom.CoUninitialize()
     except Exception as e:  # noqa: BLE001
-        sender_error = f"Outlook에 연결하지 못했습니다 — Outlook이 켜져 있는지 확인하세요 ({e})"
+        sender_error = f"Outlook에 연결하지 못했습니다. Outlook이 켜져 있는지 확인하세요 ({e})"
     base = {"ok": err is None, "file": os.path.basename(path) if path else None, "subject": SUBJECT,
             "sender": sender, "sender_error": sender_error, "job": _job_view()}
     if err:

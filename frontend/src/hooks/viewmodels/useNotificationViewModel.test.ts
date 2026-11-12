@@ -44,7 +44,7 @@ describe('useNotificationViewModel', () => {
     expect(result.current.groups.map(g => g.label)).toEqual(['재무', 'KPI']);
     expect(result.current.groups[0].items).toEqual([{ label: '아직 안 읽음', count: 1 }, { label: '원본 수정됨', count: 2 }]);
     expect(result.current.groups[1].items).toEqual([{ label: '열기 실패', count: 4 }]);
-    expect(result.current.summaryLines).toEqual(['재무 — 아직 안 읽음 1 · 원본 수정됨 2', 'KPI — 열기 실패 4']);
+    expect(result.current.summaryLines).toEqual(['재무: 아직 안 읽음 1 · 원본 수정됨 2', 'KPI: 열기 실패 4']);
   });
 
   it('확인(markSeen)하면 점이 꺼지고, 숫자가 남아 있어도 다시 안 켜짐', () => {

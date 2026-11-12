@@ -37,12 +37,12 @@ const AdminSettingsSection = () => {
           <span className={styles.toggleDesc}>
             {vm.loginRequired
               ? '접속하면 먼저 로그인(사번·시크릿 키) 화면이 뜹니다'
-              : '끔 — 로그인 없이 누구나 조회할 수 있습니다(관리자 기능은 관리자 로그인 필요)'}
+              : '끔: 로그인 없이 누구나 조회할 수 있습니다(관리자 기능은 관리자 로그인 필요)'}
           </span>
         </div>
         <Toggle checked={vm.loginRequired} onChange={vm.toggleLoginRequired} />
       </section>
-      {vm.loginRequiredError && <span className={styles.error}>로그인 설정을 저장하지 못했습니다 — 다시 눌러 주세요</span>}
+      {vm.loginRequiredError && <span className={styles.error}>로그인 설정을 저장하지 못했습니다. 다시 눌러 주세요</span>}
 
       {/* 기능 켜기·끄기 — 주석 풀지 않고 여기서(2026-10-20 요청). 켬 = 모두에게 보임 */}
       <section className={`${styles.group} ${styles.toggleGroup}`}>
@@ -55,7 +55,7 @@ const AdminSettingsSection = () => {
       </section>
       <span className={styles.hint}>
         {vm.visibilityError
-          ? <span className={styles.error}>공개 범위를 저장하지 못했습니다 — 다시 눌러 주세요</span>
+          ? <span className={styles.error}>공개 범위를 저장하지 못했습니다. 다시 눌러 주세요</span>
           : '공개 범위는 이 화면뿐 아니라 접속한 모든 사람에게 적용됩니다(다른 화면엔 1분 안에 반영)'}
       </span>
     </div>

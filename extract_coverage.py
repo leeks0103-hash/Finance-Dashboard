@@ -105,13 +105,13 @@ def _explain_failure(path: str) -> str:
         with open(path, "rb") as f:
             head = f.read(8)
     except OSError:
-        return "원본 폴더에서 파일을 찾지 못함 — 옮겨졌거나 이름이 바뀐 듯"
+        return "원본 폴더에서 파일을 찾지 못함. 옮겨졌거나 이름이 바뀐 듯"
     if head.startswith(b"SCDSA"):
         # 프론트 isDrmItem이 'DRM' 글자로 판단 — 문구를 바꾸면 같이 볼 것
-        return "보안 문서(DRM)라 열 수 없음 — 이 PC에서 직접 열지 말고 원본 담당자에게 확인"
+        return "보안 문서(DRM)라 열 수 없음. 이 PC에서 직접 열지 말고 원본 담당자에게 확인"
     if head.startswith(bytes.fromhex("d0cf11e0")):
         return "암호화(AIP)됐거나 옛 형식(.ppt)이라 열지 못함"
-    return "PowerPoint로 열다가 실패 — 일시 오류일 수 있으니 다시 추출해 보세요"
+    return "PowerPoint로 열다가 실패, 일시 오류일 수 있으니 다시 추출해 보세요"
 
 
 _TS_FORMATS = ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M")
@@ -183,20 +183,20 @@ def _source_coverage(key: str, folder_files: list[str], mtimes: dict[str, dateti
         h = latest.get(name)
         rows = int(rows_by_file.get(name, 0))
         if h is None:
-            status, reason = "pending", "새로 들어온 파일 — 아직 한 번도 읽지 않았고, 다음 추출 때 읽습니다"
+            status, reason = "pending", "새로 들어온 파일: 아직 한 번도 읽지 않았고, 다음 추출 때 읽습니다"
         elif h["status"] in cfg["fail_status"]:
             status, reason = "failed", _explain_failure(h["path"])
         elif rows > 0:
             status, reason = "extracted", ""
         elif _NO_TABLE_RE.search(h["message"]):
             # 열어 봤지만 재무/KPI 표가 없는 PPT(양식 밖 보고서·자체 기획 등)
-            status, reason = "no_table", "파일은 열었지만 재무/KPI 표가 없어 가져올 숫자가 없음(보고서 양식이 아닌 자료 등) — 문제 아님"
+            status, reason = "no_table", "파일은 열었지만 재무/KPI 표가 없어 가져올 숫자가 없음(보고서 양식이 아닌 자료 등), 문제 아님"
         else:
             # 행은 뽑았는데 취합엔 이 파일 이름의 행이 없음 — 같은 (코드/연도/단계) 키를 쓰는 다른 파일(보통 같은 프로젝트의
             # 다음 단계 보고서)이 나중에 같은 행을 덮어써서 그 파일 이름으로 남은 것. 데이터가 사라진 건 아님
             status = "merged"
             reason = ("다음 단계 보고서(예: 제안 → 착수)의 표에도 이 단계 숫자가 같이 들어 있어, 대시보드엔 그 다음 보고서 쪽 숫자로 들어가 있음"
-                      " — 빠진 데이터 아님(두 보고서 숫자가 다르면 다음 보고서 숫자가 쓰임)")
+                      ". 빠진 데이터 아님(두 보고서 숫자가 다르면 다음 보고서 숫자가 쓰임)")
         result["counts"][status] += 1
         # 마지막 처리 시각보다 원본 수정 시각이 늦으면 → 추출 뒤에 고쳐진 파일. 실패·미처리는 이미 따로 표시되니 제외
         modified, modified_at = False, ""

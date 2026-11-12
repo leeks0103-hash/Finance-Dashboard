@@ -56,10 +56,10 @@ const PerfBreakdownModal = ({ target, onClose }: Props) => {
           // 좁게(코드 16자 폭) — "프로젝트 통합 (E08…)" 같은 긴 값은 말줄임, 마우스오버로 전체·클릭 복사
           key: 'code', header: '프로젝트코드', align: 'center', truncate: true, maxWidth: 148,   // 본문(td)만 가운데 — 머리글은 늘 가운데
           sortValue: r => r.project_code,
-          render: r => r.project_code ? <CopyText text={r.project_code} truncate /> : '—',
+          render: r => r.project_code ? <CopyText text={r.project_code} truncate /> : '-',
         },
         // 팀 대신 프로젝트명 — 코드만으론 어떤 프로젝트인지 몰라서(2026-09-30). 긴 이름은 줄바꿈
-        { key: 'name', header: '프로젝트명', wrap: true, sortValue: r => r.project_name, render: r => r.project_name || '—' },
+        { key: 'name', header: '프로젝트명', wrap: true, sortValue: r => r.project_name, render: r => r.project_name || '-' },
         {
           key: 'plan', header: `${compare.plan_label} (억)`, align: 'right',
           sortValue: r => r.plan, render: r => fmtPerfBreakdown(r.plan),
@@ -74,7 +74,7 @@ const PerfBreakdownModal = ({ target, onClose }: Props) => {
           sortValue: (r: PerfBreakdownCompareRow) => r.rate ?? -1,
           render: (r: PerfBreakdownCompareRow) => (
             <span className={r.rate === null ? undefined : r.rate < 70 ? styles.rateLoss : r.rate >= 100 ? styles.rateGood : undefined}>
-              {r.rate === null ? '—' : `${r.rate}%`}
+              {r.rate === null ? '-' : `${r.rate}%`}
             </span>
           ),
         }] : []),
@@ -93,11 +93,11 @@ const PerfBreakdownModal = ({ target, onClose }: Props) => {
             columns={cols}
             rows={compare.rows}
             totalLabel={vm.showRate
-              ? `합계 (${compare.rows.length}건) · 달성률 ${compare.rate === null ? '—' : `${compare.rate}%`}`
+              ? `합계 (${compare.rows.length}건) · 달성률 ${compare.rate === null ? '-' : `${compare.rate}%`}`
               : `합계 (${compare.rows.length}건)`}
             totalValues={[
               fmtPerfBreakdown(compare.plan_total), fmtPerfBreakdown(compare.actual_total),
-              ...(vm.showRate ? [compare.rate === null ? '—' : `${compare.rate}%`] : []),
+              ...(vm.showRate ? [compare.rate === null ? '-' : `${compare.rate}%`] : []),
             ]}
             totalSpan={2}
             defaultSortKey={vm.showRate ? 'backend-order' : 'plan'}
@@ -118,12 +118,12 @@ const PerfBreakdownModal = ({ target, onClose }: Props) => {
         // 모달과 동일 이유로 통일)
         key: 'code', header: '프로젝트코드', align: 'center',   // 본문(td)만 가운데 — 머리글은 늘 가운데
         sortValue: r => r.project_code,
-        render: r => r.project_code ? <CopyText text={r.project_code} /> : '—',
+        render: r => r.project_code ? <CopyText text={r.project_code} /> : '-',
       },
       // 프로젝트명 — 코드만으론 어떤 프로젝트인지 몰라서. 줄바꿈 없이 한 줄로 보이게 모달 폭을 넓혀 둠(WIDE_MODAL_W)
-      { key: 'name', header: '프로젝트명', sortValue: r => r.project_name, render: r => r.project_name || '—' },
-      { key: 'part', header: '파트', align: 'center', sortValue: r => stripPartPrefix(r.part), render: r => stripPartPrefix(r.part) || '—' },
-      { key: 'team', header: '팀',   align: 'center', sortValue: r => r.team, render: r => r.team || '—' },
+      { key: 'name', header: '프로젝트명', sortValue: r => r.project_name, render: r => r.project_name || '-' },
+      { key: 'part', header: '파트', align: 'center', sortValue: r => stripPartPrefix(r.part), render: r => stripPartPrefix(r.part) || '-' },
+      { key: 'team', header: '팀',   align: 'center', sortValue: r => r.team, render: r => r.team || '-' },
       {
         key: 'value', header: `값 (${vm.unit})`, align: 'right',
         sortValue: r => r.value,

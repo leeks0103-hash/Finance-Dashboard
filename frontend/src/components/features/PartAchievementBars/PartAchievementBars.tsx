@@ -110,7 +110,7 @@ const PartAchievementBars = ({ rows, month, info, onPartClick, bare = false }: P
                 unstyled
                 className={`${styles.row} ${styles.rowClickable}`}
                 onClick={() => onPartClick(partName)}
-                title={`${partName} — 프로젝트별 상세`}
+                title={`${partName}: 프로젝트별 상세`}
               >
                 {inner}
               </Button>

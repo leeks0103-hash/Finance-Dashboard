@@ -82,10 +82,10 @@ const KpiBreakdownModal = ({ name, metric, onClose }: Props) => {
             // 전체 텍스트를 이미 보여주므로 wrap(여러 줄)보다 말줄임이 나음
             key: 'code', header: '프로젝트코드', truncate: true,
             sortValue: r => r.project_code,
-            render: r => r.project_code ? <CopyText text={r.project_code} /> : '—',
+            render: r => r.project_code ? <CopyText text={r.project_code} /> : '-',
           },
-          { key: 'part',  header: '파트',     align: 'center', sortValue: r => stripPartPrefix(r.part), render: r => stripPartPrefix(r.part) || '—' },
-          { key: 'stage', header: '보고단계', align: 'center', sortValue: r => r.stage, render: r => r.stage || '—' },
+          { key: 'part',  header: '파트',     align: 'center', sortValue: r => stripPartPrefix(r.part), render: r => stripPartPrefix(r.part) || '-' },
+          { key: 'stage', header: '보고단계', align: 'center', sortValue: r => r.stage, render: r => r.stage || '-' },
           {
             key: 'value', header: vm.column || '값', align: 'right',
             sortValue: r => r.value,
@@ -96,7 +96,7 @@ const KpiBreakdownModal = ({ name, metric, onClose }: Props) => {
             key: 'file', header: '파일명', wrap: true,
             sortValue: r => r.file,
             groupSpan: () => true,
-            render: r => (r.file ? <CopyText text={r.file} onOpen={openFile} /> : '—'),
+            render: r => (r.file ? <CopyText text={r.file} onOpen={openFile} /> : '-'),
           },
         ] satisfies BreakdownColumn<KpiBreakdownRow>[]}
         rows={vm.rows}
