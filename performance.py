@@ -237,6 +237,12 @@ _PERF_COL_MAP_AUG = {
 
 _PERF_COL_MAP_SEP = {(i if i < 17 else i + 1): name for i, name in _PERF_COL_MAP_AUG.items()}
 
+# 10월 집계 시트(ver10.1_261109): 9월(_SEP) 대비 열이 두 군데서 밀림 — 헤더 라벨을 하나씩 대조해 확인(2026-11-13)
+#  ① S~W(18~22)에 '다년 계약 여부·총도급액·총추정원가·시작일·종료일' 5열 삽입 → 18~26(프로젝트명~인원)은 +5
+#  ② 9월 기준·10월 결산 기준 실적 집계(AX~BA)가 늘어 42 이후(월별 집계·손익·점검·세부)는 +7
+# 계산식 검증 8개 항목 전부 100%(매출행 308). 자동 정렬은 기준 스냅샷이 달라 +1/+3으로 잘못 맞춰 11~37%로 실패했었음
+_PERF_COL_MAP_OCT = {(i if i < 18 else (i + 5 if i <= 26 else i + 7)): name for i, name in _PERF_COL_MAP_SEP.items()}
+
 # 2027년 (사업계획) 시트(27년 사업계획 통합관리 파일 ver3.1_261028) — 2026-10-29. 머리글 11~12행·데이터 13행~, 매출행+원가행 2행 구조는 실적 시트와 같고
 # 열 배치·의미가 다름. 실적 시트와 **같은 내부 필드 이름을 재사용**해 계산식 검증(perf_autoupdate.validate)·프로젝트 병합(_merge_rev_cost_rows)·표를 그대로 씀:
 #   plan_initial    ← Z(25) "2026년 연간 추정"  = 비교 기준(26 추정). 시트가 차이금액·증감율을 이 기준으로 줌(AI = AC − Z)
@@ -322,6 +328,7 @@ _PERF_COL_MAPS = {
     # 원본에서 그 컬럼이 지워지면 다시 _PERF_COL_MAP_AUG로 돌아갈 것
     "2026년 (9월 추정)": _PERF_COL_MAP_SEP,
     "2026년 (9월 집계)": _PERF_COL_MAP_SEP,
+    "2026년 (10월 집계)": _PERF_COL_MAP_OCT,
     # 27년 파일(ver3.1_261028): 2027 사업계획 시트 — 계획 전용 뷰(view="plan27"), 위 _PERF_COL_MAP_PLAN27 주석 참고
     "2027년 (사업계획)": _PERF_COL_MAP_PLAN27,
 }
