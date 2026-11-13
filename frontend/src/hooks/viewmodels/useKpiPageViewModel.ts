@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react';
-import { useKpiSummary, useKpiDataPaged } from '@/hooks/useKpiSummary';
+import { useKpiSummary, useKpiDataPaged, useKpiAnomalyException } from '@/hooks/useKpiSummary';
 import { useDebouncedSearch } from '@/hooks/useDebouncedSearch';
 import { useVisible, useVisibilitySettings } from '@/hooks/useVisibility';
-import { confirmDialog } from '@/utils/dialog';
+import { alertDialog, confirmDialog } from '@/utils/dialog';
 import { buildServerPagination, buildServerSearch } from './serverTableProps';
 import { useReactPagination } from '@/lib/pagination';
 import { useKpiFilterStore } from '@/store/kpiFilter.store';
@@ -12,7 +12,7 @@ import { makeBarOptions } from '@/utils/chartOptions';
 import { getChartTheme } from '@/utils/chartColors';
 import { useChartPalette } from '@/hooks/useChartPalette';
 import { sortKpiRawCols } from '@/utils/kpiColumns';
-import type { KpiRawRow, KpiAnomaly } from '@/types/kpi.types';
+import type { KpiRawRow, KpiAnomaly, KpiAnomalyExcepted } from '@/types/kpi.types';
 import type { ServerPagination, ServerSearch, ServerSorting } from '@/components/ui/DataTable';
 import { useServerSort } from '@/hooks/useServerSort';
 import type { ChartOptions } from 'chart.js';
@@ -75,9 +75,16 @@ export interface KpiPageViewModel {
   /** 전체 기준 정렬(서버) */
   serverSorting:    ServerSorting;
   serverSearch:     ServerSearch;
-  /** 보고단계 완료 전인데 실적 조기입력된 행 수 — 0이면 배너 미노출 */
+  /** 보고단계 완료 전인데 실적 조기입력된 프로젝트 수(한 프로젝트는 지표가 여럿이어도 1건) — 0이면 배너 미노출 */
   anomalyCount:     number;
   anomalies:        KpiAnomaly[];
+  /** 관리자가 예외 처리한 건(관리자에게만) — 안내·빨간 행에서는 빠져 있고 여기서만 해제 */
+  exceptedAnomalies: KpiAnomalyExcepted[];
+  /** 예외 처리/해제 버튼을 보여줄지 — 모든 사람 화면에 영향을 주므로 관리자만 */
+  canExceptAnomaly:  boolean;
+  exceptPending:     boolean;
+  /** 확인창 뒤 예외 처리(done=true)/해제(false) — 서버가 현재 값을 기억해 PPT 값이 바뀌면 저절로 풀림 */
+  exceptAnomaly:     (item: KpiAnomaly, done: boolean) => Promise<void>;
   /** 조기입력 의심 배너를 보여줄지 — 공개 범위(kpiAnomaly)가 이 사람에게 열려 있고 의심 행이 1건 이상일 때 */
   showAnomalyNotice:     boolean;
   /** 배너 ×(닫기)를 보여줄지 — 모든 사람 화면에 영향을 주므로 관리자만 */
@@ -138,6 +145,23 @@ export const useKpiPageViewModel = (summaryPart = '', anomalyOnly = false): KpiP
       { title: '조기입력 안내 닫기', confirmText: '닫기', cancelText: '취소' },
     );
     if (ok) updateVisibility({ kpiAnomaly: 'none' });
+  };
+
+  const exception = useKpiAnomalyException();
+  const exceptAnomaly = async (item: KpiAnomaly, done: boolean) => {
+    const ok = await confirmDialog(
+      done
+        ? `이 프로젝트의 조기입력 의심을 예외 처리하면 모든 사람에게 안내·빨간 행으로 표시되지 않습니다.\n의도한 입력일 때만 하세요. PPT 값이 바뀌면 자동으로 다시 표시됩니다.\n\n${item.project_code || '(코드 없음)'} · ${item.stage}`
+        : '해제하면 이 프로젝트가 다시 모든 사람에게 조기입력 의심으로 표시됩니다.',
+      { title: done ? '예외 처리할까요?' : '예외 처리를 해제할까요?', confirmText: done ? '예외 처리' : '해제', cancelText: '취소' },
+    );
+    if (!ok) return;
+    try {
+      const r = await exception.set([item.id], done);
+      if (!r.ok) await alertDialog(r.error ?? '처리하지 못했습니다', { error: true });
+    } catch {
+      await alertDialog('처리하지 못했습니다. 잠시 뒤 다시 시도하세요', { error: true });
+    }
   };
 
   const isLoading = sumLoading || dataLoading;
@@ -225,6 +249,10 @@ export const useKpiPageViewModel = (summaryPart = '', anomalyOnly = false): KpiP
     rawCols,
     anomalyCount: summary?.anomaly_count ?? 0,
     anomalies:    summary?.anomalies ?? [],
+    exceptedAnomalies: isAdmin ? (summary?.excepted ?? []) : [],
+    canExceptAnomaly:  isAdmin,
+    exceptPending:     exception.pending,
+    exceptAnomaly,
     showAnomalyNotice: noticeAllowed && (summary?.anomaly_count ?? 0) > 0,
     canCloseAnomalyNotice: isAdmin,
     closeAnomalyNotice,

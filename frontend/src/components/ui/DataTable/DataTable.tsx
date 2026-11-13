@@ -132,7 +132,7 @@ function DraggableTh<T>({ header, isDraggable, isHighlighted, onHeaderClick, fix
           <Button unstyled
             className={`${styles.filterBtn} ${filter.active ? styles.filterBtnActive : ''}`}
             aria-label={`${String(header.column.columnDef.header ?? '')} 필터`}
-            title={filter.active ? '필터 걸림 — 눌러서 바꾸기' : '필터'}
+            title={filter.active ? '필터 걸림: 눌러서 바꾸기' : '필터'}
             onClick={e => { e.stopPropagation(); filter.onOpen(e.currentTarget); }}>
             <svg width="11" height="11" viewBox="0 0 16 16" aria-hidden="true"
               fill={filter.active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round">

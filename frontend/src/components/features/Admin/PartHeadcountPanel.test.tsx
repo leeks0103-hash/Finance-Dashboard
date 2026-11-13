@@ -31,7 +31,7 @@ describe('PartHeadcountPanel 2026 / 2027 인원 따로(2026-10-29)', () => {
     expect((screen.getByLabelText('PM 2026년 인원') as HTMLInputElement).value).toBe('6.6');
     fireEvent.click(screen.getByText('2027년 인원'));
     expect((screen.getByLabelText('PM 2027년 인원') as HTMLInputElement).value).toBe('');   // 2026 값을 빌려 보여주지 않음
-    expect(screen.getByText(/2027 계획 보기 — 인당/)).toBeTruthy();
+    expect(screen.getByText(/2027 계획 보기: 인당/)).toBeTruthy();
   });
 
   it('저장하면 2026·2027 인원을 같이 보낸다(한쪽만 고쳐도 다른 쪽을 지우지 않게)', () => {

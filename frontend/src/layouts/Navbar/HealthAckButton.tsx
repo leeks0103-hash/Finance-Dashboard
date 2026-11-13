@@ -23,12 +23,12 @@ const HealthAckButton = ({ ack, onToggle }: Props) => {
   if (!ack) {
     return (
       <Button unstyled className={styles.btn} onClick={() => onToggle(true)}
-        title="PPT를 고쳤으면 눌러 주세요 — 관리자가 보고 다시 추출합니다">
+        title="PPT를 고쳤으면 눌러 주세요. 관리자가 보고 다시 추출합니다">
         <CheckIcon />수정 완료
       </Button>
     );
   }
-  const tip = `${ack.by ? `${ack.by} · ` : ''}${ack.at.slice(5, 16)} 수정 완료 — 관리자 재추출 대기 (다시 추출하면 사라짐)`;
+  const tip = `${ack.by ? `${ack.by} · ` : ''}${ack.at.slice(5, 16)} 수정 완료: 관리자 재추출 대기 (다시 추출하면 사라짐)`;
   return (
     <span className={styles.done} title={tip}>
       <CheckIcon />수정 완료{ack.by ? <span className={styles.by}>· {ack.by}</span> : null}

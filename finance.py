@@ -526,21 +526,21 @@ def api_insights():
     for _, lrow in loss_rows.iterrows():
         comments.append({
             "type": "warning", "icon": "",
-            "text": f"<b>{html_escape(str(lrow['project_code']))}</b> 손실 {bil(lrow['operating_profit'])} — 확인 필요",
+            "text": f"<b>{html_escape(str(lrow['project_code']))}</b> 손실 {bil(lrow['operating_profit'])}: 확인 필요",
         })
 
     thin_rows = valid[(valid["operating_profit"] >= 0) & (valid["profit_rate"] < 5)].nsmallest(2, "profit_rate")
     for _, trow in thin_rows.iterrows():
         comments.append({
             "type": "warning", "icon": "",
-            "text": f"<b>{html_escape(str(trow['project_code']))}</b> ({html_escape(str(trow['part']))}) 이익율 {round(trow['profit_rate'],1)}% — 저수익",
+            "text": f"<b>{html_escape(str(trow['project_code']))}</b> ({html_escape(str(trow['part']))}) 이익율 {round(trow['profit_rate'],1)}%: 저수익",
         })
 
     if worst_part and best_part and worst_part != best_part:
         gap2 = round(part_stats.loc[best_part, "avg_rate"] - part_stats.loc[worst_part, "avg_rate"], 1)
         comments.append({
             "type": "warning", "icon": "",
-            "text": f"<b>{html_escape(worst_part)}</b> 이익율 {part_stats.loc[worst_part, 'avg_rate']}% — {html_escape(best_part)} 대비 -{gap2}%p",
+            "text": f"<b>{html_escape(worst_part)}</b> 이익율 {part_stats.loc[worst_part, 'avg_rate']}%: {html_escape(best_part)} 대비 -{gap2}%p",
         })
 
     if best_part and part_stats.loc[best_part, "avg_rate"] > avg_rate:

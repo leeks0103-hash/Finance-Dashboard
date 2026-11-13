@@ -18,7 +18,7 @@ import HealthExceptionList from './HealthExceptionList';
 
 const item = {
   file: '(그룹사 기아) 기아직속 상품조직_착수_SW.pptx',
-  issues: ['KPI↔재무 코드 불일치 — 재무 E1, E2 / KPI E1'],
+  issues: ['KPI↔재무 코드 불일치: 재무 E1, E2 / KPI E1'],
   by: '관리자', at: '2026-11-10 10:00:00',
 };
 

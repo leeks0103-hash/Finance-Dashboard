@@ -4,7 +4,7 @@ import { useNotifications, useSaveNotificationSettings } from '../useNotificatio
 /** 서버가 돌려준 오류 문구(400의 error) — 없으면 기본 문구 */
 const errorText = (e: unknown): string =>
   (e as { response?: { data?: { error?: string } } } | null)?.response?.data?.error
-  ?? '저장하지 못했습니다 — 다시 시도해 주세요';
+  ?? '저장하지 못했습니다. 다시 시도해 주세요';
 
 /**
  * 관리자 기능 > 알림 탭(2026-11-05) — 확인 일정 설정만(2026-11-06부터 "지금 알림 N건" 요약은 뺌 — 현황은 종 드롭다운·알림 팝업·추출 현황에서).

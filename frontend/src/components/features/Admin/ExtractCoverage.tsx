@@ -16,15 +16,15 @@ const STATUS_LABEL: Record<CoverageStatus, string> = {
 /** 상태 설명 — 범례에 마우스를 올리면 툴팁으로 */
 const STATUS_HINT: Record<CoverageStatus, string> = {
   extracted: '이 파일의 숫자가 대시보드에 들어가 있음',
-  merged:    '다음 단계 보고서(예: 제안 → 착수)의 표에도 이 단계 숫자가 같이 들어 있어, 대시보드엔 그 다음 보고서 쪽 숫자로 들어가 있음 — 빠진 데이터 아님(두 보고서 숫자가 다르면 다음 보고서 숫자가 쓰임)',
-  no_table:  '파일은 열었지만 재무/KPI 표가 없어 가져올 숫자가 없음(보고서 양식이 아닌 자료 등) — 문제 아님',
-  failed:    '파일을 열지 못해 숫자를 못 가져옴 — 이유와 할 일은 목록 참고',
-  pending:   '새로 들어와 아직 한 번도 읽지 않은 파일 — 다음 추출 때 읽음',
+  merged:    '다음 단계 보고서(예: 제안 → 착수)의 표에도 이 단계 숫자가 같이 들어 있어, 대시보드엔 그 다음 보고서 쪽 숫자로 들어가 있음. 빠진 데이터 아님(두 보고서 숫자가 다르면 다음 보고서 숫자가 쓰임)',
+  no_table:  '파일은 열었지만 재무/KPI 표가 없어 가져올 숫자가 없음(보고서 양식이 아닌 자료 등), 문제 아님',
+  failed:    '파일을 열지 못해 숫자를 못 가져옴, 이유와 할 일은 목록 참고',
+  pending:   '새로 들어와 아직 한 번도 읽지 않은 파일, 다음 추출 때 읽음',
 };
 
 /** 상태와 별개 표시 — 마지막 추출 뒤에 원본 PPT가 수정된 파일(날짜 비교만, 내용은 안 열어봄) */
 const MODIFIED_LABEL = '원본 수정됨';
-const MODIFIED_HINT = '마지막으로 추출한 시각보다 원본 PPT의 수정 시각이 늦은 파일 — 내용은 열어 보지 않고 날짜만 비교. 대시보드 숫자가 옛 것일 수 있어 다시 추출 필요';
+const MODIFIED_HINT = '마지막으로 추출한 시각보다 원본 PPT의 수정 시각이 늦은 파일, 내용은 열어 보지 않고 날짜만 비교. 대시보드 숫자가 옛 것일 수 있어 다시 추출 필요';
 
 // 막대·범례 순서 — 왼쪽부터 정상 → 확인 필요
 const ORDER: CoverageStatus[] = ['extracted', 'merged', 'no_table', 'pending', 'failed'];
@@ -73,7 +73,7 @@ const ItemList = ({ items, target, picked, onPick, disabled }: ItemListProps) =>
         <span className={styles.file}><CopyText text={it.file} onOpen={openCoverageFileOrAlert} /></span>
         {/* 원본 오류(com_error 등)는 알아보기 어려워 화면엔 안 보이고 마우스 올렸을 때만 */}
         {it.modified
-          ? <span className={styles.reason}>{`마지막 추출 ${it.at} → 원본 수정 ${it.modified_at} — 다시 추출하면 최신 숫자가 반영됨`}</span>
+          ? <span className={styles.reason}>{`마지막 추출 ${it.at} → 원본 수정 ${it.modified_at}: 다시 추출하면 최신 숫자가 반영됨`}</span>
           : it.reason && <span className={styles.reason} title={it.detail || undefined}>{it.reason}</span>}
       </li>
       );
@@ -158,12 +158,12 @@ const SourceCard = ({ src, target, onRetryFailed, retryDisabled, picked, onPick 
 
       <div className={styles.meta}>
         대시보드에 들어간 줄 {src.rows_total}개
-        <span className={styles.metaHint}> — 보고서 한 개에서 단계별로 여러 줄이 나올 수 있어 파일 수와 달라도 정상</span>
+        <span className={styles.metaHint}> (보고서 한 개에서 단계별로 여러 줄이 나올 수 있어 파일 수와 달라도 정상)</span>
       </div>
 
-      {!src.excel_ok && <div className={styles.warn}>추출 결과 파일을 읽지 못했습니다(보안 암호화 등) — 아래 숫자가 비어 있을 수 있음</div>}
+      {!src.excel_ok && <div className={styles.warn}>추출 결과 파일을 읽지 못했습니다(보안 암호화 등), 아래 숫자가 비어 있을 수 있음</div>}
       {src.duplicate_names > 0 && (
-        <div className={styles.warn}>이름이 똑같은 파일이 다른 폴더에 또 있음 {src.duplicate_names}개 — 서로 구분이 안 돼 한쪽만 반영될 수 있음</div>
+        <div className={styles.warn}>이름이 똑같은 파일이 다른 폴더에 또 있음 {src.duplicate_names}개: 서로 구분이 안 돼 한쪽만 반영될 수 있음</div>
       )}
 
       {/* 펼쳐 두는 목록 = 실패·미처리 + 추출 뒤 수정된 파일(수정된 건 아래 접힌 목록엔 안 넣어 겹치지 않게) */}
@@ -253,7 +253,7 @@ const ExtractCoverage = ({ finishedAt, onRetryFailed, retryDisabled, selectedFil
       {onRunSelected && pickedCount > 0 && (
         <div className={styles.pickBar} role="region" aria-label="선택한 파일 다시 추출">
           <span className={styles.pickText}>
-            <b>{pickedCount}개</b> 선택됨 <span className={styles.pickHint}>— 위 'PPT 데이터 추출'의 선택 방식과 같은 목록</span>
+            <b>{pickedCount}개</b> 선택됨 <span className={styles.pickHint}>(위 'PPT 데이터 추출'의 선택 방식과 같은 목록)</span>
           </span>
           <Button variant="ghost" size="sm" disabled={retryDisabled} onClick={onClearSelected}>선택 해제</Button>
           <Button variant="primary" size="sm" disabled={retryDisabled} onClick={onRunSelected}>

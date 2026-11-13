@@ -101,7 +101,7 @@ export const DownloadMenu = ({ items, hrefOf, isLoading = false, buttonLabel = '
             ) : (
               <div key={f.key} className={`${styles.item} ${styles.disabled}`} role="menuitem" aria-disabled>
                 <span className={styles.itemLabel}>{f.label}</span>
-                <span className={styles.itemDesc}>파일 없음 — 추출 스크립트를 먼저 실행해주세요</span>
+                <span className={styles.itemDesc}>파일 없음. 추출 스크립트를 먼저 실행해주세요</span>
               </div>
             )
           ))}

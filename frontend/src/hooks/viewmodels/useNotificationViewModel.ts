@@ -76,7 +76,7 @@ export const useNotificationViewModel = (): NotificationViewModel => {
     return {
       total: enabled ? Math.max(0, data?.total ?? 0) : 0,
       groups,
-      summaryLines: groups.map(g => `${g.label} — ${g.items.map(i => `${i.label} ${i.count}`).join(' · ')}`),
+      summaryLines: groups.map(g => `${g.label}: ${g.items.map(i => `${i.label} ${i.count}`).join(' · ')}`),
       checkedAt: data?.checked_at ? data.checked_at.slice(0, 16) : null,
       checkFailed: Boolean(data?.last_error),
       enabled,

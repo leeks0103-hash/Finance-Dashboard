@@ -231,15 +231,15 @@ def _issue_map(rows, conflicts, anomalies) -> dict:
 
     for r in rows:
         add(r["file"], f"row|{'/'.join(r['finance_codes'])}|{'/'.join(r['kpi_codes'])}",
-            f"KPI↔재무 코드 불일치 — 재무 {', '.join(r['finance_codes']) or '—'} / KPI {', '.join(r['kpi_codes']) or '—'}")
+            f"KPI↔재무 코드 불일치: 재무 {', '.join(r['finance_codes']) or '-'} / KPI {', '.join(r['kpi_codes']) or '-'}")
     for c in conflicts:
         files = sorted(c["files"])
         for f in files:
             add(f, f"conflict|{c['source']}|{c['code']}|{'/'.join(files)}",
-                f"코드 충돌({c['source']}) — {c['code']}")
+                f"코드 충돌({c['source']}): {c['code']}")
     for a in anomalies:
         add(a["filename"], f"anomaly|{a['project_code']}|" + ",".join(f"{x['label']}={x['value']}" for x in a["fields"]),
-            f"완료보고 이상 — {a['project_code']}")
+            f"완료보고 이상: {a['project_code']}")
     return out
 
 
@@ -441,7 +441,7 @@ def _classify_conflict(code: str, fin_df, kpi_df, kpi_code_col: str, kpi_part_co
                 return "needs_review", f"KPI 취합에서 파트가 서로 다름: {sorted(parts)}"
             return "likely_same_project", "KPI 취합 기준 파트가 파일 간 일관됨"
 
-    return "needs_review", "취합 시트에서 해당 코드를 찾을 수 없음 — 직접 확인 필요"
+    return "needs_review", "취합 시트에서 해당 코드를 찾을 수 없음. 직접 확인 필요"
 
 
 # (경로 → (mtime, 행 목록)) — AIP 암호화 파일은 Excel COM으로 읽어 수 초가 걸리는데 data-health는
@@ -688,7 +688,7 @@ def _extract_job(targets: list, mode: str, files: "list | None" = None):
             list_path, note = _write_failed_list(t) if mode == "failed" else _write_selected_list(t, files or [])
             if list_path is None:
                 what = "실패 파일" if mode == "failed" else "선택한 파일 중 이 추출 대상"
-                logs.append(f"[{t}] 다시 추출할 {what} 없음" + (f" — {note}" if note else ""))
+                logs.append(f"[{t}] 다시 추출할 {what} 없음" + (f": {note}" if note else ""))
                 continue
             try:
                 ok, msg = _run_extract_script(t, mode, list_path)
@@ -702,7 +702,7 @@ def _extract_job(targets: list, mode: str, files: "list | None" = None):
             ok, msg = _run_extract_script(t, mode)
         if msg == "__CANCELLED__":
             cancelled = True
-            logs.append(f"[{t}] 사용자가 중지함 — 마지막으로 저장된 지점까지만 반영됨")
+            logs.append(f"[{t}] 사용자가 중지함. 마지막으로 저장된 지점까지만 반영됨")
             ok_all = False
             break
         logs.append(f"[{t}] {'완료' if ok else '실패'}\n{msg}")

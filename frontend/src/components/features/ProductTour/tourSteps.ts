@@ -59,7 +59,7 @@ export const TOUR_STEPS: TourStepDef[] = [
   {
     tab: 'performance',
     anchor: 'perf-charts',
-    title: '차트 — 클릭하면 산출 근거',
+    title: '차트: 클릭하면 산출 근거',
     description:
       '막대·도넛 조각(또는 축 이름)을 <b>클릭</b>하면 그 값이 어떤 프로젝트들의 합으로 나왔는지 표로 보여줍니다.<br>' +
       '<b>⤢</b> 우측 하단 크게 보기 · ' +

@@ -51,7 +51,8 @@
 |---|---|---|
 | GET | `/api/kpi/data` | KPI 취합 행(서버 페이지) |
 | GET | `/api/kpi/options` | 필터 옵션 |
-| GET | `/api/kpi/summary` | KPI 집계(정식 코드·같은 코드+연도는 가장 진행된 단계 1건, 합계/평균 규칙은 CLAUDE.md) |
+| GET | `/api/kpi/summary` | KPI 집계(정식 코드·같은 코드+연도는 가장 진행된 단계 1건, 합계/평균 규칙은 CLAUDE.md). 조기입력 의심 `anomaly_count`·`anomalies`는 **프로젝트(파일·코드·보고단계) 단위 1건**(지표가 여러 개여도 1건, 지표는 `metrics:[{metric,value}]`, 예외 처리용 `id` 포함)이고 예외 처리한 건은 빠짐. `excepted`(예외 처리한 건 + `by`·`at`)는 **관리자 응답에만**(일반 사용자는 빈 목록) |
+| POST | `/api/kpi/anomaly-exception` | **관리자** `{ids, done}` — 조기입력 의심 건 예외 처리(true)/해제(false). 처리 때 그 건의 지표·값 서명을 저장해 PPT 값이 바뀌면 자동 해제, 이상이 사라져도 정리(`data/kpi_anomaly_exceptions.json`). 지금 의심이 아닌 id는 400. `/api/kpi/data`는 예외 처리한 건의 행에 `_anomaly_excepted: true`를 붙이고 `anomaly_only=1`에서도 뺌 |
 | GET | `/api/kpi/summary/breakdown` | KPI 집계 값의 산출 근거 프로젝트 목록 |
 | POST | `/api/kpi/open-file` | 원본 PPT(또는 폴더) 열기 |
 | POST | `/api/kpi/reload` | 캐시 다시 읽기(로그인 불필요) |

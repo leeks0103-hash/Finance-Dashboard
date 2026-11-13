@@ -23,6 +23,8 @@ import type { Plugin, Chart, LegendItem, LegendElement, ChartEvent } from 'chart
 import CostFilterPopover from './CostFilterPopover';
 import PerfBreakdownModal from '@/components/features/PerfBreakdownModal/PerfBreakdownModal';
 import CostBreakdownModal from './CostBreakdownModal';
+import CostDumbbell from './CostDumbbell';
+import CostChartSwitch from './CostChartSwitch';
 import { canPerfBreakdown, type PerfBreakdownTarget } from '@/hooks/viewmodels/usePerfBreakdownViewModel';
 import type { PerfBreakdownChart } from '@/api/performance.api';
 import {
@@ -33,6 +35,7 @@ import type { ChartDataset, ChartOptions } from 'chart.js';
 import { stripPartPrefix, prefersReducedMotion, formatHeadcount } from '@/utils/format';
 import { getDatalabelAlpha } from '@/utils/datalabelFade';
 import { CHART_TUNING, tuningLabelFont, tuningBarSize, tuningTickFont, px } from './chartTuning';   // 차트별 여백·굵기·글자 조절표(2026-10-27)
+import { costRateLinePlugin, monthlyCostRates, RATE_BAND_PAD_TOP } from './costRateLine';
 import { SORTABLE_TRANSITION } from '@/components/ui/sortableMotion';
 import styles from './PerformanceChartSection.module.css';
 
@@ -440,6 +443,13 @@ export const costRatePlugin: Plugin<'bar'> = {
 // 원가율을 막대 위 별도 글씨(costRatePlugin) 대신 **원가 수치 라벨의 둘째 줄** "(54.8%)"로 — 글자색이 수치와 같고 개행만 함(2026-10-29 시도, 요청).
 // 월별 계획 분배(2027)·진도율(월별 실적 추이)·원가분석에 적용. 마음에 안 들면 false — costRatePlugin이 예전처럼 막대 위에 따로 그림(옵션 show가 !INLINE_COST_RATE를 따름)
 export const INLINE_COST_RATE = false;   // 2026-10-29: 둘째 줄 방식을 시도했다가 "퍼센트 수치 위치 롤백" 요청으로 끔 — 원가율은 예전처럼 막대 위 별도 글씨(costRatePlugin). 다시 쓰려면 true
+/**
+ * 진도율(월별 실적 추이)의 원가율 표시 방식(2026-11-11, 대표님 요청).
+ *   'line'     — 차트 위쪽 띠에 월별 원가율 꺾은선 + 수치(costRateLine.ts). 막대 크기와 무관한 자기 자리라 값이 비슷해도 겹치지 않음
+ *   'floating' — 예전 방식: 원가 막대 위에 따로 뜬 "(54.8%)"(costRatePlugin)
+ * ⚠️ 되돌리려면 이 값만 'floating'으로(예전 코드는 그대로 남아 있음). 진도율 차트만 적용 — 2027 계획 월별 분배(PerformancePlanChartSection)는 예전 방식 그대로
+ */
+export const COST_RATE_STYLE = 'floating' as 'line' | 'floating';   // as 단언: 값을 대입하면 TS가 타입을 그 값 하나로 좁혀 `=== 'line'` 비교가 오류가 됨   // 2026-11-11: 'line'을 적용해 봤다가 "그래프 안에 있으면 좋겠는데 애매하다"며 롤백 — 코드는 남겨 둠(다시 쓰려면 'line')
 /** i번째 막대의 원가율 글자 "(54.8%)" — 매출(데이터셋 0) 대비 원가(데이터셋 1 + 보이는 공통원가 2), costRatePlugin과 같은 계산. 값이 없거나 매출·원가를 숨겼으면 null */
 export const costRateText = (chart: Chart, i: number): string | null => {
   if (!chart.isDatasetVisible(0) || !chart.isDatasetVisible(1)) return null;
@@ -934,17 +944,35 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
     y: { grace: '15%', grid: { color: gridColor }, ticks: { color: tickColor } },
   }), [gridColor, tickColor]);
 
+  // 진도율 원가율 꺾은선(COST_RATE_STYLE 'line') — 월별 원가율(%)은 막대 위 원가율과 같은 값(차트에 보이는 매출·원가로 계산)
+  const rateLine = COST_RATE_STYLE === 'line';
+  const monthlyRates = useMemo(() => monthlyCostRates(vm.monthly.revenues, vm.monthly.costs), [vm.monthly.revenues, vm.monthly.costs]);
+
   const monthlyOptions = useMemo(() => ({
     ...vm.monthly.options,
     // 세로 막대라 수치가 막대 '위'에 찍힘 — makeBarOptions 최소 여백의 right 58(가로 막대 수치용)은 여기선
     // 오른쪽만 텅 비게 해서 덮어씀. 막대도 기본(0.8×0.9)보다 굵게 해 양옆 빈 공간을 줄임(2026-10-20)
     // ★ 여백·막대 굵기·글자 크기·자간 값은 chartTuning.ts의 CHART_TUNING.monthly 에서 고친다(2026-10-27 이동)
-    layout: { padding: CHART_TUNING.monthly.padding },
+    // 꺾은선 방식(COST_RATE_STYLE 'line')이면 위쪽에 원가율 띠 자리(RATE_BAND_PAD_TOP)를 확보
+    layout: { padding: rateLine ? { ...CHART_TUNING.monthly.padding, top: RATE_BAND_PAD_TOP } : CHART_TUNING.monthly.padding },
     datasets: tuningBarSize(CHART_TUNING.monthly),
     // 원가 막대 위 원가율 "(54.8%)"(costRatePlugin, 2026-10-21 요청) — 막대가 글자보다 좁으면 생략
     // 막대 위 수치(억·원가율)는 이 차트만 글자 1px 작게(14→13, 12→11) + 자간 좁게(tightLabelsPlugin) — 2026-10-23 요청
     plugins: {
       ...vm.monthly.options.plugins,
+      // 호버 툴팁에도 그 달 원가율 한 줄(꺾은선 방식일 때) — 띠에는 점이 작아 마우스로 짚기 어려워서
+      ...(rateLine ? {
+        tooltip: {
+          ...vm.monthly.options.plugins?.tooltip,
+          callbacks: {
+            ...vm.monthly.options.plugins?.tooltip?.callbacks,
+            afterBody: (items: { dataIndex: number }[]) => {
+              const r = monthlyRates[items[0]?.dataIndex ?? -1];
+              return r != null ? `원가율 ${r.toFixed(1)}%` : '';
+            },
+          },
+        },
+      } : {}),
       datalabels: {
         ...vm.monthly.options.plugins?.datalabels,
         font: tuningLabelFont(CHART_TUNING.monthly),
@@ -956,7 +984,18 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
           return r ? [t, r] : t;
         },
       },
-      costRate: { show: vm.showLabels && !INLINE_COST_RATE, text: dark ? 'rgb(0,170,210)' : 'rgb(0,119,147)', ...costRateTuning(CHART_TUNING.monthly) },
+      costRate: { show: vm.showLabels && !INLINE_COST_RATE && !rateLine, text: dark ? 'rgb(0,170,210)' : 'rgb(0,119,147)', ...costRateTuning(CHART_TUNING.monthly) },
+      costRateLine: {
+        show: vm.showLabels && rateLine,
+        rates: monthlyRates,
+        future: vm.monthly.isFuture,
+        color: dark ? 'rgb(0,170,210)' : 'rgb(0,119,147)',   // 예전 원가율 글씨와 같은 색
+        lossColor: palette.loss,
+        mutedColor: labelColor,
+        pointFill: surfaceColor,
+        fontPx: CHART_TUNING.monthly.costRate?.fontPx,
+        spacing: CHART_TUNING.monthly.costRate?.spacing != null ? px(CHART_TUNING.monthly.costRate.spacing) : undefined,
+      },
       tightLabels: { spacing: px(CHART_TUNING.monthly.labelSpacing) },
       tightTicks: { spacing: px(CHART_TUNING.monthly.tickSpacing), axes: ['x'] as ('x' | 'y')[] },   // 세로 막대 — 아래 월 글자 자간
     },
@@ -964,7 +1003,7 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
       x: { ...scaleOverride.x, ticks: { ...scaleOverride.x.ticks, ...tuningTickFont(CHART_TUNING.monthly) } },
       y: { ...scaleOverride.y, ticks: { ...scaleOverride.y.ticks, ...tuningTickFont(CHART_TUNING.monthly), callback: (v: string | number) => v + '억' } },
     },
-  }), [vm.monthly.options, scaleOverride, vm.showLabels, dark]);
+  }), [vm.monthly.options, vm.monthly.isFuture, monthlyRates, rateLine, scaleOverride, vm.showLabels, dark, palette.loss, labelColor, surfaceColor]);
 
   // 수치 글자색 = 그 막대 색(계획 회색 / 추정 실적 남색) — 공통 labelColor(남색)였을 땐 두 수치가
   // 같은 색이라 어느 막대 값인지 헷갈림(2026-09-29). 단 계획은 막대색(반투명 plan)이 글자로는 흐려서
@@ -1462,6 +1501,23 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
           plugins={[costRatePlugin, layerBoostPlugin, tightLabelsPlugin, tightTicksPlugin]}
         />
       );
+      // 덤벨 보기(2026-11-10) — 보이는 파트만, 막대와 같은 값(억). 직접원가 색은 막대와 같은 palette.cost, 공통원가 palette.costOverhead
+      const dumbbellEl = (
+        <CostDumbbell
+          rows={visibleLabels.map((part, k) => ({
+            part, revenue: pick(vm.profitRate.revenues)[k], direct: directs[k], overhead: overheads[k],
+          }))}
+          colors={{
+            revenue: palette.revenue, direct: palette.cost, overhead: palette.costOverhead,
+            overheadText: dark ? palette.costOverhead : 'rgb(78,99,122)',   // 글씨는 같은 회청색 계열의 진한 톤(라이트 배경에서 연해 안 보였음)
+            gain: palette.gain, gainText: dark ? palette.gain : 'rgb(28,122,78)', loss: palette.loss, rate: dark ? 'rgb(0,170,210)' : 'rgb(0,119,147)',
+            label: labelColor, tick: tickColor, grid: gridColor,
+            name: dark ? '#FFFFFF' : tickColor,   // 파트명 = 막대 차트 x축 파트명과 같은 색
+          }}
+          showLabels={vm.showLabels}
+          onSelect={handleAxisToggle}
+        />
+      );
       // 확대 모달 전용 — 목표선(매출/원가 계획)을 캔버스 플러그인으로 겹쳐 그려서 계획 대비
       // 실제를 바로 대조 + 표로 전체 파트 검증. line 데이터셋으로 넣으면 그룹 막대(매출/원가)
       // 사이 카테고리 중앙에 점이 찍히는 문제가 있어(planLinePlugin 주석 참고) 대신 실제 막대
@@ -1569,7 +1625,10 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
             </span>
             */}
           </ChartCard.Title>
-          <ChartCard.Body>{chartEl}</ChartCard.Body>
+          {/* 막대 ↔ 덤벨 — 관리자에게만 토글이 보임(CostChartSwitch). 덤벨은 같은 값·같은 색 역할(이익만 새 역할 gain, 초록) */}
+          <ChartCard.Body>
+            <CostChartSwitch bars={chartEl} dumbbell={dumbbellEl} />
+          </ChartCard.Body>
         </ChartCard>
       );
     },

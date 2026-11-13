@@ -497,7 +497,7 @@ def load_output_workbook(path: str, log, allow_recreate: bool = False):
         return load_workbook(path), "loaded"
     except Exception as e:   # noqa: BLE001
         reason = f"{type(e).__name__}: {e}"
-    log(f"[경고] 결과 엑셀을 못 열었습니다({reason}) — 파일은 지우지 않고 백업합니다")
+    log(f"[경고] 결과 엑셀을 못 열었습니다({reason}): 파일은 지우지 않고 백업합니다")
     bk = backup_output_file(path, keep=10, tag=".열기실패")
     if bk:
         log(f"[백업] {bk}")
@@ -518,7 +518,7 @@ def load_output_workbook(path: str, log, allow_recreate: bool = False):
         except Exception as e2:   # noqa: BLE001
             reason += f" / Excel로 읽기도 실패: {type(e2).__name__}: {e2}"
     raise RuntimeError(
-        f"결과 엑셀을 읽을 수 없어 추출을 중단합니다(기존 이력 보호) — {reason}. "
+        f"결과 엑셀을 읽을 수 없어 추출을 중단합니다(기존 이력 보호): {reason}. "
         f"백업: {bk or '못 만듦'}. 엑셀이 다른 곳에서 열려 있으면 닫고 다시 실행하거나, 이력을 버려도 되면 '초기화' 방식으로 추출하세요."
     )
 
@@ -649,7 +649,7 @@ def open_source_file(path: "str | None", check_only: bool = False, folder: bool 
     열람 중이어도 막지 않는다(2026-11-06 — 이전엔 잠금파일이 있으면 409로 막아, 남은 잠금파일에 영영 막혔음). 열었다는 기록만 남김.
     DRM 파일은 check 단계부터 거절(blocked=True) — PC마다 DRM 에이전트가 원본을 제자리 재암호화할 수 있어서(2026-09-23)."""
     if not path or not os.path.exists(path):
-        return {"ok": False, "message": "원본 위치를 찾을 수 없습니다 — 폴더가 이동했거나 재추출이 필요할 수 있습니다."}, 404
+        return {"ok": False, "message": "원본 위치를 찾을 수 없습니다. 폴더가 이동했거나 재추출이 필요할 수 있습니다."}, 404
     if folder:
         # 폴더 바로가기(2026-10-06) — 그 파일이 든 폴더를 탐색기로 열고 파일을 선택해 둠. 파일 자체는 안 열어서
         # DRM·열람 검사도 기록도 필요 없음(NAS 원본을 건드리지 않음)

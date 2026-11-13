@@ -36,7 +36,7 @@ const AdminQuickActions = ({ headcountKind = 'cur' }: Props) => {
       <div className={styles.wrap}>
         <Button variant="ghost" size="sm" className={styles.btn} icon={<GroupIcon />}
           onClick={() => setOpen(true)}
-          title="파트별 인원 입력 (인당 차트의 분모 — 관리자만)">
+          title="파트별 인원 입력 (인당 차트의 분모, 관리자만)">
           인원 입력
         </Button>
       </div>

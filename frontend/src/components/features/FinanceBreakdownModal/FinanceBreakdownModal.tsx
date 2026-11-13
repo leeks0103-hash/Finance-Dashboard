@@ -38,16 +38,16 @@ const FinanceBreakdownModal = ({ target, onClose }: Props) => {
       header: '파일명', size: 340,
       cell: i => {
         const v = i.getValue();
-        return <div className={styles.centerCell}>{v ? <CopyText text={v} onOpen={openFile} /> : '—'}</div>;
+        return <div className={styles.centerCell}>{v ? <CopyText text={v} onOpen={openFile} /> : '-'}</div>;
       },
     }),
     h.accessor('part', {
       header: '파트', size: 90,
-      cell: i => <div className={styles.centerCell}>{i.getValue() || '—'}</div>,
+      cell: i => <div className={styles.centerCell}>{i.getValue() || '-'}</div>,
     }),
     h.accessor('stage', {
       header: '보고단계', size: 90,
-      cell: i => <div className={styles.centerCell}>{i.getValue() || '—'}</div>,
+      cell: i => <div className={styles.centerCell}>{i.getValue() || '-'}</div>,
     }),
     h.accessor('value', {
       header: `값 (${vm.unit})`, size: 120,

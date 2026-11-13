@@ -15,7 +15,7 @@ const AdminChartColorSection = () => {
         <div className={styles.toggleText}>
           <span className={styles.label}>차트 색상</span>
           <span className={styles.toggleDesc}>
-            막대·도넛 차트의 역할별 색(주간/야간 따로)을 고릅니다 — 이 브라우저에만 저장되며 다른 사람 화면에는 적용되지 않습니다
+            막대·도넛 차트의 역할별 색(주간/야간 따로)을 고릅니다. 이 브라우저에만 저장되며 다른 사람 화면에는 적용되지 않습니다
           </span>
         </div>
         <Button variant="ghost" size="sm" onClick={() => setOpen(true)}>색상 바꾸기</Button>

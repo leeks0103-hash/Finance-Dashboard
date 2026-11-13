@@ -25,9 +25,9 @@ export type HeadcountKind = Kind;
 type Draft =Record<Kind, Record<string, string>>;
 
 const KIND_INFO: Record<Kind, { chip: string; title: string; desc: string; empty: string }> = {
-  cur: { chip: '2026년 인원', title: '2026년 인원', desc: '2026 실적 보기 — 인당 추정 매출·손익·관리비의 분모',
+  cur: { chip: '2026년 인원', title: '2026년 인원', desc: '2026 실적 보기: 인당 추정 매출·손익·관리비의 분모',
          empty: '2026 인원을 비운 파트는 2026 실적 보기의 인당 차트에서 빠집니다' },
-  y27: { chip: '2027년 인원', title: '2027년 인원', desc: '2027 계획 보기 — 인당 매출·관리비·손익(27 계획 금액)의 분모',
+  y27: { chip: '2027년 인원', title: '2027년 인원', desc: '2027 계획 보기: 인당 매출·관리비·손익(27 계획 금액)의 분모',
          empty: '2027 인원을 비운 파트는 2027 계획 보기의 인당 차트에서 빠집니다(2026 인원으로 대신하지 않음)' },
 };
 
@@ -119,7 +119,7 @@ const PartHeadcountPanel = ({ hideTitle = false, initialKind = 'cur' }: { hideTi
         {!hideTitle && (
           <div className={styles.titleBox}>
             <span className={styles.title}>파트별 인원</span>
-            <span className={styles.sub}>2026·2027 인원을 따로 입력합니다 — 각 연도 보기의 인당 매출·손익·관리비의 분모이고, 저장하면 모든 사용자에게 바로 반영돼요</span>
+            <span className={styles.sub}>2026·2027 인원을 따로 입력합니다. 각 연도 보기의 인당 매출·손익·관리비의 분모이고, 저장하면 모든 사용자에게 바로 반영돼요</span>
           </div>
         )}
         {settings.updated_at && (

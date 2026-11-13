@@ -13,7 +13,7 @@ interface Props {
  */
 // 계획 인원은 2026-10-27 주석 처리 — 부제도 현재 인원만 안내
 const PartHeadcountModal = ({ initialKind, onClose }: Props) => (
-  <Modal title="파트별 인원" sub="2026·2027 인원 — 각 연도 보기 인당 차트의 분모, 저장하면 모든 사용자에게 바로 반영됩니다"
+  <Modal title="파트별 인원" sub="2026·2027 인원: 각 연도 보기 인당 차트의 분모, 저장하면 모든 사용자에게 바로 반영됩니다"
     width="min(960px, 94vw)" onClose={onClose}>
     <PartHeadcountPanel hideTitle initialKind={initialKind} />
   </Modal>

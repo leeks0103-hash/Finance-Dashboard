@@ -26,7 +26,7 @@ const FinanceDetailButton = () => {
     <>
       <Button variant="ghost" size="sm" icon={<ReportIcon />}
         onClick={() => setOpen(true)}
-        title="프로젝트 재무 상세 — 재무 보고서(PPT)에서 뽑은 프로젝트별 재무 이력을 바로 확인">
+        title="프로젝트 재무 상세: 재무 보고서(PPT)에서 뽑은 프로젝트별 재무 이력을 바로 확인">
         재무 상세
       </Button>
       {open && <FinanceDataModal onClose={() => setOpen(false)} />}

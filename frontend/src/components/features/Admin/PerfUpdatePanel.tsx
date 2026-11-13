@@ -112,7 +112,7 @@ const PerfUpdatePanel = () => {
         <input ref={inputRef} type="file" accept=".xlsx,.xlsb" hidden
           onChange={e => { send(e.target.files?.[0]); e.target.value = ''; }} />
       </div>
-      {upload.isError && <div className={styles.error}>올리지 못했습니다 — {errText(upload.error)}</div>}
+      {upload.isError && <div className={styles.error}>올리지 못했습니다. {errText(upload.error)}</div>}
       {upload.data?.notice && <div className={styles.notice}>{upload.data.notice}</div>}
 
       {isLoading && <div className={styles.muted}>상태 불러오는 중…</div>}
@@ -174,7 +174,7 @@ const PerfUpdatePanel = () => {
       */}
       {!!status?.files?.length && (
         <div className={styles.muted} title={status.files.join('\n')}>
-          data 폴더 실적 파일 {status.files.length}개 — 가장 최신(파일명 날짜 기준)을 씁니다
+          data 폴더 실적 파일 {status.files.length}개: 가장 최신(파일명 날짜 기준)을 씁니다
         </div>
       )}
     </section>

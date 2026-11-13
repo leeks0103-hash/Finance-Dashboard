@@ -17,7 +17,7 @@ const clear: NotificationViewModel = {
 const alert: NotificationViewModel = {
   total: 7, unread: true, checkedAt: '2026-11-06 08:00', checkFailed: false, enabled: true, scheduleText: '매일 오전 8시에 확인', markSeen,
   groups: [{ key: 'finance', label: '재무', items: [{ label: '열기 실패', count: 7 }] }],
-  summaryLines: ['재무 — 열기 실패 7'],
+  summaryLines: ['재무: 열기 실패 7'],
 };
 const seenAlert: NotificationViewModel = { ...alert, unread: false };
 

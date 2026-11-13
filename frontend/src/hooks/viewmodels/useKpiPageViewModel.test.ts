@@ -4,12 +4,16 @@ import { useUiStore } from '@/store';
 
 let anomalyCount = 3;
 const useKpiDataPaged = vi.fn();
+const exceptSet = vi.fn();
+const anomaly = { id: 'a.pptx|E1|추가', project_code: 'E1', stage: '추가', file: 'a.pptx', metrics: [{ metric: 'NPS', value: '4' }] };
+const excepted = { ...anomaly, id: 'b.pptx|E2|추가', project_code: 'E2', file: 'b.pptx', by: '관리자', at: '2026-11-11 09:00:00' };
 vi.mock('@/hooks/useKpiSummary', () => ({
   useKpiSummary: () => ({
-    data: { available: true, items: [], anomaly_count: anomalyCount, anomalies: [] },
+    data: { available: true, items: [], anomaly_count: anomalyCount, anomalies: [anomaly], excepted: [excepted] },
     isLoading: false, isError: false, refetch: vi.fn(),
   }),
   useKpiDataPaged: (...a: unknown[]) => { useKpiDataPaged(...a); return { data: { rows: [], total: 0 }, isLoading: false, isFetching: false }; },
+  useKpiAnomalyException: () => ({ pending: false, set: exceptSet }),
 }));
 
 let visible = true;
@@ -20,7 +24,11 @@ vi.mock('@/hooks/useVisibility', () => ({
 }));
 
 const confirmDialog = vi.fn();
-vi.mock('@/utils/dialog', () => ({ confirmDialog: (...a: unknown[]) => confirmDialog(...a) }));
+const alertDialog = vi.fn();
+vi.mock('@/utils/dialog', () => ({
+  confirmDialog: (...a: unknown[]) => confirmDialog(...a),
+  alertDialog: (...a: unknown[]) => alertDialog(...a),
+}));
 
 import { useKpiPageViewModel } from './useKpiPageViewModel';
 
@@ -30,6 +38,8 @@ beforeEach(() => {
   useKpiDataPaged.mockClear();
   updateVisibility.mockClear();
   confirmDialog.mockReset().mockResolvedValue(true);
+  alertDialog.mockReset();
+  exceptSet.mockReset().mockResolvedValue({ ok: true });
   useUiStore.setState({ adminAuthed: false });
 });
 
@@ -80,5 +90,40 @@ describe('KPI 조기입력 의심 안내 — 관리자가 닫으면 모두에게
     visible = false;
     renderHook(() => useKpiPageViewModel('', true));
     expect(useKpiDataPaged.mock.calls.at(-1)![2]).toBe(false);     // 닫힌 뒤엔 풀림
+  });
+});
+
+describe('KPI 조기입력 의심 — 관리자 예외 처리 (2026-11-11)', () => {
+  it('예외 처리 버튼·예외 목록은 관리자에게만', () => {
+    const user = renderHook(() => useKpiPageViewModel()).result.current;
+    expect(user.canExceptAnomaly).toBe(false);
+    expect(user.exceptedAnomalies).toEqual([]);
+
+    useUiStore.setState({ adminAuthed: true });
+    const admin = renderHook(() => useKpiPageViewModel()).result.current;
+    expect(admin.canExceptAnomaly).toBe(true);
+    expect(admin.exceptedAnomalies).toEqual([excepted]);
+  });
+
+  it('예외 처리 — 확인창에서 확인해야 그 건의 id로 서버에 요청', async () => {
+    useUiStore.setState({ adminAuthed: true });
+    const { result } = renderHook(() => useKpiPageViewModel());
+    confirmDialog.mockResolvedValueOnce(false);
+    await result.current.exceptAnomaly(anomaly, true);
+    expect(exceptSet).not.toHaveBeenCalled();
+
+    await result.current.exceptAnomaly(anomaly, true);
+    expect(exceptSet).toHaveBeenCalledWith([anomaly.id], true);
+  });
+
+  it('해제 — done=false로 요청, 서버가 거절하면 이유를 알림', async () => {
+    useUiStore.setState({ adminAuthed: true });
+    const { result } = renderHook(() => useKpiPageViewModel());
+    await result.current.exceptAnomaly(excepted, false);
+    expect(exceptSet).toHaveBeenCalledWith([excepted.id], false);
+
+    exceptSet.mockResolvedValueOnce({ ok: false, error: '지금 의심 항목이 아닙니다' });
+    await result.current.exceptAnomaly(anomaly, true);
+    expect(alertDialog).toHaveBeenCalledWith('지금 의심 항목이 아닙니다', { error: true });
   });
 });

@@ -32,7 +32,7 @@ const OpenToolSetupModal = () => {
           <span className={styles.hint}>“Windows의 PC 보호” 창이 뜨면 [추가 정보] → [실행]. 관리자 권한은 필요 없습니다.</span>
         </li>
         <li>
-          “설치가 끝났습니다”가 나오면 완료 — 대시보드가 다시 열리며 바로가기 버튼이 나타납니다.
+          “설치가 끝났습니다”가 나오면 완료, 대시보드가 다시 열리며 바로가기 버튼이 나타납니다.
           <span className={styles.hint}>처음 파일을 열 때 브라우저가 “열도록 허용할까요?”라고 물으면 <strong>항상 허용</strong>을 선택하세요.</span>
         </li>
       </ol>

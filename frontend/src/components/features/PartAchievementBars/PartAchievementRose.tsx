@@ -68,7 +68,9 @@ const MIN_SLOTS = 6;
 const LABEL_GAP = 10;   // 가장 바깥 눈금과 라벨 사이 간격(px)
 // 긴 파트명(7자 이상, 가운뎃점 있음)은 점 자리에서 두 줄로 — 좌우 라벨이 캔버스 끝에서 잘리지 않게(가로 막대 차트의 breakAtDotTick과 같은 규칙)
 const breakName = (name: string) => (name.length >= 7 && name.includes('ㆍ') ? name.replace('ㆍ', 'ㆍ\n') : name);
-const FONT = "600 9px 'Pretendard', 'Malgun Gothic', sans-serif";
+// 글씨가 작고 가늘어 흐릿하다는 지적(2026-11-10) — 막대 차트 데이터 라벨(12px 볼드, chartTuning LABEL_FAMILY)과 같게. 기준 알약 글씨도 9px 600 → 10px 볼드
+const LABEL_FAMILY = "'Pretendard', 'Malgun Gothic', sans-serif";
+const FONT = `700 10px ${LABEL_FAMILY}`;
 
 // 기준 동심원(30/60/100%) — 꽃잎 위에 점선으로, 수치는 맨 위(12시)에 알약으로. 테마별로 한 번씩만 만들어 둠
 // (react-chartjs-2의 plugins prop은 차트를 처음 만들 때만 읽어서, 테마가 바뀌면 key로 차트를 새로 만든다)
@@ -97,7 +99,7 @@ const makeRingsPlugin = (t: RoseTheme): Plugin<'polarArea'> => ({
       const d = r.getDistanceFromCenterForValue(v);
       const text = `${v}%`;
       const w = ctx.measureText(text).width + 8;
-      const h = 13;
+      const h = 15;
       const x = r.xCenter - w / 2;
       const y = r.yCenter - d - h / 2;
       ctx.fillStyle = t.pillBg;
@@ -148,7 +150,7 @@ const PartAchievementRose = ({ rows, dark = true, onPartClick }: Props) => {
     responsive: true,
     maintainAspectRatio: false,
     animation: prefersReducedMotion() ? false : { duration: 600 },
-    layout: { padding: { top: 36, bottom: 36, left: 72, right: 72 } },   // 바깥 이름·수치 라벨 자리(눈금 밖에 놓으므로 넉넉히)
+    layout: { padding: { top: 40, bottom: 40, left: 84, right: 84 } },   // 바깥 이름·수치 라벨 자리(눈금 밖에 놓으므로 넉넉히)
     scales: {
       r: {
         min: 0,
@@ -186,7 +188,7 @@ const PartAchievementRose = ({ rows, dark = true, onPartClick }: Props) => {
         clamp: false,
         textAlign: 'center',
         color: labelColor,
-        font: { size: 10, weight: 600 },
+        font: { size: 12, weight: 'bold', family: LABEL_FAMILY },
         display: (ctx: { dataIndex: number }) => slots[ctx.dataIndex] != null,
         formatter: (v: number | null, ctx: { dataIndex: number }) => (v == null ? '' : `${breakName(labels[ctx.dataIndex])}\n${v.toFixed(0)}%`),
       },

@@ -117,10 +117,10 @@ const AdminPage = () => {
       </aside>
 
       <div className={styles.content}>
-        <Block id="settings" label="화면 설정" desc="공개 범위 · 로그인 요구 · AI 인사이트 — 바꾸면 접속한 모든 사람에게 적용">
+        <Block id="settings" label="화면 설정" desc="공개 범위 · 로그인 요구 · AI 인사이트, 바꾸면 접속한 모든 사람에게 적용">
           <AdminSettingsSection />
         </Block>
-        <Block id="chart-colors" label="차트 색상" desc="역할별 색 선택 — 이 브라우저에만 저장">
+        <Block id="chart-colors" label="차트 색상" desc="역할별 색 선택: 이 브라우저에만 저장">
           <AdminChartColorSection />
         </Block>
         <Block id="perf-file" label="실적현황 파일" desc="새 실적 엑셀을 넣으면 열 맞추기·계산식 검증 후 자동 반영">

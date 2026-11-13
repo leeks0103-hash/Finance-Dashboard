@@ -3,12 +3,14 @@ import os
 import re
 import threading
 from datetime import datetime
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 from dotenv import load_dotenv
 from flask import Blueprint, jsonify, request
 from shared import new_excel_app, safe_mtime, find_source_path, open_source_file, current_opener, sort_frame, nonblank, parse_page_args
+from auth import is_admin, current_admin
 import paths
 
 load_dotenv()
@@ -136,7 +138,7 @@ def _merge_rise_mega_rows(df: pd.DataFrame, code_col: str) -> pd.DataFrame:
     if len(group) != len(_RISE_MEGA_CODES):
         if len(group) > 0:
             logger.warning(
-                "RISE-MEGA 병합 스킵 — 기대한 %d행이 아니라 %d행 발견(재추출로 데이터가 바뀌었을 수 있음)",
+                "RISE-MEGA 병합 스킵, 기대한 %d행이 아니라 %d행 발견(재추출로 데이터가 바뀌었을 수 있음)",
                 len(_RISE_MEGA_CODES), len(group),
             )
         return df
@@ -319,11 +321,18 @@ def _is_real_value(v) -> bool:
     return s not in ("", "0", "0.0", "N", "n", "nan", "NaN")
 
 
+def _anomaly_id(file: str, code: str, stage: str) -> str:
+    return f"{file}|{code}|{stage}"
+
+
 def _find_premature_actual_rows() -> list:
     """보고단계가 '완료'가 아닌데 실적(PJ실적)이 이미 채워진 행 — 조기입력 의심 (2026-09-14).
 
     KPI 취합 표에서 빨간 행 표시(kpiColumns.ts isPrematureActualRow)와 같은 판정 기준 —
     프론트가 이걸 다시 계산하지 않고 이 목록을 그대로 팝업/배지에 쓴다.
+
+    **한 건 = 프로젝트(파일·코드·보고단계) 하나**(2026-11-11). 지표가 여러 개 채워져 있어도 한 건이고,
+    어느 지표인지는 `metrics`에 모음(예전엔 지표마다 한 건씩 세서 한 프로젝트가 3건으로 부풀려졌음).
     """
     df = get_kpi_df()
     if df.empty:
@@ -335,20 +344,113 @@ def _find_premature_actual_rows() -> list:
         return []
     actual_cols = [c for c in df.columns if str(c).endswith("_PJ실적")]
 
-    out = []
+    groups: dict = {}
     for _, row in df.iterrows():
         stage = str(row[stage_col]).strip()
         if not stage or stage == _COMPLETE_STAGE:
             continue
+        code = str(row[code_col]).strip() if code_col else ""
+        file = str(row[file_col]).strip() if file_col else ""
         for col in actual_cols:
-            if _is_real_value(row[col]):
-                out.append({
-                    "project_code": str(row[code_col]).strip() if code_col else "",
-                    "stage":        stage,
-                    "metric":       col[:-len("_PJ실적")],
-                    "file":         str(row[file_col]).strip() if file_col else "",
-                })
-    return out
+            if not _is_real_value(row[col]):
+                continue
+            g = groups.setdefault(_anomaly_id(file, code, stage), {
+                "id": _anomaly_id(file, code, stage), "project_code": code, "stage": stage, "file": file, "metrics": [],
+            })
+            g["metrics"].append({"metric": col[:-len("_PJ실적")], "value": str(row[col]).strip()})
+    return list(groups.values())
+
+
+# ── 조기입력 의심 "관리자 예외 처리"(2026-11-11) ─────────────────────────────────────────
+# 의도한 입력(양식이 달라 완료 전에도 실적 칸이 채워지는 프로젝트 등)을 관리자가 안내 배너·빨간 행에서 뺄 수 있게.
+# · 관리자만 처리·해제. 처리하면 모든 사람 화면의 건수·배너에서 빠지고, 관리자 응답(excepted)에는 남음
+# · 처리할 때 그 건의 '내용'(지표 이름+값)의 서명을 같이 저장 → PPT가 고쳐져 값이 달라지면 저절로 풀려 다시 의심으로 표시
+# · 이상이 사라지면 기록도 정리(그 뒤 같은 이상이 다시 생기면 새 이상). 데이터 이상("!")의 예외 처리와는 별개 파일
+_ANOM_EXC_PATH = Path(__file__).parent / "data" / "kpi_anomaly_exceptions.json"
+_anom_exc_lock = threading.Lock()
+
+
+def _read_anomaly_exceptions() -> dict:
+    import json
+    try:
+        data = json.loads(_ANOM_EXC_PATH.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else {}
+    except FileNotFoundError:
+        return {}
+    except Exception:
+        logger.warning("KPI 조기입력 예외 처리 파일을 못 읽음 — 무시: %s", _ANOM_EXC_PATH)
+        return {}
+
+
+def _write_anomaly_exceptions(data: dict) -> None:
+    import json
+    _ANOM_EXC_PATH.parent.mkdir(exist_ok=True)
+    tmp = _ANOM_EXC_PATH.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    os.replace(tmp, _ANOM_EXC_PATH)
+
+
+def _anomaly_signature(group: dict) -> str:
+    import hashlib
+    key = "\n".join(sorted(f"{m['metric']}={m['value']}" for m in group["metrics"]))
+    return hashlib.sha1(key.encode("utf-8")).hexdigest()[:16]
+
+
+def _split_anomalies() -> "tuple[list, list]":
+    """(안내에 보일 의심 건, 관리자가 예외 처리한 건[by·at 포함]) — 서명이 달라졌거나 사라진 예외 기록은 정리"""
+    groups = _find_premature_actual_rows()
+    with _anom_exc_lock:
+        saved = _read_anomaly_exceptions()
+        if not saved:
+            return groups, []
+        by_id = {g["id"]: g for g in groups}
+        keep, visible, excepted = {}, [], []
+        for gid, exc in saved.items():
+            g = by_id.get(gid)
+            if g and exc.get("sig") == _anomaly_signature(g):
+                keep[gid] = exc
+            else:
+                logger.info("[KPI 조기입력] 예외 처리 해제(값이 바뀌었거나 해소됨): %s", gid)
+        for g in groups:
+            exc = keep.get(g["id"])
+            if exc:
+                excepted.append({**g, "by": exc.get("by", ""), "at": exc.get("at", "")})
+            else:
+                visible.append(g)
+        if keep != saved:
+            _write_anomaly_exceptions(keep)
+        return visible, excepted
+
+
+@kpi_bp.route("/api/kpi/anomaly-exception", methods=["POST"])
+def api_kpi_anomaly_exception():
+    """**관리자** {ids, done} — done=true면 그 건들의 지금 조기입력 의심을 예외 처리(안내·빨간 행에서 뺌), false면 해제"""
+    if not is_admin(request):
+        return jsonify({"ok": False, "error": "권한이 없습니다"}), 403
+    body = request.get_json(silent=True) or {}
+    ids = list(dict.fromkeys(str(i).strip() for i in (body.get("ids") or []) if str(i).strip()))
+    if not ids or len(ids) > 20 or any(len(i) > 400 for i in ids):
+        return jsonify({"ok": False, "error": "대상이 없거나 너무 많습니다"}), 400
+    done = bool(body.get("done", True))
+    user = current_admin(request) or {}
+    who = user.get("name") or user.get("emp_no") or ""
+
+    with _anom_exc_lock:
+        saved = _read_anomaly_exceptions()
+        if done:
+            by_id = {g["id"]: g for g in _find_premature_actual_rows()}
+            missing = [i for i in ids if i not in by_id]
+            if missing:
+                return jsonify({"ok": False, "error": f"지금 의심 항목이 아닙니다: {missing[0]}"}), 400
+            now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            for i in ids:
+                saved[i] = {"sig": _anomaly_signature(by_id[i]), "at": now, "by": who}
+        else:
+            for i in ids:
+                saved.pop(i, None)
+        _write_anomaly_exceptions(saved)
+    logger.info("[KPI 조기입력] 관리자 예외 처리 %s(%s): %s", "설정" if done else "해제", who, ", ".join(ids))
+    return jsonify({"ok": True})
 
 
 def _load_kpi_items_from_cache() -> list:
@@ -623,9 +725,9 @@ def api_kpi_data():
 
     df = apply_kpi_filters(df)
 
+    visible_anoms, excepted_anoms = _split_anomalies()
     if request.args.get("anomaly_only") == "1":
-        anomalies = _find_premature_actual_rows()
-        keys = {(a["project_code"], a["stage"]) for a in anomalies}
+        keys = {(a["project_code"], a["stage"]) for a in visible_anoms}
         code_col  = next((c for c in df.columns if "프로젝트코드" in str(c)), None)
         stage_col = next((c for c in df.columns if "보고단계" in str(c)), None)
         if code_col and stage_col:
@@ -654,7 +756,16 @@ def api_kpi_data():
     start = (page - 1) * page_size
     paged = df.iloc[start:start + page_size].copy().replace({float("nan"): None})
     paged["_row_num"] = range(start, start + len(paged))
-    return jsonify({"data": paged.to_dict(orient="records"), "total": total})
+    records = paged.to_dict(orient="records")
+    # 관리자가 예외 처리한 건의 행은 화면에서 빨간 의심 행으로 안 칠하도록 표시(rowspan 표가 읽음)
+    if excepted_anoms:
+        exc_ids = {a["id"] for a in excepted_anoms}
+        for rec in records:
+            rid = _anomaly_id(str(rec.get("파일명") or "").strip(), str(rec.get("프로젝트코드") or "").strip(),
+                              str(rec.get("보고단계") or "").strip())
+            if rid in exc_ids:
+                rec["_anomaly_excepted"] = True
+    return jsonify({"data": records, "total": total})
 
 
 @kpi_bp.route("/api/kpi/summary")
@@ -744,10 +855,12 @@ def api_kpi_summary():
         for idx, row in enumerate(result):
             row["plan_target"] = _PLAN_TARGETS[idx] if idx < len(_PLAN_TARGETS) else "-"
 
-        anomalies = _find_premature_actual_rows()
+        anomalies, excepted = _split_anomalies()
 
+        # 예외 처리한 건은 관리자에게만(해제할 자리가 필요) — 일반 사용자 응답엔 빈 목록
         return jsonify({"available": True, "items": result,
-                         "anomaly_count": len(anomalies), "anomalies": anomalies[:30]})
+                         "anomaly_count": len(anomalies), "anomalies": anomalies[:30],
+                         "excepted": excepted if is_admin(request) else []})
 
     except Exception as e:
         logger.error("api_kpi_summary 오류: %s", e)

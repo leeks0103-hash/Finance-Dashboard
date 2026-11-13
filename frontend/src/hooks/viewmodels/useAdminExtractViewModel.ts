@@ -17,7 +17,7 @@ export const EXTRACT_MODE_INFO: Record<PickMode, { label: string; desc: string }
   },
   selected: {
     label: '선택',
-    desc: '아래에서 고른 파일만 다시 읽습니다. 고른 파일 이름으로 남아 있던 기존 행은 지우고 새로 넣어(덮어쓰기) PPT에서 지운 행·바뀐 코드·지운 비고까지 그대로 반영합니다. 파일을 열지 못하면 기존 행은 그대로 둡니다. 다른 파일은 건드리지 않습니다. 빨간 행(!)은 데이터 이상(상단 "!" 배지)에 걸린 파일로 목록 맨 위에 모아 둡니다 — PPT를 고친 뒤 골라서 다시 추출하세요. 담당자가 "!" 목록에서 "수정 완료"를 누른 파일은 파란 "✓ 수정 완료" 배지가 붙고 빨간 행 중 맨 위로 옵니다 — 그 파일만 골라 다시 추출하면 됩니다(다시 추출하면 배지는 저절로 사라짐).',
+    desc: '아래에서 고른 파일만 다시 읽습니다. 고른 파일 이름으로 남아 있던 기존 행은 지우고 새로 넣어(덮어쓰기) PPT에서 지운 행·바뀐 코드·지운 비고까지 그대로 반영합니다. 파일을 열지 못하면 기존 행은 그대로 둡니다. 다른 파일은 건드리지 않습니다. 빨간 행(!)은 데이터 이상(상단 "!" 배지)에 걸린 파일로 목록 맨 위에 모아 둡니다. PPT를 고친 뒤 골라서 다시 추출하세요. 담당자가 "!" 목록에서 "수정 완료"를 누른 파일은 파란 "✓ 수정 완료" 배지가 붙고 빨간 행 중 맨 위로 옵니다. 그 파일만 골라 다시 추출하면 됩니다(다시 추출하면 배지는 저절로 사라짐).',
   },
   // force: {
   //   label: '전체',
@@ -71,7 +71,7 @@ export const useAdminExtractViewModel = (extractJob: ReturnType<typeof useExtrac
     const targetLabel = targets.map(t => EXTRACT_TARGET_LABEL[t]).join(' + ');
     const shown = selectedFiles.slice(0, 8).map(f => `· ${f}`).join('\n');
     const more = selectedFiles.length > 8 ? `\n· 외 ${selectedFiles.length - 8}개` : '';
-    const selMsg = `${targetLabel} — 고른 파일 ${selectedFiles.length}개를 다시 추출합니다.\n\n${shown}${more}\n\n`
+    const selMsg = `${targetLabel}: 고른 파일 ${selectedFiles.length}개를 다시 추출합니다.\n\n${shown}${more}\n\n`
       + '이 파일 이름으로 남은 기존 행은 지우고 새로 넣습니다. 다른 파일과 같은 (코드/연도/단계) 행이 있으면 이번 값으로 덮어씁니다.';
     if (!await confirmDialog(selMsg, { title: '선택한 파일 다시 추출', confirmText: '다시 추출' })) return;
     selectedRunRef.current = { finishedAt: extractJob.status?.finished_at };

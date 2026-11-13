@@ -26,12 +26,12 @@ const HealthExceptionButton = ({ files }: Props) => {
       const r = await ex.set(files, true);
       if (!r.ok) await alertDialog(r.error ?? '예외 처리하지 못했습니다', { error: true });
     } catch {
-      await alertDialog('예외 처리하지 못했습니다 — 잠시 뒤 다시 시도하세요', { error: true });
+      await alertDialog('예외 처리하지 못했습니다. 잠시 뒤 다시 시도하세요', { error: true });
     }
   };
   return (
     <Button unstyled className={styles.btn} onClick={run} disabled={ex.pending}
-      title="의도한 불일치면 눌러 주세요 — 빨간 느낌표에서 빠지고 관리자 페이지에 남습니다">
+      title="의도한 불일치면 눌러 주세요. 빨간 느낌표에서 빠지고 관리자 페이지에 남습니다">
       예외 처리
     </Button>
   );

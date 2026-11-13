@@ -31,6 +31,12 @@ export const getKpiData = (
   return client.get<PagedResponse<KpiRawRow>>('/kpi/data', { params }).then(r => r.data);
 };
 
+/** 관리자 — 조기입력 의심 건을 예외 처리(done=true)/해제(false). 서버가 그 건의 현재 내용을 기억해 값이 바뀌면 저절로 풀림 */
+export const setKpiAnomalyException = (ids: string[], done: boolean): Promise<{ ok: boolean; error?: string }> =>
+  client.post<{ ok: boolean; error?: string }>('/kpi/anomaly-exception', { ids, done })
+    .then(r => r.data)
+    .catch((err): { ok: boolean; error?: string } => err?.response?.data ?? { ok: false, error: '처리하지 못했습니다' });
+
 export const reloadKpiData = () =>
   client.post('/kpi/reload').then(r => r.data);
 

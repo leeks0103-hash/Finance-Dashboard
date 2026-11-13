@@ -12,7 +12,7 @@ import styles from './PerformancePage.module.css';
 const PLAN_KPI_ORDER_KEY = 'performance-kpi-order-plan27-v1';
 
 const INFO_PLAN_TABLE =
-  '2027년 사업계획 시트의 프로젝트당 한 줄(매출행 + 원가행). "26 추정"은 시트의 2026년 연간 추정, "27 계획"은 2027년 사업계획 합계 — ' +
+  '2027년 사업계획 시트의 프로젝트당 한 줄(매출행 + 원가행). "26 추정"은 시트의 2026년 연간 추정, "27 계획"은 2027년 사업계획 합계, ' +
   '증감 금액 = 27 계획 − 26 추정. 월별 값은 계획 분배이며 실적·재무 대조는 없습니다.';
 
 /**
@@ -32,7 +32,7 @@ const PerformancePlanPage = () => {
       {!noteDismissed && (
         <div className={styles.planNote} role="note">
           <p className={styles.planNoteText}>
-            {vm.yearLabel ? `${vm.yearLabel} ` : ''}사업계획 시트 기준 — 27 사업계획을 이 시트의 "2026년 연간 추정" 열과 비교합니다.
+            {vm.yearLabel ? `${vm.yearLabel} ` : ''}사업계획 시트 기준: 27 사업계획을 이 시트의 "2026년 연간 추정" 열과 비교합니다.
             월별 값은 계획 분배이며 실적·달성률은 없습니다.
             이 "26 추정"은 시트에 입력된 값이라 2026 실적 보기의 추정과 다를 수 있습니다.
           </p>
@@ -59,7 +59,7 @@ const PerformancePlanPage = () => {
             <HrefDownloadButton
               href={vm.exportHref}
               confirmText="지금 표의 필터·검색·정렬 그대로 전체 프로젝트를 받습니다."
-              title="프로젝트 상세 엑셀 — 2027 사업계획"
+              title="프로젝트 상세 엑셀: 2027 사업계획"
             />
           }
           isLoading={vm.isLoading}

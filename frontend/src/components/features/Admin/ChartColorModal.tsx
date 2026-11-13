@@ -92,7 +92,7 @@ const CustomPicker = ({ initial, mode, onPick }: { initial: string; mode: ColorM
         </label>
         {invalid && <span className={styles.hexError}>3자리 또는 6자리 16진수(0~9, a~f)로 입력하세요</span>}
         <span className={styles.pickerHint}>
-          {mode === 'dark' ? '야간 모드에만 적용 — 남색 배경에 묻히면 밝게 보정' : '주간 모드에만 적용 — 야간 색은 야간 탭에서 따로'}
+          {mode === 'dark' ? '야간 모드에만 적용: 남색 배경에 묻히면 밝게 보정' : '주간 모드에만 적용: 야간 색은 야간 탭에서 따로'}
         </span>
       </div>
     </div>

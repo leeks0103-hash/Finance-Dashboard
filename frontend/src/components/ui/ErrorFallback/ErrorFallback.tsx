@@ -19,7 +19,7 @@ const ErrorFallback = ({
 }: Props) => (
   <div className={`${styles.wrap}${compact ? ` ${styles.compact}` : ''}`} role="alert">
     <span className={styles.icon}>⚠️</span>
-    <p className={styles.message}>{message ?? `${title} — ${description}`}</p>
+    <p className={styles.message}>{message ?? `${title}: ${description}`}</p>
     {onRetry && (
       <Button variant="danger" size="sm" onClick={onRetry}>다시 시도</Button>
     )}
