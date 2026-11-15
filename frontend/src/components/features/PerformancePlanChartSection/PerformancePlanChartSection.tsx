@@ -8,7 +8,7 @@ import {
   INLINE_COST_RATE, costRateText,
   layerBoostPlugin, SEGMENT_LABEL, SIDE_LABEL, costLabelAlign, realValue, LABEL_PAD_X, REV_COST_LABEL_OFFSET,
 } from '@/components/features/PerformanceChartSection/PerformanceChartSection';
-import { CHART_TUNING, tuningBarSize, tuningLabelFont, tuningTickFont, px } from '@/components/features/PerformanceChartSection/chartTuning';
+import { CHART_TUNING, tuningBarSize, tuningLabelFont, tuningTickFont, tightNegativeMin, px } from '@/components/features/PerformanceChartSection/chartTuning';
 import { useTheme } from '@/hooks';
 import { useUiStore } from '@/store';
 import AdminQuickActions from '@/components/features/Admin/AdminQuickActions';
@@ -270,6 +270,7 @@ const PerformancePlanChartSection = ({ chart, composition }: Props) => {
         },
       } as Partial<ChartOptions<'bar'>>);
       const hasNegative = values.some(v => v < 0);
+      const negMin = tightNegativeMin(values);   // 마이너스 막대가 있을 때만 축 최소값을 데이터에 맞춤(2026 인당 차트와 같음, 2026-11-13)
       return {
         ...base,
         layout: { padding: { ...t.padding, left: hasNegative && t.leftIfNegative != null ? t.leftIfNegative : t.padding.left } },
@@ -281,7 +282,10 @@ const PerformancePlanChartSection = ({ chart, composition }: Props) => {
           tightTicks: { spacing: px(t.tickSpacing), axes: ['y'] as ('x' | 'y')[] },
         },
         scales: {
-          x: { ...scales.x, grace: 0, ticks: { ...scales.x.ticks, ...tuningTickFont(t), ...eokTick } },
+          x: {
+            ...scales.x, grace: 0, ...(negMin != null ? { min: negMin } : {}),
+            ticks: { ...scales.x.ticks, ...tuningTickFont(t), ...(negMin != null ? { includeBounds: false } : {}), ...eokTick },
+          },
           y: { ...scales.y, ticks: { ...scales.y.ticks, ...tuningTickFont(t), ...(t.breakTickAtDot ? { callback: breakAtDotTick } : {}) } },
         },
       } as ChartOptions<'bar'>;

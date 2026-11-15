@@ -34,7 +34,7 @@ import {
 import type { ChartDataset, ChartOptions } from 'chart.js';
 import { stripPartPrefix, prefersReducedMotion, formatHeadcount } from '@/utils/format';
 import { getDatalabelAlpha } from '@/utils/datalabelFade';
-import { CHART_TUNING, tuningLabelFont, tuningBarSize, tuningTickFont, px } from './chartTuning';   // 차트별 여백·굵기·글자 조절표(2026-10-27)
+import { CHART_TUNING, tuningLabelFont, tuningBarSize, tuningTickFont, tightNegativeMin, px } from './chartTuning';   // 차트별 여백·굵기·글자 조절표(2026-10-27)
 import { costRateLinePlugin, monthlyCostRates, RATE_BAND_PAD_TOP } from './costRateLine';
 import { SORTABLE_TRANSITION } from '@/components/ui/sortableMotion';
 import styles from './PerformanceChartSection.module.css';
@@ -1051,13 +1051,18 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
       // 계획 vs 추정 실적 차트와 같은 방식(2026-10-23 "캔버스 가로폭 늘려줘") — 수치 자리를 고정 여백이 아니라 축 끝을
       // 막대별로 딱 맞게 늘려서(fitBarLabelsPlugin) 오른쪽 여백은 최소. 왼쪽은 마이너스 막대가 그 차트에 있을 때만(leftIfNegative) 수치 자리 확보
       const hasNegative = values.some(v => v < 0);
+      // 마이너스 막대가 있으면 축 최소값을 데이터에 맞춰 왼쪽 빈 공간을 줄임(2026-11-13) — 자동이면 -0.01억 하나에도 -0.5억까지 비었음. 없으면 기존(자동) 그대로
+      const negMin = tightNegativeMin(values);
       return {
         ...base,
         layout: { padding: { ...t.padding, left: hasNegative && t.leftIfNegative != null ? t.leftIfNegative : t.padding.left } },
         datasets: tuningBarSize(t),
         scales: {
           ...base.scales,
-          x: { ...xScale, grace: 0, ticks: { ...xScale?.ticks, ...tuningTickFont(t), callback: (v: string | number) => v + '억' } },
+          x: {
+            ...xScale, grace: 0, ...(negMin != null ? { min: negMin } : {}),
+            ticks: { ...xScale?.ticks, ...tuningTickFont(t), ...(negMin != null ? { includeBounds: false } : {}), callback: (v: string | number) => v + '억' },
+          },
           y: { ...yScale, ticks: { ...yScale?.ticks, ...tuningTickFont(t), ...(t.breakTickAtDot ? { callback: breakAtDotTick } : {}) } },
         },
         plugins: {

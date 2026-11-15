@@ -82,7 +82,7 @@ export const CHART_TUNING: Record<string, ChartTuning> = {
   },
   perCapitaProfit: {
     padding: { top: 8, right: 0, bottom: 4, left: 0 },
-    leftIfNegative: 48,
+    // leftIfNegative: 48,   // 제거(2026-11-13): 마이너스 막대 수치도 0선 오른쪽에 찍혀서 왼쪽 48px은 빈 공간일 뿐이었음(렌더로 -0.01·-0.6억 모두 확인). 되살리려면 이 줄만 해제
     labelFontPx: 12,
     labelSpacing: 0,
     tickSpacing: -1.6,
@@ -117,3 +117,18 @@ export const tuningTickFont = (t: ChartTuning) => (t.tickFontPx != null ? { font
 
 /** 자간 px → canvas letterSpacing 문자열 */
 export const px = (n: number) => `${n}px`;
+
+/** 마이너스 막대가 있는 가로 막대 차트의 값 축(x) 최소값 — 마이너스가 없으면 undefined(Chart.js 자동 범위 그대로).
+ *  자동 범위는 눈금 간격(0.5억) 단위로 내려가서 -0.01억 하나 때문에 -0.5억까지 왼쪽이 비고 나머지 막대가 짧아졌음(2026-11-13, 인당 손익).
+ *  가장 작은 값에서 전체 폭(최소~최대)의 gapRatio만 더 내려 막대와 축 사이에 살짝 숨 쉴 틈만 둠.
+ *  이 값을 x.min으로 쓸 땐 눈금에 경계값(-0.08억 같은 어중간한 값)이 안 찍히게 ticks.includeBounds: false도 같이 줄 것 */
+export const tightNegativeMin = (
+  values: readonly (number | null | undefined)[],
+  gapRatio = 0.04,
+): number | undefined => {
+  const nums = values.filter((v): v is number => typeof v === 'number' && Number.isFinite(v));
+  const lo = Math.min(0, ...nums);
+  if (lo >= 0) return undefined;
+  const hi = Math.max(0, ...nums);
+  return lo - (hi - lo) * gapRatio;
+};
