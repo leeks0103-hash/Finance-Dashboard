@@ -22,6 +22,11 @@ const eokMeta = { formatTitle: (v: unknown) => {
   const n = Number(v);
   return n ? `${formatNum(Math.round(n * 1000))}원` : undefined;
 }, filter: { type: 'number', unit: 'eok' } as const };
+// 재무 대조 체크박스(2026-11-16) — "당월 추정 매출"·"당월 추정 직접원가" 머리글 필터 안. 서버(performance.CF_FLAG_LABELS)와 id를 맞출 것
+const revenueFlagsFilter = { type: 'number', unit: 'eok', flags: [{ id: 'mismatch', label: '상이만 보기' }] } as const;
+const costFlagsFilter = { type: 'number', unit: 'eok', flags: [
+  { id: 'mismatch', label: '상이만 보기' }, { id: 'over_start', label: '착수↑만 보기' },
+] } as const;
 // 머리글 깔때기 필터(2026-10-14) — 고르기 목록은 PerformancePage가 table meta.filterOptions로 넘김
 const textFilter   = { filter: { type: 'text' } as const };
 const selectFilter = { filter: { type: 'select' } as const };
@@ -122,14 +127,14 @@ const buildColumns = (_PERF_MONTH: string, finCompare: boolean) => [
   // 원가행의 최초사업계획(V열) — 백엔드가 매출행 줄에 붙여 줌
   h.accessor('plan_cost',         { header: '사업계획 원가', size: 116, enableSorting: true, cell: i => eok(i), meta: eokMeta }),
   h.accessor('jun_check_total',   { header: '당월 추정 매출', size: 122, enableSorting: true, cell: i => eok(i),
-    meta: { ...eokMeta, cellBadges: finBadges('jun_check_total'), cellGlow: finCompare ? finGlow : undefined,
+    meta: { ...eokMeta, filter: revenueFlagsFilter, cellBadges: finBadges('jun_check_total'), cellGlow: finCompare ? finGlow : undefined,
       compareColor: CMP_REVENUE, linkedExpandCol: 'revenue' } }),
   // 재무 대조 모드에서만 — 재무 이력(완료 단계) 값, 천원 단위로 내려옴(백엔드 _attach_finance_mismatch)
   ...(finCompare ? [h.accessor('fin_jun_check_total', { header: '재무 이력 매출(완료)', size: 132, cell: i => eok(i),
     meta: { ...eokMeta, cellGlow: finGlow, compareColor: CMP_REVENUE } })] : []),
   // 원가행 BH / 매출행 BH − 원가행 BH(엑셀 AR17 − AR18) — 백엔드가 원가행에서 직접 읽어 줌(2026-10-02 사용자 정의)
   h.accessor('est_cost',          { header: '당월 추정 직접원가', size: 146, enableSorting: true, cell: i => eok(i),
-    meta: { ...eokMeta, cellBadges: finBadges('est_cost'), cellGlow: finCompare ? finGlow : undefined,
+    meta: { ...eokMeta, filter: costFlagsFilter, cellBadges: finBadges('est_cost'), cellGlow: finCompare ? finGlow : undefined,
       compareColor: CMP_COST, linkedExpandCol: 'direct_cost' } }),
   ...(finCompare ? [h.accessor('fin_est_cost', { header: '재무 이력 직접원가(완료)', size: 160, cell: i => eok(i),
     meta: { ...eokMeta, cellGlow: finGlow, compareColor: CMP_COST } }),
@@ -295,11 +300,20 @@ export const PLAN_VISIBLE: string[] = [
 ];
 
 let _planSet: PerfColumnSet | undefined;
+/** 열 필터의 재무 대조 체크박스 제거 — 계획 보기엔 재무 대조(상이·착수↑ 배지)가 없어서 체크해도 의미가 없음 */
+const withoutFlags = <C,>(c: C): C => {
+  const m = (c as { meta?: { filter?: { flags?: unknown } } }).meta;
+  if (!m?.filter?.flags) return c;
+  const { flags: _flags, ...filter } = m.filter;   // eslint-disable-line @typescript-eslint/no-unused-vars
+  return { ...c, meta: { ...m, filter } } as C;
+};
+
 export const perfPlanColumnSet = (): PerfColumnSet => {
   if (_planSet) return _planSet;
   const base = buildColumns('', false);
   const columns: typeof base = [];
-  for (const c of base) {
+  for (const raw of base) {
+    const c = withoutFlags(raw);
     const id = _colId(c);
     columns.push(PLAN_HEADERS[id] ? ({ ...c, header: PLAN_HEADERS[id] } as typeof c) : c);
     if (id === 'jun_check_total') {

@@ -763,6 +763,11 @@ const DataTable = <T extends object>({
     const h = table.getColumn(id)?.columnDef.header;
     return typeof h === 'string' ? h : id;
   };
+  // 칩에 보일 체크박스 글자(상이만 보기 등) — 그 열 필터 스펙의 flags에서
+  const flagLabelsOf = (id: string): Record<string, string> => {
+    const spec = table.getColumn(id)?.columnDef.meta?.filter;
+    return spec?.type === 'number' ? Object.fromEntries((spec.flags ?? []).map(f => [f.id, f.label])) : {};
+  };
   const setColumnFilter = (id: string, v: ColumnFilterValue | null) => {
     if (!serverColumnFilters) return;
     const rest = serverColumnFilters.value.filter(f => f.id !== id);
@@ -1056,7 +1061,7 @@ const DataTable = <T extends object>({
                 <span key={f.id} className={styles.filterChip}>
                   <Button unstyled className={styles.filterChipText}
                     onClick={e => setFilterOpen({ id: f.id, el: e.currentTarget })}>
-                    {describeColumnFilter(f, columnTitle(f.id))}
+                    {describeColumnFilter(f, columnTitle(f.id), flagLabelsOf(f.id))}
                   </Button>
                   <Button unstyled className={styles.filterChipX} aria-label="이 필터 해제"
                     onClick={() => setColumnFilter(f.id, null)}>×</Button>

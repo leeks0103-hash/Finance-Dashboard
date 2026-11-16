@@ -42,6 +42,14 @@ export const ColumnFilterPopover = ({ anchor, colId, title, spec, options = [], 
   const [find, setFind] = useState('');
   const [min, setMin] = useState(value?.type === 'number' && value.min != null ? String(value.min) : '');
   const [max, setMax] = useState(value?.type === 'number' && value.max != null ? String(value.max) : '');
+  // 체크박스(number 필터의 flags — 상이만 보기·착수↑만 보기)
+  const [flags, setFlags] = useState<Set<string>>(() => new Set(value?.type === 'number' ? value.flags ?? [] : []));
+  const flagSpecs = spec.type === 'number' ? spec.flags ?? [] : [];
+  const toggleFlag = (id: string) => setFlags(prev => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
 
   // 깔때기 오른쪽 끝에 맞춰 아래로 — 아래 공간이 모자라면(표가 짧아 머리글이 화면 아래쪽일 때) 위로 뒤집고,
   // 위아래 다 모자라면 화면 높이에 맞춰 줄이고 목록만 스크롤(예전엔 화면 밖으로 잘려 끝 항목이 안 보였음)
@@ -96,7 +104,10 @@ export const ColumnFilterPopover = ({ anchor, colId, title, spec, options = [], 
       onApply(picked.size ? { id: colId, type: 'select', values: [...picked] } : null);
     } else {
       if (numInvalid) return;
-      onApply(minN == null && maxN == null ? null : { id: colId, type: 'number', unit: spec.unit, min: minN, max: maxN });
+      // 이 열 스펙에 있는 체크박스만(옛 값에 남은 모르는 id는 버림)
+      const chosen = flagSpecs.map(f => f.id).filter(id => flags.has(id));
+      onApply(minN == null && maxN == null && chosen.length === 0 ? null
+        : { id: colId, type: 'number', unit: spec.unit, min: minN, max: maxN, ...(chosen.length ? { flags: chosen } : {}) });
     }
     onClose();
   };
@@ -156,6 +167,17 @@ export const ColumnFilterPopover = ({ anchor, colId, title, spec, options = [], 
             <span>{UNIT_LABEL[spec.unit]} 이하</span>
           </label>
           {numInvalid && <div className={styles.error}>숫자를 확인하세요 (이상 ≤ 이하)</div>}
+          {/* 재무 대조 배지 체크박스(2026-11-16) — 체크한 것 중 하나라도 해당하는 행만(둘 다 체크 = 상이이거나 착수↑) */}
+          {flagSpecs.length > 0 && (
+            <div className={styles.flags} role="group" aria-label="재무 대조 필터">
+              {flagSpecs.map(f => (
+                <label key={f.id} className={styles.option}>
+                  <input type="checkbox" checked={flags.has(f.id)} onChange={() => toggleFlag(f.id)} />
+                  <span>{f.label}</span>
+                </label>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -172,14 +194,18 @@ export const ColumnFilterPopover = ({ anchor, colId, title, spec, options = [], 
   );
 };
 
-/** 칩·툴팁용 한 줄 요약 */
-export const describeColumnFilter = (v: ColumnFilterValue, title: string): string => {
+/** 칩·툴팁용 한 줄 요약 — flagLabels: 체크박스 id → 글자(그 열 스펙의 flags에서, 없으면 id 그대로) */
+export const describeColumnFilter = (v: ColumnFilterValue, title: string, flagLabels: Record<string, string> = {}): string => {
   if (v.type === 'text') return `${title}: "${v.q}"`;
   if (v.type === 'select') {
     return v.values.length === 1 ? `${title}: ${v.values[0]}` : `${title}: ${v.values[0]} 외 ${v.values.length - 1}`;
   }
   const u = UNIT_LABEL[v.unit];
-  if (v.min != null && v.max != null) return `${title}: ${v.min}~${v.max}${u}`;
-  if (v.min != null) return `${title} ≥ ${v.min}${u}`;
-  return `${title} ≤ ${v.max}${u}`;
+  const flagText = (v.flags ?? []).map(id => flagLabels[id] ?? id).join(', ');
+  const range = v.min != null && v.max != null ? `${title}: ${v.min}~${v.max}${u}`
+    : v.min != null ? `${title} ≥ ${v.min}${u}`
+    : v.max != null ? `${title} ≤ ${v.max}${u}`
+    : '';
+  if (!flagText) return range;
+  return range ? `${range} · ${flagText}` : `${title}: ${flagText}`;
 };

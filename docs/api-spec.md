@@ -20,6 +20,7 @@
 - **필터 결과 0건**이어도 응답은 정상 응답과 **같은 키 집합**(값은 0·null·빈 목록) — `/api/summary`·`/api/performance/summary`(`base`는 시트 기준월이라 0건에도 채움)·`/api/kpi/summary`(항목 9행)·`/api/data-health`.
   시트 자체를 못 읽었을 때는 `total`이 빈 객체 `{}`.
 - **열 필터 `cf`**(`/api/performance/data`·`/data/export`): 해석 못 하는 JSON·타입이 틀린 항목은 오류가 아니라 **무시**(해당 항목만 필터 없음).
+  number 필터는 `flags: ["mismatch","over_start"]`(재무 대조 배지 체크박스, 2026-11-16)도 받음 — `jun_check_total`은 `mismatch`(상이), `est_cost`는 `mismatch`·`over_start`(착수↑)만 유효, 체크한 것끼리 **OR**, 이상/이하 범위와는 **AND**. 모르는 id·다른 열·계획 보기(`view=plan27`, 배지 없음)는 무시. 엑셀 다운로드 조건 줄에도 같이 적힘.
 - 서버 페이지 표 `page`·`page_size`는 따로 해석 — 숫자가 아닌 `page`는 1, `page_size`가 숫자가 아니거나 1 미만이면 30(기본), 상한 초과는 상한(`/api/data` 5000 · KPI·실적 200).
 
 ## 인증

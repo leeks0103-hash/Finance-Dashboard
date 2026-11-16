@@ -5,6 +5,13 @@
 
 ---
 
+## [2026-11-16 오후] 프로젝트 상세 — 재무 대조 배지 "보기" 체크박스를 열 필터(깔때기)에
+
+- **요청**: 표 위 "전체/완료/상이" 버튼식 빠른 보기는 별로라서(만들었다가 전부 되돌림) **컬럼 머리글 필터 창 안 체크박스**로. `당월 추정 매출` = "상이만 보기" / `당월 추정 직접원가` = "상이만 보기"·"착수↑만 보기".
+- **동작**: number 필터에 `flags`(`mismatch`·`over_start`) — 체크한 것끼리 OR(둘 다 체크 = 상이이거나 착수↑), 이상/이하 범위와는 AND. 배지가 있는 줄(완료 행)만 걸리고 나머지는 빠짐. 계획 뷰(배지 없음)에선 서버·화면 모두 무시/미표시. 필터 칩("필터: …")·엑셀 다운로드 조건 줄에 "상이만 보기, 착수↑만 보기"가 적힘.
+- **코드**: `performance.py`(`CF_FLAG_LABELS`·`_CF_FLAG_COLS`·`_flag_mask`, `apply_column_filters(with_finance)`, `_perf_detail_frame`이 실적 뷰일 때만 재무 대조 켜고 필터 적용) · `perf_export.py` · 프론트 `columnFilter.types.ts`·`ColumnFilterPopover`·`DataTable`(칩 문구)·`PerformanceTable/columns.tsx`(계획 열 세트에서 flags 제거).
+- **확인**: `tests/test_perf_column_flags.py` 23개(합성 시트·재무 대조 monkeypatch — 운영 data/ 안 읽음), `ColumnFilterPopover.test.tsx` 9개, 전체 vitest 346개, `tsc -b`(기존 `costRateLinePlugin` 미사용 1건 제외). ⚠️ 실제 화면(깔때기 창의 체크박스 간격)은 못 봄. ⚠️ **Flask 재시작 필요**(`performance.py`·`perf_export.py`) — 재시작 전엔 체크해도 서버가 flags를 무시해 전체가 나옴.
+
 ## [2026-11-16] 파트별 인당 손익 — 마이너스 막대 때문에 생기던 왼쪽 빈 공간 제거 · 책임님 코드(origin/main)에 맞춤
 
 - **증상**: 신사업 -0.01억 하나 때문에 인당 손익 차트의 값 축이 -0.5억부터 시작해 왼쪽 약 1/5이 비고 나머지 막대가 짧아졌음. 빈 곳은 두 군데였음.

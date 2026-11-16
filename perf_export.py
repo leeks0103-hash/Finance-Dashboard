@@ -281,4 +281,10 @@ def _describe_cf(raw: str) -> list[str]:
                 out.append(f"{t} ≥ {lo}{u}")
             elif hi is not None:
                 out.append(f"{t} ≤ {hi}{u}")
+            # 체크박스(상이만 보기·착수↑만 보기, 2026-11-16) — 범위와 별개로 한 칸 더
+            if isinstance(f.get("flags"), list):
+                from performance import CF_FLAG_LABELS   # 늦게 가져옴 — performance가 이 모듈을 라우트 안에서 가져오므로 순환 방지
+                labels = [lbl for key, lbl in CF_FLAG_LABELS.items() if key in f["flags"]]
+                if labels:
+                    out.append(f"{t}: {', '.join(labels)}")
     return out

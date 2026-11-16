@@ -1102,16 +1102,41 @@ def _project_rows(rows: pd.DataFrame, with_finance: bool = True) -> pd.DataFrame
     return _attach_finance_mismatch(rows)
 
 
+# 열 필터 체크박스(2026-11-16) — "당월 추정 매출"·"당월 추정 직접원가" 머리글 필터 안의 "상이만 보기"·"착수↑만 보기".
+# number 필터에 `flags: ["mismatch", "over_start"]`가 실려 오고, 같은 열에서 고른 것끼리는 OR(둘 다 체크 = 상이이거나 착수↑),
+# 이상/이하(min·max)와는 AND. 배지 판정값(fin_mismatch·fin_cost_over_start)은 _project_rows가 붙이므로 apply_column_filters는 그 다음에 불려야 함
+CF_FLAG_LABELS = {"mismatch": "상이만 보기", "over_start": "착수↑만 보기"}
+_CF_FLAG_COLS = {"jun_check_total": ("mismatch",), "est_cost": ("mismatch", "over_start")}   # 열 id → 쓸 수 있는 체크박스
+
+
+def _flag_mask(rows: pd.DataFrame, col_id: str, flags: set) -> "pd.Series | None":
+    """그 열에서 체크된 배지 조건에 하나라도 해당하는 행(OR). 쓸 수 없는 열·모르는 체크·판정값이 없는 프레임이면 None(= 필터 없음)"""
+    want = [fl for fl in _CF_FLAG_COLS.get(col_id, ()) if fl in flags]
+    parts = []
+    for fl in want:
+        if fl == "mismatch" and "fin_mismatch" in rows.columns:
+            parts.append(rows["fin_mismatch"].map(lambda v, c=col_id: isinstance(v, list) and c in v))
+        elif fl == "over_start" and "fin_cost_over_start" in rows.columns:
+            parts.append(rows["fin_cost_over_start"].eq(True))   # True/None/NaN이 섞여 있어도 NaN이 참으로 새지 않음
+    if not parts:
+        return None
+    out = parts[0]
+    for p in parts[1:]:
+        out = out | p
+    return out
+
+
 # 열 필터의 숫자 단위 → 데이터 단위. 실적 금액은 천원이라 '억' 입력값 × 100,000
 _CF_UNIT_SCALE = {"eok": 100_000, "pct": 1, "num": 1}
 
 
-def apply_column_filters(rows: pd.DataFrame, raw: str) -> pd.DataFrame:
+def apply_column_filters(rows: pd.DataFrame, raw: str, with_finance: bool = True) -> pd.DataFrame:
     """표 머리글 필터(2026-10-14). raw = JSON 배열
       {"id": 열, "type": "text", "q": "부분일치"}
       {"id": 열, "type": "select", "values": [...]}            — 파트는 원문자(①~) 뗀 값으로도 맞춤
       {"id": 열, "type": "number", "unit": "eok"|"pct", "min": 2.1, "max": null}  — 이상/이하, 빈 값은 제외
-    모르는 열·잘못된 값은 무시(표가 깨지지 않게)."""
+        + "flags": ["mismatch", "over_start"] (선택, 당월 추정 매출·직접원가 열만) — 상이/착수↑ 배지가 붙은 행만(같은 열 체크끼리 OR, min·max와 AND)
+    모르는 열·잘못된 값은 무시(표가 깨지지 않게). with_finance=False(계획 뷰)는 배지가 없어 flags를 무시."""
     if not raw or rows.empty:
         return rows
     import json
@@ -1154,6 +1179,11 @@ def apply_column_filters(rows: pd.DataFrame, raw: str) -> pd.DataFrame:
                     mask &= num >= lo * scale - 1e-9
                 if isinstance(hi, (int, float)) and not isinstance(hi, bool):
                     mask &= num <= hi * scale + 1e-9
+                flags = f.get("flags")
+                if with_finance and isinstance(flags, list):
+                    flag_mask = _flag_mask(rows, f["id"], {x for x in flags if isinstance(x, str)})
+                    if flag_mask is not None:
+                        mask &= flag_mask
         except (TypeError, ValueError, OverflowError):
             logger.warning("열 필터 항목 적용 실패 — 무시: %r", str(f)[:200])
             continue
@@ -1191,9 +1221,10 @@ def _perf_detail_frame() -> pd.DataFrame:
                     mask |= rows[col].astype(str).str.lower().str.contains(s, regex=False, na=False)
         rows = rows[mask]
 
-    rows = _project_rows(rows, with_finance=request_view() == "actual")
-    # 열 필터(표 머리글 깔때기) — 합친 뒤 계산되는 열(당월 추정 직접원가·매출 이익 등)도 걸려야 해서 _project_rows 다음
-    rows = apply_column_filters(rows, request.args.get("cf", ""))
+    with_fin = request_view() == "actual"
+    rows = _project_rows(rows, with_finance=with_fin)
+    # 열 필터(표 머리글 깔때기) — 합친 뒤 계산되는 열(당월 추정 직접원가·매출 이익 등)과 재무 대조 배지(상이·착수↑ 체크박스)도 걸려야 해서 _project_rows 다음
+    rows = apply_column_filters(rows, request.args.get("cf", ""), with_finance=with_fin)
     # 전체 기준 정렬(표 머리글 클릭) — 페이지를 자르기 전에
     return sort_frame(rows, request.args.get("sort_by", ""), request.args.get("sort_dir", "asc"))
 

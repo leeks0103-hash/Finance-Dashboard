@@ -69,5 +69,7 @@
 .rangeRow { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
 .rangeRow span { color: var(--text-sub); font-size: 0.76rem; }
 .error { color: var(--danger); font-size: 0.72rem; }
+/* 체크박스 묶음(2026-11-16) — 이상/이하 입력 아래, 얇은 선으로 구분 */
+.flags { display: flex; flex-direction: column; margin-top: 2px; padding-top: 6px; border-top: 1px solid var(--border); }
 
 .foot { display: flex; justify-content: flex-end; gap: 6px; }
