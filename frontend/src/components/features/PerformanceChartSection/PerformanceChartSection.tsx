@@ -25,6 +25,7 @@ import PerfBreakdownModal from '@/components/features/PerfBreakdownModal/PerfBre
 import CostBreakdownModal from './CostBreakdownModal';
 import CostDumbbell from './CostDumbbell';
 import CostChartSwitch from './CostChartSwitch';
+import HiddenPartsBar from './HiddenPartsBar';
 import { canPerfBreakdown, type PerfBreakdownTarget } from '@/hooks/viewmodels/usePerfBreakdownViewModel';
 import type { PerfBreakdownChart } from '@/api/performance.api';
 import {
@@ -56,8 +57,9 @@ type SpanKey = 'span12' | 'span9' | 'span8' | 'span4' | 'span3';
 const SPAN_BY_ID: Record<string, readonly [SpanKey, 'rowShort' | 'rowTall' | 'rowLow']> = {
   monthly:       ['span8', 'rowShort'],   // 진도율(월별 실적 추이)
   achievement:   ['span4', 'rowShort'],   // 파트별 매출 진행 현황 — 월별 옆(2026-10-23)
-  profitRate:    ['span8', 'rowTall'],    // 원가분석(파트별 추정 매출/원가) — 크게
-  costBreakdown: ['span4', 'rowTall'],    // 전체 평균 원가 비율 도넛 — 원가분석 옆(2026-10-23)
+  // 원가분석 줄 높이 540 → 430(rowShort, 위 진도율 줄과 같게, 2026-11-16 요청). 되돌리려면 둘 다 'rowTall' (같은 줄이라 둘이 같이 바뀌어야 함)
+  profitRate:    ['span8', 'rowShort'],   // 원가분석(파트별 추정 매출/원가)
+  costBreakdown: ['span4', 'rowShort'],   // 전체 평균 원가 비율 도넛 — 원가분석 옆(2026-10-23)
   headcount:     ['span12', 'rowLow'],    // 파트별 인원 — 원가분석 줄 아래 한 줄(낮게)
   planVsActual:  ['span3', 'rowShort'],   // 파트별 계획 vs 추정 실적 — 3줄 맨 앞(3칸, 한 줄 4개)
   perCapitaRevenue: ['span3', 'rowShort'],  // 파트별 인당 매출(계획 vs 추정) — 3칸(한 줄 4개)
@@ -854,7 +856,9 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
     if (canPerfBreakdown(t.chart, t.series)) setBreakdown(t);
   }, []);
   // "파트별 추정 매출/원가"의 x축 라벨 클릭 — 다른 차트처럼 드릴다운을 여는 대신, 그 파트를
-  // 차트에서 숨김/복원 토글(다시 클릭하면 되돌아옴). 데이터가 많아 복잡할 때 걸러보기 위함
+  // 차트에서 숨김/복원 토글. 데이터가 많아 복잡할 때 걸러보기 위함.
+  // ⚠️ 숨기면 그 파트의 라벨도 축에서 사라져 "다시 클릭"으로는 못 되돌림 — 카드 위 "숨긴 파트" 줄(HiddenPartsBar, 2026-11-16)과
+  // 확대 모달의 "파트 표시" 체크박스로 복원(예전엔 모달뿐이라 카드에서 파트가 사라지면 못 찾아서 버그처럼 보였음)
   const [hiddenParts, setHiddenParts] = useState<Set<string>>(new Set());
   const togglePart = useCallback((label: string) => {
     setHiddenParts(prev => {
@@ -863,6 +867,7 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
       return next;
     });
   }, []);
+  const showAllParts = useCallback(() => setHiddenParts(new Set()), []);
   // "파트별 추정 매출/원가" 확대 모달 전용 — 계획 목표선(매출/원가 계획) 오버레이 온오프.
   // 두 선을 하나로 묶지 않고 개별로 껐다 켤 수 있게 분리(매출 계획만 보고 싶을 때 등)
   const [showPlanRevenue, setShowPlanRevenue] = useState(true);
@@ -1632,7 +1637,15 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
           </ChartCard.Title>
           {/* 막대 ↔ 덤벨 — 관리자에게만 토글이 보임(CostChartSwitch). 덤벨은 같은 값·같은 색 역할(이익만 새 역할 gain, 초록) */}
           <ChartCard.Body>
-            <CostChartSwitch bars={chartEl} dumbbell={dumbbellEl} />
+            <CostChartSwitch
+              bars={chartEl}
+              dumbbell={dumbbellEl}
+              top={<HiddenPartsBar
+                parts={vm.profitRate.labels.filter(p => hiddenParts.has(p))}
+                onRestore={togglePart}
+                onRestoreAll={showAllParts}
+              />}
+            />
           </ChartCard.Body>
         </ChartCard>
       );
