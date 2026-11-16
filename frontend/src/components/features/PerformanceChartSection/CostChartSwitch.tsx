@@ -8,6 +8,8 @@ interface Props {
   bars:     ReactNode;
   /** 덤벨 차트 */
   dumbbell: ReactNode;
+  /** 차트 위에 놓을 줄(예: 숨긴 파트 되돌리기) — 비우면 없음. 높이는 차트가 나머지를 채움 */
+  top?: ReactNode;
 }
 
 const VIEWS = [
@@ -21,7 +23,7 @@ const VIEWS = [
  * **토글은 관리자에게만 보임** — 일반 사용자는 저장된 값과 상관없이 항상 기존 막대(모두에게 열려면 isAdmin 조건만 빼면 됨).
  * 고른 보기는 이 브라우저에 기억(ui.store costView, 기본 막대)
  */
-const CostChartSwitch = ({ bars, dumbbell }: Props) => {
+const CostChartSwitch = ({ bars, dumbbell, top }: Props) => {
   const isAdmin = useUiStore(s => s.adminAuthed);
   const stored = useUiStore(s => s.costView);
   const setView = useUiStore(s => s.setCostView);
@@ -29,6 +31,7 @@ const CostChartSwitch = ({ bars, dumbbell }: Props) => {
 
   return (
     <div className={styles.chartWrap}>
+      {top}
       <div className={styles.chartMain}>{view === 'dumbbell' ? dumbbell : bars}</div>
       {isAdmin && (
         <div className={styles.viewToggle} role="group" aria-label="원가분석 보기 방식">

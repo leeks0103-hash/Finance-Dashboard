@@ -1,0 +1,13 @@
+/* 원가분석 카드의 "숨긴 파트" 줄(2026-11-16) — 차트 위, 눈에 띄되 조용하게(칩 크기·모양은 막대/덤벨 토글과 같은 알약) */
+.bar { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding-bottom: 8px; }
+.caption { font-size: 0.72rem; color: var(--text-muted); margin-right: 2px; }
+button.chip, button.all {
+  padding: 2px 10px;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  border-radius: 9999px;
+  color: var(--text-muted);
+}
+button.chip { display: inline-flex; align-items: center; gap: 4px; }
+.x { font-size: 0.85rem; line-height: 1; }
+button.chip:hover, button.all:hover { color: var(--text); }
