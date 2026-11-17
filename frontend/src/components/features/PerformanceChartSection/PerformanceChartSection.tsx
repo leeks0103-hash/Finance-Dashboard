@@ -36,7 +36,8 @@ import type { ChartDataset, ChartOptions } from 'chart.js';
 import { stripPartPrefix, prefersReducedMotion, formatHeadcount } from '@/utils/format';
 import { getDatalabelAlpha } from '@/utils/datalabelFade';
 import { CHART_TUNING, tuningLabelFont, tuningBarSize, tuningTickFont, tightNegativeMin, px } from './chartTuning';   // 차트별 여백·굵기·글자 조절표(2026-10-27)
-import { costRateLinePlugin, monthlyCostRates, RATE_BAND_PAD_TOP } from './costRateLine';
+// costRateLinePlugin: 꺾은선(시안 A) 롤백으로 등록을 주석 처리해 import도 같이 주석(2026-11-16) — 다시 쓰려면 해제
+import { /* costRateLinePlugin, */ monthlyCostRates, RATE_BAND_PAD_TOP } from './costRateLine';
 import { SORTABLE_TRANSITION } from '@/components/ui/sortableMotion';
 import styles from './PerformanceChartSection.module.css';
 
@@ -451,7 +452,7 @@ export const INLINE_COST_RATE = false;   // 2026-10-29: 둘째 줄 방식을 시
  *   'floating' — 예전 방식: 원가 막대 위에 따로 뜬 "(54.8%)"(costRatePlugin)
  * ⚠️ 되돌리려면 이 값만 'floating'으로(예전 코드는 그대로 남아 있음). 진도율 차트만 적용 — 2027 계획 월별 분배(PerformancePlanChartSection)는 예전 방식 그대로
  */
-export const COST_RATE_STYLE = 'floating' as 'line' | 'floating';   // as 단언: 값을 대입하면 TS가 타입을 그 값 하나로 좁혀 `=== 'line'` 비교가 오류가 됨   // 2026-11-11: 'line'을 적용해 봤다가 "그래프 안에 있으면 좋겠는데 애매하다"며 롤백 — 코드는 남겨 둠(다시 쓰려면 'line')
+export const COST_RATE_STYLE = 'floating' as 'line' | 'floating';   // as 단언: 값을 대입하면 TS가 타입을 그 값 하나로 좁혀 `=== 'line'` 비교가 오류가 됨   // 2026-11-11: 'line'을 적용해 봤다가 "그래프 안에 있으면 좋겠는데 애매하다"며 롤백 → 2026-11-16 시안 A(띠 바탕·그래프 틀에 붙인 꺾은선, 대표님 "UI/UX가 매력적이면 막대 위 원가율 보존은 무시 가능")를 적용했다가 요청으로 다시 롤백 — 코드는 주석·플래그로 보관. 다시 쓰려면 'line' + 아래 두 곳(import·plugins 목록)의 costRateLinePlugin 주석 해제
 /** i번째 막대의 원가율 글자 "(54.8%)" — 매출(데이터셋 0) 대비 원가(데이터셋 1 + 보이는 공통원가 2), costRatePlugin과 같은 계산. 값이 없거나 매출·원가를 숨겼으면 null */
 export const costRateText = (chart: Chart, i: number): string | null => {
   if (!chart.isDatasetVisible(0) || !chart.isDatasetVisible(1)) return null;
@@ -1337,7 +1338,7 @@ const PerformanceChartSection = ({ achievement }: { achievement?: AchievementCar
           labels={vm.monthly.labels}
           datasets={monthlyDatasets}
           options={monthlyOptions}
-          plugins={[costRatePlugin, tightLabelsPlugin, tightTicksPlugin]}
+          plugins={[costRatePlugin, /* costRateLinePlugin, (꺾은선 시안 A — 롤백 2026-11-16, 다시 쓰려면 해제) */ tightLabelsPlugin, tightTicksPlugin]}
         />
       );
       // 확대 모달 전용 — 그냥 크게 보이기만 하면 심심하다는 피드백에 따라 월별 매출/원가/손익 +

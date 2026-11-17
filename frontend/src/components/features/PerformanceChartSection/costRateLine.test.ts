@@ -44,10 +44,11 @@ describe('rateBand — 띠의 세로 범위', () => {
 });
 
 describe('costRateLinePlugin', () => {
-  const makeChart = (opts: Partial<CostRateLineOpts> | undefined) => {
-    const calls = { fillText: [] as string[], stroke: 0, arc: 0 };
+  const makeChart = (opts: Partial<CostRateLineOpts> | undefined, chartArea?: { left: number; right: number; top: number; bottom: number }) => {
+    const calls = { fillText: [] as string[], stroke: 0, arc: 0, rect: 0 };
     const ctx = {
       save: vi.fn(), restore: vi.fn(), beginPath: vi.fn(), moveTo: vi.fn(), lineTo: vi.fn(), fill: vi.fn(), setLineDash: vi.fn(),
+      fillRect: vi.fn(() => { calls.rect += 1; }),
       stroke: vi.fn(() => { calls.stroke += 1; }),
       arc: vi.fn(() => { calls.arc += 1; }),
       fillText: vi.fn((t: string) => { calls.fillText.push(t); }),
@@ -57,6 +58,7 @@ describe('costRateLinePlugin', () => {
       ctx,
       options: { plugins: opts ? { costRateLine: { show: true, rates: [], future: [], color: '#0a0', lossColor: '#f00', mutedColor: '#888', pointFill: '#fff', ...opts } } : {} },
       scales: { x: { getPixelForValue: (i: number) => 50 + i * 70 } },
+      chartArea,
     };
     return { chart, calls };
   };
@@ -85,5 +87,17 @@ describe('costRateLinePlugin', () => {
     expect(calls.fillText).toContain('–');
     expect(calls.arc).toBe(2);
     expect(calls.stroke).toBe(1 + 2);   // 선 1구간(2~3월) + 점 테두리 2 — 1월과 이어지는 구간 없음
+  });
+
+  it('막대 영역 폭만큼 띠 바탕을 칠하고 아래를 선으로 닫음(chartArea가 있을 때만)', () => {
+    const area = { left: 40, right: 900, top: 60, bottom: 300 };
+    const { chart, calls } = makeChart({ rates: [56.6, 56.3], future: [false, false] }, area);
+    run(chart);
+    expect(calls.rect).toBe(1);
+    expect(chart.ctx.fillRect).toHaveBeenCalledWith(40, 2, 860, 58);
+    expect(calls.stroke).toBe(1 + 1 + 2);   // 띠 아래 선 1 + 꺾은선 1구간 + 점 테두리 2
+    const none = makeChart({ rates: [56.6, 56.3], future: [false, false] });
+    run(none.chart);
+    expect(none.calls.rect).toBe(0);
   });
 });

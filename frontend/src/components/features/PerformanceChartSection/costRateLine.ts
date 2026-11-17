@@ -82,6 +82,22 @@ export const costRateLinePlugin: Plugin<'bar'> = {
     ctx.save();
     ctx.textBaseline = 'middle';
 
+    // 띠 바탕 — 막대 영역(chartArea) 폭 그대로 위쪽 여백을 연한 청록으로 칠하고 아래를 얇은 선으로 닫아, 막대 그래프와 한 틀 안에 있는 것처럼 보이게(2026-11-16, 시안 A "그래프 안").
+    // 왼쪽 억 눈금(y축)은 이 띠 아래에서 끝나므로 % 값이 억 눈금과 섞이지 않음 — 캡션도 눈금 칸(왼쪽)에 둠
+    const area = chart.chartArea;
+    if (area && area.top > 4) {
+      ctx.globalAlpha = base * 0.08;
+      ctx.fillStyle = o.color;
+      ctx.fillRect(area.left, 2, area.right - area.left, area.top - 2);
+      ctx.globalAlpha = base * 0.35;
+      ctx.strokeStyle = o.color;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(area.left, Math.round(area.top) - 0.5);
+      ctx.lineTo(area.right, Math.round(area.top) - 0.5);
+      ctx.stroke();
+    }
+
     // 캡션 — 왼쪽 y축 자리
     ctx.globalAlpha = base;
     ctx.font = `12px ${FONT_FAMILY}`;
